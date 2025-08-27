@@ -19,12 +19,20 @@
     .num{font-variant-numeric:tabular-nums}
     .tab-btn{border:1px solid #e5e7eb;border-radius:.6rem;padding:.35rem .7rem;font-size:.85rem;background:#fff}
     .tab-btn.active{background:var(--olive);border-color:var(--olive);color:#fff}
-    .aside-rail{width:340px}
+    .aside-rail{width:360px}
     @media (max-width:1024px){.aside-rail{width:auto}}
 
-    /* Equity tooltip */
+    /* Equity */
     .eq-tip{position:absolute;pointer-events:none;background:#111827;color:#fff;font-size:.75rem;border-radius:.5rem;padding:.35rem .5rem;box-shadow:0 10px 25px rgba(0,0,0,.12)}
     .spark{height:30px;width:120px}
+
+    /* Calendar grid */
+    .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.35rem}
+    .cal-cell{border:1px solid #e5e7eb;border-radius:.6rem;height:58px;display:flex;flex-direction:column;justify-content:space-between;padding:.35rem .4rem}
+    .cal-legend span{display:inline-block;width:14px;height:10px;border-radius:3px;border:1px solid #e5e7eb}
+
+    /* Topbar small & clean */
+    .topbar{height:52px}
   </style>
 </head>
 <body>
@@ -34,19 +42,29 @@
 
     <!-- MAIN -->
     <main class="flex-1 min-h-screen">
-      <!-- Topbar -->
-      <section class="glass sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div>
-            <div id="greet" class="text-xl font-semibold">Dashboard</div>
-            <p class="text-xs text-slate-600 -mt-1">Your portfolio, performance, risk and latest activity at a glance.</p>
-          </div>
-          <div class="ml-auto flex items-center gap-2">
-            <div class="hidden md:flex items-center border rounded-full px-3 h-10 bg-white">
+      <!-- Slim topbar (no greeting here) -->
+      <section class="glass sticky top-0 z-10 topbar">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
+          <div class="text-sm text-slate-600">Dashboard</div>
+          <div class="flex items-center gap-2 w-full">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56"/>
             </div>
-            <button class="border rounded-lg h-10 px-3 bg-white"><i class="fa-solid fa-file-arrow-down mr-2"></i>Export</button>
+            <!-- Export flush right -->
+            <button class="border rounded-lg h-9 px-3 bg-white ml-auto mr-0">
+              <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Greeting on MAIN -->
+      <section class="max-w-7xl mx-auto px-6 pt-6">
+        <div class="flex items-center">
+          <div>
+            <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
+            <p class="text-sm text-slate-600">Your portfolio, performance, risk and activity at a glance.</p>
           </div>
         </div>
       </section>
@@ -77,7 +95,7 @@
               </div>
             </div>
 
-            <!-- FIVE METRICS (top of the card) -->
+            <!-- five metrics -->
             <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
               <div class="p-3 border rounded-xl">
                 <div class="text-slate-500 text-xs">Return</div>
@@ -107,7 +125,51 @@
             </div>
           </div>
 
-          <!-- Subscribed Strategies (container) -->
+          <!-- Daily Performance Calendar (this month) -->
+          <div class="card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="font-semibold">Daily Performance — <span id="calMonth"></span></div>
+              <div class="cal-legend text-xs text-slate-500 flex items-center gap-2">
+                <span style="background:#fee2e2"></span> -2% &nbsp;
+                <span style="background:#fde68a"></span> 0% &nbsp;
+                <span style="background:#dcfce7"></span> +2%
+              </div>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+
+          <!-- Performance Summary -->
+          <div class="card p-5">
+            <div class="font-semibold mb-3">Performance Summary</div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Best Day</div>
+                <div id="sumBest" class="font-semibold">—</div>
+              </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Worst Day</div>
+                <div id="sumWorst" class="font-semibold">—</div>
+              </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Avg Daily Return</div>
+                <div id="sumAvg" class="font-semibold">—</div>
+              </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Positive Days</div>
+                <div id="sumPos" class="font-semibold">—</div>
+              </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Trading Days</div>
+                <div id="sumDays" class="font-semibold">—</div>
+              </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">CAGR (sim.)</div>
+                <div id="sumCagr" class="font-semibold">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subscribed Strategies -->
           <div class="card p-5">
             <div class="flex items-center justify-between mb-3">
               <div class="font-semibold">Subscribed Strategies</div>
@@ -129,16 +191,32 @@
         <!-- RIGHT COLUMN -->
         <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
 
-          <!-- Portfolio Rating (black → olive gradient) + account dropdown -->
+          <!-- Accounts (separate container, controls rating) -->
           <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <div class="font-semibold">Portfolio Rating</div>
+            <div class="font-semibold mb-2">Accounts</div>
+            <div class="flex items-center gap-2">
               <select id="acctSel" class="border rounded-lg text-sm px-2 py-1">
                 <option value="all">All accounts</option>
                 <option value="ibkr">IBKR Pro · U1234567</option>
                 <option value="paper">Paper · DU7654321</option>
               </select>
+              <span class="text-xs text-slate-500">Affects rating & stats</span>
             </div>
+            <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Total Balance</div>
+                <div id="acctBal" class="font-semibold num">—</div>
+              </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Cash Available</div>
+                <div id="acctCash" class="font-semibold num">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Portfolio Rating (black → olive gradient ring) -->
+          <div class="card p-5">
+            <div class="font-semibold mb-3">Portfolio Rating</div>
             <div class="flex items-center gap-4">
               <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
               <div>
@@ -152,10 +230,34 @@
             </div>
           </div>
 
-          <!-- Asset Allocation (replaces Last Investments) -->
+          <!-- Asset Allocation -->
           <div class="card">
             <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
             <div id="allocBars" class="p-5 space-y-4"></div>
+          </div>
+
+          <!-- Fee Breakdown -->
+          <div class="card p-5">
+            <div class="font-semibold mb-3">Fee Breakdown</div>
+            <div class="mb-3">
+              <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
+                <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
+                <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
+                <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
+                <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
+              </div>
+              <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="text-slate-500">
+                <tr>
+                  <th class="text-left py-2">Type</th>
+                  <th class="text-right py-2">Rate</th>
+                  <th class="text-right py-2">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="feeRows" class="divide-y"></tbody>
+            </table>
           </div>
 
         </aside>
@@ -217,7 +319,7 @@
     try{ if(sessionStorage.getItem('ah_sidebar_collapsed')==='1'){collapsed=true; sidebar.classList.add('is-collapsed'); if(collapseBtn) collapseBtn.innerHTML='<i class="fa-solid fa-angles-right text-sm"></i>';}}catch(e){}
   }
 
-  /* =================== UTIL =================== */
+  /* =================== UTIL & CHARTS =================== */
   const fmtMoney=v=> new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0}).format(v);
   const greetLine=()=>{const h=new Date().getHours();const t=h<12?'Good morning':(h<18?'Good afternoon':'Good evening');return `${t}, Mihle`;};
 
@@ -229,12 +331,9 @@
     return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
   }
 
-  /* ===== Equity curve drawing (area + line + tooltip) ===== */
   function drawEquity(svgEl, series, labels){
     const W=900,H=320,pad=34;
     svgEl.innerHTML='';
-
-    // grid
     for(let i=0;i<5;i++){
       const y=pad+i*(H-2*pad)/4;
       const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
@@ -242,35 +341,23 @@
       ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1');
       svgEl.appendChild(ln);
     }
-
     const min=Math.min(...series), max=Math.max(...series), rng=(max-min)||1;
     const step=(W-2*pad)/(series.length-1);
-    const X=i=> pad+i*step;
-    const Y=v=> H-pad - ((v-min)/rng)*(H-2*pad);
+    const X=i=> pad+i*step, Y=v=> H-pad-((v-min)/rng)*(H-2*pad);
 
-    // defs: gradient for fill (olive→black fade)
     const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
     const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
     grad.setAttribute('id','eqGrad'); grad.setAttribute('x1','0'); grad.setAttribute('y1','0'); grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
-    const st1=document.createElementNS('http://www.w3.org/2000/svg','stop'); st1.setAttribute('offset','0%');  st1.setAttribute('stop-color','#556B2F'); st1.setAttribute('stop-opacity','.28');
-    const st2=document.createElementNS('http://www.w3.org/2000/svg','stop'); st2.setAttribute('offset','100%'); st2.setAttribute('stop-color','#111827'); st2.setAttribute('stop-opacity','0.02');
-    grad.append(st1,st2); defs.appendChild(grad); svgEl.appendChild(defs);
+    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#556B2F'); s1.setAttribute('stop-opacity','.28');
+    const s2=document.createElementNS('http://www.w3.org/2000/svg','stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#111827'); s2.setAttribute('stop-opacity','0.02');
+    grad.append(s1,s2); defs.appendChild(grad); svgEl.appendChild(defs);
 
-    // area + line
-    let dLine='', dArea='';
-    series.forEach((v,i)=>{ const x=X(i), y=Y(v); dLine += `${i?'L':'M'}${x.toFixed(2)},${y.toFixed(2)} `; });
-    dArea = dLine + `L${X(series.length-1).toFixed(2)},${H-pad} L${X(0).toFixed(2)},${H-pad} Z`;
+    let dLine=''; series.forEach((v,i)=> dLine+=`${i?'L':'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `);
+    const dArea = dLine + `L${X(series.length-1).toFixed(2)},${H-pad} L${X(0).toFixed(2)},${H-pad} Z`;
 
-    const area=document.createElementNS('http://www.w3.org/2000/svg','path');
-    area.setAttribute('d', dArea.trim()); area.setAttribute('fill','url(#eqGrad)'); svgEl.appendChild(area);
-
-    const line=document.createElementNS('http://www.w3.org/2000/svg','path');
-    line.setAttribute('d', dLine.trim()); line.setAttribute('fill','none');
-    line.setAttribute('stroke','#0f172a'); line.setAttribute('stroke-width','2.75'); svgEl.appendChild(line);
-
-    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    dot.setAttribute('cx',X(series.length-1)); dot.setAttribute('cy',Y(series.at(-1)));
-    dot.setAttribute('r','4.2'); dot.setAttribute('fill','#0f172a'); svgEl.appendChild(dot);
+    const area=document.createElementNS('http://www.w3.org/2000/svg','path'); area.setAttribute('d',dArea.trim()); area.setAttribute('fill','url(#eqGrad)'); svgEl.appendChild(area);
+    const line=document.createElementNS('http://www.w3.org/2000/svg','path'); line.setAttribute('d',dLine.trim()); line.setAttribute('fill','none'); line.setAttribute('stroke','#0f172a'); line.setAttribute('stroke-width','2.75'); svgEl.appendChild(line);
+    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle'); dot.setAttribute('cx',X(series.length-1)); dot.setAttribute('cy',Y(series.at(-1))); dot.setAttribute('r','4.2'); dot.setAttribute('fill','#0f172a'); svgEl.appendChild(dot);
 
     // x labels
     const gL=document.createElementNS('http://www.w3.org/2000/svg','g');
@@ -282,31 +369,25 @@
   function calcMetrics(series){
     const first=series[0], last=series.at(-1);
     const ret=((last/first)-1)*100;
-
-    // max drawdown
     let peak=series[0], maxDD=0;
     for(const v of series){ peak=Math.max(peak,v); maxDD=Math.min(maxDD,(v/peak-1)); }
-    const ddPct = Math.abs(maxDD*100);
-
-    // simple pct-change series
+    const ddPct=Math.abs(maxDD*100);
     const rets=[]; for(let i=1;i<series.length;i++) rets.push((series[i]/series[i-1])-1);
-    const avg = rets.reduce((a,b)=>a+b,0)/rets.length;
-    const sd = Math.sqrt(rets.reduce((a,b)=>a+(b-avg)*(b-avg),0)/rets.length) || 0.00001;
-    const sharpe = (avg/sd)*Math.sqrt(12);         // monthly-ish annualization
-    const wins = rets.filter(r=>r>0).length / rets.length * 100;
-    const vol = sd*Math.sqrt(12)*100;              // annualized vol %
-
-    return {ret, ddPct, sharpe, wins, vol};
+    const avg=rets.reduce((a,b)=>a+b,0)/rets.length;
+    const sd=Math.sqrt(rets.reduce((a,b)=>a+(b-avg)*(b-avg),0)/rets.length)||0.00001;
+    const sharpe=(avg/sd)*Math.sqrt(12);
+    const wins=rets.filter(r=>r>0).length/rets.length*100;
+    const vol=sd*Math.sqrt(12)*100;
+    return {ret, ddPct, sharpe, wins, vol, rets};
   }
 
-  /* ===== Portfolio rating donut (black → olive) ===== */
   function drawDonut(el, percent){
-    const r=68, cx=80, cy=80, C=2*Math.PI*r, val=Math.max(0,Math.min(100,percent));
+    const r=68,cx=80,cy=80,C=2*Math.PI*r,val=Math.max(0,Math.min(100,percent));
     el.innerHTML='';
     const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
     const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient'); grad.setAttribute('id','gOlive');
     grad.setAttribute('x1','0%'); grad.setAttribute('y1','0%'); grad.setAttribute('x2','100%'); grad.setAttribute('y2','0%');
-    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#000000');
+    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#000');
     const s2=document.createElementNS('http://www.w3.org/2000/svg','stop'); s2.setAttribute('offset','60%'); s2.setAttribute('stop-color','#111827');
     const s3=document.createElementNS('http://www.w3.org/2000/svg','stop'); s3.setAttribute('offset','100%'); s3.setAttribute('stop-color','#556B2F');
     grad.append(s1,s2,s3); defs.appendChild(grad); el.appendChild(defs);
@@ -323,8 +404,7 @@
 
     const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
     txt.textContent=val.toFixed(0)+'%'; txt.setAttribute('x',cx); txt.setAttribute('y',cy+5);
-    txt.setAttribute('text-anchor','middle'); txt.setAttribute('font-size','20'); txt.setAttribute('font-weight','700'); txt.setAttribute('fill','#0f172a');
-    el.appendChild(txt);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('font-size','20'); txt.setAttribute('font-weight','700'); txt.setAttribute('fill','#0f172a'); el.appendChild(txt);
   }
 
   /* =================== BOOT =================== */
@@ -332,18 +412,18 @@
     await loadMenu();
     buildMenu('dashboard');
 
-    // Greeting
+    // Greeting on main
     document.getElementById('greet').textContent = greetLine();
 
     /* -------- Equity Curve Data -------- */
-    const base = 1_000_000; // starting capital for display
+    const base = 1_000_000;
     const EQ = {
-      "1M":  { lbl: ['W1','W2','W3','W4','W5'], arr:[1.00,1.03,1.01,1.06,1.09] },
-      "3M":  { lbl: ['M1','M2','M3'],           arr:[1.00,1.07,1.12] },
-      "6M":  { lbl: ['M1','M2','M3','M4','M5','M6'], arr:[1.00,1.04,1.02,1.09,1.13,1.18] },
-      "YTD": { lbl: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'], arr:[1.00,1.03,1.02,1.08,1.12,1.15,1.19,1.22,1.27] },
-      "1Y":  { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr:[1.00,1.03,1.01,1.07,1.10,1.12,1.18,1.21,1.25,1.32,1.38,1.43] },
-      "3Y":  { lbl: ['Y1','Y2','Y3','Y3+'],     arr:[1.00,1.26,1.58,1.90] }
+      "1M":  { lbl:['W1','W2','W3','W4','W5'], arr:[1.00,1.03,1.01,1.06,1.09] },
+      "3M":  { lbl:['M1','M2','M3'], arr:[1.00,1.07,1.12] },
+      "6M":  { lbl:['M1','M2','M3','M4','M5','M6'], arr:[1.00,1.04,1.02,1.09,1.13,1.18] },
+      "YTD": { lbl:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'], arr:[1.00,1.03,1.02,1.08,1.12,1.15,1.19,1.22,1.27] },
+      "1Y":  { lbl:['J','F','M','A','M','J','J','A','S','O','N','D'], arr:[1.00,1.03,1.01,1.07,1.10,1.12,1.18,1.21,1.25,1.32,1.38,1.43] },
+      "3Y":  { lbl:['Y1','Y2','Y3','Y3+'], arr:[1.00,1.26,1.58,1.90] }
     };
 
     const eqSvg = document.getElementById('eqSvg');
@@ -354,7 +434,6 @@
       const d = EQ[range] || EQ['1Y'];
       drawEquity(eqSvg, d.arr, d.lbl);
 
-      // headline value + delta
       const first=d.arr[0], last=d.arr.at(-1);
       const value = base*last;
       const delta = ((last/first)-1)*100;
@@ -363,7 +442,6 @@
       dEl.textContent = (delta>=0?'+':'')+delta.toFixed(2)+'%';
       dEl.className = 'chip ' + (delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
 
-      // metrics
       const m=calcMetrics(d.arr);
       document.getElementById('mRet').textContent    = (m.ret>=0?'+':'')+m.ret.toFixed(2)+'%';
       document.getElementById('mDD').textContent     = m.ddPct.toFixed(2)+'%';
@@ -371,7 +449,7 @@
       document.getElementById('mWin').textContent    = m.wins.toFixed(0)+'%';
       document.getElementById('mVol').textContent    = m.vol.toFixed(1)+'%';
 
-      // tooltip
+      // simple tooltip (approximate index mapping)
       const W=eqWrap.clientWidth, pad=34, step=(W-2*pad)/(d.arr.length-1);
       eqWrap.onmousemove = (e)=>{
         const rect=eqWrap.getBoundingClientRect();
@@ -394,13 +472,20 @@
       });
     });
 
-    /* -------- Portfolio Rating with account dropdown -------- */
-    const ratingByAcct = { all:82, ibkr:78, paper:65 };
+    /* -------- Accounts + Rating -------- */
+    const acctData = {
+      all:   { bal: 1_523_400, cash: 188_000, rating: 82 },
+      ibkr:  { bal: 1_240_000, cash: 120_000, rating: 78 },
+      paper: { bal:   250_000, cash:  68_000, rating: 65 }
+    };
     const delta=+5.48;
+
     function renderRating(acct='all'){
-      const pct=ratingByAcct[acct]??82;
-      drawDonut(document.getElementById('ratingGauge'), pct);
-      document.getElementById('ratingText').textContent = pct>=85?'Excellent':(pct>=70?'Very Good':'Fair');
+      const d = acctData[acct] || acctData.all;
+      document.getElementById('acctBal').textContent = fmtMoney(d.bal);
+      document.getElementById('acctCash').textContent = fmtMoney(d.cash);
+      drawDonut(document.getElementById('ratingGauge'), d.rating);
+      document.getElementById('ratingText').textContent = d.rating>=85?'Excellent':(d.rating>=70?'Very Good':'Fair');
       const chip=document.getElementById('ratingDeltaChip');
       chip.textContent = (delta>=0?'+':'')+delta.toFixed(2)+'%';
       chip.className = 'chip '+(delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
@@ -429,6 +514,89 @@
         </div>
       </div>
     `).join('');
+
+    /* -------- Fee Breakdown -------- */
+    const grossProfit = 120_000; // example
+    const feeModel = {
+      mgmt: { label:'Management', rate:'1.0% p.a.', pctOfProfit: 0.18 }, // treated relative to profits for bar
+      perf: { label:'Performance', rate:'15% of profits', pctOfProfit: 0.15 },
+      brok: { label:'Brokerage', rate:'0.12% notional', pctOfProfit: 0.05 },
+      slip: { label:'Slippage est.', rate:'—', pctOfProfit: 0.03 },
+    };
+    const amounts = {
+      mgmt: Math.round(grossProfit * feeModel.mgmt.pctOfProfit),
+      perf: Math.round(grossProfit * feeModel.perf.pctOfProfit),
+      brok: Math.round(grossProfit * feeModel.brok.pctOfProfit),
+      slip: Math.round(grossProfit * feeModel.slip.pctOfProfit),
+    };
+    const totalFees = amounts.mgmt + amounts.perf + amounts.brok + amounts.slip;
+    // stacked widths (percent of total fees)
+    const pct = k => (amounts[k]/totalFees*100).toFixed(1)+'%';
+    document.getElementById('feeMgmt').style.width = pct('mgmt');
+    document.getElementById('feePerf').style.width = pct('perf');
+    document.getElementById('feeBrok').style.width = pct('brok');
+    document.getElementById('feeSlip').style.width = pct('slip');
+    document.getElementById('feeRows').innerHTML = `
+      <tr><td class="py-2">Management</td><td class="py-2 text-right">${feeModel.mgmt.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.mgmt)}</td></tr>
+      <tr><td class="py-2">Performance</td><td class="py-2 text-right">${feeModel.perf.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.perf)}</td></tr>
+      <tr><td class="py-2">Brokerage</td><td class="py-2 text-right">${feeModel.brok.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.brok)}</td></tr>
+      <tr><td class="py-2">Slippage (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(amounts.slip)}</td></tr>
+      <tr class="font-semibold"><td class="py-2">Total Fees</td><td></td><td class="py-2 text-right num">${fmtMoney(totalFees)}</td></tr>
+    `;
+
+    /* -------- Daily Performance Calendar (this month) -------- */
+    const grid = document.getElementById('calGrid');
+    const monthName = new Date().toLocaleString('default',{month:'long', year:'numeric'});
+    document.getElementById('calMonth').textContent = monthName;
+
+    function colorFor(v){ // v in -2..+2
+      if (v >= 0){
+        const a = Math.min(1, v/2); // 0..1
+        return `rgba(16,185,129,${0.15 + a*0.35})`; // emerald-ish
+      } else {
+        const a = Math.min(1, Math.abs(v)/2);
+        return `rgba(239,68,68,${0.18 + a*0.35})`; // rose-ish
+      }
+    }
+    function genMonthData(){
+      const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
+      const firstDay=new Date(y,m,1); const startWeek=firstDay.getDay(); // 0 Sun..6 Sat
+      const days=new Date(y,m+1,0).getDate();
+      const arr=[];
+      // empty cells before 1st
+      for(let i=0;i<startWeek;i++) arr.push({empty:true});
+      for(let d=1; d<=days; d++){
+        // mock daily return -2%..+2%
+        const ret = +( (Math.random()*4)-2 ).toFixed(2);
+        arr.push({day:d, ret});
+      }
+      return arr;
+    }
+    const monthArr = genMonthData();
+    grid.innerHTML = monthArr.map(c=>{
+      if (c.empty) return `<div class="cal-cell bg-white"></div>`;
+      const bg = colorFor(c.ret);
+      return `
+        <div class="cal-cell" style="background:${bg}">
+          <div class="text-[11px] text-slate-700">${c.day}</div>
+          <div class="text-[11px] ${c.ret>=0?'text-emerald-700':'text-rose-700'} self-end">${c.ret>=0?'+':''}${c.ret.toFixed(2)}%</div>
+        </div>
+      `;
+    }).join('');
+
+    // Performance summary from calendar data
+    const rets = monthArr.filter(x=>!x.empty).map(x=>x.ret/100);
+    const best = Math.max(...rets)*100;
+    const worst = Math.min(...rets)*100;
+    const avg = (rets.reduce((a,b)=>a+b,0)/rets.length)*100;
+    const pos = rets.filter(r=>r>0).length;
+    const cagr = (Math.pow(1+avg/100, 252)-1)*100; // naive from avg daily
+    document.getElementById('sumBest').textContent = `+${best.toFixed(2)}%`;
+    document.getElementById('sumWorst').textContent = `${worst.toFixed(2)}%`;
+    document.getElementById('sumAvg').textContent = `${avg>=0?'+':''}${avg.toFixed(2)}%`;
+    document.getElementById('sumPos').textContent = `${pos} days`;
+    document.getElementById('sumDays').textContent = `${rets.length}`;
+    document.getElementById('sumCagr').textContent = `${cagr.toFixed(1)}%`;
 
     /* -------- Subscribed Strategies (container) -------- */
     const subs = [
@@ -477,9 +645,6 @@
         </div>
       </div>
     `).join('');
-
-    // Set greeting on load
-    document.getElementById('greet').textContent = greetLine();
   })();
   </script>
 </body>
