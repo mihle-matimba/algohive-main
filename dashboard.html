@@ -186,151 +186,216 @@
     </main>
   </div>
 
-  <!-- Script: load shared menu, draw chart, sample data -->
-  <script>
-    /* ========= 1) Load global menu partial ========= */
-    async function loadMenu() {
-      const mount = document.getElementById('sidebarMount');
-      if (!mount) return;
-      const hint = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
-      const res = await fetch(hint, { cache: 'no-store' });
-      if (!res.ok) {
-        console.error('menu.html not found at', hint);
-        return;
-      }
-      const html = await res.text();
-      mount.outerHTML = html;
-    }
+<script>
+/* ===================== 1) Load global menu partial ===================== */
+async function loadMenu() {
+  const mount = document.getElementById('sidebarMount');
+  if (!mount) throw new Error('#sidebarMount not found');
+  const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('menu.html not found at ' + url);
+  const html = await res.text();
+  mount.outerHTML = html; // injects <aside id="sidebar">… with #navContainer
+}
 
-    /* ========= 2) Simple helpers ========= */
-    const fmtMoney = (v, cur='ZAR') => {
-      try { return new Intl.NumberFormat('en-ZA', { style:'currency', currency:cur }).format(v); }
-      catch { return 'R ' + (v||0).toLocaleString(); }
+/* ===================== 2) Build sidebar items after partial ===================== */
+function buildMenu(activeKey = 'dashboard') {
+  const navContainer = document.getElementById('navContainer');
+  if (!navContainer) return;
+
+  const menu = [
+    { section: "Menu", items: [
+      { key:"dashboard",       label:"Dashboard",        icon:"fa-gauge",                   href:"/dashboard.html" },
+      { key:"open-strategies", label:"Open Strategies",  icon:"fa-cubes",                   href:"/open-strategies.html" },
+      { key:"portfolio",       label:"My Portfolio",     icon:"fa-chart-line",              href:"/portfolio.html" },
+      { key:"funding",         label:"Funding",          icon:"fa-wallet",                  href:"/funding.html" },
+      { key:"reports",         label:"Reports",          icon:"fa-file-invoice",            href:"/reports.html" },
+      { key:"news",            label:"News & Insights",  icon:"fa-newspaper",               href:"/news.html" },
+      { key:"alerts",          label:"Notifications",    icon:"fa-bell",                    href:"/alerts.html" },
+    ]},
+    { section: "General", items: [
+      { key:"settings",        label:"Settings",         icon:"fa-gear",                    href:"/settings.html" },
+      { key:"help",            label:"Help Desk",        icon:"fa-circle-question",         href:"/help.html" },
+      { key:"integration",     label:"Integration",      icon:"fa-plug",                    href:"/integrations.html" },
+      { key:"feedback",        label:"Feedback",         icon:"fa-comment-dots",            href:"/feedback.html" },
+    ]},
+  ];
+
+  function createGroup(sectionObj){
+    const group = document.createElement('div'); group.className = 'mb-2';
+    const header = document.createElement('button'); header.className='w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded','true');
+    const title = document.createElement('div'); title.className='section-title'; title.textContent = sectionObj.section;
+    const right = document.createElement('div'); right.className='label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
+    const body = document.createElement('div'); body.className='group-body';
+    const list = document.createElement('nav'); list.className='space-y-1 px-0.5';
+
+    sectionObj.items.forEach(item=>{
+      const a = document.createElement('a');
+      a.href=item.href||'#'; a.className='sidebar-link'; a.title=item.label;
+      if(item.key===activeKey) a.classList.add('active');
+      a.innerHTML = `<i class="fa-solid ${item.icon}"></i><span class="label">${item.label}</span>`;
+      list.appendChild(a);
+    });
+
+    body.appendChild(list); header.append(title,right); group.append(header,body);
+
+    header.addEventListener('click',()=>{
+      const exp = header.getAttribute('aria-expanded')==='true';
+      header.setAttribute('aria-expanded', String(!exp));
+      const chev = header.querySelector('.chev');
+      if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); }
+      else   { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); }
+    });
+    requestAnimationFrame(()=>{ body.style.maxHeight = body.scrollHeight+'px'; });
+    return group;
+  }
+
+  navContainer.innerHTML='';
+  menu.forEach(s=> navContainer.appendChild(createGroup(s)));
+
+  // collapse button hookup
+  const sidebar = document.getElementById('sidebar');
+  const collapseBtn = document.getElementById('collapseBtn');
+  let collapsed = false;
+  collapseBtn?.addEventListener('click', ()=>{
+    collapsed = !collapsed;
+    sidebar.classList.toggle('is-collapsed', collapsed);
+    collapseBtn.innerHTML = collapsed
+      ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+      : '<i class="fa-solid fa-angles-left text-sm"></i>';
+    try{ sessionStorage.setItem('ah_sidebar_collapsed', collapsed?'1':'0'); }catch(e){}
+  });
+  try{
+    if(sessionStorage.getItem('ah_sidebar_collapsed')==='1'){
+      collapsed = true; sidebar.classList.add('is-collapsed');
+      if(collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>';
+    }
+  }catch(e){}
+}
+
+/* ===================== 3) Dashboard helpers ===================== */
+const fmtMoney = (v, cur='ZAR') => {
+  try { return new Intl.NumberFormat('en-ZA', { style:'currency', currency:cur, maximumFractionDigits:0 }).format(v); }
+  catch { return 'R ' + (v||0).toLocaleString(); }
+};
+
+function drawLines(svgEl, seriesList, labels) {
+  const W = 900, H = 260, pad = 28;
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = '';
+
+  // grid
+  const grid = document.createElementNS('http://www.w3.org/2000/svg','g');
+  for (let i=0;i<5;i++){
+    const y = pad + i*(H-2*pad)/4;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', pad); line.setAttribute('x2', W-pad);
+    line.setAttribute('y1', y);   line.setAttribute('y2', y);
+    line.setAttribute('stroke', '#e5e7eb'); line.setAttribute('stroke-width','1');
+    grid.appendChild(line);
+  }
+  svgEl.appendChild(grid);
+
+  // scales
+  const allVals = seriesList.flatMap(s => s.data);
+  const min = Math.min(...allVals), max = Math.max(...allVals);
+  const rng = (max-min)||1;
+  const x = i => pad + i*((W-2*pad)/(seriesList[0].data.length-1));
+  const y = v => H-pad - ( (v-min)/rng )*(H-2*pad);
+
+  // axis labels
+  if (labels && labels.length){
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    labels.forEach((m,i)=>{
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.textContent = m; t.setAttribute('x', x(i)); t.setAttribute('y', H-6);
+      t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b');
+      g.appendChild(t);
+    });
+    svgEl.appendChild(g);
+  }
+
+  // lines
+  seriesList.forEach(s=>{
+    let d=''; s.data.forEach((v,i)=>{ d += `${i?'L':'M'}${x(i).toFixed(2)},${y(v).toFixed(2)} `; });
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', d.trim());
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke', s.color || '#0f172a');
+    p.setAttribute('stroke-width','2.5');
+    svgEl.appendChild(p);
+  });
+}
+
+/* ===================== 4) Boot ===================== */
+(async function(){
+  await loadMenu();          // inject partial
+  buildMenu('dashboard');    // populate items
+
+  // ----- KPIs -----
+  const kpi = { portfolio: 1523400, portChg: 4.9, pnl: 58200, pnlChg: 2.3, strats: 9, cash: 188000 };
+  const el = id => document.getElementById(id);
+
+  el('kpiPortfolio') && (el('kpiPortfolio').textContent = fmtMoney(kpi.portfolio));
+  if (el('kpiPortChg')) {
+    el('kpiPortChg').textContent = (kpi.portChg>=0?'+':'') + kpi.portChg.toFixed(1) + '%';
+    el('kpiPortChg').className = 'chip ' + (kpi.portChg>=0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+  }
+  el('kpiPnl') && (el('kpiPnl').textContent = fmtMoney(kpi.pnl));
+  if (el('kpiPnlChg')) {
+    el('kpiPnlChg').textContent = (kpi.pnlChg>=0?'+':'') + kpi.pnlChg.toFixed(1) + '%';
+    el('kpiPnlChg').className = 'chip ' + (kpi.pnlChg>=0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+  }
+  el('kpiStrats') && (el('kpiStrats').textContent = kpi.strats);
+  el('kpiCash') && (el('kpiCash').textContent = fmtMoney(kpi.cash));
+
+  // ----- Chart -----
+  const svg = document.getElementById('perfChart');
+  if (svg) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthly = {
+      earn:[22,26,21,28,32,29,35,38,36,42,48,50],
+      subs:[120,140,150,180,210,230,260,280,300,320,340,360],
+      dd:[45,46,44,47,43,46,45,44,47,46,45,46] // already scaled-ish
     };
-
-    function drawLines(svgEl, seriesList, opts={}) {
-      const W = 900, H = 260, pad = 28;
-      svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      svgEl.innerHTML = '';
-
-      // grid
-      const grid = document.createElementNS('http://www.w3.org/2000/svg','g');
-      for (let i=0;i<5;i++){
-        const y = pad + i*(H-2*pad)/4;
-        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('x1', pad); line.setAttribute('x2', W-pad);
-        line.setAttribute('y1', y);   line.setAttribute('y2', y);
-        line.setAttribute('stroke', '#e5e7eb'); line.setAttribute('stroke-width','1');
-        grid.appendChild(line);
-      }
-      svgEl.appendChild(grid);
-
-      // scales
-      const allVals = seriesList.flatMap(s => s.data);
-      const min = Math.min(...allVals), max = Math.max(...allVals);
-      const rng = (max-min)||1;
-      const x = i => pad + i*((W-2*pad)/(seriesList[0].data.length-1));
-      const y = v => H-pad - ( (v-min)/rng )*(H-2*pad);
-
-      // axes labels (months)
-      const months = (opts.labels || []).slice(0, seriesList[0].data.length);
-      if (months.length){
-        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-        months.forEach((m,i)=>{
-          const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-          t.textContent = m; t.setAttribute('x', x(i)); t.setAttribute('y', H-6);
-          t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b');
-          g.appendChild(t);
-        });
-        svgEl.appendChild(g);
-      }
-
-      // draw paths
-      seriesList.forEach(s=>{
-        let d='';
-        s.data.forEach((v,i)=>{ d += `${i?'L':'M'}${x(i).toFixed(2)},${y(v).toFixed(2)} `; });
-        const p = document.createElementNS('http://www.w3.org/2000/svg','path');
-        p.setAttribute('d', d.trim());
-        p.setAttribute('fill','none');
-        p.setAttribute('stroke', s.color || '#0f172a');
-        p.setAttribute('stroke-width','2.5');
-        svgEl.appendChild(p);
-      });
+    function render(mode='monthly'){
+      const data = monthly;
+      el('perfHeadline') && (el('perfHeadline').textContent = fmtMoney(45567));
+      drawLines(svg, [
+        { data: data.earn, color:'#0f172a' },
+        { data: data.subs, color:'#10b981' },
+        { data: data.dd,   color:'#ef4444' },
+      ], months);
     }
+    render();
+    document.querySelectorAll('[data-mode]').forEach(btn=>{
+      btn.addEventListener('click', ()=>render(btn.dataset.mode));
+    });
+  }
 
-    /* ========= 3) Page boot ========= */
-    (async function(){
-      await loadMenu();
+  // ----- Recent Allocations -----
+  const tbody = document.getElementById('allocRows');
+  if (tbody){
+    const rows = [
+      { strat:'Momentum FX',        provider:'QuantBee', amt:28000,  date:'2025-04-17 14:15', status:'Success' },
+      { strat:'Equity Trend Plus',  provider:'AlgoForge',amt:125000, date:'2025-04-15 11:30', status:'Pending' },
+      { strat:'Grid Alpha',         provider:'GridOps',  amt:40000,  date:'2025-04-10 09:20', status:'Success' },
+      { strat:'NewsPulse',          provider:'PulseAI',  amt:25000,  date:'2025-04-07 16:05', status:'Failed' },
+    ];
+    tbody.innerHTML = rows.map(r=>`
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-3">${r.strat}</td>
+        <td class="px-5 py-3 text-slate-600">${r.provider}</td>
+        <td class="px-5 py-3 text-right">${fmtMoney(r.amt)}</td>
+        <td class="px-5 py-3">${r.date}</td>
+        <td class="px-5 py-3 text-right">
+          <span class="chip ${r.status==='Success'?'bg-green-50 text-green-700': r.status==='Pending'?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}">${r.status}</span>
+        </td>
+      </tr>
+    `).join('');
+  }
+})();
+</script>
 
-      // ----- KPIs (fake demo numbers) -----
-      const kpi = {
-        portfolio: 1523400,
-        portChg: 4.9,
-        pnl: 58200,
-        pnlChg: 2.3,
-        strats: 9,
-        cash: 188000
-      };
-      document.getElementById('kpiPortfolio').textContent = fmtMoney(kpi.portfolio);
-      document.getElementById('kpiPortChg').textContent = (kpi.portChg>=0?'+':'') + kpi.portChg.toFixed(1) + '%';
-      document.getElementById('kpiPortChg').className = 'chip ' + (kpi.portChg>=0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-      document.getElementById('kpiPnl').textContent = fmtMoney(kpi.pnl);
-      document.getElementById('kpiPnlChg').textContent = (kpi.pnlChg>=0?'+':'') + kpi.pnlChg.toFixed(1) + '%';
-      document.getElementById('kpiPnlChg').className = 'chip ' + (kpi.pnlChg>=0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-      document.getElementById('kpiStrats').textContent = kpi.strats;
-      document.getElementById('kpiCash').textContent = fmtMoney(kpi.cash);
-
-      // ----- Chart -----
-      const svg = document.getElementById('perfChart');
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const monthly = {
-        earn:  [22,26,21,28,32,29,35,38,36,42,48,50],
-        subs:  [120,140,150,180,210,230,260,280,300,320,340,360],
-        dd:    [5,4,6,3,7,4,5,6,3,4,5,4].map(v=> 50 - v) // inverted to plot downward feel
-      };
-      const yearly = {
-        earn: [320, 410, 460, 580, 720],
-        subs: [520, 690, 820, 980, 1120],
-        dd:   [40, 46, 43, 47, 44].map(v=>120 - v)
-      };
-
-      function render(mode='monthly'){
-        const data = mode==='monthly' ? monthly : yearly;
-        document.getElementById('perfHeadline').textContent =
-          mode==='monthly' ? fmtMoney(45567) : fmtMoney(545670);
-        const labels = mode==='monthly' ? months : ['2022','2023','2024','2025','2026'];
-        drawLines(svg, [
-          { data: data.earn, color:'#0f172a' },
-          { data: data.subs, color:'#10b981' },
-          { data: data.dd,   color:'#ef4444' },
-        ], { labels });
-      }
-
-      render('monthly');
-      document.querySelectorAll('[data-mode]').forEach(btn=>{
-        btn.addEventListener('click', ()=>render(btn.dataset.mode));
-      });
-
-      // ----- Recent Allocations -----
-      const rows = [
-        { strat:'Momentum FX', provider:'QuantBee', amt:28000, date:'2025-04-17 14:15', status:'Success' },
-        { strat:'Equity Trend Plus', provider:'AlgoForge', amt:125000, date:'2025-04-15 11:30', status:'Pending' },
-        { strat:'Grid Alpha', provider:'GridOps', amt:40000, date:'2025-04-10 09:20', status:'Success' },
-        { strat:'NewsPulse', provider:'PulseAI', amt:25000, date:'2025-04-07 16:05', status:'Failed' },
-      ];
-      const tbody = document.getElementById('allocRows');
-      tbody.innerHTML = rows.map(r=>`
-        <tr class="hover:bg-slate-50">
-          <td class="px-5 py-3">${r.strat}</td>
-          <td class="px-5 py-3 text-slate-600">${r.provider}</td>
-          <td class="px-5 py-3 text-right num">${fmtMoney(r.amt)}</td>
-          <td class="px-5 py-3">${r.date}</td>
-          <td class="px-5 py-3 text-right">
-            <span class="chip ${r.status==='Success'?'bg-green-50 text-green-700': r.status==='Pending'?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}">${r.status}</span>
-          </td>
-        </tr>
-      `).join('');
-    })();
-  </script>
 </body>
 </html>
