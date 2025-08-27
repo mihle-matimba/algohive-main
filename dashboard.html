@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AlgoHive — Dashboard</title>
 
-  <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -14,12 +13,12 @@
     :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
     html,body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--page-bg);color:#0f172a}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:1rem;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-    .stat{display:flex;gap:.75rem;align-items:center}
-    .stat i{font-size:1.05rem}
+    .stat{display:flex;gap:.6rem;align-items:center}
+    .stat i{font-size:1rem}
     .num{font-variant-numeric:tabular-nums}
-    .chip{display:inline-flex;align-items:center;border-radius:9999px;padding:.2rem .5rem;font-size:.75rem;font-weight:600}
+    .chip{display:inline-flex;align-items:center;border-radius:9999px;padding:.2rem .55rem;font-size:.74rem;font-weight:600}
     .glass{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);background:rgba(255,255,255,.65);border-bottom:1px solid rgba(229,231,235,.9)}
-    .btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:.75rem;padding:.5rem .75rem;border:1px solid #e5e7eb}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:.75rem;padding:.5rem .75rem;border:1px solid #e5e7eb;background:#fff}
     .btn-olive{background:var(--olive);color:#fff;border-color:var(--olive)}
     .aside-rail{width:320px}
     @media (max-width:1024px){.aside-rail{width:auto}}
@@ -27,7 +26,7 @@
 </head>
 <body>
   <div class="min-h-screen flex">
-    <!-- GLOBAL MENU MOUNT (this will be replaced by /partials/menu.html) -->
+    <!-- GLOBAL MENU MOUNT -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
     <!-- MAIN -->
@@ -39,40 +38,88 @@
           <div class="ml-auto flex items-center gap-2">
             <div class="hidden md:flex items-center border rounded-full px-3 h-10 bg-white">
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
-              <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
+              <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56"/>
             </div>
             <button class="btn" title="Export"><i class="fa-solid fa-file-arrow-down"></i><span class="hidden sm:inline">Export</span></button>
             <button class="btn" title="This Month" id="rangeBtn"><span id="rangeLabel">This Month</span><i class="fa-solid fa-chevron-down text-xs"></i></button>
-            <img src="https://i.pravatar.cc/80?img=8" class="h-9 w-9 rounded-full object-cover" alt="avatar"/>
+            <!-- avatar removed on purpose -->
           </div>
         </div>
       </section>
 
       <!-- Content -->
       <section class="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- LEFT: main content -->
+        <!-- LEFT -->
         <div class="lg:col-span-8 xl:col-span-9 space-y-6">
-          <!-- Greeting + KPI tiles -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+          <!-- Greeting / description -->
+          <div class="card p-5">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+              <div>
+                <div id="greet" class="text-[28px] leading-tight font-semibold"></div>
+                <p id="pageDesc" class="text-sm text-slate-600 mt-1">
+                  A quick snapshot of portfolio health, risk, and activity across your AlgoHive allocations.
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <a href="/open-strategies.html" class="btn-olive btn">Allocate Funds <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="/reports.html" class="btn">View Reports</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- RICH METRICS (10 tiles) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             <div class="card p-4">
-              <div class="stat mb-2 text-slate-600"><i class="fa-solid fa-wallet"></i><span>Total Portfolio</span></div>
-              <div class="text-2xl font-bold num" id="kpiPortfolio">R0</div>
-              <div class="chip bg-green-50 text-green-700 mt-2" id="kpiPortChg">+0.0%</div>
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-wallet"></i><span>Total Portfolio</span></div>
+              <div id="m_portfolio" class="text-2xl font-bold num">R0</div>
+              <div id="m_port_chg" class="chip mt-2 bg-green-50 text-green-700">+0.0%</div>
             </div>
             <div class="card p-4">
-              <div class="stat mb-2 text-slate-600"><i class="fa-solid fa-arrow-trend-up"></i><span>Monthly P&L</span></div>
-              <div class="text-2xl font-bold num" id="kpiPnl">R0</div>
-              <div class="chip bg-green-50 text-green-700 mt-2" id="kpiPnlChg">+0.0%</div>
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-arrow-trend-up"></i><span>Monthly P&L</span></div>
+              <div id="m_pnl" class="text-2xl font-bold num">R0</div>
+              <div id="m_pnl_chg" class="chip mt-2 bg-green-50 text-green-700">+0.0%</div>
             </div>
             <div class="card p-4">
-              <div class="stat mb-2 text-slate-600"><i class="fa-solid fa-cubes"></i><span>Active Strategies</span></div>
-              <div class="text-2xl font-bold num" id="kpiStrats">0</div>
-              <div class="text-xs text-slate-500 mt-1">Vetted allocations running</div>
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-calendar"></i><span>YTD Return</span></div>
+              <div id="m_ytd" class="text-2xl font-bold">0.0%</div>
+              <div class="text-xs text-slate-500 mt-1">net of model costs</div>
             </div>
             <div class="card p-4">
-              <div class="stat mb-2 text-slate-600"><i class="fa-solid fa-money-bill-transfer"></i><span>Cash Available</span></div>
-              <div class="text-2xl font-bold num" id="kpiCash">R0</div>
-              <div class="text-xs text-slate-500 mt-1">Ready to allocate</div>
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-ruler"></i><span>Sharpe</span></div>
+              <div id="m_sharpe" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">rolling 12M</div>
+            </div>
+            <div class="card p-4">
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-trophy"></i><span>Win Rate</span></div>
+              <div id="m_win" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">last 90 days</div>
+            </div>
+
+            <div class="card p-4">
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-arrow-down-wide-short"></i><span>Max Drawdown</span></div>
+              <div id="m_dd" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">peak-to-trough</div>
+            </div>
+            <div class="card p-4">
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-wave-square"></i><span>Volatility</span></div>
+              <div id="m_vol" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">annualized</div>
+            </div>
+            <div class="card p-4">
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-piggy-bank"></i><span>Cash Utilization</span></div>
+              <div id="m_util" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">allocated vs. cash</div>
+            </div>
+            <div class="card p-4">
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-cubes"></i><span>Active Subs</span></div>
+              <div id="m_strats" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">vetted strategies</div>
+            </div>
+            <div class="card p-4">
+              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-bell"></i><span>Open Alerts</span></div>
+              <div id="m_alerts" class="text-2xl font-bold">—</div>
+              <div class="text-xs text-slate-500 mt-1">risk / ops</div>
             </div>
           </div>
 
@@ -125,7 +172,7 @@
           </div>
         </div>
 
-        <!-- RIGHT: rail -->
+        <!-- RIGHT -->
         <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
           <!-- Accounts -->
           <div class="card p-5">
@@ -186,216 +233,208 @@
     </main>
   </div>
 
-<script>
-/* ===================== 1) Load global menu partial ===================== */
-async function loadMenu() {
-  const mount = document.getElementById('sidebarMount');
-  if (!mount) throw new Error('#sidebarMount not found');
-  const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error('menu.html not found at ' + url);
-  const html = await res.text();
-  mount.outerHTML = html; // injects <aside id="sidebar">… with #navContainer
-}
-
-/* ===================== 2) Build sidebar items after partial ===================== */
-function buildMenu(activeKey = 'dashboard') {
-  const navContainer = document.getElementById('navContainer');
-  if (!navContainer) return;
-
-  const menu = [
-    { section: "Menu", items: [
-      { key:"dashboard",       label:"Dashboard",        icon:"fa-gauge",                   href:"/dashboard.html" },
-      { key:"open-strategies", label:"Open Strategies",  icon:"fa-cubes",                   href:"/open-strategies.html" },
-      { key:"portfolio",       label:"My Portfolio",     icon:"fa-chart-line",              href:"/portfolio.html" },
-      { key:"funding",         label:"Funding",          icon:"fa-wallet",                  href:"/funding.html" },
-      { key:"reports",         label:"Reports",          icon:"fa-file-invoice",            href:"/reports.html" },
-      { key:"news",            label:"News & Insights",  icon:"fa-newspaper",               href:"/news.html" },
-      { key:"alerts",          label:"Notifications",    icon:"fa-bell",                    href:"/alerts.html" },
-    ]},
-    { section: "General", items: [
-      { key:"settings",        label:"Settings",         icon:"fa-gear",                    href:"/settings.html" },
-      { key:"help",            label:"Help Desk",        icon:"fa-circle-question",         href:"/help.html" },
-      { key:"integration",     label:"Integration",      icon:"fa-plug",                    href:"/integrations.html" },
-      { key:"feedback",        label:"Feedback",         icon:"fa-comment-dots",            href:"/feedback.html" },
-    ]},
-  ];
-
-  function createGroup(sectionObj){
-    const group = document.createElement('div'); group.className = 'mb-2';
-    const header = document.createElement('button'); header.className='w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded','true');
-    const title = document.createElement('div'); title.className='section-title'; title.textContent = sectionObj.section;
-    const right = document.createElement('div'); right.className='label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
-    const body = document.createElement('div'); body.className='group-body';
-    const list = document.createElement('nav'); list.className='space-y-1 px-0.5';
-
-    sectionObj.items.forEach(item=>{
-      const a = document.createElement('a');
-      a.href=item.href||'#'; a.className='sidebar-link'; a.title=item.label;
-      if(item.key===activeKey) a.classList.add('active');
-      a.innerHTML = `<i class="fa-solid ${item.icon}"></i><span class="label">${item.label}</span>`;
-      list.appendChild(a);
-    });
-
-    body.appendChild(list); header.append(title,right); group.append(header,body);
-
-    header.addEventListener('click',()=>{
-      const exp = header.getAttribute('aria-expanded')==='true';
-      header.setAttribute('aria-expanded', String(!exp));
-      const chev = header.querySelector('.chev');
-      if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); }
-      else   { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); }
-    });
-    requestAnimationFrame(()=>{ body.style.maxHeight = body.scrollHeight+'px'; });
-    return group;
+  <script>
+  /* ===== 1) Load global menu partial ===== */
+  async function loadMenu() {
+    const mount = document.getElementById('sidebarMount');
+    if (!mount) throw new Error('#sidebarMount not found');
+    const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('menu.html not found at ' + url);
+    mount.outerHTML = await res.text();
   }
 
-  navContainer.innerHTML='';
-  menu.forEach(s=> navContainer.appendChild(createGroup(s)));
-
-  // collapse button hookup
-  const sidebar = document.getElementById('sidebar');
-  const collapseBtn = document.getElementById('collapseBtn');
-  let collapsed = false;
-  collapseBtn?.addEventListener('click', ()=>{
-    collapsed = !collapsed;
-    sidebar.classList.toggle('is-collapsed', collapsed);
-    collapseBtn.innerHTML = collapsed
-      ? '<i class="fa-solid fa-angles-right text-sm"></i>'
-      : '<i class="fa-solid fa-angles-left text-sm"></i>';
-    try{ sessionStorage.setItem('ah_sidebar_collapsed', collapsed?'1':'0'); }catch(e){}
-  });
-  try{
-    if(sessionStorage.getItem('ah_sidebar_collapsed')==='1'){
-      collapsed = true; sidebar.classList.add('is-collapsed');
-      if(collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>';
-    }
-  }catch(e){}
-}
-
-/* ===================== 3) Dashboard helpers ===================== */
-const fmtMoney = (v, cur='ZAR') => {
-  try { return new Intl.NumberFormat('en-ZA', { style:'currency', currency:cur, maximumFractionDigits:0 }).format(v); }
-  catch { return 'R ' + (v||0).toLocaleString(); }
-};
-
-function drawLines(svgEl, seriesList, labels) {
-  const W = 900, H = 260, pad = 28;
-  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svgEl.innerHTML = '';
-
-  // grid
-  const grid = document.createElementNS('http://www.w3.org/2000/svg','g');
-  for (let i=0;i<5;i++){
-    const y = pad + i*(H-2*pad)/4;
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', pad); line.setAttribute('x2', W-pad);
-    line.setAttribute('y1', y);   line.setAttribute('y2', y);
-    line.setAttribute('stroke', '#e5e7eb'); line.setAttribute('stroke-width','1');
-    grid.appendChild(line);
-  }
-  svgEl.appendChild(grid);
-
-  // scales
-  const allVals = seriesList.flatMap(s => s.data);
-  const min = Math.min(...allVals), max = Math.max(...allVals);
-  const rng = (max-min)||1;
-  const x = i => pad + i*((W-2*pad)/(seriesList[0].data.length-1));
-  const y = v => H-pad - ( (v-min)/rng )*(H-2*pad);
-
-  // axis labels
-  if (labels && labels.length){
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    labels.forEach((m,i)=>{
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.textContent = m; t.setAttribute('x', x(i)); t.setAttribute('y', H-6);
-      t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b');
-      g.appendChild(t);
-    });
-    svgEl.appendChild(g);
-  }
-
-  // lines
-  seriesList.forEach(s=>{
-    let d=''; s.data.forEach((v,i)=>{ d += `${i?'L':'M'}${x(i).toFixed(2)},${y(v).toFixed(2)} `; });
-    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
-    p.setAttribute('d', d.trim());
-    p.setAttribute('fill','none');
-    p.setAttribute('stroke', s.color || '#0f172a');
-    p.setAttribute('stroke-width','2.5');
-    svgEl.appendChild(p);
-  });
-}
-
-/* ===================== 4) Boot ===================== */
-(async function(){
-  await loadMenu();          // inject partial
-  buildMenu('dashboard');    // populate items
-
-  // ----- KPIs -----
-  const kpi = { portfolio: 1523400, portChg: 4.9, pnl: 58200, pnlChg: 2.3, strats: 9, cash: 188000 };
-  const el = id => document.getElementById(id);
-
-  el('kpiPortfolio') && (el('kpiPortfolio').textContent = fmtMoney(kpi.portfolio));
-  if (el('kpiPortChg')) {
-    el('kpiPortChg').textContent = (kpi.portChg>=0?'+':'') + kpi.portChg.toFixed(1) + '%';
-    el('kpiPortChg').className = 'chip ' + (kpi.portChg>=0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-  }
-  el('kpiPnl') && (el('kpiPnl').textContent = fmtMoney(kpi.pnl));
-  if (el('kpiPnlChg')) {
-    el('kpiPnlChg').textContent = (kpi.pnlChg>=0?'+':'') + kpi.pnlChg.toFixed(1) + '%';
-    el('kpiPnlChg').className = 'chip ' + (kpi.pnlChg>=0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-  }
-  el('kpiStrats') && (el('kpiStrats').textContent = kpi.strats);
-  el('kpiCash') && (el('kpiCash').textContent = fmtMoney(kpi.cash));
-
-  // ----- Chart -----
-  const svg = document.getElementById('perfChart');
-  if (svg) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const monthly = {
-      earn:[22,26,21,28,32,29,35,38,36,42,48,50],
-      subs:[120,140,150,180,210,230,260,280,300,320,340,360],
-      dd:[45,46,44,47,43,46,45,44,47,46,45,46] // already scaled-ish
-    };
-    function render(mode='monthly'){
-      const data = monthly;
-      el('perfHeadline') && (el('perfHeadline').textContent = fmtMoney(45567));
-      drawLines(svg, [
-        { data: data.earn, color:'#0f172a' },
-        { data: data.subs, color:'#10b981' },
-        { data: data.dd,   color:'#ef4444' },
-      ], months);
-    }
-    render();
-    document.querySelectorAll('[data-mode]').forEach(btn=>{
-      btn.addEventListener('click', ()=>render(btn.dataset.mode));
-    });
-  }
-
-  // ----- Recent Allocations -----
-  const tbody = document.getElementById('allocRows');
-  if (tbody){
-    const rows = [
-      { strat:'Momentum FX',        provider:'QuantBee', amt:28000,  date:'2025-04-17 14:15', status:'Success' },
-      { strat:'Equity Trend Plus',  provider:'AlgoForge',amt:125000, date:'2025-04-15 11:30', status:'Pending' },
-      { strat:'Grid Alpha',         provider:'GridOps',  amt:40000,  date:'2025-04-10 09:20', status:'Success' },
-      { strat:'NewsPulse',          provider:'PulseAI',  amt:25000,  date:'2025-04-07 16:05', status:'Failed' },
+  /* ===== 2) Build sidebar items after partial ===== */
+  function buildMenu(activeKey='dashboard'){
+    const navContainer = document.getElementById('navContainer');
+    if(!navContainer) return;
+    const menu = [
+      { section:"Menu", items:[
+        { key:"dashboard", label:"Dashboard", icon:"fa-gauge", href:"/dashboard.html"},
+        { key:"open-strategies", label:"Open Strategies", icon:"fa-cubes", href:"/open-strategies.html"},
+        { key:"portfolio", label:"My Portfolio", icon:"fa-chart-line", href:"/portfolio.html"},
+        { key:"funding", label:"Funding", icon:"fa-wallet", href:"/funding.html"},
+        { key:"reports", label:"Reports", icon:"fa-file-invoice", href:"/reports.html"},
+        { key:"news", label:"News & Insights", icon:"fa-newspaper", href:"/news.html"},
+        { key:"alerts", label:"Notifications", icon:"fa-bell", href:"/alerts.html"},
+      ]},
+      { section:"General", items:[
+        { key:"settings", label:"Settings", icon:"fa-gear", href:"/settings.html"},
+        { key:"help", label:"Help Desk", icon:"fa-circle-question", href:"/help.html"},
+        { key:"integration", label:"Integration", icon:"fa-plug", href:"/integrations.html"},
+        { key:"feedback", label:"Feedback", icon:"fa-comment-dots", href:"/feedback.html"},
+      ]},
     ];
-    tbody.innerHTML = rows.map(r=>`
-      <tr class="hover:bg-slate-50">
-        <td class="px-5 py-3">${r.strat}</td>
-        <td class="px-5 py-3 text-slate-600">${r.provider}</td>
-        <td class="px-5 py-3 text-right">${fmtMoney(r.amt)}</td>
-        <td class="px-5 py-3">${r.date}</td>
-        <td class="px-5 py-3 text-right">
-          <span class="chip ${r.status==='Success'?'bg-green-50 text-green-700': r.status==='Pending'?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}">${r.status}</span>
-        </td>
-      </tr>
-    `).join('');
-  }
-})();
-</script>
+    function createGroup(sectionObj){
+      const group=document.createElement('div'); group.className='mb-2';
+      const header=document.createElement('button'); header.className='w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded','true');
+      const title=document.createElement('div'); title.className='section-title'; title.textContent=sectionObj.section;
+      const right=document.createElement('div'); right.className='label'; right.innerHTML='<i class="fa-solid fa-chevron-up chev text-xs"></i>';
+      const body=document.createElement('div'); body.className='group-body';
+      const list=document.createElement('nav'); list.className='space-y-1 px-0.5';
+      sectionObj.items.forEach(item=>{
+        const a=document.createElement('a'); a.href=item.href||'#'; a.className='sidebar-link'; a.title=item.label;
+        if(item.key===activeKey) a.classList.add('active');
+        a.innerHTML=`<i class="fa-solid ${item.icon}"></i><span class="label">${item.label}</span>`;
+        list.appendChild(a);
+      });
+      body.appendChild(list); header.append(title,right); group.append(header,body);
+      header.addEventListener('click',()=>{
+        const exp=header.getAttribute('aria-expanded')==='true';
+        header.setAttribute('aria-expanded', String(!exp));
+        const chev=header.querySelector('.chev');
+        if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); }
+        else { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); }
+      });
+      requestAnimationFrame(()=>{ body.style.maxHeight=body.scrollHeight+'px'; });
+      return group;
+    }
+    navContainer.innerHTML=''; menu.forEach(s=> navContainer.appendChild(createGroup(s)));
 
+    const sidebar=document.getElementById('sidebar');
+    const collapseBtn=document.getElementById('collapseBtn');
+    let collapsed=false;
+    collapseBtn?.addEventListener('click', ()=>{
+      collapsed=!collapsed;
+      sidebar.classList.toggle('is-collapsed', collapsed);
+      collapseBtn.innerHTML=collapsed?'<i class="fa-solid fa-angles-right text-sm"></i>':'<i class="fa-solid fa-angles-left text-sm"></i>';
+      try{ sessionStorage.setItem('ah_sidebar_collapsed', collapsed?'1':'0'); }catch(e){}
+    });
+    try{
+      if(sessionStorage.getItem('ah_sidebar_collapsed')==='1'){
+        collapsed=true; sidebar.classList.add('is-collapsed');
+        if(collapseBtn) collapseBtn.innerHTML='<i class="fa-solid fa-angles-right text-sm"></i>';
+      }
+    }catch(e){}
+  }
+
+  /* ===== 3) Helpers ===== */
+  const AH_USER_NAME = 'Mihle';
+  const fmtMoney = (v, cur='ZAR')=>{
+    try{ return new Intl.NumberFormat('en-ZA',{style:'currency',currency:cur,maximumFractionDigits:0}).format(v);}
+    catch{ return 'R ' + (v||0).toLocaleString();}
+  };
+  function greetLine(){
+    const h=new Date().getHours();
+    const tag = h<12 ? 'Good morning' : (h<18 ? 'Good afternoon' : 'Good evening');
+    return `${tag}, ${AH_USER_NAME}`;
+  }
+
+  function drawLines(svgEl, seriesList, labels) {
+    const W=900,H=260,pad=28;
+    svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`); svgEl.innerHTML='';
+    const grid=document.createElementNS('http://www.w3.org/2000/svg','g');
+    for(let i=0;i<5;i++){
+      const y=pad+i*(H-2*pad)/4;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',pad); line.setAttribute('x2',W-pad);
+      line.setAttribute('y1',y);   line.setAttribute('y2',y);
+      line.setAttribute('stroke','#e5e7eb'); line.setAttribute('stroke-width','1'); grid.appendChild(line);
+    }
+    svgEl.appendChild(grid);
+    const allVals=seriesList.flatMap(s=>s.data);
+    const min=Math.min(...allVals), max=Math.max(...allVals), rng=(max-min)||1;
+    const x=i=> pad + i*((W-2*pad)/(seriesList[0].data.length-1));
+    const y=v=> H-pad - ((v-min)/rng)*(H-2*pad);
+    if(labels?.length){
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      labels.forEach((m,i)=>{
+        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.textContent=m; t.setAttribute('x',x(i)); t.setAttribute('y',H-6);
+        t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b');
+        g.appendChild(t);
+      }); svgEl.appendChild(g);
+    }
+    seriesList.forEach(s=>{
+      let d=''; s.data.forEach((v,i)=> d+=`${i?'L':'M'}${x(i).toFixed(2)},${y(v).toFixed(2)} `);
+      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d',d.trim()); p.setAttribute('fill','none'); p.setAttribute('stroke',s.color||'#0f172a'); p.setAttribute('stroke-width','2.5');
+      svgEl.appendChild(p);
+    });
+  }
+
+  /* ===== 4) Boot ===== */
+  (async function(){
+    await loadMenu();
+    buildMenu('dashboard');
+
+    // Greeting + description
+    const greetEl=document.getElementById('greet');
+    if(greetEl){ greetEl.textContent=greetLine(); }
+    const pageDesc=document.getElementById('pageDesc');
+    if(pageDesc){ pageDesc.textContent="Track P&L, risk, utilization and allocations at a glance. Everything here is updated live from your providers."; }
+
+    // Rich metrics (sample data — wire to backend later)
+    const data={
+      portfolio: 1_523_400,
+      portChg: 4.9,
+      pnl: 58_200,
+      pnlChg: 2.3,
+      ytd: 12.7,
+      sharpe: 1.32,
+      win: 58,
+      dd: 9.6,
+      vol: 13.8,
+      cash: 188_000,
+      strats: 9,
+      alerts: 3
+    };
+    const setTxt=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
+
+    setTxt('m_portfolio', fmtMoney(data.portfolio));
+    const portChg=document.getElementById('m_port_chg');
+    if(portChg){ portChg.textContent=(data.portChg>=0?'+':'')+data.portChg.toFixed(1)+'%';
+      portChg.className='chip '+(data.portChg>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'); }
+
+    setTxt('m_pnl', fmtMoney(data.pnl));
+    const pnlChg=document.getElementById('m_pnl_chg');
+    if(pnlChg){ pnlChg.textContent=(data.pnlChg>=0?'+':'')+data.pnlChg.toFixed(1)+'%';
+      pnlChg.className='chip '+(data.pnlChg>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'); }
+
+    setTxt('m_ytd', (data.ytd>=0?'+':'')+data.ytd.toFixed(1)+'%');
+    setTxt('m_sharpe', data.sharpe.toFixed(2));
+    setTxt('m_win', data.win.toFixed(0)+'%');
+    setTxt('m_dd', data.dd.toFixed(1)+'%');
+    setTxt('m_vol', data.vol.toFixed(1)+'%');
+    const util = Math.max(0, Math.min(100, 100 - (data.cash/data.portfolio*100)));
+    setTxt('m_util', util.toFixed(1)+'%');
+    setTxt('m_strats', String(data.strats));
+    setTxt('m_alerts', String(data.alerts));
+
+    // Chart
+    const svg=document.getElementById('perfChart');
+    if(svg){
+      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const monthly={ earn:[22,26,21,28,32,29,35,38,36,42,48,50],
+                      subs:[120,140,150,180,210,230,260,280,300,320,340,360],
+                      dd:[45,46,44,47,43,46,45,44,47,46,45,46]};
+      function render(){ document.getElementById('perfHeadline').textContent = fmtMoney(45_567);
+        drawLines(svg,[{data:monthly.earn,color:'#0f172a'},{data:monthly.subs,color:'#10b981'},{data:monthly.dd,color:'#ef4444'}],months); }
+      render();
+      document.querySelectorAll('[data-mode]').forEach(b=> b.addEventListener('click',render));
+    }
+
+    // Recent Allocations
+    const tbody=document.getElementById('allocRows');
+    if(tbody){
+      const rows=[
+        { strat:'Momentum FX',        provider:'QuantBee', amt:28000,  date:'2025-04-17 14:15', status:'Success' },
+        { strat:'Equity Trend Plus',  provider:'AlgoForge',amt:125000, date:'2025-04-15 11:30', status:'Pending' },
+        { strat:'Grid Alpha',         provider:'GridOps',  amt:40000,  date:'2025-04-10 09:20', status:'Success' },
+        { strat:'NewsPulse',          provider:'PulseAI',  amt:25000,  date:'2025-04-07 16:05', status:'Failed' },
+      ];
+      tbody.innerHTML = rows.map(r=>`
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3">${r.strat}</td>
+          <td class="px-5 py-3 text-slate-600">${r.provider}</td>
+          <td class="px-5 py-3 text-right">${fmtMoney(r.amt)}</td>
+          <td class="px-5 py-3">${r.date}</td>
+          <td class="px-5 py-3 text-right">
+            <span class="chip ${r.status==='Success'?'bg-green-50 text-green-700': r.status==='Pending'?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}">${r.status}</span>
+          </td>
+        </tr>`).join('');
+    }
+  })();
+  </script>
 </body>
 </html>
