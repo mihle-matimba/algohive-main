@@ -24,6 +24,7 @@
 
     /* Equity tooltip */
     .eq-tip{position:absolute;pointer-events:none;background:#111827;color:#fff;font-size:.75rem;border-radius:.5rem;padding:.35rem .5rem;box-shadow:0 10px 25px rgba(0,0,0,.12)}
+    .spark{height:30px;width:120px}
   </style>
 </head>
 <body>
@@ -76,13 +77,8 @@
               </div>
             </div>
 
-            <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
-              <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
-              <div id="eqTip" class="eq-tip hidden"></div>
-            </div>
-
-            <!-- Rich metrics -->
-            <div id="eqMetrics" class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <!-- FIVE METRICS (top of the card) -->
+            <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
               <div class="p-3 border rounded-xl">
                 <div class="text-slate-500 text-xs">Return</div>
                 <div id="mRet" class="font-semibold">—</div>
@@ -99,7 +95,25 @@
                 <div class="text-slate-500 text-xs">Win Rate</div>
                 <div id="mWin" class="font-semibold">—</div>
               </div>
+              <div class="p-3 border rounded-xl">
+                <div class="text-slate-500 text-xs">Volatility</div>
+                <div id="mVol" class="font-semibold">—</div>
+              </div>
             </div>
+
+            <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
+              <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+              <div id="eqTip" class="eq-tip hidden"></div>
+            </div>
+          </div>
+
+          <!-- Subscribed Strategies (container) -->
+          <div class="card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div class="font-semibold">Subscribed Strategies</div>
+              <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">Manage</a>
+            </div>
+            <div id="subsWrap" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
           </div>
 
           <!-- Popular Assets -->
@@ -115,9 +129,16 @@
         <!-- RIGHT COLUMN -->
         <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
 
-          <!-- Portfolio Rating (black → olive gradient) -->
+          <!-- Portfolio Rating (black → olive gradient) + account dropdown -->
           <div class="card p-5">
-            <div class="font-semibold mb-4">Portfolio Rating</div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="font-semibold">Portfolio Rating</div>
+              <select id="acctSel" class="border rounded-lg text-sm px-2 py-1">
+                <option value="all">All accounts</option>
+                <option value="ibkr">IBKR Pro · U1234567</option>
+                <option value="paper">Paper · DU7654321</option>
+              </select>
+            </div>
             <div class="flex items-center gap-4">
               <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
               <div>
@@ -131,10 +152,10 @@
             </div>
           </div>
 
-          <!-- Last Investments -->
+          <!-- Asset Allocation (replaces Last Investments) -->
           <div class="card">
-            <div class="px-5 py-4 border-b font-semibold">Last Investments</div>
-            <div id="lastInvest" class="divide-y"></div>
+            <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
+            <div id="allocBars" class="p-5 space-y-4"></div>
           </div>
 
         </aside>
@@ -200,6 +221,14 @@
   const fmtMoney=v=> new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0}).format(v);
   const greetLine=()=>{const h=new Date().getHours();const t=h<12?'Good morning':(h<18?'Good afternoon':'Good evening');return `${t}, Mihle`;};
 
+  function sparkSvg(series, color='#0f172a'){
+    const w=120,h=30,pad=3,min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1;
+    const step=(w-2*pad)/(series.length-1);
+    let d='';
+    series.forEach((v,i)=>{const x=pad+i*step;const y=h-pad-( (v-min)/rng )*(h-2*pad); d+=(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)+' ';});
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+  }
+
   /* ===== Equity curve drawing (area + line + tooltip) ===== */
   function drawEquity(svgEl, series, labels){
     const W=900,H=320,pad=34;
@@ -219,7 +248,7 @@
     const X=i=> pad+i*step;
     const Y=v=> H-pad - ((v-min)/rng)*(H-2*pad);
 
-    // defs: gradient for fill
+    // defs: gradient for fill (olive→black fade)
     const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
     const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
     grad.setAttribute('id','eqGrad'); grad.setAttribute('x1','0'); grad.setAttribute('y1','0'); grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
@@ -227,12 +256,9 @@
     const st2=document.createElementNS('http://www.w3.org/2000/svg','stop'); st2.setAttribute('offset','100%'); st2.setAttribute('stop-color','#111827'); st2.setAttribute('stop-opacity','0.02');
     grad.append(st1,st2); defs.appendChild(grad); svgEl.appendChild(defs);
 
-    // area path
+    // area + line
     let dLine='', dArea='';
-    series.forEach((v,i)=>{
-      const x=X(i), y=Y(v);
-      dLine += `${i?'L':'M'}${x.toFixed(2)},${y.toFixed(2)} `;
-    });
+    series.forEach((v,i)=>{ const x=X(i), y=Y(v); dLine += `${i?'L':'M'}${x.toFixed(2)},${y.toFixed(2)} `; });
     dArea = dLine + `L${X(series.length-1).toFixed(2)},${H-pad} L${X(0).toFixed(2)},${H-pad} Z`;
 
     const area=document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -242,7 +268,6 @@
     line.setAttribute('d', dLine.trim()); line.setAttribute('fill','none');
     line.setAttribute('stroke','#0f172a'); line.setAttribute('stroke-width','2.75'); svgEl.appendChild(line);
 
-    // final point highlight
     const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
     dot.setAttribute('cx',X(series.length-1)); dot.setAttribute('cy',Y(series.at(-1)));
     dot.setAttribute('r','4.2'); dot.setAttribute('fill','#0f172a'); svgEl.appendChild(dot);
@@ -263,14 +288,15 @@
     for(const v of series){ peak=Math.max(peak,v); maxDD=Math.min(maxDD,(v/peak-1)); }
     const ddPct = Math.abs(maxDD*100);
 
-    // returns (pct changes)
+    // simple pct-change series
     const rets=[]; for(let i=1;i<series.length;i++) rets.push((series[i]/series[i-1])-1);
     const avg = rets.reduce((a,b)=>a+b,0)/rets.length;
     const sd = Math.sqrt(rets.reduce((a,b)=>a+(b-avg)*(b-avg),0)/rets.length) || 0.00001;
-    const sharpe = (avg/sd)*Math.sqrt(12); // rough monthly-ish
+    const sharpe = (avg/sd)*Math.sqrt(12);         // monthly-ish annualization
     const wins = rets.filter(r=>r>0).length / rets.length * 100;
+    const vol = sd*Math.sqrt(12)*100;              // annualized vol %
 
-    return {ret, ddPct, sharpe, wins};
+    return {ret, ddPct, sharpe, wins, vol};
   }
 
   /* ===== Portfolio rating donut (black → olive) ===== */
@@ -311,7 +337,6 @@
 
     /* -------- Equity Curve Data -------- */
     const base = 1_000_000; // starting capital for display
-    // Prettified upward series with dips (multiples of base)
     const EQ = {
       "1M":  { lbl: ['W1','W2','W3','W4','W5'], arr:[1.00,1.03,1.01,1.06,1.09] },
       "3M":  { lbl: ['M1','M2','M3'],           arr:[1.00,1.07,1.12] },
@@ -344,8 +369,9 @@
       document.getElementById('mDD').textContent     = m.ddPct.toFixed(2)+'%';
       document.getElementById('mSharpe').textContent = m.sharpe.toFixed(2);
       document.getElementById('mWin').textContent    = m.wins.toFixed(0)+'%';
+      document.getElementById('mVol').textContent    = m.vol.toFixed(1)+'%';
 
-      // simple tooltip
+      // tooltip
       const W=eqWrap.clientWidth, pad=34, step=(W-2*pad)/(d.arr.length-1);
       eqWrap.onmousemove = (e)=>{
         const rect=eqWrap.getBoundingClientRect();
@@ -368,13 +394,62 @@
       });
     });
 
-    /* -------- Portfolio Rating -------- */
-    const rating=82, delta=+5.48;
-    drawDonut(document.getElementById('ratingGauge'), rating);
-    document.getElementById('ratingText').textContent = rating>=85?'Excellent':(rating>=70?'Very Good':'Fair');
-    const chip=document.getElementById('ratingDeltaChip');
-    chip.textContent = (delta>=0?'+':'')+delta.toFixed(2)+'%';
-    chip.className = 'chip '+(delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
+    /* -------- Portfolio Rating with account dropdown -------- */
+    const ratingByAcct = { all:82, ibkr:78, paper:65 };
+    const delta=+5.48;
+    function renderRating(acct='all'){
+      const pct=ratingByAcct[acct]??82;
+      drawDonut(document.getElementById('ratingGauge'), pct);
+      document.getElementById('ratingText').textContent = pct>=85?'Excellent':(pct>=70?'Very Good':'Fair');
+      const chip=document.getElementById('ratingDeltaChip');
+      chip.textContent = (delta>=0?'+':'')+delta.toFixed(2)+'%';
+      chip.className = 'chip '+(delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
+    }
+    renderRating('all');
+    document.getElementById('acctSel').addEventListener('change', (e)=>renderRating(e.target.value));
+
+    /* -------- Asset Allocation -------- */
+    const alloc = [
+      { label:'Equities',    pct:48, color:'#0f172a' },
+      { label:'FX',          pct:18, color:'#10b981' },
+      { label:'Crypto',      pct:12, color:'#f59e0b' },
+      { label:'Futures',     pct:14, color:'#6366f1' },
+      { label:'Commodities', pct:6,  color:'#ef4444' },
+      { label:'Cash',        pct:2,  color:'#94a3b8' },
+    ];
+    const bars = document.getElementById('allocBars');
+    bars.innerHTML = alloc.map(a=>`
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1">
+          <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div>
+          <div class="num">${a.pct}%</div>
+        </div>
+        <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div>
+        </div>
+      </div>
+    `).join('');
+
+    /* -------- Subscribed Strategies (container) -------- */
+    const subs = [
+      { name:'Trend Alpha',     provider:'AlgoForge',  change:+1.8, aum:'R1.2m', series:[10,12,11,13,12,15,14,16] },
+      { name:'Momentum FX',     provider:'QuantBee',   change:+0.9, aum:'R820k', series:[8,8.4,8.2,8.6,8.9,9.2,9.6] },
+      { name:'Grid Delta',      provider:'GridOps',    change:-0.6, aum:'R540k', series:[7,6.9,6.7,6.8,6.6,6.7,6.5] },
+      { name:'NewsPulse',       provider:'PulseAI',    change:+1.2, aum:'R410k', series:[6,6.2,6.4,6.1,6.5,6.7,6.9] },
+      { name:'Equity Trend+',   provider:'AlgoForge',  change:+0.4, aum:'R2.0m', series:[9,9.1,9.2,9.3,9.5,9.6,9.8] },
+      { name:'Carry FX',        provider:'QuantBee',   change:+0.3, aum:'R300k', series:[5,5.1,5.2,5.15,5.25,5.3,5.35] },
+    ];
+    const subsWrap = document.getElementById('subsWrap');
+    subsWrap.innerHTML = subs.map(s=>`
+      <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition">
+        <div class="flex items-center justify-between">
+          <div class="font-medium text-sm truncate">${s.name}</div>
+          <span class="chip ${s.change>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'}">${s.change>=0?'+':''}${s.change.toFixed(1)}%</span>
+        </div>
+        <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div>
+        <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
+      </div>
+    `).join('');
 
     /* -------- Popular Assets (sample) -------- */
     const popular = [
