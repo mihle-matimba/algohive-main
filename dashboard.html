@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AlgoHive — Dashboard</title>
 
+  <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -13,20 +14,19 @@
     :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
     html,body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--page-bg);color:#0f172a}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:1rem;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-    .stat{display:flex;gap:.6rem;align-items:center}
-    .stat i{font-size:1rem}
-    .num{font-variant-numeric:tabular-nums}
     .chip{display:inline-flex;align-items:center;border-radius:9999px;padding:.2rem .55rem;font-size:.74rem;font-weight:600}
     .glass{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);background:rgba(255,255,255,.65);border-bottom:1px solid rgba(229,231,235,.9)}
-    .btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:.75rem;padding:.5rem .75rem;border:1px solid #e5e7eb;background:#fff}
-    .btn-olive{background:var(--olive);color:#fff;border-color:var(--olive)}
-    .aside-rail{width:320px}
+    .num{font-variant-numeric:tabular-nums}
+    .mini-asset .spark{height:28px;width:100%}
+    .tab-btn{border:1px solid #e5e7eb;border-radius:.6rem;padding:.35rem .7rem;font-size:.85rem;background:#fff}
+    .tab-btn.active{background:var(--olive);border-color:var(--olive);color:#fff}
+    .aside-rail{width:340px}
     @media (max-width:1024px){.aside-rail{width:auto}}
   </style>
 </head>
 <body>
   <div class="min-h-screen flex">
-    <!-- GLOBAL MENU MOUNT -->
+    <!-- GLOBAL MENU (partial) -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
     <!-- MAIN -->
@@ -34,406 +34,333 @@
       <!-- Topbar -->
       <section class="glass sticky top-0 z-10">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-          <h1 class="text-xl font-semibold">Overview</h1>
+          <div>
+            <div id="greet" class="text-xl font-semibold">Dashboard</div>
+            <p class="text-xs text-slate-600 -mt-1">Your portfolio, performance, risk and latest activity at a glance.</p>
+          </div>
           <div class="ml-auto flex items-center gap-2">
             <div class="hidden md:flex items-center border rounded-full px-3 h-10 bg-white">
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56"/>
             </div>
-            <button class="btn" title="Export"><i class="fa-solid fa-file-arrow-down"></i><span class="hidden sm:inline">Export</span></button>
-            <button class="btn" title="This Month" id="rangeBtn"><span id="rangeLabel">This Month</span><i class="fa-solid fa-chevron-down text-xs"></i></button>
-            <!-- avatar removed on purpose -->
+            <button class="border rounded-lg h-10 px-3 bg-white"><i class="fa-solid fa-file-arrow-down mr-2"></i>Export</button>
           </div>
         </div>
       </section>
 
       <!-- Content -->
       <section class="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- LEFT -->
+
+        <!-- LEFT COLUMN -->
         <div class="lg:col-span-8 xl:col-span-9 space-y-6">
 
-          <!-- Greeting / description -->
-          <div class="card p-5">
-            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-2">
-              <div>
-                <div id="greet" class="text-[28px] leading-tight font-semibold"></div>
-                <p id="pageDesc" class="text-sm text-slate-600 mt-1">
-                  A quick snapshot of portfolio health, risk, and activity across your AlgoHive allocations.
-                </p>
-              </div>
-              <div class="flex gap-2">
-                <a href="/open-strategies.html" class="btn-olive btn">Allocate Funds <i class="fa-solid fa-arrow-right"></i></a>
-                <a href="/reports.html" class="btn">View Reports</a>
-              </div>
-            </div>
+          <!-- Mini Asset Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            <!-- rendered by JS into #miniAssets -->
+            <div id="miniAssets" class="contents"></div>
           </div>
 
-          <!-- RICH METRICS (10 tiles) -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-wallet"></i><span>Total Portfolio</span></div>
-              <div id="m_portfolio" class="text-2xl font-bold num">R0</div>
-              <div id="m_port_chg" class="chip mt-2 bg-green-50 text-green-700">+0.0%</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-arrow-trend-up"></i><span>Monthly P&L</span></div>
-              <div id="m_pnl" class="text-2xl font-bold num">R0</div>
-              <div id="m_pnl_chg" class="chip mt-2 bg-green-50 text-green-700">+0.0%</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-calendar"></i><span>YTD Return</span></div>
-              <div id="m_ytd" class="text-2xl font-bold">0.0%</div>
-              <div class="text-xs text-slate-500 mt-1">net of model costs</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-ruler"></i><span>Sharpe</span></div>
-              <div id="m_sharpe" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">rolling 12M</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-trophy"></i><span>Win Rate</span></div>
-              <div id="m_win" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">last 90 days</div>
-            </div>
-
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-arrow-down-wide-short"></i><span>Max Drawdown</span></div>
-              <div id="m_dd" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">peak-to-trough</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-wave-square"></i><span>Volatility</span></div>
-              <div id="m_vol" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">annualized</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-piggy-bank"></i><span>Cash Utilization</span></div>
-              <div id="m_util" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">allocated vs. cash</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-cubes"></i><span>Active Subs</span></div>
-              <div id="m_strats" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">vetted strategies</div>
-            </div>
-            <div class="card p-4">
-              <div class="stat mb-1 text-slate-600"><i class="fa-solid fa-bell"></i><span>Open Alerts</span></div>
-              <div id="m_alerts" class="text-2xl font-bold">—</div>
-              <div class="text-xs text-slate-500 mt-1">risk / ops</div>
-            </div>
-          </div>
-
-          <!-- Performance Overview -->
+          <!-- Portfolio Performance -->
           <div class="card p-5">
             <div class="flex items-center justify-between mb-3">
-              <div>
-                <div class="text-sm text-slate-600">Performance Overview</div>
-                <div class="text-2xl font-semibold num mt-1" id="perfHeadline">R0</div>
-              </div>
-              <div class="flex gap-2">
-                <button class="btn" data-mode="monthly">Monthly</button>
-                <button class="btn" data-mode="yearly">Yearly</button>
+              <div class="text-sm text-slate-600">Portfolio Performance</div>
+              <div class="flex gap-2" id="rangeTabs">
+                <button class="tab-btn active" data-range="1Y">Last Year</button>
+                <button class="tab-btn" data-range="3Y">3 Years</button>
+                <button class="tab-btn" data-range="5Y">5 Years</button>
+                <button class="tab-btn" data-range="10Y">10 Years</button>
               </div>
             </div>
-            <div class="text-xs text-slate-500 mb-3">Earnings vs. Drawdown vs. Subscriptions</div>
-            <div class="w-full h-[260px] relative overflow-hidden">
-              <svg id="perfChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
-            </div>
-            <div class="mt-3 grid grid-cols-3 gap-3 text-sm">
-              <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-slate-900 inline-block"></span>Earnings</div>
-              <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span>Subs</div>
-              <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-rose-500 inline-block"></span>Drawdown</div>
+            <div class="w-full h-[280px] relative overflow-hidden rounded-xl border">
+              <svg id="perfChart" viewBox="0 0 900 280" class="w-full h-full bg-white"></svg>
+              <div class="absolute top-3 right-3 text-xs text-slate-600">
+                <span>Earnings</span> ·
+                <span class="text-emerald-600">Subs</span> ·
+                <span class="text-rose-600">Drawdown</span>
+              </div>
             </div>
           </div>
 
-          <!-- Recent Allocations -->
+          <!-- Popular Assets -->
           <div class="card">
-            <div class="flex items-center justify-between px-5 py-4 border-b">
-              <div class="font-semibold">Recent Allocations</div>
-              <div class="flex items-center gap-2">
-                <input class="border rounded-lg h-9 px-3 text-sm" placeholder="Search"/>
-                <button class="btn"><i class="fa-solid fa-filter"></i> Filter</button>
-              </div>
+            <div class="px-5 py-4 border-b flex items-center justify-between">
+              <div class="font-semibold">Popular Assets</div>
+              <div class="text-xs text-slate-500">Based on your subs + watchlist</div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead class="text-slate-600">
-                  <tr>
-                    <th class="text-left px-5 py-3">Strategy</th>
-                    <th class="text-left px-5 py-3">Provider</th>
-                    <th class="text-right px-5 py-3">Amount</th>
-                    <th class="text-left px-5 py-3">Date</th>
-                    <th class="text-right px-5 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="allocRows" class="divide-y"></tbody>
-              </table>
-            </div>
+            <div class="divide-y" id="popularAssets"></div>
           </div>
         </div>
 
-        <!-- RIGHT -->
+        <!-- RIGHT COLUMN -->
         <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
-          <!-- Accounts -->
+
+          <!-- Portfolio Rating -->
           <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <div class="font-semibold">My Accounts</div>
-              <a class="text-sm text-[var(--olive-700)] hover:underline" href="#">Manage</a>
-            </div>
-            <div class="space-y-3">
-              <div class="p-3 border rounded-xl flex items-center justify-between">
-                <div>
-                  <div class="text-sm text-slate-600">IBKR Pro</div>
-                  <div class="text-lg font-semibold num">R 1,240,000</div>
+            <div class="font-semibold mb-4">Portfolio Rating</div>
+            <div class="flex items-center gap-4">
+              <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
+              <div>
+                <div id="ratingText" class="text-lg font-semibold">—</div>
+                <div class="text-xs text-slate-500">Overall rating performance</div>
+                <div class="mt-2">
+                  <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  <span class="text-xs text-slate-500 ml-1">From last year</span>
                 </div>
-                <span class="chip bg-green-50 text-green-700">Active</span>
-              </div>
-              <div class="p-3 border rounded-xl flex items-center justify-between">
-                <div>
-                  <div class="text-sm text-slate-600">Paper · DU7654321</div>
-                  <div class="text-lg font-semibold num">R 250,000</div>
-                </div>
-                <span class="chip bg-slate-100 text-slate-700">Sandbox</span>
               </div>
             </div>
           </div>
 
-          <!-- Allocation Mix -->
-          <div class="card p-5">
-            <div class="font-semibold mb-3">Allocation Mix</div>
-            <div class="space-y-3 text-sm">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-slate-900 inline-block"></span> Trend</div>
-                <div class="num">48%</div>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span> Mean-Revert</div>
-                <div class="num">28%</div>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-amber-500 inline-block"></span> Grid</div>
-                <div class="num">16%</div>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-rose-500 inline-block"></span> News</div>
-                <div class="num">8%</div>
-              </div>
-            </div>
+          <!-- Last Investments -->
+          <div class="card">
+            <div class="px-5 py-4 border-b font-semibold">Last Investments</div>
+            <div id="lastInvest" class="divide-y"></div>
           </div>
 
-          <!-- CTA -->
-          <div class="card p-5">
-            <div class="text-sm uppercase tracking-wide text-slate-500 mb-1">Get started</div>
-            <div class="text-lg font-semibold mb-2">Allocate to a new strategy</div>
-            <p class="text-sm text-slate-600 mb-4">Diversify with vetted providers in minutes.</p>
-            <a href="/open-strategies.html" class="btn-olive btn">Explore Strategies <i class="fa-solid fa-arrow-right"></i></a>
-          </div>
         </aside>
       </section>
     </main>
   </div>
 
   <script>
-  /* ===== 1) Load global menu partial ===== */
-  async function loadMenu() {
-    const mount = document.getElementById('sidebarMount');
-    if (!mount) throw new Error('#sidebarMount not found');
-    const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error('menu.html not found at ' + url);
-    mount.outerHTML = await res.text();
+  /* =================== MENU PARTIAL =================== */
+  async function loadMenu(){
+    const mount=document.getElementById('sidebarMount');
+    const url=(mount.getAttribute('data-menu')||'/partials/menu.html').trim();
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok) throw new Error('Failed to load '+url);
+    mount.outerHTML=await res.text();
   }
-
-  /* ===== 2) Build sidebar items after partial ===== */
   function buildMenu(activeKey='dashboard'){
-    const navContainer = document.getElementById('navContainer');
+    const navContainer=document.getElementById('navContainer');
     if(!navContainer) return;
-    const menu = [
-      { section:"Menu", items:[
-        { key:"dashboard", label:"Dashboard", icon:"fa-gauge", href:"/dashboard.html"},
-        { key:"open-strategies", label:"Open Strategies", icon:"fa-cubes", href:"/open-strategies.html"},
-        { key:"portfolio", label:"My Portfolio", icon:"fa-chart-line", href:"/portfolio.html"},
-        { key:"funding", label:"Funding", icon:"fa-wallet", href:"/funding.html"},
-        { key:"reports", label:"Reports", icon:"fa-file-invoice", href:"/reports.html"},
-        { key:"news", label:"News & Insights", icon:"fa-newspaper", href:"/news.html"},
-        { key:"alerts", label:"Notifications", icon:"fa-bell", href:"/alerts.html"},
-      ]},
-      { section:"General", items:[
-        { key:"settings", label:"Settings", icon:"fa-gear", href:"/settings.html"},
-        { key:"help", label:"Help Desk", icon:"fa-circle-question", href:"/help.html"},
-        { key:"integration", label:"Integration", icon:"fa-plug", href:"/integrations.html"},
-        { key:"feedback", label:"Feedback", icon:"fa-comment-dots", href:"/feedback.html"},
-      ]},
-    ];
-    function createGroup(sectionObj){
-      const group=document.createElement('div'); group.className='mb-2';
+    const menu=[{section:"Menu",items:[
+      {key:"dashboard",label:"Dashboard",icon:"fa-gauge",href:"/dashboard.html"},
+      {key:"open-strategies",label:"Open Strategies",icon:"fa-cubes",href:"/open-strategies.html"},
+      {key:"portfolio",label:"My Portfolio",icon:"fa-chart-line",href:"/portfolio.html"},
+      {key:"funding",label:"Funding",icon:"fa-wallet",href:"/funding.html"},
+      {key:"reports",label:"Reports",icon:"fa-file-invoice",href:"/reports.html"},
+      {key:"news",label:"News & Insights",icon:"fa-newspaper",href:"/news.html"},
+      {key:"alerts",label:"Notifications",icon:"fa-bell",href:"/alerts.html"},
+    ]},{section:"General",items:[
+      {key:"settings",label:"Settings",icon:"fa-gear",href:"/settings.html"},
+      {key:"help",label:"Help Desk",icon:"fa-circle-question",href:"/help.html"},
+      {key:"integration",label:"Integration",icon:"fa-plug",href:"/integrations.html"},
+      {key:"feedback",label:"Feedback",icon:"fa-comment-dots",href:"/feedback.html"},
+    ]}];
+    function group(sec){
+      const g=document.createElement('div'); g.className='mb-2';
       const header=document.createElement('button'); header.className='w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded','true');
-      const title=document.createElement('div'); title.className='section-title'; title.textContent=sectionObj.section;
+      const title=document.createElement('div'); title.className='section-title'; title.textContent=sec.section;
       const right=document.createElement('div'); right.className='label'; right.innerHTML='<i class="fa-solid fa-chevron-up chev text-xs"></i>';
       const body=document.createElement('div'); body.className='group-body';
       const list=document.createElement('nav'); list.className='space-y-1 px-0.5';
-      sectionObj.items.forEach(item=>{
-        const a=document.createElement('a'); a.href=item.href||'#'; a.className='sidebar-link'; a.title=item.label;
-        if(item.key===activeKey) a.classList.add('active');
-        a.innerHTML=`<i class="fa-solid ${item.icon}"></i><span class="label">${item.label}</span>`;
-        list.appendChild(a);
-      });
-      body.appendChild(list); header.append(title,right); group.append(header,body);
-      header.addEventListener('click',()=>{
-        const exp=header.getAttribute('aria-expanded')==='true';
-        header.setAttribute('aria-expanded', String(!exp));
-        const chev=header.querySelector('.chev');
-        if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); }
-        else { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); }
-      });
+      sec.items.forEach(it=>{ const a=document.createElement('a'); a.href=it.href; a.className='sidebar-link'; a.title=it.label;
+        if(it.key===activeKey) a.classList.add('active');
+        a.innerHTML=`<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`; list.appendChild(a); });
+      body.appendChild(list); header.append(title,right); g.append(header,body);
       requestAnimationFrame(()=>{ body.style.maxHeight=body.scrollHeight+'px'; });
-      return group;
+      header.addEventListener('click',()=>{ const exp=header.getAttribute('aria-expanded')==='true';
+        header.setAttribute('aria-expanded',String(!exp));
+        const chev=header.querySelector('.chev');
+        if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); } else { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); }});
+      return g;
     }
-    navContainer.innerHTML=''; menu.forEach(s=> navContainer.appendChild(createGroup(s)));
+    navContainer.innerHTML=''; menu.forEach(s=>navContainer.appendChild(group(s)));
 
     const sidebar=document.getElementById('sidebar');
-    const collapseBtn=document.getElementById('collapseBtn');
-    let collapsed=false;
-    collapseBtn?.addEventListener('click', ()=>{
-      collapsed=!collapsed;
-      sidebar.classList.toggle('is-collapsed', collapsed);
+    const collapseBtn=document.getElementById('collapseBtn'); let collapsed=false;
+    collapseBtn?.addEventListener('click',()=>{collapsed=!collapsed; sidebar.classList.toggle('is-collapsed',collapsed);
       collapseBtn.innerHTML=collapsed?'<i class="fa-solid fa-angles-right text-sm"></i>':'<i class="fa-solid fa-angles-left text-sm"></i>';
-      try{ sessionStorage.setItem('ah_sidebar_collapsed', collapsed?'1':'0'); }catch(e){}
-    });
-    try{
-      if(sessionStorage.getItem('ah_sidebar_collapsed')==='1'){
-        collapsed=true; sidebar.classList.add('is-collapsed');
-        if(collapseBtn) collapseBtn.innerHTML='<i class="fa-solid fa-angles-right text-sm"></i>';
-      }
-    }catch(e){}
+      try{sessionStorage.setItem('ah_sidebar_collapsed',collapsed?'1':'0');}catch(e){};});
+    try{ if(sessionStorage.getItem('ah_sidebar_collapsed')==='1'){collapsed=true; sidebar.classList.add('is-collapsed'); if(collapseBtn) collapseBtn.innerHTML='<i class="fa-solid fa-angles-right text-sm"></i>';}}catch(e){}
   }
 
-  /* ===== 3) Helpers ===== */
-  const AH_USER_NAME = 'Mihle';
-  const fmtMoney = (v, cur='ZAR')=>{
-    try{ return new Intl.NumberFormat('en-ZA',{style:'currency',currency:cur,maximumFractionDigits:0}).format(v);}
-    catch{ return 'R ' + (v||0).toLocaleString();}
-  };
-  function greetLine(){
-    const h=new Date().getHours();
-    const tag = h<12 ? 'Good morning' : (h<18 ? 'Good afternoon' : 'Good evening');
-    return `${tag}, ${AH_USER_NAME}`;
+  /* =================== UTIL / CHARTS =================== */
+  const fmtMoney=v=> new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0}).format(v);
+  const greetLine=()=>{const h=new Date().getHours();const t=h<12?'Good morning':(h<18?'Good afternoon':'Good evening');return `${t}, Mihle`;};
+
+  function sparkSvg(series, color='#0f172a'){
+    const w=160,h=28,pad=2,min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1;
+    const step=(w-2*pad)/(series.length-1);
+    let d='';
+    series.forEach((v,i)=>{const x=pad+i*step;const y=h-pad-( (v-min)/rng )*(h-2*pad); d+=(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)+' ';});
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
   }
 
-  function drawLines(svgEl, seriesList, labels) {
-    const W=900,H=260,pad=28;
-    svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`); svgEl.innerHTML='';
-    const grid=document.createElementNS('http://www.w3.org/2000/svg','g');
+  function drawPerf(svgEl, seriesList, labels){
+    const W=900,H=280,pad=30;
+    svgEl.innerHTML='';
+    // grid
     for(let i=0;i<5;i++){
       const y=pad+i*(H-2*pad)/4;
-      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1',pad); line.setAttribute('x2',W-pad);
-      line.setAttribute('y1',y);   line.setAttribute('y2',y);
-      line.setAttribute('stroke','#e5e7eb'); line.setAttribute('stroke-width','1'); grid.appendChild(line);
+      const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+      ln.setAttribute('x1',pad); ln.setAttribute('x2',W-pad); ln.setAttribute('y1',y); ln.setAttribute('y2',y);
+      ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1');
+      svgEl.appendChild(ln);
     }
-    svgEl.appendChild(grid);
-    const allVals=seriesList.flatMap(s=>s.data);
-    const min=Math.min(...allVals), max=Math.max(...allVals), rng=(max-min)||1;
-    const x=i=> pad + i*((W-2*pad)/(seriesList[0].data.length-1));
+    const all=seriesList.flatMap(s=>s.data); const min=Math.min(...all), max=Math.max(...all), rng=(max-min)||1;
+    const x=i=> pad + i*((W-2*pad)/(labels.length-1));
     const y=v=> H-pad - ((v-min)/rng)*(H-2*pad);
-    if(labels?.length){
-      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-      labels.forEach((m,i)=>{
-        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-        t.textContent=m; t.setAttribute('x',x(i)); t.setAttribute('y',H-6);
-        t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b');
-        g.appendChild(t);
-      }); svgEl.appendChild(g);
-    }
+
+    // axis labels
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    labels.forEach((lb,i)=>{const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb;
+      t.setAttribute('x',x(i)); t.setAttribute('y',H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t);});
+    svgEl.appendChild(g);
+
+    // lines
     seriesList.forEach(s=>{
-      let d=''; s.data.forEach((v,i)=> d+=`${i?'L':'M'}${x(i).toFixed(2)},${y(v).toFixed(2)} `);
-      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-      p.setAttribute('d',d.trim()); p.setAttribute('fill','none'); p.setAttribute('stroke',s.color||'#0f172a'); p.setAttribute('stroke-width','2.5');
-      svgEl.appendChild(p);
+      let d=''; s.data.forEach((v,i)=> d+=(i?'L':'M')+x(i).toFixed(2)+','+y(v).toFixed(2)+' ');
+      const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d',d.trim());
+      p.setAttribute('fill','none'); p.setAttribute('stroke',s.color); p.setAttribute('stroke-width','2.5'); svgEl.appendChild(p);
     });
   }
 
-  /* ===== 4) Boot ===== */
+  function drawDonut(el, percent){
+    const r=68, cx=80, cy=80, C=2*Math.PI*r, val=Math.max(0,Math.min(100,percent));
+    el.innerHTML='';
+    const bg=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',r);
+    bg.setAttribute('fill','none'); bg.setAttribute('stroke','#e5e7eb'); bg.setAttribute('stroke-width','16'); el.appendChild(bg);
+
+    const arc=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    arc.setAttribute('cx',cx); arc.setAttribute('cy',cy); arc.setAttribute('r',r);
+    arc.setAttribute('fill','none'); arc.setAttribute('stroke','url(#g1)'); arc.setAttribute('stroke-width','16');
+    arc.setAttribute('stroke-linecap','round'); arc.setAttribute('transform','rotate(-90 80 80)');
+    arc.setAttribute('stroke-dasharray', `${(val/100)*C} ${C}`); el.appendChild(arc);
+
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+    const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient'); grad.setAttribute('id','g1');
+    grad.setAttribute('x1','0%'); grad.setAttribute('y1','0%'); grad.setAttribute('x2','100%'); grad.setAttribute('y2','0%');
+    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#2563eb');
+    const s2=document.createElementNS('http://www.w3.org/2000/svg','stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#10b981');
+    grad.append(s1,s2); defs.appendChild(grad); el.appendChild(defs);
+
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.textContent=val.toFixed(0)+'%'; txt.setAttribute('x',cx); txt.setAttribute('y',cy+5);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('font-size','20'); txt.setAttribute('font-weight','700'); txt.setAttribute('fill','#0f172a');
+    el.appendChild(txt);
+  }
+
+  /* =================== BOOT =================== */
   (async function(){
     await loadMenu();
     buildMenu('dashboard');
 
-    // Greeting + description
-    const greetEl=document.getElementById('greet');
-    if(greetEl){ greetEl.textContent=greetLine(); }
-    const pageDesc=document.getElementById('pageDesc');
-    if(pageDesc){ pageDesc.textContent="Track P&L, risk, utilization and allocations at a glance. Everything here is updated live from your providers."; }
+    // Greeting
+    document.getElementById('greet').textContent = greetLine();
 
-    // Rich metrics (sample data — wire to backend later)
-    const data={
-      portfolio: 1_523_400,
-      portChg: 4.9,
-      pnl: 58_200,
-      pnlChg: 2.3,
-      ytd: 12.7,
-      sharpe: 1.32,
-      win: 58,
-      dd: 9.6,
-      vol: 13.8,
-      cash: 188_000,
-      strats: 9,
-      alerts: 3
+    /* -------- Mini Asset Cards -------- */
+    const mini = [
+      { name:'Apple Inc', tag:'AAPL', change:+0.7, amount:15238, color:'#10b981', series:[10,12,11,13,12,15,14,16] },
+      { name:'Nasdaq', tag:'NDQ', change:+0.7, amount:8238, color:'#10b981', series:[8,9,9.5,9.2,10,10.5,11] },
+      { name:'Twitter', tag:'TWTR', change:-0.7, amount:12289, color:'#ef4444', series:[9,8.8,8.5,8.9,8.6,8.4,8.2] },
+      { name:'Meta', tag:'META', change:+0.7, amount:20450, color:'#f59e0b', series:[6,6.5,6.8,7.1,7.0,7.4,7.6] },
+      { name:'Tesla', tag:'TSLA', change:+0.7, amount:30238, color:'#f59e0b', series:[11,11.5,10.8,12,12.7,12.9,13.4] },
+      { name:'Google', tag:'GOOG', change:+1.1, amount:18940, color:'#10b981', series:[7,7.2,7.4,7.6,7.8,8.1,8.5] },
+    ];
+    const mnt = document.getElementById('miniAssets');
+    mnt.innerHTML = mini.map(m=>`
+      <div class="card p-4 mini-asset">
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-sm font-medium">${m.name}</div>
+          <span class="chip ${m.change>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'}">
+            ${m.change>=0?'+':''}${m.change.toFixed(2)}%
+          </span>
+        </div>
+        <div class="text-xs text-slate-500 mb-2">${m.tag}</div>
+        <div class="mb-2">${sparkSvg(m.series, m.color)}</div>
+        <div class="text-lg font-semibold num">${fmtMoney(m.amount)}</div>
+      </div>
+    `).join('');
+
+    /* -------- Performance Chart -------- */
+    const svg = document.getElementById('perfChart');
+    const ranges = {
+      "1Y": { labels:['J','F','M','A','M','J','J','A','S','O','N','D'],
+              earn:[1.0,1.2,1.1,1.4,1.6,1.7,1.9,2.0,2.2,2.6,3.2,3.8],
+              subs:[120,130,140,160,180,200,220,250,270,300,320,360],
+              dd:[5,6,5,6,5,6,5,5,6,5,4,4] },
+      "3Y": { labels:['Y1','Y2','Y3'], earn:[1.2,2.4,3.8], subs:[150,240,360], dd:[6,5,4] },
+      "5Y": { labels:['Y1','Y2','Y3','Y4','Y5'], earn:[0.8,1.5,2.1,3.0,4.1], subs:[90,140,200,280,360], dd:[7,6,6,5,4]},
+      "10Y":{ labels:['1','2','3','4','5','6','7','8','9','10'], earn:[0.3,0.6,0.9,1.2,1.6,2.0,2.5,3.1,3.6,4.2], subs:[40,60,80,110,150,190,230,280,320,360], dd:[9,8,8,7,7,6,6,5,5,4]}
     };
-    const setTxt=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
-
-    setTxt('m_portfolio', fmtMoney(data.portfolio));
-    const portChg=document.getElementById('m_port_chg');
-    if(portChg){ portChg.textContent=(data.portChg>=0?'+':'')+data.portChg.toFixed(1)+'%';
-      portChg.className='chip '+(data.portChg>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'); }
-
-    setTxt('m_pnl', fmtMoney(data.pnl));
-    const pnlChg=document.getElementById('m_pnl_chg');
-    if(pnlChg){ pnlChg.textContent=(data.pnlChg>=0?'+':'')+data.pnlChg.toFixed(1)+'%';
-      pnlChg.className='chip '+(data.pnlChg>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'); }
-
-    setTxt('m_ytd', (data.ytd>=0?'+':'')+data.ytd.toFixed(1)+'%');
-    setTxt('m_sharpe', data.sharpe.toFixed(2));
-    setTxt('m_win', data.win.toFixed(0)+'%');
-    setTxt('m_dd', data.dd.toFixed(1)+'%');
-    setTxt('m_vol', data.vol.toFixed(1)+'%');
-    const util = Math.max(0, Math.min(100, 100 - (data.cash/data.portfolio*100)));
-    setTxt('m_util', util.toFixed(1)+'%');
-    setTxt('m_strats', String(data.strats));
-    setTxt('m_alerts', String(data.alerts));
-
-    // Chart
-    const svg=document.getElementById('perfChart');
-    if(svg){
-      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const monthly={ earn:[22,26,21,28,32,29,35,38,36,42,48,50],
-                      subs:[120,140,150,180,210,230,260,280,300,320,340,360],
-                      dd:[45,46,44,47,43,46,45,44,47,46,45,46]};
-      function render(){ document.getElementById('perfHeadline').textContent = fmtMoney(45_567);
-        drawLines(svg,[{data:monthly.earn,color:'#0f172a'},{data:monthly.subs,color:'#10b981'},{data:monthly.dd,color:'#ef4444'}],months); }
-      render();
-      document.querySelectorAll('[data-mode]').forEach(b=> b.addEventListener('click',render));
+    function renderRange(key){
+      const d=ranges[key]||ranges['1Y'];
+      drawPerf(svg,[
+        {data:d.earn,color:'#0f172a'},
+        {data:d.subs,color:'#10b981'},
+        {data:d.dd,color:'#ef4444'}
+      ], d.labels);
     }
+    renderRange('1Y');
+    document.querySelectorAll('#rangeTabs .tab-btn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        document.querySelectorAll('#rangeTabs .tab-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active'); renderRange(b.dataset.range);
+      });
+    });
 
-    // Recent Allocations
-    const tbody=document.getElementById('allocRows');
-    if(tbody){
-      const rows=[
-        { strat:'Momentum FX',        provider:'QuantBee', amt:28000,  date:'2025-04-17 14:15', status:'Success' },
-        { strat:'Equity Trend Plus',  provider:'AlgoForge',amt:125000, date:'2025-04-15 11:30', status:'Pending' },
-        { strat:'Grid Alpha',         provider:'GridOps',  amt:40000,  date:'2025-04-10 09:20', status:'Success' },
-        { strat:'NewsPulse',          provider:'PulseAI',  amt:25000,  date:'2025-04-07 16:05', status:'Failed' },
-      ];
-      tbody.innerHTML = rows.map(r=>`
-        <tr class="hover:bg-slate-50">
-          <td class="px-5 py-3">${r.strat}</td>
-          <td class="px-5 py-3 text-slate-600">${r.provider}</td>
-          <td class="px-5 py-3 text-right">${fmtMoney(r.amt)}</td>
-          <td class="px-5 py-3">${r.date}</td>
-          <td class="px-5 py-3 text-right">
-            <span class="chip ${r.status==='Success'?'bg-green-50 text-green-700': r.status==='Pending'?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}">${r.status}</span>
-          </td>
-        </tr>`).join('');
-    }
+    /* -------- Popular Assets -------- */
+    const popular = [
+      { logo:'https://www.google.com/s2/favicons?domain=google.com&sz=64', name:'Google',  ticker:'GOOG',  change:+2.37, price:289.28 },
+      { logo:'https://www.google.com/s2/favicons?domain=x.com&sz=64',      name:'Twitter', ticker:'TWTR',  change:-2.37, price:289.28 },
+      { logo:'https://www.google.com/s2/favicons?domain=spotify.com&sz=64',name:'Spotify', ticker:'SPOT',  change:+2.37, price:289.28 },
+      { logo:'https://www.google.com/s2/favicons?domain=apple.com&sz=64',  name:'Apple',   ticker:'AAPL',  change:+0.70, price:172.40 },
+    ];
+    const pa=document.getElementById('popularAssets');
+    pa.innerHTML = popular.map(a=>`
+      <div class="px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="${a.logo}" class="h-7 w-7 rounded" alt="">
+          <div>
+            <div class="text-sm font-medium">${a.name}</div>
+            <div class="text-xs text-slate-500">${a.ticker}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="chip ${a.change>=0?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}">
+            ${a.change>=0?'<i class="fa-solid fa-arrow-up-right mr-1"></i>':'<i class="fa-solid fa-arrow-down-right mr-1"></i>'}
+            ${a.change>=0?'+':''}${a.change.toFixed(2)}%
+          </span>
+          <div class="num text-slate-700">${fmtMoney(a.price)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    /* -------- Rating Gauge + Last Investments -------- */
+    const rating=82, delta=+5.48;
+    drawDonut(document.getElementById('ratingGauge'), rating);
+    document.getElementById('ratingText').textContent = rating>=85?'Excellent':(rating>=70?'Very Good':'Fair');
+    const chip=document.getElementById('ratingDeltaChip');
+    chip.textContent = (delta>=0?'+':'')+delta.toFixed(2)+'%';
+    chip.className = 'chip '+(delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
+
+    const last = [
+      { name:'Twitter',  ticker:'TWTR',  amount:300.00,  change:-0.70, logo:'https://www.google.com/s2/favicons?domain=x.com&sz=64' },
+      { name:'Spotify',  ticker:'SPOT',  amount:100.00,  change:+1.00, logo:'https://www.google.com/s2/favicons?domain=spotify.com&sz=64' },
+      { name:'Tesla, Inc',ticker:'TSLA', amount:1700.00, change:+1.10, logo:'https://www.google.com/s2/favicons?domain=tesla.com&sz=64' },
+      { name:'Apple, Inc',ticker:'AAPL', amount:2300.00, change:+2.70, logo:'https://www.google.com/s2/favicons?domain=apple.com&sz=64' },
+      { name:'Google',   ticker:'GOOG',  amount:60.00,   change:+0.90, logo:'https://www.google.com/s2/favicons?domain=google.com&sz=64' },
+    ];
+    const li=document.getElementById('lastInvest');
+    li.innerHTML = last.map(r=>`
+      <div class="px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="${r.logo}" class="h-8 w-8 rounded" alt="">
+          <div>
+            <div class="text-sm font-medium">${r.name}</div>
+            <div class="text-xs text-slate-500">${r.ticker}</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="num font-semibold">${fmtMoney(r.amount)}</div>
+          <div class="text-xs ${r.change>=0?'text-emerald-600':'text-rose-600'}">
+            ${r.change>=0?'+':''}${r.change.toFixed(2)}%
+          </div>
+        </div>
+      </div>
+    `).join('');
   })();
   </script>
 </body>
