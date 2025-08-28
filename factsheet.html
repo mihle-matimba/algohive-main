@@ -12,19 +12,22 @@
 
   <style>
     :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
-    html,body { font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--page-bg); color: #0f172a; }
+    html,body{ font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page-bg); color:#0f172a }
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
     .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
     .glass{ backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
     .num{ font-variant-numeric: tabular-nums }
+    .tab-btn{ border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff }
+    .tab-btn.active{ background:var(--olive); border-color:var(--olive); color:#fff }
     .topbar{ height:52px }
-    .kv td{ padding:.4rem .6rem; border-bottom:1px solid #e5e7eb; font-size:.9rem; }
-    .kv td:first-child{ color:#64748b; width:46% }
-    /* charts */
     .tip{ position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12) }
     .legend-dot{ width:10px; height:10px; border-radius:9999px; display:inline-block; }
-    /* print */
-    @media print{ .no-print{ display:none !important } body{ background:#fff } .print-block{ break-inside: avoid } }
+    .kv td{ padding:.4rem .6rem; border-bottom:1px solid #e5e7eb; font-size:.9rem; }
+    .kv td:first-child{ color:#64748b; width:46% }
+    .hm td{ border:1px solid #e5e7eb; font-size:.78rem; text-align:right; padding:.3rem .4rem }
+    .hm th{ border:1px solid #e5e7eb; font-size:.72rem; padding:.3rem .4rem; background:#f8fafc; text-align:center }
+    .hm .y{ text-align:left; font-weight:600 }
+    @media print{ .no-print{ display:none !important } .print-block{ break-inside: avoid } body{ background:#fff } }
   </style>
 </head>
 <body>
@@ -45,14 +48,17 @@
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
             </div>
-            <button id="btnPrint" class="border rounded-lg h-9 px-3 bg-white ml-auto mr-0"><i class="fa-solid fa-file-arrow-down mr-2"></i>Export PDF</button>
+            <!-- Replaced Export with Allocate -->
+            <button id="btnAllocateTop" class="rounded-lg h-9 px-3 bg-[var(--olive)] text-white ml-auto mr-0">
+              <i class="fa-solid fa-plus mr-2"></i>Allocate
+            </button>
           </div>
         </div>
       </section>
 
-      <!-- Page -->
+      <!-- Page container -->
       <div class="max-w-7xl mx-auto px-6">
-        <!-- Header -->
+        <!-- Header / Selector -->
         <section class="pt-6">
           <div class="flex flex-wrap items-center gap-4 justify-between">
             <div class="min-w-0">
@@ -83,14 +89,33 @@
         <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           <!-- LEFT MAIN -->
           <div class="lg:col-span-8 xl:col-span-9 space-y-6">
-            <!-- Investment Growth (Net of TIF) -->
+            <!-- Growth (Net of TIF) + Key Metrics + Tabs -->
             <div class="card p-5 print-block">
-              <div class="flex items-center justify-between mb-2">
-                <div class="font-semibold">Investment Growth (Net of TIF)<span class="text-xs text-slate-500 font-normal"> — Cumulative wealth (base 100)</span></div>
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-sm text-slate-600">Investment Growth (Net of TIF)</div>
+                  <div class="flex items-center gap-2">
+                    <div id="eqValue" class="text-2xl font-semibold num">—</div>
+                    <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  </div>
+                </div>
                 <div class="flex items-center gap-4 text-xs">
                   <span><span class="legend-dot" style="background:#0f172a"></span> Portfolio</span>
                   <span><span class="legend-dot" style="background:#556B2F"></span> Benchmark</span>
                 </div>
+                <div class="flex gap-2 no-print" id="eqTabs">
+                  <button class="tab-btn active" data-range="1Y">1Y</button>
+                  <button class="tab-btn" data-range="3Y">3Y</button>
+                  <button class="tab-btn" data-range="ALL">All</button>
+                </div>
+              </div>
+              <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-6 gap-3 text-sm">
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">CAGR</div><div id="mCagr" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div id="mVol" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div id="mSharpe" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div id="mDD" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div id="mWin" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div id="mAvg" class="font-semibold">—</div></div>
               </div>
               <div class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
                 <svg id="growthSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
@@ -99,32 +124,50 @@
               <div class="mt-2 text-xs text-slate-500">* TIF (Total Investment Fee) applied as a monthly deduction.</div>
             </div>
 
+            <!-- Monthly Returns Heatmap -->
+            <div class="card p-5 print-block">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Monthly Returns (by Year)</div>
+                <div class="text-xs text-slate-500">% net of TIF</div>
+              </div>
+              <div class="overflow-x-auto">
+                <table id="heatmap" class="hm w-full bg-white rounded-lg"></table>
+              </div>
+            </div>
+
+            <!-- Drawdown & Rolling Sharpe -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-block">
+              <div class="card p-5">
+                <div class="font-semibold mb-2">Drawdown (from peak)</div>
+                <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
+                  <svg id="ddSvg" viewBox="0 0 900 220" class="w-full h-full"></svg>
+                </div>
+              </div>
+              <div class="card p-5">
+                <div class="font-semibold mb-2">Rolling 12M Sharpe (sim.)</div>
+                <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
+                  <svg id="rollSvg" viewBox="0 0 900 220" class="w-full h-full"></svg>
+                </div>
+              </div>
+            </div>
+
             <!-- Asset Allocation (%) -->
             <div class="card p-5 print-block">
               <div class="flex items-center justify-between mb-2">
                 <div class="font-semibold">Asset Allocation (%)</div>
-                <div class="text-xs text-slate-500">Percentage (%)</div>
+                <div class="text-xs text-slate-500">Percentage</div>
               </div>
               <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
                 <svg id="allocSvg" viewBox="0 0 900 260" class="w-full h-full"></svg>
               </div>
             </div>
 
-            <!-- Narrative: Risk / Objective / Strategy -->
+            <!-- Portfolio Holdings (now directly under Allocation) -->
             <div class="card p-5 print-block">
-              <div class="grid md:grid-cols-3 gap-6">
-                <div>
-                  <div class="font-semibold mb-1">Risk Description</div>
-                  <p id="fsRiskDesc" class="text-sm text-slate-700 leading-relaxed">—</p>
-                </div>
-                <div>
-                  <div class="font-semibold mb-1">Investment Objective</div>
-                  <p id="fsObjective" class="text-sm text-slate-700 leading-relaxed">—</p>
-                </div>
-                <div>
-                  <div class="font-semibold mb-1">Investment Strategy</div>
-                  <p id="fsStrategy" class="text-sm text-slate-700 leading-relaxed">—</p>
-                </div>
+              <div class="font-semibold mb-2">Portfolio Holdings (Neutral)</div>
+              <div class="flex items-center gap-4">
+                <svg id="holdingsDonut" viewBox="0 0 180 180" class="h-40 w-40"></svg>
+                <div id="holdingsLegend" class="text-sm grow"></div>
               </div>
             </div>
 
@@ -133,17 +176,14 @@
               <div class="font-semibold mb-2">What Costs Can I Expect to Pay?</div>
               <table class="w-full text-sm">
                 <thead class="text-slate-500">
-                  <tr>
-                    <th class="text-left py-2">Fee</th>
-                    <th class="text-right py-2">Incl. VAT</th>
-                  </tr>
+                  <tr><th class="text-left py-2">Fee</th><th class="text-right py-2">Incl. VAT</th></tr>
                 </thead>
                 <tbody id="costRows" class="divide-y"></tbody>
               </table>
               <div class="text-xs text-slate-500 mt-2">Please refer to the end of the factsheet for detailed notes on fees.</div>
             </div>
 
-            <!-- Disclaimer -->
+            <!-- Important Information -->
             <div class="card p-5 print-block">
               <div class="font-semibold mb-2">Important Information</div>
               <p id="fsDisclaimer" class="text-sm text-slate-600 leading-relaxed"></p>
@@ -152,21 +192,32 @@
 
           <!-- RIGHT RAIL -->
           <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
-            <!-- Portfolio Information (Key Facts) -->
+            <!-- Portfolio Information -->
             <div class="card p-5">
               <div class="font-semibold mb-2">Portfolio Information</div>
-              <table class="kv w-full">
-                <tbody id="keyFacts"></tbody>
-              </table>
+              <table class="kv w-full"><tbody id="keyFacts"></tbody></table>
             </div>
 
-            <!-- Portfolio Holdings (Donut) -->
+            <!-- Strategy Overview (older data block) -->
             <div class="card p-5">
-              <div class="font-semibold mb-2">Portfolio Holdings (Neutral)</div>
-              <div class="flex items-center gap-4">
-                <svg id="holdingsDonut" viewBox="0 0 180 180" class="h-40 w-40"></svg>
-                <div id="holdingsLegend" class="text-sm grow"></div>
+              <div class="font-semibold mb-2">Strategy Overview</div>
+              <p id="fsDesc" class="text-sm text-slate-700">—</p>
+              <div class="grid grid-cols-2 gap-3 text-sm mt-3">
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Style</div><div id="fsStyle" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Universe</div><div id="fsUniverse" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Holding</div><div id="fsHold" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trades / Month</div><div id="fsTrades" class="font-semibold">—</div></div>
               </div>
+            </div>
+
+            <!-- Narrative blocks -->
+            <div class="card p-5">
+              <div class="font-semibold mb-1">Risk Description</div>
+              <p id="fsRiskDesc" class="text-sm text-slate-700 leading-relaxed">—</p>
+              <div class="font-semibold mb-1 mt-4">Investment Objective</div>
+              <p id="fsObjective" class="text-sm text-slate-700 leading-relaxed">—</p>
+              <div class="font-semibold mb-1 mt-4">Investment Strategy</div>
+              <p id="fsStrategy" class="text-sm text-slate-700 leading-relaxed">—</p>
             </div>
           </aside>
         </section>
@@ -175,7 +226,7 @@
   </div>
 
   <script>
-    /* =================== MENU PARTIAL (same as dashboard) =================== */
+    /* ===== MENU PARTIAL (identical to dashboard) ===== */
     async function loadMenu() {
       const mount = document.getElementById('sidebarMount');
       const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
@@ -195,7 +246,6 @@
           { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
           { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
           { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
-          // (Optional) uncomment if you want a visible Factsheet nav item:
           // { key: "factsheet", label: "Factsheet", icon: "fa-sheet-plastic", href: "/factsheet.html" },
         ]
       }, {
@@ -239,91 +289,122 @@
       try { if (sessionStorage.getItem('ah_sidebar_collapsed') === '1') { collapsed = true; sidebar.classList.add('is-collapsed'); if (collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>'; } } catch (e) { }
     }
 
-    /* =================== UTIL =================== */
+    /* ===== UTIL ===== */
     const fmtMoney = (v,c='ZAR')=> new Intl.NumberFormat('en-ZA',{style:'currency',currency:c,maximumFractionDigits:0}).format(v);
     const fmtPct   = (x,dp=2)=> (x>=0?'+':'')+x.toFixed(dp)+'%';
     const lastUpdated = ()=> new Date().toLocaleString();
 
-    /* =================== CHARTS =================== */
+    /* ===== CHARTS ===== */
     function drawGrowth(svgEl, port, bench, labels){
       const W=900, H=320, padL=44, padR=12, padT=16, padB=28;
       svgEl.innerHTML='';
       const all = port.concat(bench);
       const mn = Math.min(...all), mx = Math.max(...all), rng=(mx-mn)||1;
-      // grid
       for(let i=0;i<4;i++){ const y=padT+i*(H-padT-padB)/3; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',padL); ln.setAttribute('x2',W-padR); ln.setAttribute('y1',y); ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
       const step=(W-padL-padR)/(port.length-1);
       const X=i=> padL+i*step, Y=v=> padT + (mx-v)*((H-padT-padB)/rng);
-      // series path helper
       function pathFor(arr){ let d=''; arr.forEach((v,i)=>{ d+=(i?'L':'M')+X(i).toFixed(2)+','+Y(v).toFixed(2)+' '; }); return d.trim(); }
-
       const pPath = document.createElementNS('http://www.w3.org/2000/svg','path');
       pPath.setAttribute('d', pathFor(port)); pPath.setAttribute('fill','none'); pPath.setAttribute('stroke','#0f172a'); pPath.setAttribute('stroke-width','2.6'); svgEl.appendChild(pPath);
-
       const bPath = document.createElementNS('http://www.w3.org/2000/svg','path');
       bPath.setAttribute('d', pathFor(bench)); bPath.setAttribute('fill','none'); bPath.setAttribute('stroke','#556B2F'); bPath.setAttribute('stroke-width','2.2'); bPath.setAttribute('stroke-dasharray','4 4'); svgEl.appendChild(bPath);
-
-      // labels (sparse to avoid clutter)
       const g = document.createElementNS('http://www.w3.org/2000/svg','g');
       const stepL=(W-padL-padR)/(labels.length-1);
       labels.forEach((lb,i)=>{ if(i%6!==0 && i!==labels.length-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); });
       svgEl.appendChild(g);
     }
-
-    function drawAllocBars(svgEl, rows){ // rows = [{label,pct,color}]
+    function drawLine(svgEl, series, labels, {minY=null,maxY=null, padL=34,padR=12,padT=16,padB=26, color='#0f172a'}={}){
+      const W=svgEl.viewBox.baseVal.width||900, H=svgEl.viewBox.baseVal.height||320;
+      svgEl.innerHTML='';
+      for(let i=0;i<4;i++){ const y=padT+i*(H-padT-padB)/3; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',padL);ln.setAttribute('x2',W-padR);ln.setAttribute('y1',y);ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
+      const mn = (minY??Math.min(...series)), mx = (maxY??Math.max(...series)), rng=(mx-mn)||1; const step=(W-padL-padR)/(series.length-1);
+      let d=''; series.forEach((v,i)=>{ const x=padL+i*step; const y= padT + (mx-v)*((H-padT-padB)/rng); d += (i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)+' '; });
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d.trim()); path.setAttribute('fill','none'); path.setAttribute('stroke',color); path.setAttribute('stroke-width','2.4'); svgEl.appendChild(path);
+      if(labels){ const g=document.createElementNS('http://www.w3.org/2000/svg','g'); const n=labels.length; const stepL=(W-padL-padR)/(n-1); labels.forEach((lb,i)=>{ if(i%6!==0 && i!==n-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g); }
+    }
+    function drawAllocBars(svgEl, rows){
       const W=900, H=260, padL=130, padR=26, padT=18, padB=28;
       svgEl.innerHTML='';
       const maxPct = Math.max(100, Math.max(...rows.map(r=>r.pct)));
       const X=v=> padL + (v/maxPct)*(W-padL-padR), Y=i=> padT + i*((H-padT-padB)/rows.length) + 8;
-      // x grid lines
       for(let i=0;i<=5;i++){ const x=padL+i*(W-padL-padR)/5; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',x); ln.setAttribute('x2',x); ln.setAttribute('y1',padT); ln.setAttribute('y2',H-padB); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
       rows.forEach((r,i)=>{
-        // label
         const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=r.label; t.setAttribute('x', padL-8); t.setAttribute('y', Y(i)+4); t.setAttribute('font-size','11'); t.setAttribute('text-anchor','end'); t.setAttribute('fill','#334155'); svgEl.appendChild(t);
-        // bar
         const rect=document.createElementNS('http://www.w3.org/2000/svg','rect'); rect.setAttribute('x', padL); rect.setAttribute('y', Y(i)-8); rect.setAttribute('width', Math.max(1, X(r.pct)-padL)); rect.setAttribute('height', 16); rect.setAttribute('rx','4'); rect.setAttribute('fill', r.color || '#0f172a'); svgEl.appendChild(rect);
-        // pct
         const p=document.createElementNS('http://www.w3.org/2000/svg','text'); p.textContent=r.pct.toFixed(2)+'%'; p.setAttribute('x', X(r.pct)+6); p.setAttribute('y', Y(i)+4); p.setAttribute('font-size','11'); p.setAttribute('fill','#64748b'); svgEl.appendChild(p);
       });
-      // x-axis labels
       const g=document.createElementNS('http://www.w3.org/2000/svg','g');
       for(let i=0;i<=5;i++){ const v=i*20; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=v+'%'; t.setAttribute('x', padL+i*(W-padL-padR)/5); t.setAttribute('y', H-10); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }
       svgEl.appendChild(g);
     }
-
-    function drawDonut(svgEl, items){ // items = [{label,pct,color}]
+    function drawDonut(svgEl, items){
       const cx=90, cy=90, r=62, R=72, TAU=Math.PI*2;
       svgEl.innerHTML='';
       const sum = items.reduce((s,i)=>s+i.pct,0) || 1;
       let a0=-Math.PI/2;
       items.forEach(it=>{
-        const frac = it.pct/sum;
-        const a1 = a0 + frac*TAU;
-        // large-arc flags
-        const la = (a1-a0) > Math.PI ? 1 : 0;
-        const p0 = [cx + R*Math.cos(a0), cy + R*Math.sin(a0)];
-        const p1 = [cx + R*Math.cos(a1), cy + R*Math.sin(a1)];
-        const q0 = [cx + r*Math.cos(a1), cy + r*Math.sin(a1)];
-        const q1 = [cx + r*Math.cos(a0), cy + r*Math.sin(a0)];
-        const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-        const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d', d); path.setAttribute('fill', it.color || '#0f172a'); path.setAttribute('opacity','.95'); svgEl.appendChild(path);
+        const frac = it.pct/sum, a1=a0+frac*TAU, la=(a1-a0)>Math.PI?1:0;
+        const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)];
+        const q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)];
+        const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
+        const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d); path.setAttribute('fill',it.color||'#0f172a'); path.setAttribute('opacity','.95'); svgEl.appendChild(path);
         a0=a1;
       });
-      // center label (total)
       const tot=document.createElementNS('http://www.w3.org/2000/svg','text'); tot.textContent='100%'; tot.setAttribute('x',cx); tot.setAttribute('y',cy+5); tot.setAttribute('text-anchor','middle'); tot.setAttribute('font-size','16'); tot.setAttribute('font-weight','700'); svgEl.appendChild(tot);
     }
 
-    /* =================== DATA (sample) =================== */
+    /* ===== METRICS & TABLE HELPERS ===== */
+    function flattenMonthlyMap(m){
+      const years = Object.keys(m).map(n=>+n).sort((a,b)=>a-b);
+      const vals=[], labels=[]; const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      years.forEach(y=>{ (m[y]||[]).forEach((v,i)=>{ vals.push(v); labels.push(`${months[i]} ${String(y).slice(2)}`); }); });
+      return {vals, labels};
+    }
+    function sliceByRange(vals, labels, range){
+      if(range==='ALL') return {vals, labels};
+      const n = range==='3Y' ? 36 : 12;
+      if(vals.length<=n) return {vals, labels};
+      return { vals: vals.slice(-n), labels: labels.slice(-n) };
+    }
+    function applyTIFNet(monthlyPct, tifAnnualPct){ const mFee=(tifAnnualPct||0)/12; return monthlyPct.map(x=> x - mFee); }
+    function seqFromMonthly(pcts, base=100){ const out=[base]; pcts.forEach(p=> out.push(out.at(-1)*(1+p/100))); return out; }
+    function equityFromMonthly(pcts){ const eq=[1]; pcts.forEach(r=> eq.push(eq.at(-1)*(1+r/100))); return eq; }
+    function calcMetricsFromMonthly(pcts){
+      const eq=equityFromMonthly(pcts), first=eq[0], last=eq.at(-1); const total=(last/first-1);
+      const years=pcts.length/12; const cagr = Math.pow(1+total, 1/Math.max(years,1e-6)) - 1;
+      const mR=pcts.map(x=>x/100); const avg=mR.reduce((a,b)=>a+b,0)/mR.length; const sdM=Math.sqrt(mR.reduce((a,b)=>a+Math.pow(b-avg,2),0)/mR.length)||1e-6;
+      const volA= sdM * Math.sqrt(12); const sharpe = avg/sdM * Math.sqrt(12);
+      let peak=eq[0], maxDD=0; const dds=eq.map(v=>{ peak=Math.max(peak,v); const dd=v/peak-1; maxDD=Math.min(maxDD,dd); return dd; });
+      const wins = pcts.filter(x=>x>0).length / pcts.length;
+      const avgM = pcts.reduce((a,b)=>a+b,0)/pcts.length;
+      return {eq, dds, cagr, volA, sharpe, maxDD:Math.abs(maxDD), wins, avgM};
+    }
+    function buildHeatmap(el, yearly){ const years = Object.keys(yearly).sort((a,b)=> b-a);
+      const head = ['<tr><th>Year</th>', ...['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m=>`<th>${m}</th>`), '<th>YTD</th></tr>'].join('');
+      function bg(v){ if(v===null||v===undefined) return ''; const a=Math.min(1, Math.abs(v)/6); return `style="background:${v>=0?`rgba(16,185,129,${0.12+a*0.35})`:`rgba(239,68,68,${0.12+a*0.35})`}"`; }
+      const rows = years.map(y=>{
+        let ytd=0;
+        const cells = Array.from({length:12}, (_,i)=>{
+          const v = yearly[y][i+1]; if(v!==undefined && v!==null){ ytd+=v; }
+          return `<td ${bg(v)}>${v!==undefined && v!==null ? (v>=0?'+':'')+v.toFixed(1)+'%' : ''}</td>`;
+        }).join('');
+        return `<tr><td class="y">${y}</td>${cells}<td class="font-semibold ${ytd>=0?'text-emerald-700':'text-rose-700'}">${(ytd>=0?'+':'')+ytd.toFixed(1)}%</td></tr>`;
+      }).join('');
+      el.innerHTML = `<thead>${head}</thead><tbody>${rows}</tbody>`;
+    }
+
+    /* ===== SAMPLE DATA (older + new) ===== */
     const STRATS = {
       'trend-alpha': {
         name:'Trend Alpha', provider:'AlgoForge', currency:'ZAR', aum: 1200000, risk:'Moderate',
         manager:'AlgoHive Multi-Manager', client_need:'2.5% – 6.5% income band', benchmark:'SA CPI +4%', inception:'2021-02-01',
-        risk_desc:'Suitable for investors seeking exposure to a diversified mix of growth and income assets while prioritising capital preservation over the medium term. Investors should be willing to accept moderate market volatility in exchange for the possibility of beating inflation.',
-        objective:'Provide moderate long-term total return with a low probability of capital loss over the medium term. Target drawdown range of 4.5% to 6.5% and achieve CPI+4% over a rolling 5-year period.',
-        strategy:'Dual-bucket rebalancing approach that blends a risk-managed equity trend sleeve with a flexible income sleeve. Uses volatility targeting, dynamic stop-losses and macro filters to reduce tail risk while preserving upside.',
-        costs:{ mpc:1.26, tif:1.51 }, // %
-        // monthly returns (gross) for portfolio & benchmark (%)
-        monthly_port: {
+        desc:'Medium-term trend-following model on large-cap equities and index ETFs with systematic risk management and volatility targeting.',
+        style:'Trend-Following', universe:'Global Equities & ETFs', avg_holding:'25–45 days', trades_pm: 18,
+        risk_desc:'Suitable for investors seeking exposure to a diversified mix of growth and income assets while prioritising capital preservation over the medium term. Accepts moderate market volatility in exchange for potential inflation-beating returns.',
+        objective:'Provide moderate long-term total return with a low probability of capital loss over the medium term. Target drawdown 4.5%–6.5% and CPI+4% over a rolling 5-year period.',
+        strategy:'Dual-bucket rebalancing with a risk-managed equity trend sleeve and flexible income sleeve; volatility targeting, dynamic stops and macro filters aim to limit tail risk while preserving upside.',
+        costs:{ mpc:1.26, tif:1.51 },
+        monthly_port:{
           2019:[0.6,0.4,0.9,1.2,-0.8,0.7,0.9,1.0,-0.3,1.1,0.8,1.0],
           2020:[0.5,-2.1,-6.2,3.8,2.2,1.1,1.2,1.5,0.8,1.0,1.2,1.3],
           2021:[1.0,0.8,0.9,1.3,0.6,0.5,0.9,1.1,1.0,-0.7,1.1,1.0],
@@ -331,7 +412,7 @@
           2023:[0.8,1.0,-0.6,1.4,2.1,0.5,1.3,0.9,1.6,-0.7,1.2,1.0],
           2024:[1.1,0.7,0.6,1.0,0.9,1.0,0.4,0.6,1.1,0.8,0.9,1.0]
         },
-        monthly_bench: { // CPI+4% proxy (steady)
+        monthly_bench:{
           2019:[0.5,0.4,0.5,0.5,0.4,0.5,0.5,0.5,0.4,0.5,0.5,0.5],
           2020:[0.5,0.4,0.4,0.5,0.4,0.5,0.5,0.4,0.5,0.4,0.5,0.5],
           2021:[0.4,0.5,0.4,0.4,0.5,0.4,0.4,0.5,0.4,0.4,0.5,0.4],
@@ -359,12 +440,13 @@
           {label:'Ninety One Opportunity Fund Z', pct:7.23, color:'#f59e0b'},
           {label:'AlgoHive Multi-Asset Growth Fund', pct:7.08, color:'#3f6212'},
           {label:'Truffle SCI Flexible Fund R', pct:7.58, color:'#6b7280'}
-        ],
+        ]
       },
-
       'momentum-fx': {
         name:'Momentum FX', provider:'QuantBee', currency:'USD', aum: 820000, risk:'Low',
-        manager:'AlgoHive Multi-Manager', client_need:'Income stabiliser (low vol)', benchmark:'Bloomberg Barclays US Agg (proxy)', inception:'2020-06-01',
+        manager:'AlgoHive Multi-Manager', client_need:'Income stabiliser (low vol)', benchmark:'BBg US Agg (proxy)', inception:'2020-06-01',
+        desc:'Diversified G10 momentum/carry strategy trading major FX pairs with tight risk controls and low correlation to equities.',
+        style:'FX Momentum', universe:'G10 FX', avg_holding:'2–7 days', trades_pm: 35,
         risk_desc:'Low-volatility FX momentum & carry sleeve designed for diversification from equity beta; tight downside controls.',
         objective:'Low correlation to equities with steady returns and shallow drawdowns.',
         strategy:'Systematic G10 FX basket using time-series momentum & carry with volatility scaling and risk parity sizing.',
@@ -399,29 +481,14 @@
       }
     };
 
-    /* =================== HELPERS =================== */
-    function flattenMonthlyMap(m){ // chronological arrays (vals & labels)
-      const years = Object.keys(m).map(n=>+n).sort((a,b)=>a-b);
-      const vals=[], labels=[]; const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      years.forEach(y=>{ (m[y]||[]).forEach((v,i)=>{ vals.push(v); labels.push(`${months[i]} ${String(y).slice(2)}`); }); });
-      return {vals, labels};
-    }
-    function applyTIFNet(monthlyPct, tifAnnualPct){ // subtract monthly fee
-      const mFee = (tifAnnualPct||0)/12;
-      return monthlyPct.map(x => x - mFee);
-    }
-    function seqFromMonthly(pcts, base=100){
-      const out=[base]; pcts.forEach(p=> out.push(out.at(-1)*(1+p/100))); return out;
-    }
-
-    /* =================== RENDER =================== */
-    let currentKey='trend-alpha';
+    /* ===== STATE & RENDER ===== */
+    let currentKey='trend-alpha', eqRange='1Y';
 
     function renderFactsheet(key){
       const s = STRATS[key] || STRATS[Object.keys(STRATS)[0]];
       currentKey = key;
 
-      // Header
+      // Header fields
       document.getElementById('fsTitle').textContent = s.name;
       document.getElementById('fsProvider').textContent = s.provider;
       document.getElementById('fsSince').textContent = 'Live since ' + new Date(s.inception).toLocaleDateString();
@@ -430,7 +497,7 @@
       document.getElementById('fsAum').textContent = 'AUM ' + fmtMoney(s.aum, s.currency);
       document.getElementById('fsUpdated').textContent = 'Updated ' + lastUpdated();
 
-      // Key Facts
+      // Portfolio information
       const facts = [
         ['Discretionary Manager', s.manager],
         ['Client Need', s.client_need],
@@ -440,23 +507,63 @@
       ];
       document.getElementById('keyFacts').innerHTML = facts.map(([k,v])=>`<tr><td>${k}</td><td class="text-right">${v}</td></tr>`).join('');
 
+      // Overview (old data block)
+      document.getElementById('fsDesc').textContent = s.desc;
+      document.getElementById('fsStyle').textContent = s.style;
+      document.getElementById('fsUniverse').textContent = s.universe;
+      document.getElementById('fsHold').textContent = s.avg_holding;
+      document.getElementById('fsTrades').textContent = s.trades_pm;
+
       // Narrative
       document.getElementById('fsRiskDesc').textContent = s.risk_desc;
       document.getElementById('fsObjective').textContent = s.objective;
       document.getElementById('fsStrategy').textContent = s.strategy;
 
-      // Growth (net of TIF) vs Benchmark
+      // Monthly → net of TIF
       const port = flattenMonthlyMap(s.monthly_port);
       const bench = flattenMonthlyMap(s.monthly_bench);
-      const seriesPortNet = applyTIFNet(port.vals, s.costs?.tif || 0);
-      const eqPort = seqFromMonthly(seriesPortNet, 100);
-      const eqBench = seqFromMonthly(bench.vals, 100);
-      drawGrowth(document.getElementById('growthSvg'), eqPort, eqBench, port.labels);
+      const portNet = applyTIFNet(port.vals, s.costs?.tif || 0);
 
-      // Allocation bars
+      // Metrics (full history)
+      const M = calcMetricsFromMonthly(portNet);
+      document.getElementById('mCagr').textContent = fmtPct(M.cagr*100,1);
+      document.getElementById('mVol').textContent  = fmtPct(M.volA*100,1);
+      document.getElementById('mSharpe').textContent = M.sharpe.toFixed(2);
+      document.getElementById('mDD').textContent = (M.maxDD*100).toFixed(2)+'%';
+      document.getElementById('mWin').textContent = (M.wins*100).toFixed(0)+'%';
+      document.getElementById('mAvg').textContent = fmtPct(M.avgM,2);
+
+      // Equity curves (slice to tab range)
+      const sliced = sliceByRange(portNet, port.labels, eqRange);
+      const slicedBench = sliceByRange(bench.vals, bench.labels, eqRange);
+      const eqPort = seqFromMonthly(sliced.vals, 100);
+      const eqBench = seqFromMonthly(slicedBench.vals, 100);
+      drawGrowth(document.getElementById('growthSvg'), eqPort, eqBench, sliced.labels);
+
+      // Headline value & delta (assume base = 1m)
+      const base=1_000_000, eqIdx=sliced.vals.length, eqMoney = seqFromMonthly(sliced.vals, base);
+      const delta=((eqMoney.at(-1)/eqMoney[0])-1)*100;
+      document.getElementById('eqValue').textContent = fmtMoney(eqMoney.at(-1), s.currency);
+      const dEl=document.getElementById('eqDelta'); dEl.textContent = fmtPct(delta); dEl.className = 'chip '+(delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
+
+      // Heatmap (net of TIF)
+      const ymap = {}; Object.keys(s.monthly_port).forEach(y=>{ ymap[y] = {}; (s.monthly_port[y]||[]).forEach((v,i)=> ymap[y][i+1]= v - (s.costs?.tif||0)/12 ); });
+      buildHeatmap(document.getElementById('heatmap'), ymap);
+
+      // Drawdown series (slice to tab range)
+      const ddsSlice = M.dds.slice(M.dds.length - eqIdx - 1); // include start
+      const ddLbls = sliced.labels;
+      drawLine(document.getElementById('ddSvg'), ddsSlice.map(x=>x*100), ddLbls, {minY:-100,maxY:0,color:'#ef4444'});
+
+      // Rolling 12M Sharpe (full history)
+      const win=12; const rolls=[]; for(let i=win;i<=portNet.length;i++){
+        const seg = portNet.slice(i-win,i).map(x=>x/100); const avg=seg.reduce((a,b)=>a+b,0)/seg.length; const sd=Math.sqrt(seg.reduce((a,b)=>a+Math.pow(b-avg,2),0)/seg.length)||1e-6; rolls.push( (avg/sd)*Math.sqrt(12) );
+      }
+      const rLbls = port.labels.slice(win-1);
+      drawLine(document.getElementById('rollSvg'), rolls, rLbls, {color:'#6366f1'});
+
+      // Allocation + Holdings
       drawAllocBars(document.getElementById('allocSvg'), s.allocation);
-
-      // Holdings donut + legend
       drawDonut(document.getElementById('holdingsDonut'), s.holdings);
       document.getElementById('holdingsLegend').innerHTML = s.holdings.map(h=>`
         <div class="flex items-center justify-between py-1">
@@ -467,7 +574,7 @@
           <div class="num ml-3">${h.pct.toFixed(2)}%</div>
         </div>`).join('');
 
-      // Costs table
+      // Costs
       const mpc = (s.costs?.mpc ?? 0), tif = (s.costs?.tif ?? 0);
       document.getElementById('costRows').innerHTML = `
         <tr><td class="py-2">Model Portfolio Charge (MPC) incl. VAT</td><td class="py-2 text-right">${mpc.toFixed(2)}%</td></tr>
@@ -475,33 +582,44 @@
 
       // Disclaimer
       document.getElementById('fsDisclaimer').innerHTML =
-        `Past performance is not indicative of future results. Returns are shown <strong>net of TIF</strong> (see fee table) and before brokerage, slippage and taxes. 
-        Trading and investing involve risk, including the possible loss of capital. AlgoHive is an authorised Financial Services Provider (FSP No. 55118) regulated by the FSCA in South Africa. 
+        `Past performance is not indicative of future results. Returns are shown <strong>net of TIF</strong> and before brokerage, slippage and taxes.
+        Trading and investing involve risk, including the possible loss of capital. AlgoHive is an authorised Financial Services Provider (FSP No. 55118) regulated by the FSCA in South Africa.
         This factsheet is for information only and does not constitute advice.`;
     }
 
-    /* =================== BOOT =================== */
+    /* ===== BOOT ===== */
     (async function(){
       await loadMenu();
       buildMenu('factsheet');
 
-      // selector
+      // Strategy selector + URL sync
       const sel=document.getElementById('strategySel');
       sel.innerHTML = Object.entries(STRATS).map(([k,v])=> `<option value="${k}">${v.name}</option>`).join('');
       const qp=new URLSearchParams(location.search); const key=qp.get('strategy'); if(key && STRATS[key]) currentKey=key;
       sel.value=currentKey;
 
-      renderFactsheet(currentKey);
-
-      sel.addEventListener('change', e=>{
-        const k=e.target.value; const url=new URL(location.href); url.searchParams.set('strategy',k); history.replaceState({},'',url);
-        renderFactsheet(k);
+      // Tabs
+      document.querySelectorAll('#eqTabs .tab-btn').forEach(b=>{
+        b.addEventListener('click',()=>{
+          document.querySelectorAll('#eqTabs .tab-btn').forEach(x=>x.classList.remove('active'));
+          b.classList.add('active'); eqRange=b.dataset.range; renderFactsheet(currentKey);
+        });
       });
 
-      document.getElementById('btnPrint').addEventListener('click',()=>window.print());
+      // Actions
+      document.getElementById('btnAllocateTop').addEventListener('click',()=>{ location.href='/open-strategies.html'; });
       document.getElementById('btnShare').addEventListener('click',async()=>{
         const url=location.href; try{ await navigator.clipboard.writeText(url); }catch(e){}
         const btn=document.getElementById('btnShare'); const old=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-check mr-2"></i>Copied!'; setTimeout(()=>btn.innerHTML=old,1200);
+      });
+
+      // Initial render
+      renderFactsheet(currentKey);
+
+      // Selector change
+      sel.addEventListener('change', e=>{
+        const k=e.target.value; const url=new URL(location.href); url.searchParams.set('strategy',k); history.replaceState({},'',url);
+        renderFactsheet(k);
       });
     })();
   </script>
