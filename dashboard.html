@@ -127,13 +127,13 @@
 </head>
 
 <body>
-  <div class="min-h-screen flex">
+ <div class="min-h-screen flex">
     <!-- GLOBAL MENU (partial) -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
     <!-- MAIN -->
     <main class="flex-1 min-h-screen">
-      <!-- Slim topbar (no greeting here) -->
+      <!-- Topbar -->
       <section class="glass sticky top-0 z-10 topbar">
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
           <div class="text-sm text-slate-600">Dashboard</div>
@@ -142,278 +142,263 @@
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
             </div>
-            <!-- Export flush right -->
             <button class="border rounded-lg h-9 px-3 bg-white ml-auto mr-0">
               <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
             </button>
           </div>
         </div>
       </section>
-<div class="max-w-7xl mx-auto px-6">
-      <!-- Greeting on MAIN -->
-      <section class="max-w-7xl mx-auto px-6 pt-6">
-        <div class="flex items-center">
-          <div>
-            <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
-            <p class="text-sm text-slate-600">Your portfolio, performance, risk and activity at a glance.</p>
+
+      <!-- PAGE SHELL (matches header width) -->
+      <div class="max-w-7xl mx-auto px-6">
+        <!-- Greeting -->
+        <section class="pt-6">
+          <div class="flex items-center">
+            <div>
+              <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
+              <p class="text-sm text-slate-600">Your portfolio, performance, risk and activity at a glance.</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Content -->
-      <section class="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Content Grid -->
+        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT COLUMN -->
+          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
 
-        <!-- LEFT COLUMN -->
-        <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+            <!-- EQUITY CURVE -->
+            <div class="card p-5">
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-sm text-slate-600">Equity Curve</div>
+                  <div class="flex items-center gap-2">
+                    <div id="eqValue" class="text-2xl font-semibold num">R —</div>
+                    <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  </div>
+                </div>
+                <div class="flex gap-2" id="eqTabs">
+                  <button class="tab-btn active" data-range="1M">1M</button>
+                  <button class="tab-btn" data-range="3M">3M</button>
+                  <button class="tab-btn" data-range="6M">6M</button>
+                  <button class="tab-btn" data-range="YTD">YTD</button>
+                  <button class="tab-btn" data-range="1Y">1Y</button>
+                  <button class="tab-btn" data-range="3Y">3Y</button>
+                </div>
+              </div>
 
-          <!-- EQUITY CURVE (hero) -->
-          <div class="card p-5">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div>
-                <div class="text-sm text-slate-600">Equity Curve</div>
+              <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Return</div>
+                  <div id="mRet" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Max Drawdown</div>
+                  <div id="mDD" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Sharpe (sim.)</div>
+                  <div id="mSharpe" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Win Rate</div>
+                  <div id="mWin" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Volatility</div>
+                  <div id="mVol" class="font-semibold">—</div>
+                </div>
+              </div>
+
+              <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
+                <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+                <div id="eqTip" class="eq-tip hidden"></div>
+              </div>
+            </div>
+
+            <!-- DAILY PERFORMANCE CAL -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Daily Performance — <span id="calMonth"></span></div>
+                <div class="cal-legend text-xs text-slate-500 flex items-center gap-2">
+                  <span style="background:#fee2e2"></span> -2% &nbsp;
+                  <span style="background:#fde68a"></span> 0% &nbsp;
+                  <span style="background:#dcfce7"></span> +2%
+                </div>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+            </div>
+
+            <!-- PERFORMANCE SUMMARY -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Performance Summary</div>
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Best Day</div>
+                  <div id="sumBest" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Worst Day</div>
+                  <div id="sumWorst" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Avg Daily Return</div>
+                  <div id="sumAvg" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Positive Days</div>
+                  <div id="sumPos" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Trading Days</div>
+                  <div id="sumDays" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">CAGR (sim.)</div>
+                  <div id="sumCagr" class="font-semibold">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PERFORMANCE BY STRATEGY -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Performance by Strategy</div>
                 <div class="flex items-center gap-2">
-                  <div id="eqValue" class="text-2xl font-semibold num">R —</div>
-                  <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  <label class="text-xs text-slate-500">Strategy</label>
+                  <select id="stratSel" class="border rounded-lg text-sm px-2 py-1"></select>
                 </div>
               </div>
-              <div class="flex gap-2" id="eqTabs">
-                <button class="tab-btn active" data-range="1M">1M</button>
-                <button class="tab-btn" data-range="3M">3M</button>
-                <button class="tab-btn" data-range="6M">6M</button>
-                <button class="tab-btn" data-range="YTD">YTD</button>
-                <button class="tab-btn" data-range="1Y">1Y</button>
-                <button class="tab-btn" data-range="3Y">3Y</button>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-8">
+                  <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
+                    <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
+                    <div id="stratTip" class="eq-tip hidden"></div>
+                  </div>
+                  <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
+                    <div>Monthly returns (last 12)</div>
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex items-center gap-1"><span
+                          class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
+                      <span class="inline-flex items-center gap-1"><span
+                          class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="lg:col-span-4">
+                  <div id="stratMetrics" class="grid grid-cols-2 gap-3 text-sm"></div>
+                </div>
               </div>
             </div>
 
-            <!-- five metrics -->
-            <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Return</div>
-                <div id="mRet" class="font-semibold">—</div>
+            <!-- SUBSCRIBED STRATEGIES -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Subscribed Strategies</div>
+                <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">Manage</a>
               </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Max Drawdown</div>
-                <div id="mDD" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Sharpe (sim.)</div>
-                <div id="mSharpe" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Win Rate</div>
-                <div id="mWin" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Volatility</div>
-                <div id="mVol" class="font-semibold">—</div>
-              </div>
+              <div id="subsWrap" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
             </div>
 
-            <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
-              <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
-              <div id="eqTip" class="eq-tip hidden"></div>
+            <!-- HOLDINGS -->
+            <div class="card">
+              <div class="px-5 py-4 border-b flex items-center justify-between">
+                <div class="font-semibold">Holdings</div>
+                <div class="text-xs text-slate-500">Breakdown by selected account</div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-slate-600">
+                    <tr>
+                      <th class="text-left px-5 py-3">Instrument</th>
+                      <th class="text-right px-5 py-3">Weight</th>
+                      <th class="text-right px-5 py-3">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holdingsBody" class="divide-y"></tbody>
+                  <tfoot class="bg-slate-50">
+                    <tr>
+                      <td class="px-5 py-3 font-semibold">Total</td>
+                      <td id="holdingsWeightTot" class="px-5 py-3 text-right font-semibold">—</td>
+                      <td id="holdingsValTot" class="px-5 py-3 text-right font-semibold">—</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
 
-          <!-- Daily Performance Calendar (this month) -->
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <div class="font-semibold">Daily Performance — <span id="calMonth"></span></div>
-              <div class="cal-legend text-xs text-slate-500 flex items-center gap-2">
-                <span style="background:#fee2e2"></span> -2% &nbsp;
-                <span style="background:#fde68a"></span> 0% &nbsp;
-                <span style="background:#dcfce7"></span> +2%
-              </div>
-            </div>
-            <div class="cal-grid" id="calGrid"></div>
-          </div>
-
-          <!-- Performance Summary -->
-          <div class="card p-5">
-            <div class="font-semibold mb-3">Performance Summary</div>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Best Day</div>
-                <div id="sumBest" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Worst Day</div>
-                <div id="sumWorst" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Avg Daily Return</div>
-                <div id="sumAvg" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Positive Days</div>
-                <div id="sumPos" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Trading Days</div>
-                <div id="sumDays" class="font-semibold">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">CAGR (sim.)</div>
-                <div id="sumCagr" class="font-semibold">—</div>
-              </div>
-            </div>
-          </div>
-          <!-- Performance by Strategy -->
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <div class="font-semibold">Performance by Strategy</div>
+          <!-- RIGHT COLUMN -->
+          <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Accounts</div>
               <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-500">Strategy</label>
-                <select id="stratSel" class="border rounded-lg text-sm px-2 py-1"></select>
+                <select id="acctSel" class="border rounded-lg text-sm px-2 py-1">
+                  <option value="all">All accounts</option>
+                  <option value="ibkr">IBKR Pro · U1234567</option>
+                  <option value="paper">Paper · DU7654321</option>
+                </select>
+                <span class="text-xs text-slate-500">Affects rating & stats</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Total Balance</div>
+                  <div id="acctBal" class="font-semibold num">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Cash Available</div>
+                  <div id="acctCash" class="font-semibold num">—</div>
+                </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <!-- Chart -->
-              <div class="lg:col-span-8">
-                <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
-                  <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
-                  <div id="stratTip" class="eq-tip hidden"></div>
-                </div>
-                <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
-                  <div>Monthly returns (last 12)</div>
-                  <div class="flex items-center gap-3">
-                    <span class="inline-flex items-center gap-1"><span
-                        class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
-                    <span class="inline-flex items-center gap-1"><span
-                        class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Portfolio Rating</div>
+              <div class="flex items-center gap-4">
+                <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
+                <div>
+                  <div id="ratingText" class="text-lg font-semibold">—</div>
+                  <div class="text-xs text-slate-500">Overall rating performance</div>
+                  <div class="mt-2">
+                    <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
+                    <span class="text-xs text-slate-500 ml-1">From last year</span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Metrics -->
-              <div class="lg:col-span-4">
-                <div id="stratMetrics" class="grid grid-cols-2 gap-3 text-sm">
-                  <!-- filled by JS -->
+            <div class="card">
+              <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
+              <div id="allocBars" class="p-5 space-y-4"></div>
+            </div>
+
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Fee Breakdown</div>
+              <div class="mb-3">
+                <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
+                  <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
+                  <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
+                  <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
+                  <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
                 </div>
+                <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
               </div>
-            </div>
-          </div>
-
-          <!-- Subscribed Strategies -->
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-3">
-              <div class="font-semibold">Subscribed Strategies</div>
-              <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">Manage</a>
-            </div>
-            <div id="subsWrap" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-          </div>
-
-          <!-- Holdings -->
-          <div class="card">
-            <div class="px-5 py-4 border-b flex items-center justify-between">
-              <div class="font-semibold">Holdings</div>
-              <div class="text-xs text-slate-500">Breakdown by selected account</div>
-            </div>
-            <div class="overflow-x-auto">
               <table class="w-full text-sm">
-                <thead class="text-slate-600">
+                <thead class="text-slate-500">
                   <tr>
-                    <th class="text-left px-5 py-3">Instrument</th>
-                    <th class="text-right px-5 py-3">Weight</th>
-                    <th class="text-right px-5 py-3">Value</th>
+                    <th class="text-left py-2">Type</th>
+                    <th class="text-right py-2">Rate</th>
+                    <th class="text-right py-2">Amount</th>
                   </tr>
                 </thead>
-                <tbody id="holdingsBody" class="divide-y"></tbody>
-                <tfoot class="bg-slate-50">
-                  <tr>
-                    <td class="px-5 py-3 font-semibold">Total</td>
-                    <td id="holdingsWeightTot" class="px-5 py-3 text-right font-semibold">—</td>
-                    <td id="holdingsValTot" class="px-5 py-3 text-right font-semibold">—</td>
-                  </tr>
-                </tfoot>
+                <tbody id="feeRows" class="divide-y"></tbody>
               </table>
             </div>
-          </div>
-
-        </div>
-
-
-        <!-- RIGHT COLUMN -->
-        <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
-
-          <!-- Accounts (separate container, controls rating) -->
-          <div class="card p-5">
-            <div class="font-semibold mb-2">Accounts</div>
-            <div class="flex items-center gap-2">
-              <select id="acctSel" class="border rounded-lg text-sm px-2 py-1">
-                <option value="all">All accounts</option>
-                <option value="ibkr">IBKR Pro · U1234567</option>
-                <option value="paper">Paper · DU7654321</option>
-              </select>
-              <span class="text-xs text-slate-500">Affects rating & stats</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Total Balance</div>
-                <div id="acctBal" class="font-semibold num">—</div>
-              </div>
-              <div class="p-3 border rounded-xl">
-                <div class="text-slate-500 text-xs">Cash Available</div>
-                <div id="acctCash" class="font-semibold num">—</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Portfolio Rating (black → olive gradient ring) -->
-          <div class="card p-5">
-            <div class="font-semibold mb-3">Portfolio Rating</div>
-            <div class="flex items-center gap-4">
-              <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
-              <div>
-                <div id="ratingText" class="text-lg font-semibold">—</div>
-                <div class="text-xs text-slate-500">Overall rating performance</div>
-                <div class="mt-2">
-                  <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
-                  <span class="text-xs text-slate-500 ml-1">From last year</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Asset Allocation -->
-          <div class="card">
-            <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
-            <div id="allocBars" class="p-5 space-y-4"></div>
-          </div>
-
-          <!-- Fee Breakdown -->
-          <div class="card p-5">
-            <div class="font-semibold mb-3">Fee Breakdown</div>
-            <div class="mb-3">
-              <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
-                <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
-                <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
-                <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
-                <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
-              </div>
-              <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
-            </div>
-            <table class="w-full text-sm">
-              <thead class="text-slate-500">
-                <tr>
-                  <th class="text-left py-2">Type</th>
-                  <th class="text-right py-2">Rate</th>
-                  <th class="text-right py-2">Amount</th>
-                </tr>
-              </thead>
-              <tbody id="feeRows" class="divide-y"></tbody>
-            </table>
-          </div>
-
-        </aside>
-
-
-      </section>
-
-
-
+          </aside>
+        </section>
+      </div>
+      <!-- /PAGE SHELL -->
     </main>
   </div>
 
