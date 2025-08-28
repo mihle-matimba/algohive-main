@@ -17,14 +17,27 @@
       --olive-700: #3e4f23;
       --olive-100: #ecf4e6;
       --page-bg: #f9fafb;
+
+      /* dynamic sidebar width (JS updates this) */
+      --sidebar-w: 280px;
     }
 
     html, body {
       font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--page-bg);
-      color: #0f172a
+      color: #0f172a;
+      overflow-x: hidden; /* kill stray horizontal scroll */
     }
 
+    /* Page shell width:
+       - Small/medium: take full viewport minus sidebar
+       - XL and up: cap to 7xl and center (set via classes) */
+    .page-shell {
+      width: min(100vw - var(--sidebar-w), 80rem);
+    }
+
+    /* Ensure flex children don't force overflow */
+    main { min-width: 0; }
     .card { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
     .chip { display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
     .glass { backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
@@ -43,29 +56,62 @@
     .cal-cell{ border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem }
     .cal-legend span{ display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb }
     .topbar{ height:52px }
+
+    /* --- Mobile drawer styles for sidebar --- */
+    @media (max-width: 1024px) {
+      /* Off-canvas behavior. We don't control the partial markup, so target #sidebar by id */
+      #sidebar {
+        position: fixed !important;
+        left: 0; top: 0; bottom: 0;
+        width: min(86vw, 320px);
+        max-width: 90vw;
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        z-index: 40; /* above content */
+      }
+      #sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(2,6,23,.45);
+        z-index: 30;
+        display: none;
+      }
+      .sidebar-backdrop.show { display: block; }
+      /* On mobile, content should use full width (sidebar hidden) */
+      :root { --sidebar-w: 0px; }
+    }
+
+    /* Prevent scroll when drawer is open */
+    body[data-drawer-open="1"] { overflow: hidden; }
   </style>
 </head>
 
 <body>
- <div class="min-h-screen flex">
+  <div class="min-h-screen flex">
     <!-- GLOBAL MENU (partial) -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+
+    <!-- mobile backdrop for drawer -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
     <!-- MAIN -->
     <main class="flex-1 min-h-screen">
       <!-- Topbar -->
       <section class="glass sticky top-0 z-10 topbar">
-        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
+        <div class="page-shell xl:max-w-7xl xl:mx-auto px-4 sm:px-6 h-full flex items-center gap-3">
+          <!-- Burger (mobile only) -->
+          <button id="burgerBtn" class="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg border bg-white">
+            <i class="fa-solid fa-bars text-slate-700"></i>
+          </button>
+
           <div class="text-sm text-slate-600">Dashboard</div>
 
-          <!-- CHANGED: w-full -> flex-1 so this row grows, allowing the button to hug the far right -->
           <div class="flex items-center gap-2 flex-1">
             <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white md:ml-4">
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
             </div>
 
-            <!-- ml-auto keeps it flushed to the right edge of the container -->
             <button class="border rounded-lg h-9 px-3 bg-white ml-auto">
               <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
             </button>
@@ -73,8 +119,8 @@
         </div>
       </section>
 
-      <!-- PAGE SHELL (matches header width) -->
-      <div class="max-w-7xl mx-auto px-6">
+      <!-- PAGE SHELL -->
+      <div class="page-shell xl:max-w-7xl xl:mx-auto px-4 sm:px-6">
         <!-- Greeting -->
         <section class="pt-6">
           <div class="flex items-center">
@@ -97,6 +143,7 @@
               </div>
               <div id="subsWrap" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
             </div>
+
             <!-- EQUITY CURVE -->
             <div class="card p-5">
               <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -145,7 +192,8 @@
                 <div id="eqTip" class="eq-tip hidden"></div>
               </div>
             </div>
-                        <!-- PERFORMANCE SUMMARY -->
+
+            <!-- PERFORMANCE SUMMARY -->
             <div class="card p-5">
               <div class="font-semibold mb-3">Performance Summary</div>
               <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
@@ -189,8 +237,6 @@
               <div class="cal-grid" id="calGrid"></div>
             </div>
 
-
-
             <!-- PERFORMANCE BY STRATEGY -->
             <div class="card p-5">
               <div class="flex items-center justify-between mb-3">
@@ -221,8 +267,6 @@
                 </div>
               </div>
             </div>
-
-
 
             <!-- HOLDINGS -->
             <div class="card">
@@ -334,9 +378,19 @@
       if (!res.ok) throw new Error('Failed to load ' + url);
       mount.outerHTML = await res.text();
     }
+
+    /* Update CSS var for sidebar width so content fits exactly */
+    function setSidebarWidth() {
+      const sidebar = document.getElementById('sidebar');
+      const isDesktop = window.innerWidth > 1024;
+      const w = (sidebar && isDesktop) ? sidebar.getBoundingClientRect().width : 0;
+      document.documentElement.style.setProperty('--sidebar-w', w + 'px');
+    }
+
     function buildMenu(activeKey = 'dashboard') {
       const navContainer = document.getElementById('navContainer');
       if (!navContainer) return;
+
       const menu = [{
         section: "Menu", items: [
           { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
@@ -355,6 +409,7 @@
           { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
         ]
       }];
+
       function group(sec) {
         const g = document.createElement('div'); g.className = 'mb-2';
         const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
@@ -377,15 +432,28 @@
         });
         return g;
       }
+
       navContainer.innerHTML = ''; menu.forEach(s => navContainer.appendChild(group(s)));
+
       const sidebar = document.getElementById('sidebar');
       const collapseBtn = document.getElementById('collapseBtn'); let collapsed = false;
+
       collapseBtn?.addEventListener('click', () => {
         collapsed = !collapsed; sidebar.classList.toggle('is-collapsed', collapsed);
         collapseBtn.innerHTML = collapsed ? '<i class="fa-solid fa-angles-right text-sm"></i>' : '<i class="fa-solid fa-angles-left text-sm"></i>';
         try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { };
+        // recalc width when collapsed/expanded
+        setSidebarWidth();
       });
-      try { if (sessionStorage.getItem('ah_sidebar_collapsed') === '1') { collapsed = true; sidebar.classList.add('is-collapsed'); if (collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>'; } } catch (e) { }
+
+      try {
+        if (sessionStorage.getItem('ah_sidebar_collapsed') === '1') {
+          collapsed = true; sidebar.classList.add('is-collapsed');
+          if (collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>';
+        }
+      } catch (e) {}
+      // initial width set after building content
+      setSidebarWidth();
     }
 
     /* =================== UTIL & DRAW =================== */
@@ -426,6 +494,7 @@
       });
       svgEl.appendChild(gL);
     }
+
     function calcMetrics(series) {
       const first = series[0], last = series.at(-1);
       const ret = ((last / first) - 1) * 100;
@@ -440,6 +509,7 @@
       const vol = sd * Math.sqrt(12) * 100;
       return { ret, ddPct, sharpe, wins, vol, rets };
     }
+
     function drawDonut(el, percent) {
       const r = 68, cx = 80, cy = 80, C = 2 * Math.PI * r, val = Math.max(0, Math.min(100, percent));
       el.innerHTML = '';
@@ -447,8 +517,8 @@
       const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
       grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
       const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
-      const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '60%'); s2.setAttribute('stop-color', '#111827');
-      const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
+      const s2 = document.createElementNS('http://www.w3.org/200/svg', 'stop'); s2.setAttribute('offset', '60%'); s2.setAttribute('stop-color', '#111827');
+      const s3 = document.createElementNS('http://www.w3.org/200/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
       grad.append(s1, s2, s3); defs.appendChild(grad); el.appendChild(defs);
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
@@ -462,12 +532,14 @@
       txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
       txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt);
     }
+
     function sparkSvg(series, color = '#0f172a') {
       const w = 120, h = 30, pad = 3, min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1;
       const step = (w - 2 * pad) / (series.length - 1);
       let d = ''; series.forEach((v, i) => { const x = pad + i * step; const y = h - pad - ((v - min) / rng) * (h - 2 * pad); d += (i ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2) + ' '; });
       return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
     }
+
     function drawBars(svgEl, values, labels) {
       const W = 900, H = 260, padL = 42, padB = 26, padT = 16, padR = 12;
       svgEl.innerHTML = '';
@@ -494,7 +566,7 @@
         rect.setAttribute('x', x); rect.setAttribute('y', y); rect.setAttribute('width', xw); rect.setAttribute('height', Math.max(0.5, h));
         rect.setAttribute('rx', '4'); rect.setAttribute('fill', v >= 0 ? '#10b981' : '#ef4444'); rect.dataset.idx = i; svgEl.appendChild(rect);
       });
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const g = document.createElementNS('http://www.w3.org/200/svg', 'g');
       labels.forEach((lb, i) => {
         const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         t.textContent = lb; t.setAttribute('x', padL + (i + 0.5) * ((W - padL - padR) / labels.length));
@@ -747,10 +819,42 @@
       'Carry FX': { monthly: [0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2] }
     };
 
+    // Drawer helpers
+    function setupDrawer() {
+      const sidebar = document.getElementById('sidebar');
+      const burger = document.getElementById('burgerBtn');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (!sidebar || !burger || !backdrop) return;
+
+      function openDrawer() {
+        sidebar.classList.add('open');
+        backdrop.classList.add('show');
+        document.body.setAttribute('data-drawer-open', '1');
+      }
+      function closeDrawer() {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('show');
+        document.body.removeAttribute('data-drawer-open');
+      }
+
+      burger.addEventListener('click', openDrawer);
+      backdrop.addEventListener('click', closeDrawer);
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+      // Close drawer if resizing to desktop
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) closeDrawer();
+      });
+    }
+
     (async function () {
       await loadMenu();
       buildMenu('dashboard');
+      setupDrawer();
       document.getElementById('greet').textContent = greetLine();
+
+      // keep sidebar width in sync on resize
+      window.addEventListener('resize', setSidebarWidth);
 
       document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
