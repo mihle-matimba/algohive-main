@@ -2,365 +2,824 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AlgoHive — Dashboard</title> <!-- Tailwind + Fonts + Icons -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <style>
-        :root {
-            --olive: #556B2F;
-            --olive-700: #3e4f23;
-            --olive-100: #ecf4e6;
-            --page-bg: #f9fafb;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Dashboard</title>
 
-        html,
-        body {
-            font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            background: var(--page-bg);
-            color: #0f172a
-        }
+  <!-- Tailwind + Fonts + Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-        .card {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 1rem;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, .04)
-        }
+  <style>
+    :root {
+      --olive: #556B2F;
+      --olive-700: #3e4f23;
+      --olive-100: #ecf4e6;
+      --page-bg: #f9fafb;
+    }
 
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            border-radius: 9999px;
-            padding: .2rem .55rem;
-            font-size: .74rem;
-            font-weight: 600
-        }
+    html, body {
+      font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--page-bg);
+      color: #0f172a
+    }
 
-        .glass {
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            background: rgba(255, 255, 255, .65);
-            border-bottom: 1px solid rgba(229, 231, 235, .9)
-        }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .chip { display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
+    .glass { backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
+    .num { font-variant-numeric: tabular-nums }
+    .tab-btn { border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff }
+    .tab-btn.active { background:var(--olive); border-color:var(--olive); color:#fff }
+    .aside-rail { width:360px }
+    @media (max-width:1024px){ .aside-rail{ width:auto } }
 
-        .num {
-            font-variant-numeric: tabular-nums
-        }
+    /* Equity tip */
+    .eq-tip{ position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12) }
+    .spark{ height:30px; width:120px }
 
-        .tab-btn {
-            border: 1px solid #e5e7eb;
-            border-radius: .6rem;
-            padding: .35rem .7rem;
-            font-size: .85rem;
-            background: #fff
-        }
-
-        .tab-btn.active {
-            background: var(--olive);
-            border-color: var(--olive);
-            color: #fff
-        }
-
-        .aside-rail {
-            width: 360px
-        }
-
-        @media (max-width:1024px) {
-            .aside-rail {
-                width: auto
-            }
-        }
-
-        /* Equity tip */
-        .eq-tip {
-            position: absolute;
-            pointer-events: none;
-            background: #111827;
-            color: #fff;
-            font-size: .75rem;
-            border-radius: .5rem;
-            padding: .35rem .5rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, .12)
-        }
-
-        .spark {
-            height: 30px;
-            width: 120px
-        }
-
-        /* Calendar grid */
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: .35rem
-        }
-
-        .cal-cell {
-            border: 1px solid #e5e7eb;
-            border-radius: .6rem;
-            height: 58px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: .35rem .4rem
-        }
-
-        .cal-legend span {
-            display: inline-block;
-            width: 14px;
-            height: 10px;
-            border-radius: 3px;
-            border: 1px solid #e5e7eb
-        }
-
-        .topbar {
-            height: 52px
-        }
-    </style>
+    /* Calendar grid */
+    .cal-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.35rem }
+    .cal-cell{ border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem }
+    .cal-legend span{ display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb }
+    .topbar{ height:52px }
+  </style>
 </head>
 
 <body>
-    <div class="min-h-screen flex"> <!-- GLOBAL MENU (partial) -->
-        <div id="sidebarMount" data-menu="/partials/menu.html"></div> <!-- MAIN -->
-        <main class="flex-1 min-h-screen"> <!-- Topbar -->
-            <section class="glass sticky top-0 z-10 topbar">
-                <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
-                    <div class="text-sm text-slate-600">Dashboard</div>
-                    <!-- CHANGED: w-full -> flex-1 so this row grows, allowing the button to hug the far right -->
-                    <div class="flex items-center gap-2 flex-1">
-                        <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white md:ml-4"> <i
-                                class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i> <input id="search"
-                                placeholder="Search anything…" class="outline-none text-sm w-56" /> </div>
-                        <!-- ml-auto keeps it flushed to the right edge of the container --> <button
-                            class="border rounded-lg h-9 px-3 bg-white ml-auto"> <i
-                                class="fa-solid fa-file-arrow-down mr-2"></i>Export </button>
-                    </div>
-                </div>
-            </section> <!-- PAGE SHELL (matches header width) -->
-            <div class="max-w-7xl mx-auto px-6"> <!-- Greeting -->
-                <section class="pt-6">
-                    <div class="flex items-center">
-                        <div>
-                            <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
-                            <p class="text-sm text-slate-600">Your portfolio, performance, risk and activity at a
-                                glance.</p>
-                        </div>
-                    </div>
-                </section> <!-- Content Grid -->
-                <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6"> <!-- LEFT COLUMN -->
-                    <div class="lg:col-span-8 xl:col-span-9 space-y-6"> <!-- SUBSCRIBED STRATEGIES -->
-                        <div class="card p-5">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="font-semibold">Subscribed Strategies</div> <a href="/open-strategies.html"
-                                    class="text-sm text-[var(--olive-700)] hover:underline">Manage</a>
-                            </div>
-                            <div id="subsWrap" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-                        </div> <!-- EQUITY CURVE -->
-                        <div class="card p-5">
-                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                                <div>
-                                    <div class="text-sm text-slate-600">Equity Curve</div>
-                                    <div class="flex items-center gap-2">
-                                        <div id="eqValue" class="text-2xl font-semibold num">R —</div> <span
-                                            id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
-                                    </div>
-                                </div>
-                                <div class="flex gap-2" id="eqTabs"> <button class="tab-btn active"
-                                        data-range="1M">1M</button> <button class="tab-btn" data-range="3M">3M</button>
-                                    <button class="tab-btn" data-range="6M">6M</button> <button class="tab-btn"
-                                        data-range="YTD">YTD</button> <button class="tab-btn"
-                                        data-range="1Y">1Y</button> <button class="tab-btn" data-range="3Y">3Y</button>
-                                </div>
-                            </div>
-                            <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Return</div>
-                                    <div id="mRet" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Max Drawdown</div>
-                                    <div id="mDD" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Sharpe (sim.)</div>
-                                    <div id="mSharpe" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Win Rate</div>
-                                    <div id="mWin" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Volatility</div>
-                                    <div id="mVol" class="font-semibold">—</div>
-                                </div>
-                            </div>
-                            <div id="eqWrap"
-                                class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white"> <svg
-                                    id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
-                                <div id="eqTip" class="eq-tip hidden"></div>
-                            </div>
-                        </div> <!-- PERFORMANCE SUMMARY -->
-                        <div class="card p-5">
-                            <div class="font-semibold mb-3">Performance Summary</div>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Best Day</div>
-                                    <div id="sumBest" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Worst Day</div>
-                                    <div id="sumWorst" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Avg Daily Return</div>
-                                    <div id="sumAvg" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Positive Days</div>
-                                    <div id="sumPos" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Trading Days</div>
-                                    <div id="sumDays" class="font-semibold">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">CAGR (sim.)</div>
-                                    <div id="sumCagr" class="font-semibold">—</div>
-                                </div>
-                            </div>
-                        </div> <!-- DAILY PERFORMANCE CAL -->
-                        <div class="card p-5">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="font-semibold">Daily Performance — <span id="calMonth"></span></div>
-                                <div class="cal-legend text-xs text-slate-500 flex items-center gap-2"> <span
-                                        style="background:#fee2e2"></span> -2% &nbsp; <span
-                                        style="background:#fde68a"></span> 0% &nbsp; <span
-                                        style="background:#dcfce7"></span> +2% </div>
-                            </div>
-                            <div class="cal-grid" id="calGrid"></div>
-                        </div> <!-- PERFORMANCE BY STRATEGY -->
-                        <div class="card p-5">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="font-semibold">Performance by Strategy</div>
-                                <div class="flex items-center gap-2"> <label
-                                        class="text-xs text-slate-500">Strategy</label> <select id="stratSel"
-                                        class="border rounded-lg text-sm px-2 py-1"></select> </div>
-                            </div>
-                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                                <div class="lg:col-span-8">
-                                    <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
-                                        <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
-                                        <div id="stratTip" class="eq-tip hidden"></div>
-                                    </div>
-                                    <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
-                                        <div>Monthly returns (last 12)</div>
-                                        <div class="flex items-center gap-3"> <span
-                                                class="inline-flex items-center gap-1"><span
-                                                    class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
-                                            <span class="inline-flex items-center gap-1"><span
-                                                    class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="lg:col-span-4">
-                                    <div id="stratMetrics" class="grid grid-cols-2 gap-3 text-sm"></div>
-                                </div>
-                            </div>
-                        </div> <!-- HOLDINGS -->
-                        <div class="card">
-                            <div class="px-5 py-4 border-b flex items-center justify-between">
-                                <div class="font-semibold">Holdings</div>
-                                <div class="text-xs text-slate-500">Breakdown by selected account</div>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm">
-                                    <thead class="text-slate-600">
-                                        <tr>
-                                            <th class="text-left px-5 py-3">Instrument</th>
-                                            <th class="text-right px-5 py-3">Weight</th>
-                                            <th class="text-right px-5 py-3">Value</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="holdingsBody" class="divide-y"></tbody>
-                                    <tfoot class="bg-slate-50">
-                                        <tr>
-                                            <td class="px-5 py-3 font-semibold">Total</td>
-                                            <td id="holdingsWeightTot" class="px-5 py-3 text-right font-semibold">—</td>
-                                            <td id="holdingsValTot" class="px-5 py-3 text-right font-semibold">—</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    </div> <!-- RIGHT COLUMN -->
-                    <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
-                        <div class="card p-5">
-                            <div class="font-semibold mb-2">Accounts</div>
-                            <div class="flex items-center gap-2"> <select id="acctSel"
-                                    class="border rounded-lg text-sm px-2 py-1">
-                                    <option value="all">All accounts</option>
-                                    <option value="ibkr">IBKR Pro · U1234567</option>
-                                    <option value="paper">Paper · DU7654321</option>
-                                </select> <span class="text-xs text-slate-500">Affects rating & stats</span> </div>
-                            <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Total Balance</div>
-                                    <div id="acctBal" class="font-semibold num">—</div>
-                                </div>
-                                <div class="p-3 border rounded-xl">
-                                    <div class="text-slate-500 text-xs">Cash Available</div>
-                                    <div id="acctCash" class="font-semibold num">—</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card p-5">
-                            <div class="font-semibold mb-3">Portfolio Rating</div>
-                            <div class="flex items-center gap-4"> <svg id="ratingGauge" viewBox="0 0 160 160"
-                                    class="h-36 w-36"></svg>
-                                <div>
-                                    <div id="ratingText" class="text-lg font-semibold">—</div>
-                                    <div class="text-xs text-slate-500">Overall rating performance</div>
-                                    <div class="mt-2"> <span id="ratingDeltaChip"
-                                            class="chip bg-green-50 text-green-700">+0.0%</span> <span
-                                            class="text-xs text-slate-500 ml-1">From last year</span> </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
-                            <div id="allocBars" class="p-5 space-y-4"></div>
-                        </div>
-                        <div class="card p-5">
-                            <div class="font-semibold mb-3">Fee Breakdown</div>
-                            <div class="mb-3">
-                                <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
-                                    <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
-                                    <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
-                                    <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
-                                    <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
-                                </div>
-                                <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
-                            </div>
-                            <table class="w-full text-sm">
-                                <thead class="text-slate-500">
-                                    <tr>
-                                        <th class="text-left py-2">Type</th>
-                                        <th class="text-right py-2">Rate</th>
-                                        <th class="text-right py-2">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="feeRows" class="divide-y"></tbody>
-                            </table>
-                        </div>
-                    </aside>
-                </section>
-            </div> <!-- /PAGE SHELL -->
-        </main>
-    </div>
-    <script> /* =================== MENU PARTIAL =================== */ async function loadMenu() { const mount = document.getElementById('sidebarMount'); const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim(); const res = await fetch(url, { cache: 'no-store' }); if (!res.ok) throw new Error('Failed to load ' + url); mount.outerHTML = await res.text(); } function buildMenu(activeKey = 'dashboard') { const navContainer = document.getElementById('navContainer'); if (!navContainer) return; const menu = [{ section: "Menu", items: [{ key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" }, { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" }, { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" }, { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" }, { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" }, { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" }, { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },] }, { section: "General", items: [{ key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" }, { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" }, { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" }, { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },] }]; function group(sec) { const g = document.createElement('div'); g.className = 'mb-2'; const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true'); const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section; const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>'; const body = document.createElement('div'); body.className = 'group-body'; const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5'; sec.items.forEach(it => { const a = document.createElement('a'); a.href = it.href; a.className = 'sidebar-link'; a.title = it.label; if (it.key === activeKey) a.classList.add('active'); a.innerHTML = <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>; list.appendChild(a); }); body.appendChild(list); header.append(title, right); g.append(header, body); requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; }); header.addEventListener('click', () => { const exp = header.getAttribute('aria-expanded') === 'true'; header.setAttribute('aria-expanded', String(!exp)); const chev = header.querySelector('.chev'); if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); } else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); } }); return g; } navContainer.innerHTML = ''; menu.forEach(s => navContainer.appendChild(group(s))); const sidebar = document.getElementById('sidebar'); const collapseBtn = document.getElementById('collapseBtn'); let collapsed = false; collapseBtn?.addEventListener('click', () => { collapsed = !collapsed; sidebar.classList.toggle('is-collapsed', collapsed); collapseBtn.innerHTML = collapsed ? '<i class="fa-solid fa-angles-right text-sm"></i>' : '<i class="fa-solid fa-angles-left text-sm"></i>'; try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { }; }); try { if (sessionStorage.getItem('ah_sidebar_collapsed') === '1') { collapsed = true; sidebar.classList.add('is-collapsed'); if (collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>'; } } catch (e) { } } /* =================== UTIL & DRAW =================== */ const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v); const greetLine = () => { const h = new Date().getHours(); const t = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); return ${ t }, Mihle; }; function drawEquity(svgEl, series, labels) { const W = 900, H = 320, pad = 34; svgEl.innerHTML = ''; for (let i = 0; i < 5; i++) { const y = pad + i * (H - 2 * pad) / 4; const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', pad); ln.setAttribute('x2', W - pad); ln.setAttribute('y1', y); ln.setAttribute('y2', y); ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln); } const min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1; const step = (W - 2 * pad) / (series.length - 1); const X = i => pad + i * step, Y = v => H - pad - ((v - min) / rng) * (H - 2 * pad); const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'eqGrad'); grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1'); const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#556B2F'); s1.setAttribute('stop-opacity', '.28'); const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#111827'); s2.setAttribute('stop-opacity', '0.02'); grad.append(s1, s2); defs.appendChild(grad); svgEl.appendChild(defs); let dLine = ''; series.forEach((v, i) => dLine += ${ i? 'L': 'M' }${ X(i).toFixed(2) }, ${ Y(v).toFixed(2) }); const dArea = dLine + L${ X(series.length - 1).toFixed(2) },${ H - pad } L${ X(0).toFixed(2) },${ H - pad } Z; const area = document.createElementNS('http://www.w3.org/2000/svg', 'path'); area.setAttribute('d', dArea.trim()); area.setAttribute('fill', 'url(#eqGrad)'); svgEl.appendChild(area); const line = document.createElementNS('http://www.w3.org/2000/svg', 'path'); line.setAttribute('d', dLine.trim()); line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#0f172a'); line.setAttribute('stroke-width', '2.75'); svgEl.appendChild(line); const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', X(series.length - 1)); dot.setAttribute('cy', Y(series.at(-1))); dot.setAttribute('r', '4.2'); dot.setAttribute('fill', '#0f172a'); svgEl.appendChild(dot); const gL = document.createElementNS('http://www.w3.org/2000/svg', 'g'); labels.forEach((lb, i) => { const t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.textContent = lb; t.setAttribute('x', X(i)); t.setAttribute('y', H - 8); t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); gL.appendChild(t); }); svgEl.appendChild(gL); } function calcMetrics(series) { const first = series[0], last = series.at(-1); const ret = ((last / first) - 1) * 100; let peak = series[0], maxDD = 0; for (const v of series) { peak = Math.max(peak, v); maxDD = Math.min(maxDD, (v / peak - 1)); } const ddPct = Math.abs(maxDD * 100); const rets = []; for (let i = 1; i < series.length; i++) rets.push((series[i] / series[i - 1]) - 1); const avg = rets.reduce((a, b) => a + b, 0) / rets.length; const sd = Math.sqrt(rets.reduce((a, b) => a + (b - avg) * (b - avg), 0) / rets.length) || 0.00001; const sharpe = (avg / sd) * Math.sqrt(12); const wins = rets.filter(r => r > 0).length / rets.length * 100; const vol = sd * Math.sqrt(12) * 100; return { ret, ddPct, sharpe, wins, vol, rets }; } function drawDonut(el, percent) { const r = 68, cx = 80, cy = 80, C = 2 * Math.PI * r, val = Math.max(0, Math.min(100, percent)); el.innerHTML = ''; const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive'); grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%'); const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000'); const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '60%'); s2.setAttribute('stop-color', '#111827'); const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F'); grad.append(s1, s2, s3); defs.appendChild(grad); el.appendChild(defs); const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r); bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#e5e7eb'); bg.setAttribute('stroke-width', '16'); el.appendChild(bg); const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); arc.setAttribute('cx', cx); arc.setAttribute('cy', cy); arc.setAttribute('r', r); arc.setAttribute('fill', 'none'); arc.setAttribute('stroke', 'url(#gOlive)'); arc.setAttribute('stroke-width', '16'); arc.setAttribute('stroke-linecap', 'round'); arc.setAttribute('transform', 'rotate(-90 80 80)'); arc.setAttribute('stroke-dasharray', ${(val / 100) * C} ${ C }); el.appendChild(arc); const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text'); txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5); txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt); } function sparkSvg(series, color = '#0f172a') { const w = 120, h = 30, pad = 3, min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1; const step = (w - 2 * pad) / (series.length - 1); let d = ''; series.forEach((v, i) => { const x = pad + i * step; const y = h - pad - ((v - min) / rng) * (h - 2 * pad); d += (i ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2) + ' '; }); return <svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2" /></svg>; } function drawBars(svgEl, values, labels) { const W = 900, H = 260, padL = 42, padB = 26, padT = 16, padR = 12; svgEl.innerHTML = ''; for (let i = 0; i < 4; i++) { const y = padT + i * (H - padT - padB) / 3; const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', padL); ln.setAttribute('x2', W - padR); ln.setAttribute('y1', y); ln.setAttribute('y2', y); ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln); } const absMax = Math.max(2, Math.max(...values.map(v => Math.abs(v)))); const maxY = absMax, minY = -absMax; const xw = (W - padL - padR) / values.length * 0.72; const xPos = i => padL + (i + 0.5) * ((W - padL - padR) / values.length) - xw / 2; const yPos = v => padT + (maxY - v) * ((H - padT - padB) / (maxY - minY)); const y0 = yPos(0); const zero = document.createElementNS('http://www.w3.org/2000/svg', 'line'); zero.setAttribute('x1', padL); zero.setAttribute('x2', W - padR); zero.setAttribute('y1', y0); zero.setAttribute('y2', y0); zero.setAttribute('stroke', '#cbd5e1'); zero.setAttribute('stroke-width', '1.2'); svgEl.appendChild(zero); values.forEach((v, i) => { const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); const x = xPos(i), y = Math.min(y0, yPos(v)), h = Math.abs(yPos(v) - y0); rect.setAttribute('x', x); rect.setAttribute('y', y); rect.setAttribute('width', xw); rect.setAttribute('height', Math.max(0.5, h)); rect.setAttribute('rx', '4'); rect.setAttribute('fill', v >= 0 ? '#10b981' : '#ef4444'); rect.dataset.idx = i; svgEl.appendChild(rect); }); const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); labels.forEach((lb, i) => { const t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.textContent = lb; t.setAttribute('x', padL + (i + 0.5) * ((W - padL - padR) / labels.length)); t.setAttribute('y', H - 8); t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); g.appendChild(t); }); svgEl.appendChild(g); } /* =================== MOCK DATA (per account) =================== */ const acctData = { all: { bal: 1_523_400, cash: 188_000, rating: 82, vol: 1.8 }, ibkr: { bal: 1_240_000, cash: 120_000, rating: 78, vol: 1.6 }, paper: { bal: 250_000, cash: 68_000, rating: 65, vol: 1.0 }, }; const delta = +5.48; /* Equity curves (index series 1.0 = start) */ const EQ_DATA = { all: { "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.03, 1.01, 1.06, 1.09] }, "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.07, 1.12] }, "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.04, 1.02, 1.09, 1.13, 1.18] }, "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.03, 1.02, 1.08, 1.12, 1.15, 1.19, 1.22, 1.27] }, "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.03, 1.01, 1.07, 1.10, 1.12, 1.18, 1.21, 1.25, 1.32, 1.38, 1.43] }, "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.26, 1.58, 1.90] } }, ibkr: { "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.02, 0.99, 1.03, 1.05] }, "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.05, 1.08] }, "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.03, 1.01, 1.06, 1.09, 1.12] }, "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.02, 1.01, 1.05, 1.08, 1.10, 1.13, 1.15, 1.18] }, "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.02, 1.00, 1.05, 1.08, 1.10, 1.14, 1.16, 1.19, 1.23, 1.27, 1.31] }, "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.18, 1.38, 1.56] } }, paper: { "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.01, 1.00, 1.02, 1.03] }, "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.03, 1.05] }, "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.02, 1.01, 1.03, 1.05, 1.06] }, "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07] }, "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10] }, "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.10, 1.18, 1.25] } } }; const allocData = { all: [{ label: 'Equities', pct: 48, color: '#0f172a' }, { label: 'FX', pct: 18, color: '#10b981' }, { label: 'Crypto', pct: 12, color: '#f59e0b' }, { label: 'Futures', pct: 14, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 2, color: '#94a3b8' }], ibkr: [{ label: 'Equities', pct: 54, color: '#0f172a' }, { label: 'FX', pct: 12, color: '#10b981' }, { label: 'Crypto', pct: 6, color: '#f59e0b' }, { label: 'Futures', pct: 16, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }], paper: [{ label: 'Equities', pct: 30, color: '#0f172a' }, { label: 'FX', pct: 30, color: '#10b981' }, { label: 'Crypto', pct: 20, color: '#f59e0b' }, { label: 'Futures', pct: 10, color: '#6366f1' }, { label: 'Commodities', pct: 4, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }], }; const feeGrossProfit = { all: 120_000, ibkr: 90_000, paper: 12_000 }; const logo = d => https://www.google.com/s2/favicons?domain=${d}&sz=64; const holdingsData = { all: [ { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 22 }, { name: 'Tesla', ticker: 'TSLA', logo: logo('tesla.com'), weight: 14 }, { name: 'Google', ticker: 'GOOG', logo: logo('google.com'), weight: 18 }, { name: 'NASDAQ', ticker: 'QQQ', logo: logo('nasdaq.com'), weight: 12 }, { name: 'USD/ZAR', ticker: 'FX', logo: logo('oanda.com'), weight: 10 }, { name: 'BTC', ticker: 'BTC', logo: logo('binance.com'), weight: 12 }, ], ibkr: [ { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 26 }, { name: 'S&P 500', ticker: 'SPY', logo: logo('spglobal.com'), weight: 18 }, { name: 'Brent Fut', ticker: 'BZ', logo: logo('ice.com'), weight: 10 }, { name: 'USD/ZAR', ticker: 'FX', logo: logo('oanda.com'), weight: 12 }, { name: 'Google', ticker: 'GOOG', logo: logo('google.com'), weight: 18 }, ], paper: [ { name: 'EUR/USD', ticker: 'FX', logo: logo('oanda.com'), weight: 25 }, { name: 'BTC', ticker: 'BTC', logo: logo('binance.com'), weight: 20 }, { name: 'ETH', ticker: 'ETH', logo: logo('binance.com'), weight: 15 }, { name: 'Gold', ticker: 'XAU', logo: logo('lbma.org.uk'), weight: 18 }, ] }; let currentAcct = 'all'; let eqRange = '1Y'; function renderRating(acct = 'all') { const d = acctData[acct] || acctData.all; document.getElementById('acctBal').textContent = fmtMoney(d.bal); document.getElementById('acctCash').textContent = fmtMoney(d.cash); drawDonut(document.getElementById('ratingGauge'), d.rating); document.getElementById('ratingText').textContent = d.rating >= 85 ? 'Excellent' : (d.rating >= 70 ? 'Very Good' : 'Fair'); const chip = document.getElementById('ratingDeltaChip'); chip.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(2) + '%'; chip.className = 'chip ' + (delta >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'); } function renderEq(range = eqRange, acct = currentAcct) { const d = (EQ_DATA[acct] && EQ_DATA[acct][range]) ? EQ_DATA[acct][range] : EQ_DATA.all['1Y']; const base = acctData[acct]?.bal ?? 1_000_000; drawEquity(document.getElementById('eqSvg'), d.arr, d.lbl); const first = d.arr[0], last = d.arr.at(-1); const value = base * last; const deltaPct = ((last / first) - 1) * 100; document.getElementById('eqValue').textContent = fmtMoney(value); const dEl = document.getElementById('eqDelta'); dEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%'; dEl.className = 'chip ' + (deltaPct >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'); const m = calcMetrics(d.arr); document.getElementById('mRet').textContent = (m.ret >= 0 ? '+' : '') + m.ret.toFixed(2) + '%'; document.getElementById('mDD').textContent = m.ddPct.toFixed(2) + '%'; document.getElementById('mSharpe').textContent = m.sharpe.toFixed(2); document.getElementById('mWin').textContent = m.wins.toFixed(0) + '%'; document.getElementById('mVol').textContent = m.vol.toFixed(1) + '%'; } function renderAllocation(acct = currentAcct) { const bars = document.getElementById('allocBars'); const arr = allocData[acct] || allocData.all; bars.innerHTML = arr.map(a => <div> <div class="flex items-center justify-between text-sm mb-1"> <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div> <div class="num">${a.pct}%</div> </div> <div class="h-2 rounded-full bg-gray-100 overflow-hidden"> <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div> </div> </div> ).join(''); } function renderFees(acct = currentAcct) { const grossProfit = feeGrossProfit[acct] ?? 120_000; const feeModel = { mgmt: { label: 'Management', rate: '1.0% p.a.', pctOfProfit: 0.18 }, perf: { label: 'Performance', rate: '15% of profits', pctOfProfit: 0.15 }, brok: { label: 'Brokerage', rate: '0.12% notional', pctOfProfit: 0.05 }, slip: { label: 'Slippage est.', rate: '—', pctOfProfit: 0.03 }, }; const amounts = { mgmt: Math.round(grossProfit * feeModel.mgmt.pctOfProfit), perf: Math.round(grossProfit * feeModel.perf.pctOfProfit), brok: Math.round(grossProfit * feeModel.brok.pctOfProfit), slip: Math.round(grossProfit * feeModel.slip.pctOfProfit), }; const total = amounts.mgmt + amounts.perf + amounts.brok + amounts.slip; const pct = k => (amounts[k] / total * 100).toFixed(1) + '%'; document.getElementById('feeMgmt').style.width = pct('mgmt'); document.getElementById('feePerf').style.width = pct('perf'); document.getElementById('feeBrok').style.width = pct('brok'); document.getElementById('feeSlip').style.width = pct('slip'); document.getElementById('feeRows').innerHTML = <tr><td class="py-2">Management</td><td class="py-2 text-right">${feeModel.mgmt.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.mgmt)}</td></tr> <tr><td class="py-2">Performance</td><td class="py-2 text-right">${feeModel.perf.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.perf)}</td></tr> <tr><td class="py-2">Brokerage</td><td class="py-2 text-right">${feeModel.brok.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.brok)}</td></tr> <tr><td class="py-2">Slippage (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(amounts.slip)}</td></tr> <tr class="font-semibold"><td class="py-2">Total Fees</td><td></td><td class="py-2 text-right num">${fmtMoney(total)}</td></tr> ; } function renderHoldings(acct = currentAcct) { const body = document.getElementById('holdingsBody'); const bal = acctData[acct]?.bal ?? 1; const cashWeight = Math.max(0, Math.min(100, (acctData[acct]?.cash ?? 0) / bal * 100)); const rows = (holdingsData[acct] || holdingsData.all).slice(); rows.push({ name: 'Cash', ticker: 'ZAR', logo: 'https://img.icons8.com/?size=48&id=12227&format=png', weight: +cashWeight.toFixed(1) }); const totW = rows.reduce((s, r) => s + r.weight, 0); const scale = totW > 100 ? 100 / totW : 1; let sumW = 0, sumV = 0; body.innerHTML = rows.map(r => { const w = +(r.weight * scale).toFixed(1); const val = Math.round(bal * (w / 100)); sumW += w; sumV += val; return <tr class="hover:bg-slate-50"> <td class="px-5 py-3"> <div class="flex items-center gap-3"> <img src="${r.logo}" class="h-6 w-6 rounded" alt=""> <div> <div class="font-medium">${r.name}</div> <div class="text-xs text-slate-500">${r.ticker}</div> </div> </div> </td> <td class="px-5 py-3 text-right num">${w.toFixed(1)}%</td> <td class="px-5 py-3 text-right num">${fmtMoney(val)}</td> </tr>; }).join(''); document.getElementById('holdingsWeightTot').textContent = sumW.toFixed(1) + '%'; document.getElementById('holdingsValTot').textContent = fmtMoney(sumV); } function renderCalendar(acct = currentAcct) { const grid = document.getElementById('calGrid'); const now = new Date(); const y = now.getFullYear(), m = now.getMonth(); const today = now.getDate(); const firstDay = new Date(y, m, 1); const startWeek = firstDay.getDay(); const days = new Date(y, m + 1, 0).getDate(); document.getElementById('calMonth').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' }); const vol = acctData[acct]?.vol ?? 1.5; const cells = []; for (let i = 0; i < startWeek; i++) cells.push({ empty: true }); for (let d = 1; d <= days; d++) { if (d <= today) { const ret = +((Math.random() * 4 - 2) * (vol / 1.8)).toFixed(2); cells.push({ day: d, ret }); } else { cells.push({ day: d, future: true }); } } grid.innerHTML = cells.map(c => { if (c.empty) return <div class="cal-cell bg-white"></div>; if (c.future) return <div class="cal-cell bg-white opacity-50"><div class="text-[11px] text-slate-400">${c.day}</div></div>; const a = Math.min(1, Math.abs(c.ret) / 2); const bg = c.ret >= 0 ? rgba(16,185,129,${0.15 + a * 0.35}) : rgba(239,68,68,${0.18 + a * 0.35}); return <div class="cal-cell" style="background:${bg}"> <div class="text-[11px] text-slate-700">${c.day}</div> <div class="text-[11px] ${c.ret >= 0 ? 'text-emerald-700' : 'text-rose-700'} self-end">${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(2)}%</div> </div>; }).join(''); const rets = cells.filter(x => x.ret !== undefined).map(x => x.ret / 100); if (rets.length) { const best = Math.max(...rets) * 100; const worst = Math.min(...rets) * 100; const avg = (rets.reduce((a, b) => a + b, 0) / rets.length) * 100; const pos = rets.filter(r => r > 0).length; const cagr = (Math.pow(1 + avg / 100, 252) - 1) * 100; document.getElementById('sumBest').textContent = ${best >= 0 ? '+' : ''}${best.toFixed(2)}%; document.getElementById('sumWorst').textContent = ${worst.toFixed(2)}%; document.getElementById('sumAvg').textContent = ${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%; document.getElementById('sumPos').textContent = ${pos} days; document.getElementById('sumDays').textContent = ${rets.length}; document.getElementById('sumCagr').textContent = ${cagr.toFixed(1)}%; } } function equityFromMonthly(returnsPct) { const eq = [1]; returnsPct.forEach(r => eq.push(eq.at(-1) * (1 + r / 100))); return eq; } const months12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const subs = [ { name: 'Trend Alpha', provider: 'AlgoForge', change: +1.8, aum: 'R1.2m', series: [10, 12, 11, 13, 12, 15, 14, 16] }, { name: 'Momentum FX', provider: 'QuantBee', change: +0.9, aum: 'R820k', series: [8, 8.4, 8.2, 8.6, 8.9, 9.2, 9.6] }, { name: 'Grid Delta', provider: 'GridOps', change: -0.6, aum: 'R540k', series: [7, 6.9, 6.7, 6.8, 6.6, 6.7, 6.5] }, { name: 'NewsPulse', provider: 'PulseAI', change: +1.2, aum: 'R410k', series: [6, 6.2, 6.4, 6.1, 6.5, 6.7, 6.9] }, { name: 'Equity Trend+', provider: 'AlgoForge', change: +0.4, aum: 'R2.0m', series: [9, 9.1, 9.2, 9.3, 9.5, 9.6, 9.8] }, { name: 'Carry FX', provider: 'QuantBee', change: +0.3, aum: 'R300k', series: [5, 5.1, 5.2, 5.15, 5.25, 5.3, 5.35] } ]; const stratData = { 'Trend Alpha': { monthly: [1.2,-0.6,0.8,1.1,2.0,-0.4,1.6,0.9,2.3,0.7,1.1,1.5] }, 'Momentum FX': { monthly: [-0.3,0.6,0.9,-0.4,0.8,1.2,0.5,0.7,-0.2,0.3,0.9,1.1] }, 'Grid Delta': { monthly: [0.4,-0.8,0.2,0.1,-0.2,0.3,0.5,-0.1,0.6,0.2,0.1,0.3] }, 'NewsPulse': { monthly: [0.7,0.8,-0.6,1.0,0.9,-0.3,0.6,1.2,0.5,0.6,0.4,0.9] }, 'Equity Trend+': { monthly: [0.5,0.7,0.6,0.8,0.9,1.0,0.4,0.6,1.1,0.8,0.9,1.0] }, 'Carry FX': { monthly: [0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2] } }; (async function () { await loadMenu(); buildMenu('dashboard'); document.getElementById('greet').textContent = greetLine(); document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('#eqTabs .tab-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active'); eqRange = btn.dataset.range; renderEq(eqRange, currentAcct); }); }); const subsWrap = document.getElementById('subsWrap'); subsWrap.innerHTML = subs.map(s => <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}"> <div class="flex items-center justify-between"> <div class="font-medium text-sm truncate">${s.name}</div> <span class="chip ${s.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(1)}%</span> </div> <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div> <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div> </div>).join(''); const stratSel = document.getElementById('stratSel'); stratSel.innerHTML = subs.map(s => <option value="${s.name}">${s.name}</option>).join(''); function equityFromMonthly(returnsPct){ const eq=[1]; returnsPct.forEach(r=>eq.push(eq.at(-1)*(1+r/100))); return eq; } function renderStratPerf(name) { const d = stratData[name] || stratData[Object.keys(stratData)[0]]; drawBars(document.getElementById('stratChart'), d.monthly, months12); const eq = equityFromMonthly(d.monthly), m = calcMetrics(eq); const totalReturn = ((eq.at(-1) / eq[0] - 1) * 100); const avgMon = d.monthly.reduce((a,b)=>a+b,0)/d.monthly.length; const wins = d.monthly.filter(x=>x>0).length / d.monthly.length * 100; document.getElementById('stratMetrics').innerHTML = <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Total Return (12M)</div><div class="font-semibold">${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(2)}%</div></div> <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div class="font-semibold">${m.ddPct.toFixed(2)}%</div></div> <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div class="font-semibold">${m.sharpe.toFixed(2)}</div></div> <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div class="font-semibold">${wins.toFixed(0)}%</div></div> <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div class="font-semibold">${avgMon >= 0 ? '+' : ''}${avgMon.toFixed(2)}%</div></div> <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div class="font-semibold">${m.vol.toFixed(1)}%</div></div>; const tip = document.getElementById('stratTip'); document.querySelectorAll('#stratChart rect').forEach(r => { r.onmouseenter = (e) => { const i = +e.target.dataset.idx; const v = d.monthly[i]; tip.innerHTML = <div class="font-semibold">${months12[i]}</div><div>${v >= 0 ? '+' : ''}${v.toFixed(2)}%</div>; tip.style.left = Math.min(820, Math.max(10, e.offsetX + 12)) + 'px'; tip.style.top = '10px'; tip.classList.remove('hidden'); }; r.onmouseleave = () => tip.classList.add('hidden'); }); } renderStratPerf(stratSel.value); stratSel.addEventListener('change', e => renderStratPerf(e.target.value)); document.querySelectorAll('#subsWrap .sub-card').forEach(card => { card.addEventListener('click', () => { const key = card.getAttribute('data-key'); if (stratData[key]) { stratSel.value = key; renderStratPerf(key); } }); }); function renderAll(acct) { currentAcct = acct; renderRating(acct); renderEq(eqRange, acct); renderAllocation(acct); renderFees(acct); renderHoldings(acct); renderCalendar(acct); } renderAll('all'); document.getElementById('acctSel').addEventListener('change', (e) => renderAll(e.target.value)); })(); </script>
-</body>
+ <div class="min-h-screen flex">
+    <!-- GLOBAL MENU (partial) -->
+    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
+    <!-- MAIN -->
+    <main class="flex-1 min-h-screen">
+      <!-- Topbar -->
+      <section class="glass sticky top-0 z-10 topbar">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
+          <div class="text-sm text-slate-600">Dashboard</div>
+
+          <!-- CHANGED: w-full -> flex-1 so this row grows, allowing the button to hug the far right -->
+          <div class="flex items-center gap-2 flex-1">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white md:ml-4">
+              <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
+              <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
+            </div>
+
+            <!-- ml-auto keeps it flushed to the right edge of the container -->
+            <button class="border rounded-lg h-9 px-3 bg-white ml-auto">
+              <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE SHELL (matches header width) -->
+      <div class="max-w-7xl mx-auto px-6">
+        <!-- Greeting -->
+        <section class="pt-6">
+          <div class="flex items-center">
+            <div>
+              <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
+              <p class="text-sm text-slate-600">Your portfolio, performance, risk and activity at a glance.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Content Grid -->
+        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT COLUMN -->
+          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+
+            <!-- EQUITY CURVE -->
+            <div class="card p-5">
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-sm text-slate-600">Equity Curve</div>
+                  <div class="flex items-center gap-2">
+                    <div id="eqValue" class="text-2xl font-semibold num">R —</div>
+                    <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  </div>
+                </div>
+                <div class="flex gap-2" id="eqTabs">
+                  <button class="tab-btn active" data-range="1M">1M</button>
+                  <button class="tab-btn" data-range="3M">3M</button>
+                  <button class="tab-btn" data-range="6M">6M</button>
+                  <button class="tab-btn" data-range="YTD">YTD</button>
+                  <button class="tab-btn" data-range="1Y">1Y</button>
+                  <button class="tab-btn" data-range="3Y">3Y</button>
+                </div>
+              </div>
+
+              <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Return</div>
+                  <div id="mRet" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Max Drawdown</div>
+                  <div id="mDD" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Sharpe (sim.)</div>
+                  <div id="mSharpe" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Win Rate</div>
+                  <div id="mWin" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Volatility</div>
+                  <div id="mVol" class="font-semibold">—</div>
+                </div>
+              </div>
+
+              <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
+                <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+                <div id="eqTip" class="eq-tip hidden"></div>
+              </div>
+            </div>
+
+            <!-- DAILY PERFORMANCE CAL -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Daily Performance — <span id="calMonth"></span></div>
+                <div class="cal-legend text-xs text-slate-500 flex items-center gap-2">
+                  <span style="background:#fee2e2"></span> -2% &nbsp;
+                  <span style="background:#fde68a"></span> 0% &nbsp;
+                  <span style="background:#dcfce7"></span> +2%
+                </div>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+            </div>
+
+            <!-- PERFORMANCE SUMMARY -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Performance Summary</div>
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Best Day</div>
+                  <div id="sumBest" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Worst Day</div>
+                  <div id="sumWorst" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Avg Daily Return</div>
+                  <div id="sumAvg" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Positive Days</div>
+                  <div id="sumPos" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Trading Days</div>
+                  <div id="sumDays" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">CAGR (sim.)</div>
+                  <div id="sumCagr" class="font-semibold">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PERFORMANCE BY STRATEGY -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Performance by Strategy</div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-500">Strategy</label>
+                  <select id="stratSel" class="border rounded-lg text-sm px-2 py-1"></select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-8">
+                  <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
+                    <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
+                    <div id="stratTip" class="eq-tip hidden"></div>
+                  </div>
+                  <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
+                    <div>Monthly returns (last 12)</div>
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex items-center gap-1"><span class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
+                      <span class="inline-flex items-center gap-1"><span class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="lg:col-span-4">
+                  <div id="stratMetrics" class="grid grid-cols-2 gap-3 text-sm"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUBSCRIBED STRATEGIES -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Subscribed Strategies</div>
+                <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">Manage</a>
+              </div>
+              <div id="subsWrap" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- HOLDINGS -->
+            <div class="card">
+              <div class="px-5 py-4 border-b flex items-center justify-between">
+                <div class="font-semibold">Holdings</div>
+                <div class="text-xs text-slate-500">Breakdown by selected account</div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-slate-600">
+                    <tr>
+                      <th class="text-left px-5 py-3">Instrument</th>
+                      <th class="text-right px-5 py-3">Weight</th>
+                      <th class="text-right px-5 py-3">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holdingsBody" class="divide-y"></tbody>
+                  <tfoot class="bg-slate-50">
+                    <tr>
+                      <td class="px-5 py-3 font-semibold">Total</td>
+                      <td id="holdingsWeightTot" class="px-5 py-3 text-right font-semibold">—</td>
+                      <td id="holdingsValTot" class="px-5 py-3 text-right font-semibold">—</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Accounts</div>
+              <div class="flex items-center gap-2">
+                <select id="acctSel" class="border rounded-lg text-sm px-2 py-1">
+                  <option value="all">All accounts</option>
+                  <option value="ibkr">IBKR Pro · U1234567</option>
+                  <option value="paper">Paper · DU7654321</option>
+                </select>
+                <span class="text-xs text-slate-500">Affects rating & stats</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Total Balance</div>
+                  <div id="acctBal" class="font-semibold num">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Cash Available</div>
+                  <div id="acctCash" class="font-semibold num">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Portfolio Rating</div>
+              <div class="flex items-center gap-4">
+                <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
+                <div>
+                  <div id="ratingText" class="text-lg font-semibold">—</div>
+                  <div class="text-xs text-slate-500">Overall rating performance</div>
+                  <div class="mt-2">
+                    <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
+                    <span class="text-xs text-slate-500 ml-1">From last year</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
+              <div id="allocBars" class="p-5 space-y-4"></div>
+            </div>
+
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Fee Breakdown</div>
+              <div class="mb-3">
+                <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
+                  <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
+                  <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
+                  <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
+                  <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="text-slate-500">
+                  <tr>
+                    <th class="text-left py-2">Type</th>
+                    <th class="text-right py-2">Rate</th>
+                    <th class="text-right py-2">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="feeRows" class="divide-y"></tbody>
+              </table>
+            </div>
+          </aside>
+        </section>
+      </div>
+      <!-- /PAGE SHELL -->
+    </main>
+  </div>
+
+  <script>
+    /* =================== MENU PARTIAL =================== */
+    async function loadMenu() {
+      const mount = document.getElementById('sidebarMount');
+      const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to load ' + url);
+      mount.outerHTML = await res.text();
+    }
+    function buildMenu(activeKey = 'dashboard') {
+      const navContainer = document.getElementById('navContainer');
+      if (!navContainer) return;
+      const menu = [{
+        section: "Menu", items: [
+          { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
+          { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
+          { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
+          { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
+          { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
+          { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
+          { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
+        ]
+      }, {
+        section: "General", items: [
+          { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
+          { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
+          { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
+          { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
+        ]
+      }];
+      function group(sec) {
+        const g = document.createElement('div'); g.className = 'mb-2';
+        const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
+        const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
+        const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
+        const body = document.createElement('div'); body.className = 'group-body';
+        const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
+        sec.items.forEach(it => {
+          const a = document.createElement('a'); a.href = it.href; a.className = 'sidebar-link'; a.title = it.label;
+          if (it.key === activeKey) a.classList.add('active');
+          a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`; list.appendChild(a);
+        });
+        body.appendChild(list); header.append(title, right); g.append(header, body);
+        requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
+        header.addEventListener('click', () => {
+          const exp = header.getAttribute('aria-expanded') === 'true';
+          header.setAttribute('aria-expanded', String(!exp));
+          const chev = header.querySelector('.chev');
+          if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); } else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
+        });
+        return g;
+      }
+      navContainer.innerHTML = ''; menu.forEach(s => navContainer.appendChild(group(s)));
+      const sidebar = document.getElementById('sidebar');
+      const collapseBtn = document.getElementById('collapseBtn'); let collapsed = false;
+      collapseBtn?.addEventListener('click', () => {
+        collapsed = !collapsed; sidebar.classList.toggle('is-collapsed', collapsed);
+        collapseBtn.innerHTML = collapsed ? '<i class="fa-solid fa-angles-right text-sm"></i>' : '<i class="fa-solid fa-angles-left text-sm"></i>';
+        try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { };
+      });
+      try { if (sessionStorage.getItem('ah_sidebar_collapsed') === '1') { collapsed = true; sidebar.classList.add('is-collapsed'); if (collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>'; } } catch (e) { }
+    }
+
+    /* =================== UTIL & DRAW =================== */
+    const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v);
+    const greetLine = () => { const h = new Date().getHours(); const t = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); return `${t}, Mihle`; };
+
+    function drawEquity(svgEl, series, labels) {
+      const W = 900, H = 320, pad = 34;
+      svgEl.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const y = pad + i * (H - 2 * pad) / 4;
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', pad); ln.setAttribute('x2', W - pad); ln.setAttribute('y1', y); ln.setAttribute('y2', y);
+        ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
+      }
+      const min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1;
+      const step = (W - 2 * pad) / (series.length - 1);
+      const X = i => pad + i * step, Y = v => H - pad - ((v - min) / rng) * (H - 2 * pad);
+
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      grad.setAttribute('id', 'eqGrad'); grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+      const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#556B2F'); s1.setAttribute('stop-opacity', '.28');
+      const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#111827'); s2.setAttribute('stop-opacity', '0.02');
+      grad.append(s1, s2); defs.appendChild(grad); svgEl.appendChild(defs);
+
+      let dLine = ''; series.forEach((v, i) => dLine += `${i ? 'L' : 'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `);
+      const dArea = dLine + `L${X(series.length - 1).toFixed(2)},${H - pad} L${X(0).toFixed(2)},${H - pad} Z`;
+
+      const area = document.createElementNS('http://www.w3.org/2000/svg', 'path'); area.setAttribute('d', dArea.trim()); area.setAttribute('fill', 'url(#eqGrad)'); svgEl.appendChild(area);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path'); line.setAttribute('d', dLine.trim()); line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#0f172a'); line.setAttribute('stroke-width', '2.75'); svgEl.appendChild(line);
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', X(series.length - 1)); dot.setAttribute('cy', Y(series.at(-1))); dot.setAttribute('r', '4.2'); dot.setAttribute('fill', '#0f172a'); svgEl.appendChild(dot);
+
+      const gL = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      labels.forEach((lb, i) => {
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.textContent = lb; t.setAttribute('x', X(i)); t.setAttribute('y', H - 8); t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); gL.appendChild(t);
+      });
+      svgEl.appendChild(gL);
+    }
+    function calcMetrics(series) {
+      const first = series[0], last = series.at(-1);
+      const ret = ((last / first) - 1) * 100;
+      let peak = series[0], maxDD = 0;
+      for (const v of series) { peak = Math.max(peak, v); maxDD = Math.min(maxDD, (v / peak - 1)); }
+      const ddPct = Math.abs(maxDD * 100);
+      const rets = []; for (let i = 1; i < series.length; i++) rets.push((series[i] / series[i - 1]) - 1);
+      const avg = rets.reduce((a, b) => a + b, 0) / rets.length;
+      const sd = Math.sqrt(rets.reduce((a, b) => a + (b - avg) * (b - avg), 0) / rets.length) || 0.00001;
+      const sharpe = (avg / sd) * Math.sqrt(12);
+      const wins = rets.filter(r => r > 0).length / rets.length * 100;
+      const vol = sd * Math.sqrt(12) * 100;
+      return { ret, ddPct, sharpe, wins, vol, rets };
+    }
+    function drawDonut(el, percent) {
+      const r = 68, cx = 80, cy = 80, C = 2 * Math.PI * r, val = Math.max(0, Math.min(100, percent));
+      el.innerHTML = '';
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
+      grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
+      const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
+      const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '60%'); s2.setAttribute('stop-color', '#111827');
+      const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
+      grad.append(s1, s2, s3); defs.appendChild(grad); el.appendChild(defs);
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
+      bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#e5e7eb'); bg.setAttribute('stroke-width', '16'); el.appendChild(bg);
+      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      arc.setAttribute('cx', cx); arc.setAttribute('cy', cy); arc.setAttribute('r', r);
+      arc.setAttribute('fill', 'none'); arc.setAttribute('stroke', 'url(#gOlive)'); arc.setAttribute('stroke-width', '16');
+      arc.setAttribute('stroke-linecap', 'round'); arc.setAttribute('transform', 'rotate(-90 80 80)');
+      arc.setAttribute('stroke-dasharray', `${(val / 100) * C} ${C}`); el.appendChild(arc);
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
+      txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt);
+    }
+    function sparkSvg(series, color = '#0f172a') {
+      const w = 120, h = 30, pad = 3, min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1;
+      const step = (w - 2 * pad) / (series.length - 1);
+      let d = ''; series.forEach((v, i) => { const x = pad + i * step; const y = h - pad - ((v - min) / rng) * (h - 2 * pad); d += (i ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2) + ' '; });
+      return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+    }
+    function drawBars(svgEl, values, labels) {
+      const W = 900, H = 260, padL = 42, padB = 26, padT = 16, padR = 12;
+      svgEl.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const y = padT + i * (H - padT - padB) / 3;
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', padL); ln.setAttribute('x2', W - padR);
+        ln.setAttribute('y1', y); ln.setAttribute('y2', y);
+        ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
+      }
+      const absMax = Math.max(2, Math.max(...values.map(v => Math.abs(v))));
+      const maxY = absMax, minY = -absMax;
+      const xw = (W - padL - padR) / values.length * 0.72;
+      const xPos = i => padL + (i + 0.5) * ((W - padL - padR) / values.length) - xw / 2;
+      const yPos = v => padT + (maxY - v) * ((H - padT - padB) / (maxY - minY));
+      const y0 = yPos(0);
+      const zero = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      zero.setAttribute('x1', padL); zero.setAttribute('x2', W - padR);
+      zero.setAttribute('y1', y0); zero.setAttribute('y2', y0);
+      zero.setAttribute('stroke', '#cbd5e1'); zero.setAttribute('stroke-width', '1.2'); svgEl.appendChild(zero);
+      values.forEach((v, i) => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const x = xPos(i), y = Math.min(y0, yPos(v)), h = Math.abs(yPos(v) - y0);
+        rect.setAttribute('x', x); rect.setAttribute('y', y); rect.setAttribute('width', xw); rect.setAttribute('height', Math.max(0.5, h));
+        rect.setAttribute('rx', '4'); rect.setAttribute('fill', v >= 0 ? '#10b981' : '#ef4444'); rect.dataset.idx = i; svgEl.appendChild(rect);
+      });
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      labels.forEach((lb, i) => {
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.textContent = lb; t.setAttribute('x', padL + (i + 0.5) * ((W - padL - padR) / labels.length));
+        t.setAttribute('y', H - 8); t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); g.appendChild(t);
+      });
+      svgEl.appendChild(g);
+    }
+
+    /* =================== MOCK DATA (per account) =================== */
+    const acctData = {
+      all: { bal: 1_523_400, cash: 188_000, rating: 82, vol: 1.8 },
+      ibkr: { bal: 1_240_000, cash: 120_000, rating: 78, vol: 1.6 },
+      paper: { bal: 250_000, cash: 68_000, rating: 65, vol: 1.0 },
+    };
+    const delta = +5.48;
+
+    /* Equity curves (index series 1.0 = start) */
+    const EQ_DATA = {
+      all: {
+        "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.03, 1.01, 1.06, 1.09] },
+        "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.07, 1.12] },
+        "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.04, 1.02, 1.09, 1.13, 1.18] },
+        "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.03, 1.02, 1.08, 1.12, 1.15, 1.19, 1.22, 1.27] },
+        "1Y": { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr: [1.00, 1.03, 1.01, 1.07, 1.10, 1.12, 1.18, 1.21, 1.25, 1.32, 1.38, 1.43] },
+        "3Y": { lbl: ['Y1','Y2','Y3','Y3+'], arr: [1.00, 1.26, 1.58, 1.90] }
+      },
+      ibkr: {
+        "1M": { lbl: ['W1','W2','W3','W4','W5'], arr: [1.00, 1.02, 0.99, 1.03, 1.05] },
+        "3M": { lbl: ['M1','M2','M3'], arr: [1.00, 1.05, 1.08] },
+        "6M": { lbl: ['M1','M2','M3','M4','M5','M6'], arr: [1.00, 1.03, 1.01, 1.06, 1.09, 1.12] },
+        "YTD": { lbl: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'], arr: [1.00, 1.02, 1.01, 1.05, 1.08, 1.10, 1.13, 1.15, 1.18] },
+        "1Y": { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr: [1.00, 1.02, 1.00, 1.05, 1.08, 1.10, 1.14, 1.16, 1.19, 1.23, 1.27, 1.31] },
+        "3Y": { lbl: ['Y1','Y2','Y3','Y3+'], arr: [1.00, 1.18, 1.38, 1.56] }
+      },
+      paper: {
+        "1M": { lbl: ['W1','W2','W3','W4','W5'], arr: [1.00, 1.01, 1.00, 1.02, 1.03] },
+        "3M": { lbl: ['M1','M2','M3'], arr: [1.00, 1.03, 1.05] },
+        "6M": { lbl: ['M1','M2','M3','M4','M5','M6'], arr: [1.00, 1.02, 1.01, 1.03, 1.05, 1.06] },
+        "YTD": { lbl: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07] },
+        "1Y": { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10] },
+        "3Y": { lbl: ['Y1','Y2','Y3','Y3+'], arr: [1.00, 1.10, 1.18, 1.25] }
+      }
+    };
+
+    const allocData = {
+      all: [{ label: 'Equities', pct: 48, color: '#0f172a' }, { label: 'FX', pct: 18, color: '#10b981' }, { label: 'Crypto', pct: 12, color: '#f59e0b' }, { label: 'Futures', pct: 14, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 2, color: '#94a3b8' }],
+      ibkr: [{ label: 'Equities', pct: 54, color: '#0f172a' }, { label: 'FX', pct: 12, color: '#10b981' }, { label: 'Crypto', pct: 6, color: '#f59e0b' }, { label: 'Futures', pct: 16, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
+      paper: [{ label: 'Equities', pct: 30, color: '#0f172a' }, { label: 'FX', pct: 30, color: '#10b981' }, { label: 'Crypto', pct: 20, color: '#f59e0b' }, { label: 'Futures', pct: 10, color: '#6366f1' }, { label: 'Commodities', pct: 4, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
+    };
+
+    const feeGrossProfit = { all: 120_000, ibkr: 90_000, paper: 12_000 };
+
+    const logo = d => `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
+    const holdingsData = {
+      all: [
+        { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 22 },
+        { name: 'Tesla', ticker: 'TSLA', logo: logo('tesla.com'), weight: 14 },
+        { name: 'Google', ticker: 'GOOG', logo: logo('google.com'), weight: 18 },
+        { name: 'NASDAQ', ticker: 'QQQ', logo: logo('nasdaq.com'), weight: 12 },
+        { name: 'USD/ZAR', ticker: 'FX', logo: logo('oanda.com'), weight: 10 },
+        { name: 'BTC', ticker: 'BTC', logo: logo('binance.com'), weight: 12 },
+      ],
+      ibkr: [
+        { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 26 },
+        { name: 'S&P 500', ticker: 'SPY', logo: logo('spglobal.com'), weight: 18 },
+        { name: 'Brent Fut', ticker: 'BZ', logo: logo('ice.com'), weight: 10 },
+        { name: 'USD/ZAR', ticker: 'FX', logo: logo('oanda.com'), weight: 12 },
+        { name: 'Google', ticker: 'GOOG', logo: logo('google.com'), weight: 18 },
+      ],
+      paper: [
+        { name: 'EUR/USD', ticker: 'FX', logo: logo('oanda.com'), weight: 25 },
+        { name: 'BTC', ticker: 'BTC', logo: logo('binance.com'), weight: 20 },
+        { name: 'ETH', ticker: 'ETH', logo: logo('binance.com'), weight: 15 },
+        { name: 'Gold', ticker: 'XAU', logo: logo('lbma.org.uk'), weight: 18 },
+      ]
+    };
+
+    let currentAcct = 'all';
+    let eqRange = '1Y';
+
+    function renderRating(acct = 'all') {
+      const d = acctData[acct] || acctData.all;
+      document.getElementById('acctBal').textContent = fmtMoney(d.bal);
+      document.getElementById('acctCash').textContent = fmtMoney(d.cash);
+      drawDonut(document.getElementById('ratingGauge'), d.rating);
+      document.getElementById('ratingText').textContent = d.rating >= 85 ? 'Excellent' : (d.rating >= 70 ? 'Very Good' : 'Fair');
+      const chip = document.getElementById('ratingDeltaChip');
+      chip.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(2) + '%';
+      chip.className = 'chip ' + (delta >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+    }
+
+    function renderEq(range = eqRange, acct = currentAcct) {
+      const d = (EQ_DATA[acct] && EQ_DATA[acct][range]) ? EQ_DATA[acct][range] : EQ_DATA.all['1Y'];
+      const base = acctData[acct]?.bal ?? 1_000_000;
+      drawEquity(document.getElementById('eqSvg'), d.arr, d.lbl);
+      const first = d.arr[0], last = d.arr.at(-1);
+      const value = base * last;
+      const deltaPct = ((last / first) - 1) * 100;
+      document.getElementById('eqValue').textContent = fmtMoney(value);
+      const dEl = document.getElementById('eqDelta');
+      dEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%';
+      dEl.className = 'chip ' + (deltaPct >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+      const m = calcMetrics(d.arr);
+      document.getElementById('mRet').textContent = (m.ret >= 0 ? '+' : '') + m.ret.toFixed(2) + '%';
+      document.getElementById('mDD').textContent = m.ddPct.toFixed(2) + '%';
+      document.getElementById('mSharpe').textContent = m.sharpe.toFixed(2);
+      document.getElementById('mWin').textContent = m.wins.toFixed(0) + '%';
+      document.getElementById('mVol').textContent = m.vol.toFixed(1) + '%';
+    }
+
+    function renderAllocation(acct = currentAcct) {
+      const bars = document.getElementById('allocBars');
+      const arr = allocData[acct] || allocData.all;
+      bars.innerHTML = arr.map(a => `
+        <div>
+          <div class="flex items-center justify-between text-sm mb-1">
+            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div>
+            <div class="num">${a.pct}%</div>
+          </div>
+          <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderFees(acct = currentAcct) {
+      const grossProfit = feeGrossProfit[acct] ?? 120_000;
+      const feeModel = {
+        mgmt: { label: 'Management', rate: '1.0% p.a.', pctOfProfit: 0.18 },
+        perf: { label: 'Performance', rate: '15% of profits', pctOfProfit: 0.15 },
+        brok: { label: 'Brokerage', rate: '0.12% notional', pctOfProfit: 0.05 },
+        slip: { label: 'Slippage est.', rate: '—', pctOfProfit: 0.03 },
+      };
+      const amounts = {
+        mgmt: Math.round(grossProfit * feeModel.mgmt.pctOfProfit),
+        perf: Math.round(grossProfit * feeModel.perf.pctOfProfit),
+        brok: Math.round(grossProfit * feeModel.brok.pctOfProfit),
+        slip: Math.round(grossProfit * feeModel.slip.pctOfProfit),
+      };
+      const total = amounts.mgmt + amounts.perf + amounts.brok + amounts.slip;
+      const pct = k => (amounts[k] / total * 100).toFixed(1) + '%';
+      document.getElementById('feeMgmt').style.width = pct('mgmt');
+      document.getElementById('feePerf').style.width = pct('perf');
+      document.getElementById('feeBrok').style.width = pct('brok');
+      document.getElementById('feeSlip').style.width = pct('slip');
+      document.getElementById('feeRows').innerHTML = `
+        <tr><td class="py-2">Management</td><td class="py-2 text-right">${feeModel.mgmt.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.mgmt)}</td></tr>
+        <tr><td class="py-2">Performance</td><td class="py-2 text-right">${feeModel.perf.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.perf)}</td></tr>
+        <tr><td class="py-2">Brokerage</td><td class="py-2 text-right">${feeModel.brok.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.brok)}</td></tr>
+        <tr><td class="py-2">Slippage (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(amounts.slip)}</td></tr>
+        <tr class="font-semibold"><td class="py-2">Total Fees</td><td></td><td class="py-2 text-right num">${fmtMoney(total)}</td></tr>
+      `;
+    }
+
+    function renderHoldings(acct = currentAcct) {
+      const body = document.getElementById('holdingsBody');
+      const bal = acctData[acct]?.bal ?? 1;
+      const cashWeight = Math.max(0, Math.min(100, (acctData[acct]?.cash ?? 0) / bal * 100));
+      const rows = (holdingsData[acct] || holdingsData.all).slice();
+      rows.push({ name: 'Cash', ticker: 'ZAR', logo: 'https://img.icons8.com/?size=48&id=12227&format=png', weight: +cashWeight.toFixed(1) });
+      const totW = rows.reduce((s, r) => s + r.weight, 0);
+      const scale = totW > 100 ? 100 / totW : 1;
+      let sumW = 0, sumV = 0;
+      body.innerHTML = rows.map(r => {
+        const w = +(r.weight * scale).toFixed(1);
+        const val = Math.round(bal * (w / 100));
+        sumW += w; sumV += val;
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-3">
+                <img src="${r.logo}" class="h-6 w-6 rounded" alt="">
+                <div>
+                  <div class="font-medium">${r.name}</div>
+                  <div class="text-xs text-slate-500">${r.ticker}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-5 py-3 text-right num">${w.toFixed(1)}%</td>
+            <td class="px-5 py-3 text-right num">${fmtMoney(val)}</td>
+          </tr>`;
+      }).join('');
+      document.getElementById('holdingsWeightTot').textContent = sumW.toFixed(1) + '%';
+      document.getElementById('holdingsValTot').textContent = fmtMoney(sumV);
+    }
+
+    function renderCalendar(acct = currentAcct) {
+      const grid = document.getElementById('calGrid');
+      const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+      const today = now.getDate();
+      const firstDay = new Date(y, m, 1); const startWeek = firstDay.getDay();
+      const days = new Date(y, m + 1, 0).getDate();
+      document.getElementById('calMonth').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const vol = acctData[acct]?.vol ?? 1.5;
+      const cells = [];
+      for (let i = 0; i < startWeek; i++) cells.push({ empty: true });
+      for (let d = 1; d <= days; d++) {
+        if (d <= today) {
+          const ret = +((Math.random() * 4 - 2) * (vol / 1.8)).toFixed(2);
+          cells.push({ day: d, ret });
+        } else {
+          cells.push({ day: d, future: true });
+        }
+      }
+      grid.innerHTML = cells.map(c => {
+        if (c.empty) return `<div class="cal-cell bg-white"></div>`;
+        if (c.future) return `<div class="cal-cell bg-white opacity-50"><div class="text-[11px] text-slate-400">${c.day}</div></div>`;
+        const a = Math.min(1, Math.abs(c.ret) / 2);
+        const bg = c.ret >= 0 ? `rgba(16,185,129,${0.15 + a * 0.35})` : `rgba(239,68,68,${0.18 + a * 0.35})`;
+        return `
+          <div class="cal-cell" style="background:${bg}">
+            <div class="text-[11px] text-slate-700">${c.day}</div>
+            <div class="text-[11px] ${c.ret >= 0 ? 'text-emerald-700' : 'text-rose-700'} self-end">${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(2)}%</div>
+          </div>`;
+      }).join('');
+
+      const rets = cells.filter(x => x.ret !== undefined).map(x => x.ret / 100);
+      if (rets.length) {
+        const best = Math.max(...rets) * 100;
+        const worst = Math.min(...rets) * 100;
+        const avg = (rets.reduce((a, b) => a + b, 0) / rets.length) * 100;
+        const pos = rets.filter(r => r > 0).length;
+        const cagr = (Math.pow(1 + avg / 100, 252) - 1) * 100;
+        document.getElementById('sumBest').textContent = `${best >= 0 ? '+' : ''}${best.toFixed(2)}%`;
+        document.getElementById('sumWorst').textContent = `${worst.toFixed(2)}%`;
+        document.getElementById('sumAvg').textContent = `${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%`;
+        document.getElementById('sumPos').textContent = `${pos} days`;
+        document.getElementById('sumDays').textContent = `${rets.length}`;
+        document.getElementById('sumCagr').textContent = `${cagr.toFixed(1)}%`;
+      }
+    }
+
+    function equityFromMonthly(returnsPct) { const eq = [1]; returnsPct.forEach(r => eq.push(eq.at(-1) * (1 + r / 100))); return eq; }
+    const months12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const subs = [
+      { name: 'Trend Alpha', provider: 'AlgoForge', change: +1.8, aum: 'R1.2m', series: [10, 12, 11, 13, 12, 15, 14, 16] },
+      { name: 'Momentum FX', provider: 'QuantBee', change: +0.9, aum: 'R820k', series: [8, 8.4, 8.2, 8.6, 8.9, 9.2, 9.6] },
+      { name: 'Grid Delta', provider: 'GridOps', change: -0.6, aum: 'R540k', series: [7, 6.9, 6.7, 6.8, 6.6, 6.7, 6.5] },
+      { name: 'NewsPulse', provider: 'PulseAI', change: +1.2, aum: 'R410k', series: [6, 6.2, 6.4, 6.1, 6.5, 6.7, 6.9] },
+      { name: 'Equity Trend+', provider: 'AlgoForge', change: +0.4, aum: 'R2.0m', series: [9, 9.1, 9.2, 9.3, 9.5, 9.6, 9.8] },
+      { name: 'Carry FX', provider: 'QuantBee', change: +0.3, aum: 'R300k', series: [5, 5.1, 5.2, 5.15, 5.25, 5.3, 5.35] }
+    ];
+    const stratData = {
+      'Trend Alpha': { monthly: [1.2,-0.6,0.8,1.1,2.0,-0.4,1.6,0.9,2.3,0.7,1.1,1.5] },
+      'Momentum FX': { monthly: [-0.3,0.6,0.9,-0.4,0.8,1.2,0.5,0.7,-0.2,0.3,0.9,1.1] },
+      'Grid Delta': { monthly: [0.4,-0.8,0.2,0.1,-0.2,0.3,0.5,-0.1,0.6,0.2,0.1,0.3] },
+      'NewsPulse': { monthly: [0.7,0.8,-0.6,1.0,0.9,-0.3,0.6,1.2,0.5,0.6,0.4,0.9] },
+      'Equity Trend+': { monthly: [0.5,0.7,0.6,0.8,0.9,1.0,0.4,0.6,1.1,0.8,0.9,1.0] },
+      'Carry FX': { monthly: [0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2] }
+    };
+
+    (async function () {
+      await loadMenu();
+      buildMenu('dashboard');
+      document.getElementById('greet').textContent = greetLine();
+
+      document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#eqTabs .tab-btn').forEach(x => x.classList.remove('active'));
+          btn.classList.add('active');
+          eqRange = btn.dataset.range;
+          renderEq(eqRange, currentAcct);
+        });
+      });
+
+      const subsWrap = document.getElementById('subsWrap');
+      subsWrap.innerHTML = subs.map(s => `
+        <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
+          <div class="flex items-center justify-between">
+            <div class="font-medium text-sm truncate">${s.name}</div>
+            <span class="chip ${s.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(1)}%</span>
+          </div>
+          <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div>
+          <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
+        </div>`).join('');
+
+      const stratSel = document.getElementById('stratSel');
+      stratSel.innerHTML = subs.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+      function equityFromMonthly(returnsPct){ const eq=[1]; returnsPct.forEach(r=>eq.push(eq.at(-1)*(1+r/100))); return eq; }
+      function renderStratPerf(name) {
+        const d = stratData[name] || stratData[Object.keys(stratData)[0]];
+        drawBars(document.getElementById('stratChart'), d.monthly, months12);
+        const eq = equityFromMonthly(d.monthly), m = calcMetrics(eq);
+        const totalReturn = ((eq.at(-1) / eq[0] - 1) * 100);
+        const avgMon = d.monthly.reduce((a,b)=>a+b,0)/d.monthly.length;
+        const wins = d.monthly.filter(x=>x>0).length / d.monthly.length * 100;
+        document.getElementById('stratMetrics').innerHTML = `
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Total Return (12M)</div><div class="font-semibold">${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(2)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div class="font-semibold">${m.ddPct.toFixed(2)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div class="font-semibold">${m.sharpe.toFixed(2)}</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div class="font-semibold">${wins.toFixed(0)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div class="font-semibold">${avgMon >= 0 ? '+' : ''}${avgMon.toFixed(2)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div class="font-semibold">${m.vol.toFixed(1)}%</div></div>`;
+        const tip = document.getElementById('stratTip');
+        document.querySelectorAll('#stratChart rect').forEach(r => {
+          r.onmouseenter = (e) => {
+            const i = +e.target.dataset.idx; const v = d.monthly[i];
+            tip.innerHTML = `<div class="font-semibold">${months12[i]}</div><div>${v >= 0 ? '+' : ''}${v.toFixed(2)}%</div>`;
+            tip.style.left = Math.min(820, Math.max(10, e.offsetX + 12)) + 'px'; tip.style.top = '10px'; tip.classList.remove('hidden');
+          };
+          r.onmouseleave = () => tip.classList.add('hidden');
+        });
+      }
+      renderStratPerf(stratSel.value);
+      stratSel.addEventListener('change', e => renderStratPerf(e.target.value));
+      document.querySelectorAll('#subsWrap .sub-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const key = card.getAttribute('data-key');
+          if (stratData[key]) { stratSel.value = key; renderStratPerf(key); }
+        });
+      });
+
+      function renderAll(acct) {
+        currentAcct = acct;
+        renderRating(acct);
+        renderEq(eqRange, acct);
+        renderAllocation(acct);
+        renderFees(acct);
+        renderHoldings(acct);
+        renderCalendar(acct);
+      }
+      renderAll('all');
+      document.getElementById('acctSel').addEventListener('change', (e) => renderAll(e.target.value));
+    })();
+  </script>
+
+</body>
 </html>
