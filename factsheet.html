@@ -34,7 +34,53 @@
 <body>
   <div class="min-h-screen flex">
     <!-- GLOBAL MENU (optional, fails gracefully) -->
-    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+<!-- Mount stays the same -->
+<div id="sidebarMount" data-menu="/partials/menu.html"></div>
+
+<script>
+/* === DROP-IN replacement === */
+async function loadMenu() {
+  const mount = document.getElementById('sidebarMount');
+  if (!mount) return false;
+
+  const candidates = [
+    mount.getAttribute('data-menu'),
+    '/partials/menu.html',
+    './partials/menu.html',
+    '../partials/menu.html'
+  ].filter(Boolean);
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        mount.outerHTML = await res.text();   // inject partial (should contain #navContainer)
+        return true;
+      } else {
+        console.warn('Menu fetch failed:', url, res.status);
+      }
+    } catch (e) {
+      console.warn('Menu fetch error:', url, e);
+    }
+  }
+
+  // Fallback skeleton so buildMenu() can still render links
+  mount.outerHTML = `
+    <aside id="sidebar" class="w-64 border-r bg-white">
+      <div class="p-3 text-xs text-slate-500">Menu failed to load</div>
+      <nav id="navContainer" class="px-2"></nav>
+      <button id="collapseBtn" class="hidden"></button>
+    </aside>`;
+  return false;
+}
+
+// Boot: wait for menu, then build it
+(async () => {
+  const loaded = await loadMenu();       // ensures #navContainer exists one way or another
+  buildMenu('factsheet');                // or 'dashboard' — your active key
+})();
+</script>
+
 
     <!-- MAIN -->
     <main class="flex-1 min-h-screen">
