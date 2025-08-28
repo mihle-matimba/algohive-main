@@ -19,110 +19,30 @@
       --page-bg: #f9fafb;
     }
 
-    html,
-    body {
+    html, body {
       font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--page-bg);
       color: #0f172a
     }
 
-    .card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 1rem;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .04)
-    }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .chip { display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
+    .glass { backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
+    .num { font-variant-numeric: tabular-nums }
+    .tab-btn { border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff }
+    .tab-btn.active { background:var(--olive); border-color:var(--olive); color:#fff }
+    .aside-rail { width:360px }
+    @media (max-width:1024px){ .aside-rail{ width:auto } }
 
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 9999px;
-      padding: .2rem .55rem;
-      font-size: .74rem;
-      font-weight: 600
-    }
-
-    .glass {
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      background: rgba(255, 255, 255, .65);
-      border-bottom: 1px solid rgba(229, 231, 235, .9)
-    }
-
-    .num {
-      font-variant-numeric: tabular-nums
-    }
-
-    .tab-btn {
-      border: 1px solid #e5e7eb;
-      border-radius: .6rem;
-      padding: .35rem .7rem;
-      font-size: .85rem;
-      background: #fff
-    }
-
-    .tab-btn.active {
-      background: var(--olive);
-      border-color: var(--olive);
-      color: #fff
-    }
-
-    .aside-rail {
-      width: 360px
-    }
-
-    @media (max-width:1024px) {
-      .aside-rail {
-        width: auto
-      }
-    }
-
-    /* Equity */
-    .eq-tip {
-      position: absolute;
-      pointer-events: none;
-      background: #111827;
-      color: #fff;
-      font-size: .75rem;
-      border-radius: .5rem;
-      padding: .35rem .5rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, .12)
-    }
-
-    .spark {
-      height: 30px;
-      width: 120px
-    }
+    /* Equity tip */
+    .eq-tip{ position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12) }
+    .spark{ height:30px; width:120px }
 
     /* Calendar grid */
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: .35rem
-    }
-
-    .cal-cell {
-      border: 1px solid #e5e7eb;
-      border-radius: .6rem;
-      height: 58px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: .35rem .4rem
-    }
-
-    .cal-legend span {
-      display: inline-block;
-      width: 14px;
-      height: 10px;
-      border-radius: 3px;
-      border: 1px solid #e5e7eb
-    }
-
-    /* Topbar small & clean */
-    .topbar {
-      height: 52px
-    }
+    .cal-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.35rem }
+    .cal-cell{ border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem }
+    .cal-legend span{ display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb }
+    .topbar{ height:52px }
   </style>
 </head>
 
@@ -137,12 +57,16 @@
       <section class="glass sticky top-0 z-10 topbar">
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
           <div class="text-sm text-slate-600">Dashboard</div>
-          <div class="flex items-center gap-2 w-full">
-            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
+
+          <!-- CHANGED: w-full -> flex-1 so this row grows, allowing the button to hug the far right -->
+          <div class="flex items-center gap-2 flex-1">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white md:ml-4">
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
             </div>
-            <button class="border rounded-lg h-9 px-3 bg-white ml-auto mr-0">
+
+            <!-- ml-auto keeps it flushed to the right edge of the container -->
+            <button class="border rounded-lg h-9 px-3 bg-white ml-auto">
               <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
             </button>
           </div>
@@ -278,10 +202,8 @@
                   <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
                     <div>Monthly returns (last 12)</div>
                     <div class="flex items-center gap-3">
-                      <span class="inline-flex items-center gap-1"><span
-                          class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
-                      <span class="inline-flex items-center gap-1"><span
-                          class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
+                      <span class="inline-flex items-center gap-1"><span class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
+                      <span class="inline-flex items-center gap-1"><span class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
                     </div>
                   </div>
                 </div>
@@ -539,14 +461,12 @@
       txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
       txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt);
     }
-    /* tiny spark for strategy tiles */
     function sparkSvg(series, color = '#0f172a') {
       const w = 120, h = 30, pad = 3, min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1;
       const step = (w - 2 * pad) / (series.length - 1);
       let d = ''; series.forEach((v, i) => { const x = pad + i * step; const y = h - pad - ((v - min) / rng) * (h - 2 * pad); d += (i ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2) + ' '; });
       return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
     }
-    /* Bars for strategy monthly returns */
     function drawBars(svgEl, values, labels) {
       const W = 900, H = 260, padL = 42, padB = 26, padT = 16, padR = 12;
       svgEl.innerHTML = '';
@@ -588,7 +508,7 @@
       ibkr: { bal: 1_240_000, cash: 120_000, rating: 78, vol: 1.6 },
       paper: { bal: 250_000, cash: 68_000, rating: 65, vol: 1.0 },
     };
-    const delta = +5.48; // rating delta YOY
+    const delta = +5.48;
 
     /* Equity curves (index series 1.0 = start) */
     const EQ_DATA = {
@@ -597,38 +517,35 @@
         "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.07, 1.12] },
         "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.04, 1.02, 1.09, 1.13, 1.18] },
         "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.03, 1.02, 1.08, 1.12, 1.15, 1.19, 1.22, 1.27] },
-        "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.03, 1.01, 1.07, 1.10, 1.12, 1.18, 1.21, 1.25, 1.32, 1.38, 1.43] },
-        "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.26, 1.58, 1.90] }
+        "1Y": { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr: [1.00, 1.03, 1.01, 1.07, 1.10, 1.12, 1.18, 1.21, 1.25, 1.32, 1.38, 1.43] },
+        "3Y": { lbl: ['Y1','Y2','Y3','Y3+'], arr: [1.00, 1.26, 1.58, 1.90] }
       },
       ibkr: {
-        "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.02, 0.99, 1.03, 1.05] },
-        "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.05, 1.08] },
-        "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.03, 1.01, 1.06, 1.09, 1.12] },
-        "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.02, 1.01, 1.05, 1.08, 1.10, 1.13, 1.15, 1.18] },
-        "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.02, 1.00, 1.05, 1.08, 1.10, 1.14, 1.16, 1.19, 1.23, 1.27, 1.31] },
-        "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.18, 1.38, 1.56] }
+        "1M": { lbl: ['W1','W2','W3','W4','W5'], arr: [1.00, 1.02, 0.99, 1.03, 1.05] },
+        "3M": { lbl: ['M1','M2','M3'], arr: [1.00, 1.05, 1.08] },
+        "6M": { lbl: ['M1','M2','M3','M4','M5','M6'], arr: [1.00, 1.03, 1.01, 1.06, 1.09, 1.12] },
+        "YTD": { lbl: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'], arr: [1.00, 1.02, 1.01, 1.05, 1.08, 1.10, 1.13, 1.15, 1.18] },
+        "1Y": { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr: [1.00, 1.02, 1.00, 1.05, 1.08, 1.10, 1.14, 1.16, 1.19, 1.23, 1.27, 1.31] },
+        "3Y": { lbl: ['Y1','Y2','Y3','Y3+'], arr: [1.00, 1.18, 1.38, 1.56] }
       },
       paper: {
-        "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.01, 1.00, 1.02, 1.03] },
-        "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.03, 1.05] },
-        "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.02, 1.01, 1.03, 1.05, 1.06] },
-        "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07] },
-        "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10] },
-        "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.10, 1.18, 1.25] }
+        "1M": { lbl: ['W1','W2','W3','W4','W5'], arr: [1.00, 1.01, 1.00, 1.02, 1.03] },
+        "3M": { lbl: ['M1','M2','M3'], arr: [1.00, 1.03, 1.05] },
+        "6M": { lbl: ['M1','M2','M3','M4','M5','M6'], arr: [1.00, 1.02, 1.01, 1.03, 1.05, 1.06] },
+        "YTD": { lbl: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07] },
+        "1Y": { lbl: ['J','F','M','A','M','J','J','A','S','O','N','D'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10] },
+        "3Y": { lbl: ['Y1','Y2','Y3','Y3+'], arr: [1.00, 1.10, 1.18, 1.25] }
       }
     };
 
-    /* Allocation per account */
     const allocData = {
       all: [{ label: 'Equities', pct: 48, color: '#0f172a' }, { label: 'FX', pct: 18, color: '#10b981' }, { label: 'Crypto', pct: 12, color: '#f59e0b' }, { label: 'Futures', pct: 14, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 2, color: '#94a3b8' }],
       ibkr: [{ label: 'Equities', pct: 54, color: '#0f172a' }, { label: 'FX', pct: 12, color: '#10b981' }, { label: 'Crypto', pct: 6, color: '#f59e0b' }, { label: 'Futures', pct: 16, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
       paper: [{ label: 'Equities', pct: 30, color: '#0f172a' }, { label: 'FX', pct: 30, color: '#10b981' }, { label: 'Crypto', pct: 20, color: '#f59e0b' }, { label: 'Futures', pct: 10, color: '#6366f1' }, { label: 'Commodities', pct: 4, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
     };
 
-    /* Fee “gross profits” per account (mock) */
     const feeGrossProfit = { all: 120_000, ibkr: 90_000, paper: 12_000 };
 
-    /* Holdings (weights sum close to 100 without cash; cash auto-added from account) */
     const logo = d => `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
     const holdingsData = {
       all: [
@@ -654,11 +571,9 @@
       ]
     };
 
-    /* ============ STATE ============ */
     let currentAcct = 'all';
     let eqRange = '1Y';
 
-    /* ============ RENDERERS (account-aware) ============ */
     function renderRating(acct = 'all') {
       const d = acctData[acct] || acctData.all;
       document.getElementById('acctBal').textContent = fmtMoney(d.bal);
@@ -674,7 +589,6 @@
       const d = (EQ_DATA[acct] && EQ_DATA[acct][range]) ? EQ_DATA[acct][range] : EQ_DATA.all['1Y'];
       const base = acctData[acct]?.bal ?? 1_000_000;
       drawEquity(document.getElementById('eqSvg'), d.arr, d.lbl);
-
       const first = d.arr[0], last = d.arr.at(-1);
       const value = base * last;
       const deltaPct = ((last / first) - 1) * 100;
@@ -682,7 +596,6 @@
       const dEl = document.getElementById('eqDelta');
       dEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%';
       dEl.className = 'chip ' + (deltaPct >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-
       const m = calcMetrics(d.arr);
       document.getElementById('mRet').textContent = (m.ret >= 0 ? '+' : '') + m.ret.toFixed(2) + '%';
       document.getElementById('mDD').textContent = m.ddPct.toFixed(2) + '%';
@@ -695,16 +608,16 @@
       const bars = document.getElementById('allocBars');
       const arr = allocData[acct] || allocData.all;
       bars.innerHTML = arr.map(a => `
-    <div>
-      <div class="flex items-center justify-between text-sm mb-1">
-        <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div>
-        <div class="num">${a.pct}%</div>
-      </div>
-      <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
-        <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div>
-      </div>
-    </div>
-  `).join('');
+        <div>
+          <div class="flex items-center justify-between text-sm mb-1">
+            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div>
+            <div class="num">${a.pct}%</div>
+          </div>
+          <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div>
+          </div>
+        </div>
+      `).join('');
     }
 
     function renderFees(acct = currentAcct) {
@@ -728,12 +641,12 @@
       document.getElementById('feeBrok').style.width = pct('brok');
       document.getElementById('feeSlip').style.width = pct('slip');
       document.getElementById('feeRows').innerHTML = `
-    <tr><td class="py-2">Management</td><td class="py-2 text-right">${feeModel.mgmt.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.mgmt)}</td></tr>
-    <tr><td class="py-2">Performance</td><td class="py-2 text-right">${feeModel.perf.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.perf)}</td></tr>
-    <tr><td class="py-2">Brokerage</td><td class="py-2 text-right">${feeModel.brok.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.brok)}</td></tr>
-    <tr><td class="py-2">Slippage (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(amounts.slip)}</td></tr>
-    <tr class="font-semibold"><td class="py-2">Total Fees</td><td></td><td class="py-2 text-right num">${fmtMoney(total)}</td></tr>
-  `;
+        <tr><td class="py-2">Management</td><td class="py-2 text-right">${feeModel.mgmt.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.mgmt)}</td></tr>
+        <tr><td class="py-2">Performance</td><td class="py-2 text-right">${feeModel.perf.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.perf)}</td></tr>
+        <tr><td class="py-2">Brokerage</td><td class="py-2 text-right">${feeModel.brok.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.brok)}</td></tr>
+        <tr><td class="py-2">Slippage (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(amounts.slip)}</td></tr>
+        <tr class="font-semibold"><td class="py-2">Total Fees</td><td></td><td class="py-2 text-right num">${fmtMoney(total)}</td></tr>
+      `;
     }
 
     function renderHoldings(acct = currentAcct) {
@@ -741,10 +654,7 @@
       const bal = acctData[acct]?.bal ?? 1;
       const cashWeight = Math.max(0, Math.min(100, (acctData[acct]?.cash ?? 0) / bal * 100));
       const rows = (holdingsData[acct] || holdingsData.all).slice();
-      // ensure a Cash row (override/append)
       rows.push({ name: 'Cash', ticker: 'ZAR', logo: 'https://img.icons8.com/?size=48&id=12227&format=png', weight: +cashWeight.toFixed(1) });
-
-      // normalize (cap total at ~100)
       const totW = rows.reduce((s, r) => s + r.weight, 0);
       const scale = totW > 100 ? 100 / totW : 1;
       let sumW = 0, sumV = 0;
@@ -753,39 +663,37 @@
         const val = Math.round(bal * (w / 100));
         sumW += w; sumV += val;
         return `
-      <tr class="hover:bg-slate-50">
-        <td class="px-5 py-3">
-          <div class="flex items-center gap-3">
-            <img src="${r.logo}" class="h-6 w-6 rounded" alt="">
-            <div>
-              <div class="font-medium">${r.name}</div>
-              <div class="text-xs text-slate-500">${r.ticker}</div>
-            </div>
-          </div>
-        </td>
-        <td class="px-5 py-3 text-right num">${w.toFixed(1)}%</td>
-        <td class="px-5 py-3 text-right num">${fmtMoney(val)}</td>
-      </tr>`;
+          <tr class="hover:bg-slate-50">
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-3">
+                <img src="${r.logo}" class="h-6 w-6 rounded" alt="">
+                <div>
+                  <div class="font-medium">${r.name}</div>
+                  <div class="text-xs text-slate-500">${r.ticker}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-5 py-3 text-right num">${w.toFixed(1)}%</td>
+            <td class="px-5 py-3 text-right num">${fmtMoney(val)}</td>
+          </tr>`;
       }).join('');
       document.getElementById('holdingsWeightTot').textContent = sumW.toFixed(1) + '%';
       document.getElementById('holdingsValTot').textContent = fmtMoney(sumV);
     }
 
-    /* Calendar (past days filled, future days empty) + summary */
     function renderCalendar(acct = currentAcct) {
       const grid = document.getElementById('calGrid');
       const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
       const today = now.getDate();
-      const firstDay = new Date(y, m, 1); const startWeek = firstDay.getDay(); // 0..6
+      const firstDay = new Date(y, m, 1); const startWeek = firstDay.getDay();
       const days = new Date(y, m + 1, 0).getDate();
       document.getElementById('calMonth').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-      const vol = acctData[acct]?.vol ?? 1.5; // scales the -2..+2 range loosely
+      const vol = acctData[acct]?.vol ?? 1.5;
       const cells = [];
       for (let i = 0; i < startWeek; i++) cells.push({ empty: true });
       for (let d = 1; d <= days; d++) {
         if (d <= today) {
-          const ret = +((Math.random() * 4 - 2) * (vol / 1.8)).toFixed(2); // approx +/- 2% scaled
+          const ret = +((Math.random() * 4 - 2) * (vol / 1.8)).toFixed(2);
           cells.push({ day: d, ret });
         } else {
           cells.push({ day: d, future: true });
@@ -797,13 +705,12 @@
         const a = Math.min(1, Math.abs(c.ret) / 2);
         const bg = c.ret >= 0 ? `rgba(16,185,129,${0.15 + a * 0.35})` : `rgba(239,68,68,${0.18 + a * 0.35})`;
         return `
-      <div class="cal-cell" style="background:${bg}">
-        <div class="text-[11px] text-slate-700">${c.day}</div>
-        <div class="text-[11px] ${c.ret >= 0 ? 'text-emerald-700' : 'text-rose-700'} self-end">${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(2)}%</div>
-      </div>`;
+          <div class="cal-cell" style="background:${bg}">
+            <div class="text-[11px] text-slate-700">${c.day}</div>
+            <div class="text-[11px] ${c.ret >= 0 ? 'text-emerald-700' : 'text-rose-700'} self-end">${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(2)}%</div>
+          </div>`;
       }).join('');
 
-      // Summary from realized days only
       const rets = cells.filter(x => x.ret !== undefined).map(x => x.ret / 100);
       if (rets.length) {
         const best = Math.max(...rets) * 100;
@@ -820,31 +727,30 @@
       }
     }
 
-    /* Strategy section (unchanged except helpers used above) */
     function equityFromMonthly(returnsPct) { const eq = [1]; returnsPct.forEach(r => eq.push(eq.at(-1) * (1 + r / 100))); return eq; }
-    const months12 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const subs = [{ name: 'Trend Alpha', provider: 'AlgoForge', change: +1.8, aum: 'R1.2m', series: [10, 12, 11, 13, 12, 15, 14, 16] },
-    { name: 'Momentum FX', provider: 'QuantBee', change: +0.9, aum: 'R820k', series: [8, 8.4, 8.2, 8.6, 8.9, 9.2, 9.6] },
-    { name: 'Grid Delta', provider: 'GridOps', change: -0.6, aum: 'R540k', series: [7, 6.9, 6.7, 6.8, 6.6, 6.7, 6.5] },
-    { name: 'NewsPulse', provider: 'PulseAI', change: +1.2, aum: 'R410k', series: [6, 6.2, 6.4, 6.1, 6.5, 6.7, 6.9] },
-    { name: 'Equity Trend+', provider: 'AlgoForge', change: +0.4, aum: 'R2.0m', series: [9, 9.1, 9.2, 9.3, 9.5, 9.6, 9.8] },
-    { name: 'Carry FX', provider: 'QuantBee', change: +0.3, aum: 'R300k', series: [5, 5.1, 5.2, 5.15, 5.25, 5.3, 5.35] }];
+    const months12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const subs = [
+      { name: 'Trend Alpha', provider: 'AlgoForge', change: +1.8, aum: 'R1.2m', series: [10, 12, 11, 13, 12, 15, 14, 16] },
+      { name: 'Momentum FX', provider: 'QuantBee', change: +0.9, aum: 'R820k', series: [8, 8.4, 8.2, 8.6, 8.9, 9.2, 9.6] },
+      { name: 'Grid Delta', provider: 'GridOps', change: -0.6, aum: 'R540k', series: [7, 6.9, 6.7, 6.8, 6.6, 6.7, 6.5] },
+      { name: 'NewsPulse', provider: 'PulseAI', change: +1.2, aum: 'R410k', series: [6, 6.2, 6.4, 6.1, 6.5, 6.7, 6.9] },
+      { name: 'Equity Trend+', provider: 'AlgoForge', change: +0.4, aum: 'R2.0m', series: [9, 9.1, 9.2, 9.3, 9.5, 9.6, 9.8] },
+      { name: 'Carry FX', provider: 'QuantBee', change: +0.3, aum: 'R300k', series: [5, 5.1, 5.2, 5.15, 5.25, 5.3, 5.35] }
+    ];
     const stratData = {
-      'Trend Alpha': { monthly: [1.2, -0.6, 0.8, 1.1, 2.0, -0.4, 1.6, 0.9, 2.3, 0.7, 1.1, 1.5] },
-      'Momentum FX': { monthly: [-0.3, 0.6, 0.9, -0.4, 0.8, 1.2, 0.5, 0.7, -0.2, 0.3, 0.9, 1.1] },
-      'Grid Delta': { monthly: [0.4, -0.8, 0.2, 0.1, -0.2, 0.3, 0.5, -0.1, 0.6, 0.2, 0.1, 0.3] },
-      'NewsPulse': { monthly: [0.7, 0.8, -0.6, 1.0, 0.9, -0.3, 0.6, 1.2, 0.5, 0.6, 0.4, 0.9] },
-      'Equity Trend+': { monthly: [0.5, 0.7, 0.6, 0.8, 0.9, 1.0, 0.4, 0.6, 1.1, 0.8, 0.9, 1.0] },
-      'Carry FX': { monthly: [0.2, 0.3, 0.1, 0.2, 0.4, 0.2, 0.3, 0.1, 0.4, 0.2, 0.3, 0.2] },
+      'Trend Alpha': { monthly: [1.2,-0.6,0.8,1.1,2.0,-0.4,1.6,0.9,2.3,0.7,1.1,1.5] },
+      'Momentum FX': { monthly: [-0.3,0.6,0.9,-0.4,0.8,1.2,0.5,0.7,-0.2,0.3,0.9,1.1] },
+      'Grid Delta': { monthly: [0.4,-0.8,0.2,0.1,-0.2,0.3,0.5,-0.1,0.6,0.2,0.1,0.3] },
+      'NewsPulse': { monthly: [0.7,0.8,-0.6,1.0,0.9,-0.3,0.6,1.2,0.5,0.6,0.4,0.9] },
+      'Equity Trend+': { monthly: [0.5,0.7,0.6,0.8,0.9,1.0,0.4,0.6,1.1,0.8,0.9,1.0] },
+      'Carry FX': { monthly: [0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2] }
     };
 
-    /* =================== BOOT =================== */
     (async function () {
       await loadMenu();
       buildMenu('dashboard');
       document.getElementById('greet').textContent = greetLine();
 
-      // Equity tabs -> remember range and redraw for current account
       document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('#eqTabs .tab-btn').forEach(x => x.classList.remove('active'));
@@ -854,32 +760,36 @@
         });
       });
 
-      // Strategy tiles + dropdown
       const subsWrap = document.getElementById('subsWrap');
       subsWrap.innerHTML = subs.map(s => `
-    <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
-      <div class="flex items-center justify-between">
-        <div class="font-medium text-sm truncate">${s.name}</div>
-        <span class="chip ${s.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(1)}%</span>
-      </div>
-      <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div>
-      <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
-    </div>`).join('');
+        <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
+          <div class="flex items-center justify-between">
+            <div class="font-medium text-sm truncate">${s.name}</div>
+            <span class="chip ${s.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(1)}%</span>
+          </div>
+          <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div>
+          <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
+        </div>`).join('');
+
       const stratSel = document.getElementById('stratSel');
       stratSel.innerHTML = subs.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+      function equityFromMonthly(returnsPct){ const eq=[1]; returnsPct.forEach(r=>eq.push(eq.at(-1)*(1+r/100))); return eq; }
       function renderStratPerf(name) {
         const d = stratData[name] || stratData[Object.keys(stratData)[0]];
         drawBars(document.getElementById('stratChart'), d.monthly, months12);
         const eq = equityFromMonthly(d.monthly), m = calcMetrics(eq);
-        const totalReturn = ((eq.at(-1) / eq[0] - 1) * 100); const avgMon = d.monthly.reduce((a, b) => a + b, 0) / d.monthly.length; const wins = d.monthly.filter(x => x > 0).length / d.monthly.length * 100;
+        const totalReturn = ((eq.at(-1) / eq[0] - 1) * 100);
+        const avgMon = d.monthly.reduce((a,b)=>a+b,0)/d.monthly.length;
+        const wins = d.monthly.filter(x=>x>0).length / d.monthly.length * 100;
         document.getElementById('stratMetrics').innerHTML = `
-      <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Total Return (12M)</div><div class="font-semibold">${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(2)}%</div></div>
-      <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div class="font-semibold">${m.ddPct.toFixed(2)}%</div></div>
-      <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div class="font-semibold">${m.sharpe.toFixed(2)}</div></div>
-      <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div class="font-semibold">${wins.toFixed(0)}%</div></div>
-      <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div class="font-semibold">${avgMon >= 0 ? '+' : ''}${avgMon.toFixed(2)}%</div></div>
-      <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div class="font-semibold">${m.vol.toFixed(1)}%</div></div>`;
-        const tip = document.getElementById('stratTip'); document.querySelectorAll('#stratChart rect').forEach(r => {
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Total Return (12M)</div><div class="font-semibold">${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(2)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div class="font-semibold">${m.ddPct.toFixed(2)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div class="font-semibold">${m.sharpe.toFixed(2)}</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div class="font-semibold">${wins.toFixed(0)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div class="font-semibold">${avgMon >= 0 ? '+' : ''}${avgMon.toFixed(2)}%</div></div>
+          <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div class="font-semibold">${m.vol.toFixed(1)}%</div></div>`;
+        const tip = document.getElementById('stratTip');
+        document.querySelectorAll('#stratChart rect').forEach(r => {
           r.onmouseenter = (e) => {
             const i = +e.target.dataset.idx; const v = d.monthly[i];
             tip.innerHTML = `<div class="font-semibold">${months12[i]}</div><div>${v >= 0 ? '+' : ''}${v.toFixed(2)}%</div>`;
@@ -891,10 +801,12 @@
       renderStratPerf(stratSel.value);
       stratSel.addEventListener('change', e => renderStratPerf(e.target.value));
       document.querySelectorAll('#subsWrap .sub-card').forEach(card => {
-        card.addEventListener('click', () => { const key = card.getAttribute('data-key'); if (stratData[key]) { stratSel.value = key; renderStratPerf(key); } });
+        card.addEventListener('click', () => {
+          const key = card.getAttribute('data-key');
+          if (stratData[key]) { stratSel.value = key; renderStratPerf(key); }
+        });
       });
 
-      // Account dropdown drives ALL renders
       function renderAll(acct) {
         currentAcct = acct;
         renderRating(acct);
@@ -904,15 +816,10 @@
         renderHoldings(acct);
         renderCalendar(acct);
       }
-
-      // Initial render
       renderAll('all');
-
-      // Account change
       document.getElementById('acctSel').addEventListener('change', (e) => renderAll(e.target.value));
     })();
   </script>
 
 </body>
-
 </html>
