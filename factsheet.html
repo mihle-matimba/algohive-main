@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Strategy Factsheet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
+    html,body{ font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page-bg); color:#0f172a }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
+    .glass{ backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
+    .num{ font-variant-numeric: tabular-nums }
+    .tab-btn{ border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff }
+    .tab-btn.active{ background:var(--olive); border-color:var(--olive); color:#fff }
+    .topbar{ height:52px }
+    /* Tooltip */
+    .tip{ position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12) }
+    /* Heatmap table */
+    .hm td{ border:1px solid #e5e7eb; font-size:.78rem; text-align:right; padding:.3rem .4rem }
+    .hm th{ border:1px solid #e5e7eb; font-size:.72rem; padding:.3rem .4rem; background:#f8fafc; text-align:center }
+    .hm .y{ text-align:left; font-weight:600 }
+    /* Print */
+    @media print{
+      .no-print{ display:none !important }
+      .print-block{ break-inside: avoid }
+      body{ background:#fff }
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex">
+    <!-- GLOBAL MENU (optional, fails gracefully) -->
+    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+
+    <!-- MAIN -->
+    <main class="flex-1 min-h-screen">
+      <!-- Topbar -->
+      <section class="glass sticky top-0 z-10 topbar no-print">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
+          <a href="/dashboard.html" class="text-sm text-slate-600 hover:underline">Dashboard</a>
+          <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+          <div class="text-sm text-slate-900 font-medium">Factsheet</div>
+          <div class="flex items-center gap-2 w-full">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
+              <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
+              <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
+            </div>
+            <button id="btnPrint" class="border rounded-lg h-9 px-3 bg-white ml-auto mr-0"><i class="fa-solid fa-file-arrow-down mr-2"></i>Export PDF</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Page container (same width as header) -->
+      <div class="max-w-7xl mx-auto px-6">
+        <!-- Header / Selector -->
+        <section class="pt-6">
+          <div class="flex flex-wrap items-center gap-4 justify-between">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span class="uppercase tracking-wider">Strategy Factsheet</span>
+                <span class="hidden sm:inline">•</span>
+                <span id="fsUpdated" class="hidden sm:inline"></span>
+              </div>
+              <h1 id="fsTitle" class="text-[28px] leading-tight font-semibold truncate">—</h1>
+              <div class="flex items-center gap-2 mt-1 text-sm text-slate-600">
+                <span id="fsProvider">—</span>
+                <span>•</span>
+                <span id="fsSince">Live since —</span>
+                <span>•</span>
+                <span id="fsCurrency">—</span>
+                <span class="chip bg-amber-50 text-amber-700" id="fsRisk">Risk —</span>
+                <span class="chip bg-emerald-50 text-emerald-700" id="fsAum">AUM —</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 no-print">
+              <select id="strategySel" class="border rounded-lg text-sm px-2 py-1"></select>
+              <button id="btnShare" class="border rounded-lg px-3 py-1.5 text-sm bg-white"><i class="fa-solid fa-link mr-2"></i>Copy Link</button>
+              <a href="/open-strategies.html" class="rounded-lg px-3 py-1.5 text-sm bg-[var(--olive)] text-white hover:opacity-95"><i class="fa-solid fa-plus mr-2"></i>Allocate</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Content Grid -->
+        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT MAIN -->
+          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+            <!-- Equity + Key Metrics -->
+            <div class="card p-5 print-block">
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-sm text-slate-600">Equity Curve</div>
+                  <div class="flex items-center gap-2">
+                    <div id="eqValue" class="text-2xl font-semibold num">—</div>
+                    <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  </div>
+                </div>
+                <div class="flex gap-2 no-print" id="eqTabs">
+                  <button class="tab-btn active" data-range="1Y">1Y</button>
+                  <button class="tab-btn" data-range="3Y">3Y</button>
+                  <button class="tab-btn" data-range="ALL">All</button>
+                </div>
+              </div>
+              <div id="eqMetrics" class="mb-4 grid grid-cols-2 sm:grid-cols-6 gap-3 text-sm">
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">CAGR</div><div id="mCagr" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div id="mVol" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div id="mSharpe" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div id="mDD" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div id="mWin" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div id="mAvg" class="font-semibold">—</div></div>
+              </div>
+              <div class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
+                <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+                <div id="eqTip" class="tip hidden"></div>
+              </div>
+            </div>
+
+            <!-- Monthly Returns Heatmap -->
+            <div class="card p-5 print-block">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Monthly Returns (by Year)</div>
+                <div class="text-xs text-slate-500">% net of model costs (ex fees & taxes)</div>
+              </div>
+              <div class="overflow-x-auto">
+                <table id="heatmap" class="hm w-full bg-white rounded-lg"></table>
+              </div>
+            </div>
+
+            <!-- Drawdown & Rolling Sharpe -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-block">
+              <div class="card p-5">
+                <div class="font-semibold mb-2">Drawdown (from peak)</div>
+                <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
+                  <svg id="ddSvg" viewBox="0 0 900 220" class="w-full h-full"></svg>
+                </div>
+              </div>
+              <div class="card p-5">
+                <div class="font-semibold mb-2">Rolling 12M Sharpe (sim.)</div>
+                <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
+                  <svg id="rollSvg" viewBox="0 0 900 220" class="w-full h-full"></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes / Disclaimer -->
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Important Information</div>
+              <p id="fsDisclaimer" class="text-sm text-slate-600 leading-relaxed"></p>
+            </div>
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
+            <!-- Strategy Info -->
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Strategy Overview</div>
+              <p id="fsDesc" class="text-sm text-slate-700">—</p>
+              <div class="grid grid-cols-2 gap-3 text-sm mt-3">
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Style</div><div id="fsStyle" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Universe</div><div id="fsUniverse" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Holding</div><div id="fsHold" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trades / Month</div><div id="fsTrades" class="font-semibold">—</div></div>
+              </div>
+            </div>
+
+            <!-- Allocation -->
+            <div class="card">
+              <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
+              <div id="allocBars" class="p-5 space-y-4"></div>
+            </div>
+
+            <!-- Fees -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Fees</div>
+              <div class="mb-3">
+                <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
+                  <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
+                  <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">Relative to estimated annual gross profit</div>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="text-slate-500">
+                  <tr>
+                    <th class="text-left py-2">Type</th>
+                    <th class="text-right py-2">Rate</th>
+                  </tr>
+                </thead>
+                <tbody id="feeRows" class="divide-y"></tbody>
+              </table>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ===== MENU PARTIAL (optional) ===== */
+    async function loadMenu(){
+      const mount=document.getElementById('sidebarMount'); if(!mount) return;
+      try{ const url=(mount.getAttribute('data-menu')||'/partials/menu.html').trim(); const res=await fetch(url,{cache:'no-store'}); if(res.ok){ mount.outerHTML=await res.text(); } }catch(e){}
+    }
+
+    /* ===== UTIL ===== */
+    const fmtMoney = (v,c='ZAR')=> new Intl.NumberFormat('en-ZA',{style:'currency',currency:c,maximumFractionDigits:0}).format(v);
+    const fmtPct   = (x,dp=2)=> (x>=0?'+':'')+x.toFixed(dp)+'%';
+    const lastUpdated = ()=> new Date().toLocaleString();
+
+    /* Charts */
+    function drawLine(svgEl, series, labels, {minY=null,maxY=null, padL=34,padR=12,padT=16,padB=26, color='#0f172a'}={}){
+      const W=svgEl.viewBox.baseVal.width||900, H=svgEl.viewBox.baseVal.height||320;
+      svgEl.innerHTML='';
+      for(let i=0;i<4;i++){ const y=padT+i*(H-padT-padB)/3; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',padL);ln.setAttribute('x2',W-padR);ln.setAttribute('y1',y);ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
+      const mn = minY??Math.min(...series), mx = maxY??Math.max(...series), rng=(mx-mn)||1; const step=(W-padL-padR)/(series.length-1);
+      let d=''; series.forEach((v,i)=>{ const x=padL+i*step; const y= padT + (mx-v)*((H-padT-padB)/rng); d += (i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)+' '; });
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d.trim()); path.setAttribute('fill','none'); path.setAttribute('stroke',color); path.setAttribute('stroke-width','2.4'); svgEl.appendChild(path);
+      if(labels){ const g=document.createElementNS('http://www.w3.org/2000/svg','g'); const n=labels.length; const stepL=(W-padL-padR)/(n-1); labels.forEach((lb,i)=>{ const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g); }
+    }
+
+    function drawArea(svgEl, series, labels){
+      const W=svgEl.viewBox.baseVal.width||900, H=svgEl.viewBox.baseVal.height||320, pad=34;
+      svgEl.innerHTML='';
+      for(let i=0;i<5;i++){ const y=pad+i*(H-2*pad)/4; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',pad); ln.setAttribute('x2',W-pad); ln.setAttribute('y1',y); ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
+      const min=Math.min(...series), max=Math.max(...series), rng=(max-min)||1; const step=(W-2*pad)/(series.length-1); const X=i=> pad+i*step, Y=v=> H-pad-((v-min)/rng)*(H-2*pad);
+      const defs=document.createElementNS('http://www.w3.org/2000/svg','defs'); const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient'); grad.setAttribute('id','eqGrad'); grad.setAttribute('x1','0'); grad.setAttribute('y1','0'); grad.setAttribute('x2','0'); grad.setAttribute('y2','1'); const s1=document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#556B2F'); s1.setAttribute('stop-opacity','.28'); const s2=document.createElementNS('http://www.w3.org/2000/svg','stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#111827'); s2.setAttribute('stop-opacity','0.02'); grad.append(s1,s2); defs.appendChild(grad); svgEl.appendChild(defs);
+      let dLine=''; series.forEach((v,i)=> dLine+=`${i?'L':'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `);
+      const dArea=dLine + `L${X(series.length-1).toFixed(2)},${H-pad} L${X(0).toFixed(2)},${H-pad} Z`;
+      const area=document.createElementNS('http://www.w3.org/2000/svg','path'); area.setAttribute('d',dArea.trim()); area.setAttribute('fill','url(#eqGrad)'); svgEl.appendChild(area);
+      const line=document.createElementNS('http://www.w3.org/2000/svg','path'); line.setAttribute('d',dLine.trim()); line.setAttribute('fill','none'); line.setAttribute('stroke','#0f172a'); line.setAttribute('stroke-width','2.75'); svgEl.appendChild(line);
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle'); dot.setAttribute('cx',X(series.length-1)); dot.setAttribute('cy',Y(series.at(-1))); dot.setAttribute('r','4.2'); dot.setAttribute('fill','#0f172a'); svgEl.appendChild(dot);
+      if(labels){ const gL=document.createElementNS('http://www.w3.org/2000/svg','g'); const stepL=(W-2*pad)/(labels.length-1); labels.forEach((lb,i)=>{ const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', pad + i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); gL.appendChild(t); }); svgEl.appendChild(gL); }
+    }
+
+    /* Metrics */
+    function equityFromMonthly(pcts){ const eq=[1]; pcts.forEach(r=> eq.push(eq.at(-1)*(1+r/100))); return eq; }
+    function calcMetricsFromMonthly(pcts){
+      const eq=equityFromMonthly(pcts), first=eq[0], last=eq.at(-1); const total=(last/first-1);
+      // annualize (monthly compounding)
+      const years=pcts.length/12; const cagr = Math.pow(1+total, 1/Math.max(years,1e-6)) - 1;
+      const avg=pcts.reduce((a,b)=>a+b,0)/pcts.length/100; const sdM = Math.sqrt(pcts.reduce((a,b)=> a+Math.pow(b/100-avg,2),0)/pcts.length) || 1e-6; const volA= sdM * Math.sqrt(12);
+      // sharpe (rf=0)
+      const sharpe = avg / sdM * Math.sqrt(12);
+      // drawdown
+      let peak=eq[0], maxDD=0; const dds=eq.map(v=>{ peak=Math.max(peak,v); const dd=v/peak-1; maxDD=Math.min(maxDD,dd); return dd; });
+      const wins = pcts.filter(x=>x>0).length / pcts.length;
+      const avgM = pcts.reduce((a,b)=>a+b,0)/pcts.length;
+      const best = Math.max(...pcts), worst=Math.min(...pcts);
+      return { eq, dds, cagr, volA, sharpe, maxDD:Math.abs(maxDD), wins, avgM, best, worst };
+    }
+
+    /* Heatmap builder (expects map {YYYY:{1:%,...}}) */
+    function buildHeatmap(el, yearly){
+      const years = Object.keys(yearly).sort((a,b)=> b-a); // desc
+      const head = ['<tr><th>Year</th>', ...['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m=>`<th>${m}</th>`), '<th>YTD</th></tr>'].join('');
+      function bg(v){ if(v===null||v===undefined) return ''; const a=Math.min(1, Math.abs(v)/6); return `style="background:${v>=0?`rgba(16,185,129,${0.12+a*0.35})`:`rgba(239,68,68,${0.12+a*0.35})`}"`; }
+      const rows = years.map(y=>{
+        let ytd=0, have=0;
+        const cells = Array.from({length:12}, (_,i)=>{
+          const v = yearly[y][i+1]; if(v!==undefined && v!==null){ ytd+=v; have++; }
+          return `<td ${bg(v)}>${v!==undefined && v!==null ? (v>=0?'+':'')+v.toFixed(1)+'%' : ''}</td>`;
+        }).join('');
+        return `<tr><td class="y">${y}</td>${cells}<td class="font-semibold ${ytd>=0?'text-emerald-700':'text-rose-700'}">${(ytd>=0?'+':'')+ytd.toFixed(1)}%</td></tr>`;
+      }).join('');
+      el.innerHTML = `<thead>${head}</thead><tbody>${rows}</tbody>`;
+    }
+
+    /* Allocation bars */
+    function renderAlloc(barsEl, arr){
+      barsEl.innerHTML = (arr||[]).map(a=>`
+        <div>
+          <div class="flex items-center justify-between text-sm mb-1">
+            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div>
+            <div class="num">${a.pct}%</div>
+          </div>
+          <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div>
+          </div>
+        </div>`).join('');
+    }
+
+    /* ===== SAMPLE DATA (replace with API) ===== */
+    const STRATS = {
+      'trend-alpha': {
+        name:'Trend Alpha', provider:'AlgoForge', currency:'ZAR', aum: 1200000, risk:'Medium',
+        inception:'2021-02-01', updated: lastUpdated(),
+        desc:'Medium-term trend-following model on large-cap equities and index ETFs with systematic risk management and volatility targeting.',
+        style:'Trend-Following', universe:'Global Equities & ETFs', avg_holding:'25–45 days', trades_pm: 18,
+        fees:{ mgmt:'1.0% p.a.', perf:'15% of profits' },
+        alloc:[ {label:'Equities',pct:65,color:'#0f172a'},{label:'ETFs',pct:20,color:'#6366f1'},{label:'Cash',pct:15,color:'#94a3b8'} ],
+        monthly: {
+          2022:[1.1,-0.8,0.9,1.3,0.6,-2.1,1.0,2.2,-0.4,1.6,0.7,1.2],
+          2023:[0.8,1.0,-0.6,1.4,2.1,0.5,1.3,0.9,1.6,-0.7,1.2,1.0],
+          2024:[1.1,0.7,0.6,1.0,0.9,1.0,0.4,0.6,1.1,0.8,0.9,1.0]
+        }
+      },
+      'momentum-fx': {
+        name:'Momentum FX', provider:'QuantBee', currency:'USD', aum: 820000, risk:'Low',
+        inception:'2020-06-01', updated: lastUpdated(),
+        desc:'Diversified G10 momentum/carry strategy trading major FX pairs with tight risk controls and low correlation to equities.',
+        style:'FX Momentum', universe:'G10 FX', avg_holding:'2–7 days', trades_pm: 35,
+        fees:{ mgmt:'1.5% p.a.', perf:'12% of profits' },
+        alloc:[ {label:'FX',pct:88,color:'#10b981'},{label:'Cash',pct:12,color:'#94a3b8'} ],
+        monthly: {
+          2022:[0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2],
+          2023:[-0.3,0.6,0.9,-0.4,0.8,1.2,0.5,0.7,-0.2,0.3,0.9,1.1],
+          2024:[0.4,0.3,0.2,0.4,0.5,0.3,0.2,0.4,0.3,0.2,0.2,0.3]
+        }
+      }
+    };
+
+    /* ===== STATE ===== */
+    let currentKey = 'trend-alpha';
+    let eqRange = '1Y';
+
+    /* ===== RENDER ===== */
+    function flattenMonthlyMap(m){ // returns array of % in chronological order + labels
+      const years = Object.keys(m).map(y=>+y).sort((a,b)=> a-b);
+      const vals=[]; const labels=[]; const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      years.forEach(y=>{ (m[y]||[]).forEach((v,i)=>{ vals.push(v); labels.push(`${months[i]} ${String(y).slice(2)}`); }); });
+      return {vals, labels};
+    }
+
+    function sliceByRange(vals, labels, range){
+      if(range==='ALL') return {vals, labels};
+      const n = range==='3Y' ? 36 : 12; // 1Y or 3Y
+      if(vals.length<=n) return {vals, labels};
+      return { vals: vals.slice(-n), labels: labels.slice(-n) };
+    }
+
+    function renderFactsheet(key){
+      const s = STRATS[key] || STRATS[Object.keys(STRATS)[0]];
+      currentKey = key;
+      // Header
+      document.getElementById('fsTitle').textContent = s.name;
+      document.getElementById('fsProvider').textContent = s.provider;
+      document.getElementById('fsSince').textContent = 'Live since ' + new Date(s.inception).toLocaleDateString();
+      document.getElementById('fsCurrency').textContent = s.currency;
+      document.getElementById('fsRisk').textContent = 'Risk ' + s.risk;
+      document.getElementById('fsAum').textContent = 'AUM ' + fmtMoney(s.aum, s.currency);
+      document.getElementById('fsUpdated').textContent = 'Updated ' + (s.updated||lastUpdated());
+      document.getElementById('fsDesc').textContent = s.desc;
+      document.getElementById('fsStyle').textContent = s.style;
+      document.getElementById('fsUniverse').textContent = s.universe;
+      document.getElementById('fsHold').textContent = s.avg_holding;
+      document.getElementById('fsTrades').textContent = s.trades_pm;
+
+      // Fees
+      const feeRows = document.getElementById('feeRows');
+      feeRows.innerHTML = `<tr><td class="py-2">Management</td><td class="py-2 text-right">${s.fees.mgmt}</td></tr>
+                           <tr><td class="py-2">Performance</td><td class="py-2 text-right">${s.fees.perf}</td></tr>`;
+      // Show mgmt/perf bars at 60/40 visually (placeholder), tweak if you have actual split
+      document.getElementById('feeMgmt').style.width = '60%';
+      document.getElementById('feePerf').style.width = '40%';
+
+      // Allocation
+      renderAlloc(document.getElementById('allocBars'), s.alloc);
+
+      // Monthly → metrics & charts
+      const {vals, labels} = flattenMonthlyMap(s.monthly);
+      const sliced = sliceByRange(vals, labels, eqRange);
+      const metrics = calcMetricsFromMonthly(vals);
+      const eq = metrics.eq;
+
+      // Equity (slice equity to match range)
+      const eqIdx = sliced.vals.length; // months in range
+      const eqSlice = eq.slice(eq.length - eqIdx - 1); // include starting 1
+      const eqLbls = sliced.labels.map((x,i)=> (i%3===0?x: '')); // reduce label clutter
+      const startEquity = 1_000_000; // display base
+      const eqValsMoney = eqSlice.map(x=> startEquity * x);
+      const delta = (eqSlice.at(-1)/eqSlice[0]-1)*100;
+      document.getElementById('eqValue').textContent = fmtMoney(eqValsMoney.at(-1), s.currency);
+      const dEl=document.getElementById('eqDelta'); dEl.textContent = fmtPct(delta); dEl.className = 'chip '+(delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
+      drawArea(document.getElementById('eqSvg'), eqSlice, eqLbls);
+
+      // Key metrics
+      document.getElementById('mCagr').textContent = fmtPct(metrics.cagr*100,1);
+      document.getElementById('mVol').textContent  = fmtPct(metrics.volA*100,1);
+      document.getElementById('mSharpe').textContent = metrics.sharpe.toFixed(2);
+      document.getElementById('mDD').textContent = (metrics.maxDD*100).toFixed(2)+'%';
+      document.getElementById('mWin').textContent = (metrics.wins*100).toFixed(0)+'%';
+      document.getElementById('mAvg').textContent = fmtPct(metrics.avgM,2);
+
+      // Heatmap data shape {YYYY:{1:%,...}}
+      const ymap = {}; Object.keys(s.monthly).forEach(y=>{ ymap[y] = {}; (s.monthly[y]||[]).forEach((v,i)=> ymap[y][i+1]=v ); });
+      buildHeatmap(document.getElementById('heatmap'), ymap);
+
+      // Drawdown series from metrics.dds (slice to range)
+      const dds = metrics.dds; const ddsSlice = dds.slice(dds.length - eqIdx - 1); // include starting 0
+      drawLine(document.getElementById('ddSvg'), ddsSlice.map(x=>x*100), eqLbls, {minY:-100,maxY:0,color:'#ef4444'});
+
+      // Rolling Sharpe 12M
+      const win = 12; const rolls=[]; for(let i=win;i<=vals.length;i++){
+        const seg = vals.slice(i-win,i).map(x=>x/100); const avg=seg.reduce((a,b)=>a+b,0)/seg.length; const sd=Math.sqrt(seg.reduce((a,b)=>a+Math.pow(b-avg,2),0)/seg.length)||1e-6; rolls.push( (avg/sd)*Math.sqrt(12) );
+      }
+      const rLbls = labels.slice(win-1).map((x,i)=> (i%3===0?x:''));
+      drawLine(document.getElementById('rollSvg'), rolls, rLbls, {color:'#6366f1'});
+
+      // Disclaimer
+      const disclaimer = `Disclaimer: Past performance is not indicative of future results. Returns displayed are <strong>net of model costs</strong> but exclude brokerage fees, potential slippage, and applicable taxes. Trading and investing involve significant risk, including the potential loss of capital. You should carefully consider your financial situation and risk tolerance before allocating to any strategy. AlgoHive is an authorised Financial Services Provider (FSP No. 55118) regulated by the Financial Sector Conduct Authority (FSCA) in South Africa. By using this platform, you acknowledge that you have read and understood our Terms of Service, Risk Disclosure, and Privacy Policy. Please review these documents carefully before making any investment decisions.`;
+      document.getElementById('fsDisclaimer').innerHTML = disclaimer;
+    }
+
+    /* ===== BOOT ===== */
+    (async function(){
+      await loadMenu();
+      // populate selector
+      const sel=document.getElementById('strategySel');
+      sel.innerHTML = Object.entries(STRATS).map(([k,v])=> `<option value="${k}">${v.name}</option>`).join('');
+      // get strategy from URL
+      const qp=new URLSearchParams(location.search); const key=qp.get('strategy'); if(key && STRATS[key]){ currentKey=key; }
+      sel.value = currentKey;
+      renderFactsheet(currentKey);
+
+      // selector change
+      sel.addEventListener('change', (e)=>{
+        const k=e.target.value; const url=new URL(location.href); url.searchParams.set('strategy',k); history.replaceState({},'',url);
+        renderFactsheet(k);
+      });
+
+      // equity tabs
+      document.querySelectorAll('#eqTabs .tab-btn').forEach(b=>{
+        b.addEventListener('click',()=>{
+          document.querySelectorAll('#eqTabs .tab-btn').forEach(x=>x.classList.remove('active'));
+          b.classList.add('active'); eqRange=b.dataset.range; renderFactsheet(currentKey);
+        });
+      });
+
+      // export
+      document.getElementById('btnPrint').addEventListener('click',()=>window.print());
+      // share
+      document.getElementById('btnShare').addEventListener('click',async()=>{
+        const url=location.href; try{ await navigator.clipboard.writeText(url); }catch(e){}
+        const btn=document.getElementById('btnShare'); const old=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-check mr-2"></i>Copied!'; setTimeout(()=>btn.innerHTML=old,1200);
+      });
+    })();
+  </script>
+</body>
+</html>
