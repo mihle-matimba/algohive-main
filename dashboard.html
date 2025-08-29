@@ -47,7 +47,7 @@
 </head>
 
 <body>
- <div class="min-h-screen flex">
+  <div class="min-h-screen flex">
     <!-- GLOBAL MENU (partial) -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
@@ -58,17 +58,32 @@
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
           <div class="text-sm text-slate-600">Dashboard</div>
 
-          <!-- CHANGED: w-full -> flex-1 so this row grows, allowing the button to hug the far right -->
           <div class="flex items-center gap-2 flex-1">
-            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white md:ml-4">
+            <!-- Account selector (JS depends on this) -->
+            <select id="acctSel" class="hidden sm:block border rounded-lg text-sm px-2 h-9">
+              <option value="all">All Accounts</option>
+              <option value="ibkr">IBKR</option>
+              <option value="paper">Paper</option>
+            </select>
+
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white md:ml-2">
               <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
             </div>
 
-            <!-- ml-auto keeps it flushed to the right edge of the container -->
-            <button class="border rounded-lg h-9 px-3 bg-white ml-auto">
-              <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
-            </button>
+            <!-- Right-aligned actions -->
+            <div class="ml-auto flex items-center gap-3">
+              <button class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                <i class="fa-solid fa-file-arrow-down mr-2"></i>Export
+              </button>
+              <!-- Profile pic to the RIGHT of the Export button -->
+              <img
+                id="userAvatar"
+                src="https://i.pravatar.cc/80?u=mihle"
+                alt="Profile"
+                class="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -138,8 +153,6 @@
                 <div id="eqTip" class="eq-tip hidden"></div>
               </div>
             </div>
-
-
 
             <!-- PERFORMANCE SUMMARY -->
             <div class="card p-5">
@@ -216,8 +229,6 @@
               <div class="cal-grid" id="calGrid"></div>
             </div>
 
-
-
             <!-- HOLDINGS -->
             <div class="card">
               <div class="px-5 py-4 border-b flex items-center justify-between">
@@ -248,18 +259,30 @@
 
           <!-- RIGHT COLUMN -->
           <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
+            <!-- Subscribed strategies list -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">My Strategies</div>
+                <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">View OpenStrategies</a>
+              </div>
+              <div id="subsWrap" class="flex flex-col gap-3 max-h-72 overflow-y-auto"></div>
+            </div>
 
+            <!-- Account snapshot -->
+            <div class="card p-5">
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Total Balance</div>
+                  <div id="acctBal" class="font-semibold num">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Cash Available</div>
+                  <div id="acctCash" class="font-semibold num">—</div>
+                </div>
+              </div>
+            </div>
 
- 
-
-  <!-- Strategies list -->
-  <div id="subsWrap" class="flex flex-col gap-3 max-h-72 overflow-y-auto"></div>
-<div class="card p-5"> <div class="grid grid-cols-2 gap-3 mt-3 text-sm"> <div class="p-3 border rounded-xl"> <div class="text-slate-500 text-xs">Total Balance</div> <div id="acctBal" class="font-semibold num">—</div> </div> <div class="p-3 border rounded-xl"> <div class="text-slate-500 text-xs">Cash Available</div> <div id="acctCash" class="font-semibold num">—</div> </div> </div> </div>
- <div class="card p-5">
-  <div class="flex items-center justify-between mb-3">
-    <div class="font-semibold">My Strategies</div>
-    <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">View OpenStrategies</a>
-  </div>
+            <!-- Portfolio Rating -->
             <div class="card p-5">
               <div class="font-semibold mb-3">Portfolio Rating</div>
               <div class="flex items-center gap-4">
@@ -274,26 +297,14 @@
                 </div>
               </div>
             </div>
-                        <div class="card p-5">
-              <div class="font-semibold mb-3">Financial Health</div>
-              <div class="flex items-center gap-4">
-                <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
-                <div>
-                  <div id="ratingText" class="text-lg font-semibold">—</div>
-                  <div class="text-xs text-slate-500">Overall financial performance</div>
-                  <div class="mt-2">
-                    <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
-                    <span class="text-xs text-slate-500 ml-1">From last year</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
+            <!-- Asset Allocation -->
             <div class="card">
               <div class="px-5 py-4 border-b font-semibold">Asset Allocation</div>
               <div id="allocBars" class="p-5 space-y-4"></div>
             </div>
 
+            <!-- Fee Breakdown -->
             <div class="card p-5">
               <div class="font-semibold mb-3">Fee Breakdown</div>
               <div class="mb-3">
@@ -816,6 +827,7 @@
         renderCalendar(acct);
       }
       renderAll('all');
+
       document.getElementById('acctSel').addEventListener('change', (e) => renderAll(e.target.value));
     })();
   </script>
