@@ -282,21 +282,40 @@
               </div>
             </div>
 
-            <!-- Portfolio Rating -->
-            <div class="card p-5">
-              <div class="font-semibold mb-3">Portfolio Rating</div>
-              <div class="flex items-center gap-4">
-                <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
-                <div>
-                  <div id="ratingText" class="text-lg font-semibold">—</div>
-                  <div class="text-xs text-slate-500">Overall rating performance</div>
-                  <div class="mt-2">
-                    <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
-                    <span class="text-xs text-slate-500 ml-1">From last year</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+<!-- Portfolio Rating -->
+<div class="card p-5">
+  <div class="font-semibold mb-3">Portfolio Rating</div>
+  <div class="flex items-center gap-4">
+    <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
+    <div>
+      <div id="ratingText" class="text-lg font-semibold">—</div>
+      <div class="text-xs text-slate-500">Overall rating performance</div>
+      <div class="mt-2">
+        <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
+        <span class="text-xs text-slate-500 ml-1">From last year</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Financial Health (New) -->
+<div class="card p-5">
+  <div class="font-semibold mb-3">Financial Health</div>
+  <div class="flex items-center justify-between mb-2">
+    <div>
+      <div class="text-xs text-slate-500">Health Score</div>
+      <div id="healthScore" class="text-lg font-semibold">—</div>
+    </div>
+    <div id="healthBadge" class="chip bg-green-50 text-green-700">Stable</div>
+  </div>
+  <div class="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+    <div id="healthBar" class="h-2 bg-green-600" style="width: 0%"></div>
+  </div>
+  <p id="healthNote" class="mt-3 text-xs text-slate-500">
+    Monitoring diversification, drawdowns, and volatility.
+  </p>
+</div>
+
 
             <!-- Asset Allocation -->
             <div class="card">
@@ -659,6 +678,28 @@
       `;
     }
 
+    function renderFinancialHealth(acct = currentAcct) {
+  const d = acctData[acct] || acctData.all;
+  const score = Math.max(0, Math.min(100, Math.round((d.rating + (100 - d.vol * 10)) / 2)));
+  document.getElementById('healthScore').textContent = score + '/100';
+  document.getElementById('healthBar').style.width = `${score}%`;
+  const badge = document.getElementById('healthBadge');
+  if (score >= 80) {
+    badge.textContent = 'Excellent';
+    badge.className = 'chip bg-green-50 text-green-700';
+  } else if (score >= 60) {
+    badge.textContent = 'Stable';
+    badge.className = 'chip bg-emerald-50 text-emerald-700';
+  } else if (score >= 40) {
+    badge.textContent = 'At Risk';
+    badge.className = 'chip bg-amber-50 text-amber-700';
+  } else {
+    badge.textContent = 'Critical';
+    badge.className = 'chip bg-rose-50 text-rose-700';
+  }
+}
+
+
     function renderHoldings(acct = currentAcct) {
       const body = document.getElementById('holdingsBody');
       const bal = acctData[acct]?.bal ?? 1;
@@ -821,6 +862,7 @@
         currentAcct = acct;
         renderRating(acct);
         renderEq(eqRange, acct);
+        renderFinancialHealth(acct); 
         renderAllocation(acct);
         renderFees(acct);
         renderHoldings(acct);
