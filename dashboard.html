@@ -29,7 +29,16 @@
     .cal-cell{ border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem }
     .cal-legend span{ display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb }
     .topbar{ height:52px }
-    .sub-card.active{ background:var(--olive-100); }
+    .sub-card.active{
+      background:var(--olive-100);
+      border-color:var(--olive);
+      box-shadow: inset 0 0 0 2px var(--olive-100);
+      position: relative;
+    }
+    .sub-card.active::before{
+      content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--olive);
+      border-top-left-radius:.75rem; border-bottom-left-radius:.75rem;
+    }
     /* small popover under buttons */
     .popover::before{ content:""; position:absolute; top:-6px; right:18px; border-width:6px; border-style:solid; border-color:transparent transparent #e5e7eb transparent; }
     .popover::after{ content:""; position:absolute; top:-5px; right:18px; border-width:5px; border-style:solid; border-color:transparent transparent #fff transparent; }
@@ -42,17 +51,15 @@
       .print-header { display:flex !important; }
       .card { box-shadow:none !important; }
     }
+
     /* Sidebar collapse behavior */
-#sidebar { width: 260px; transition: width .2s ease; }
-#sidebar.is-collapsed { width: 64px; }
-#sidebar .label { transition: opacity .15s ease; }
-#sidebar.is-collapsed .label { opacity: 0; pointer-events: none; }
-
-/* Optional: tighten link layout when collapsed */
-#sidebar.is-collapsed .sidebar-link { justify-content: center; }
-#sidebar .sidebar-link { display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:.5rem; }
-#sidebar .sidebar-link i { width:18px; text-align:center; }
-
+    #sidebar { width: 260px; transition: width .2s ease; }
+    #sidebar.is-collapsed { width: 64px; }
+    #sidebar .label { transition: opacity .15s ease; }
+    #sidebar.is-collapsed .label { opacity: 0; pointer-events: none; }
+    #sidebar.is-collapsed .sidebar-link { justify-content: center; }
+    #sidebar .sidebar-link { display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:.5rem; }
+    #sidebar .sidebar-link i { width:18px; text-align:center; }
   </style>
 </head>
 
@@ -266,9 +273,9 @@
               </div>
             </div>
 
-            <!-- Portfolio Rating -->
+            <!-- Strategy Rating -->
             <div class="card p-5">
-              <div class="font-semibold mb-3">Portfolio Rating — <span id="prStratName">—</span></div>
+              <div class="font-semibold mb-3">Strategy Rating — <span id="prStratName">—</span></div>
               <div class="flex items-center gap-4">
                 <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
                 <div>
@@ -304,7 +311,7 @@
               </div>
 
               <p class="mt-3 text-xs text-slate-500">
-                Static score summarising risk, drawdowns and consistency across your portfolio.
+                Based on your AlgoWealth Profile
               </p>
             </div>
 
@@ -360,87 +367,86 @@
         // fail silently for standalone demo
       }
     }
-function buildMenu(activeKey = 'dashboard') {
-  const navContainer = document.getElementById('navContainer');
-  if (!navContainer) return;
+    function buildMenu(activeKey = 'dashboard') {
+      const navContainer = document.getElementById('navContainer');
+      if (!navContainer) return;
 
-  const menu = [{
-    section: "Menu", items: [
-      { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
-      { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
-      { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
-      { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
-      { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
-      { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
-      { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
-    ]
-  }, {
-    section: "General", items: [
-      { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
-      { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
-      { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
-      { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
-    ]
-  }];
+      const menu = [{
+        section: "Menu", items: [
+          { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
+          { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
+          { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
+          { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
+          { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
+          { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
+          { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
+        ]
+      }, {
+        section: "General", items: [
+          { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
+          { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
+          { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
+          { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
+        ]
+      }];
 
-  function group(sec) {
-    const g = document.createElement('div'); g.className = 'mb-2';
-    const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
-    const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
-    const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
-    const body = document.createElement('div'); body.className = 'group-body';
-    const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
+      function group(sec) {
+        const g = document.createElement('div'); g.className = 'mb-2';
+        const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
+        const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
+        const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
+        const body = document.createElement('div'); body.className = 'group-body';
+        const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
 
-    sec.items.forEach(it => {
-      const a = document.createElement('a');
-      a.href = it.href;
-      a.className = 'sidebar-link';
-      a.title = it.label;
-      if (it.key === activeKey) a.classList.add('active');
-      a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`;
-      list.appendChild(a);
-    });
+        sec.items.forEach(it => {
+          const a = document.createElement('a');
+          a.href = it.href;
+          a.className = 'sidebar-link';
+          a.title = it.label;
+          if (it.key === activeKey) a.classList.add('active');
+          a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`;
+          list.appendChild(a);
+        });
 
-    body.appendChild(list); header.append(title, right); g.append(header, body);
-    requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
+        body.appendChild(list); header.append(title, right); g.append(header, body);
+        requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
 
-    header.addEventListener('click', () => {
-      const exp = header.getAttribute('aria-expanded') === 'true';
-      header.setAttribute('aria-expanded', String(!exp));
-      const chev = header.querySelector('.chev');
-      if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); }
-      else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
-    });
-    return g;
-  }
+        header.addEventListener('click', () => {
+          const exp = header.getAttribute('aria-expanded') === 'true';
+          header.setAttribute('aria-expanded', String(!exp));
+          const chev = header.querySelector('.chev');
+          if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); }
+          else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
+        });
+        return g;
+      }
 
-  navContainer.innerHTML = '';
-  menu.forEach(s => navContainer.appendChild(group(s)));
+      navContainer.innerHTML = '';
+      menu.forEach(s => navContainer.appendChild(group(s)));
 
-  // ✅ Collapse wiring
-  const sidebar = document.getElementById('sidebar');
-  const collapseBtn = document.getElementById('collapseBtn');
-  if (sidebar && collapseBtn) {
-    const applyState = (collapsed) => {
-      sidebar.classList.toggle('is-collapsed', collapsed);
-      collapseBtn.innerHTML = collapsed
-        ? '<i class="fa-solid fa-angles-right text-sm"></i>'
-        : '<i class="fa-solid fa-angles-left text-sm"></i>';
-    };
+      // Collapse wiring
+      const sidebar = document.getElementById('sidebar');
+      const collapseBtn = document.getElementById('collapseBtn');
+      if (sidebar && collapseBtn) {
+        const applyState = (collapsed) => {
+          sidebar.classList.toggle('is-collapsed', collapsed);
+          collapseBtn.innerHTML = collapsed
+            ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+            : '<i class="fa-solid fa-angles-left text-sm"></i>';
+        };
 
-    // restore persisted state
-    let collapsed = false;
-    try { collapsed = sessionStorage.getItem('ah_sidebar_collapsed') === '1'; } catch(e){}
-    applyState(collapsed);
+        // restore persisted state
+        let collapsed = false;
+        try { collapsed = sessionStorage.getItem('ah_sidebar_collapsed') === '1'; } catch(e){}
+        applyState(collapsed);
 
-    collapseBtn.addEventListener('click', () => {
-      collapsed = !collapsed;
-      applyState(collapsed);
-      try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e){}
-    });
-  }
-}
-
+        collapseBtn.addEventListener('click', () => {
+          collapsed = !collapsed;
+          applyState(collapsed);
+          try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e){}
+        });
+      }
+    }
 
     /* ========== UTIL & DRAW ========== */
     const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v);
@@ -520,7 +526,6 @@ function buildMenu(activeKey = 'dashboard') {
       const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
       grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
       const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
-      const s2 = document.createElementNS('http://www.w3.org/200svg', 'stop'); // typo-safe fallback
       const s2b = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2b.setAttribute('offset', '60%'); s2b.setAttribute('stop-color', '#111827');
       const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
       grad.append(s1, s2b, s3); defs.appendChild(grad); el.appendChild(defs);
@@ -577,7 +582,7 @@ function buildMenu(activeKey = 'dashboard') {
       svgEl.appendChild(g);
     }
 
-    /* ========== DATA (same as prior) ========== */
+    /* ========== DATA ========== */
     const BENCH_COLORS = ['#2563eb','#9333ea','#f59e0b','#ef4444','#10b981','#a855f7','#06b6d4'];
     const YEARS = [2023, 2024, 2025];
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -643,6 +648,10 @@ function buildMenu(activeKey = 'dashboard') {
       'Carry FX':      { tpl:'light',  bal:300_000,  cash:50_000,  rating:65, vol:1.0, feeGross:22_000,  baseMonthly:[0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2] },
     };
 
+    const strategies = {};
+    const YEARS = [2023, 2024, 2025];
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
     function monthlyForYear(base, year){
       return base.map((v,i)=>{
         const tweak = Math.sin((year - 2020) * 0.7 + i) * 0.15;
@@ -650,9 +659,6 @@ function buildMenu(activeKey = 'dashboard') {
       });
     }
 
-    const strategies = {};
-    const YEARS_MAP = [2023, 2024, 2025];
-    YEARS_MAP.forEach(()=>{});
     Object.entries(baseStrategies).forEach(([k,v])=>{
       strategies[k] = {
         ...v,
@@ -683,8 +689,6 @@ function buildMenu(activeKey = 'dashboard') {
       light:  [{ label: 'Equities', pct: 30, color: '#0f172a' }, { label: 'FX', pct: 30, color: '#10b981' }, { label: 'Crypto', pct: 20, color: '#f59e0b' }, { label: 'Futures', pct: 10, color: '#6366f1' }, { label: 'Commodities', pct: 4, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
     };
 
-    const HOLDINGS_TPL_FOR = (tpl) => HOLDINGS_TEMPLATES[tpl];
-
     const deltaYoY = +5.48;
 
     let currentStrat = 'FullPortfolio';
@@ -692,8 +696,6 @@ function buildMenu(activeKey = 'dashboard') {
     let selectedBenchmarks = [];
 
     /* ========== RENDER HELPERS ========== */
-    function equityFromMonthly(returnsPct){ const eq=[1]; returnsPct.forEach(r=>eq.push(eq.at(-1)*(1+r/100))); return eq; }
-
     function setCardNames(strat){
       document.getElementById('eqStratName').textContent = strat;
       document.getElementById('sumStratName').textContent = strat;
@@ -705,6 +707,29 @@ function buildMenu(activeKey = 'dashboard') {
       document.getElementById('prStratName').textContent = strat;
     }
 
+    function drawDonut(el, percent) {
+      const r = 68, cx = 80, cy = 80, C = 2 * Math.PI * r, val = Math.max(0, Math.min(100, percent));
+      el.innerHTML = '';
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
+      grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
+      const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
+      const s2b = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2b.setAttribute('offset', '60%'); s2b.setAttribute('stop-color', '#111827');
+      const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
+      grad.append(s1, s2b, s3); defs.appendChild(grad); el.appendChild(defs);
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
+      bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#e5e7eb'); bg.setAttribute('stroke-width', '16'); el.appendChild(bg);
+      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      arc.setAttribute('cx', cx); arc.setAttribute('cy', cy); arc.setAttribute('r', r);
+      arc.setAttribute('fill', 'none'); arc.setAttribute('stroke', 'url(#gOlive)'); arc.setAttribute('stroke-width', '16');
+      arc.setAttribute('stroke-linecap', 'round'); arc.setAttribute('transform', 'rotate(-90 80 80)');
+      arc.setAttribute('stroke-dasharray', `${(val / 100) * C} ${C}`); el.appendChild(arc);
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
+      txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt);
+    }
+
     function renderRating(strat) {
       const d = strategies[strat];
       document.getElementById('acctBal').textContent = fmtMoney(d.bal);
@@ -714,18 +739,6 @@ function buildMenu(activeKey = 'dashboard') {
       const chip = document.getElementById('ratingDeltaChip');
       chip.textContent = (deltaYoY >= 0 ? '+' : '') + deltaYoY.toFixed(2) + '%';
       chip.className = 'chip ' + (deltaYoY >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-    }
-
-    // STATIC Financial Health (not driven by selected strategy)
-    function renderFinancialHealthStatic() {
-      const score = 78; // fixed
-      document.getElementById('healthScore').textContent = score + '/100';
-      document.getElementById('healthBar').style.width = `${score}%`;
-      const badge = document.getElementById('healthBadge');
-      if (score >= 80) { badge.textContent = 'Excellent'; badge.className = 'chip bg-green-50 text-green-700'; }
-      else if (score >= 60) { badge.textContent = 'Stable'; badge.className = 'chip bg-emerald-50 text-emerald-700'; }
-      else if (score >= 40) { badge.textContent = 'At Risk'; badge.className = 'chip bg-amber-50 text-amber-700'; }
-      else { badge.textContent = 'Critical'; badge.className = 'chip bg-rose-50 text-rose-700'; }
     }
 
     function renderEq(range, strat) {
@@ -917,6 +930,17 @@ function buildMenu(activeKey = 'dashboard') {
       });
     }
 
+    function renderFinancialHealthStatic() {
+      const score = 78; // fixed/static
+      document.getElementById('healthScore').textContent = score + '/100';
+      document.getElementById('healthBar').style.width = `${score}%`;
+      const badge = document.getElementById('healthBadge');
+      if (score >= 80) { badge.textContent = 'Excellent'; badge.className = 'chip bg-green-50 text-green-700'; }
+      else if (score >= 60) { badge.textContent = 'Stable'; badge.className = 'chip bg-emerald-50 text-emerald-700'; }
+      else if (score >= 40) { badge.textContent = 'At Risk'; badge.className = 'chip bg-amber-50 text-amber-700'; }
+      else { badge.textContent = 'Critical'; badge.className = 'chip bg-rose-50 text-rose-700'; }
+    }
+
     function renderAll(strat, yearForMonthly, calMonthIndex, calYear) {
       setCardNames(strat);
       renderRating(strat);
@@ -996,9 +1020,7 @@ function buildMenu(activeKey = 'dashboard') {
 
     /* ======= Export Fact Sheet (PDF) ======= */
     function exportFactSheet(){
-      // show date in print header
       document.getElementById('printDate').textContent = new Date().toLocaleString();
-      const element = document.getElementById('sheetArea');
       const opt = {
         margin:       [10,10,10,10],
         filename:     `Algohive_Fact_Sheet_${new Date().toISOString().slice(0,10)}.pdf`,
@@ -1033,10 +1055,9 @@ function buildMenu(activeKey = 'dashboard') {
       const yr = +yearSel.value;
       const dpMonth = document.getElementById('dpMonth');
       const dpYear = document.getElementById('dpYear');
-      // keep benchmarks but ensure no self
       selectedBenchmarks = selectedBenchmarks.filter(b => b !== name);
       renderAll(name, yr, +dpMonth.value, +dpYear.value);
-      createBenchPopover(); // refresh options
+      createBenchPopover();
     }
 
     (async function () {
@@ -1054,15 +1075,15 @@ function buildMenu(activeKey = 'dashboard') {
         });
       });
 
-      // Strategies side list
+      // Strategies side list (TCM label + default active)
       const subsWrap = document.getElementById('subsWrap');
       subsWrap.innerHTML = subs.map(s => `
-        <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
+        <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card${s.name===currentStrat ? ' active' : ''}" data-key="${s.name}">
           <div class="flex items-center justify-between">
             <div class="font-medium text-sm truncate">${s.name}</div>
             <span class="chip ${s.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(1)}%</span>
           </div>
-          <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div>
+          <div class="text-xs text-slate-500">${s.provider} · TCM ${s.aum}</div>
           <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
         </div>`).join('');
       document.querySelectorAll('#subsWrap .sub-card').forEach(card => card.addEventListener('click', () => setStrategy(card.getAttribute('data-key'))));
