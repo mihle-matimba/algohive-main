@@ -10,6 +10,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- html2pdf for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
@@ -27,16 +29,18 @@
     .cal-cell{ border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem }
     .cal-legend span{ display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb }
     .topbar{ height:52px }
-    /* selection state — no green border, just soft bg */
     .sub-card.active{ background:var(--olive-100); }
-    /* popover arrow */
-    .popover::before{
-      content:""; position:absolute; top:-6px; right:18px; border-width:6px; border-style:solid;
-      border-color:transparent transparent #e5e7eb transparent;
-    }
-    .popover::after{
-      content:""; position:absolute; top:-5px; right:18px; border-width:5px; border-style:solid;
-      border-color:transparent transparent #fff transparent;
+    /* small popover under buttons */
+    .popover::before{ content:""; position:absolute; top:-6px; right:18px; border-width:6px; border-style:solid; border-color:transparent transparent #e5e7eb transparent; }
+    .popover::after{ content:""; position:absolute; top:-5px; right:18px; border-width:5px; border-style:solid; border-color:transparent transparent #fff transparent; }
+
+    /* PRINT STYLES */
+    @media print {
+      body { background:#fff; }
+      .glass, #topbar-actions, .eq-controls, .no-print { display:none !important; }
+      .page-shell { max-width:100% !important; padding:0 24px !important; }
+      .print-header { display:flex !important; }
+      .card { box-shadow:none !important; }
     }
   </style>
 </head>
@@ -47,7 +51,7 @@
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
     <!-- MAIN -->
-    <main class="flex-1 min-h-screen">
+    <main class="flex-1 min-h-screen" id="dashboardRoot">
       <!-- Topbar -->
       <section class="glass sticky top-0 z-20 topbar">
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3 relative">
@@ -59,18 +63,29 @@
               <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
             </div>
 
-            <!-- Right action: Configure Portfolio -->
-            <div class="ml-auto relative">
-              <button id="configureBtn" class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
-                <i class="fa-solid fa-sliders mr-2"></i>Configure Portfolio
+            <!-- Right actions -->
+            <div id="topbar-actions" class="ml-auto flex items-center gap-3">
+              <button id="exportBtn" class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                <i class="fa-solid fa-file-arrow-down mr-2"></i>Export Fact Sheet
               </button>
+              <img src="https://ui-avatars.com/api/?name=Mihle&background=0f172a&color=fff&rounded=true&size=64"
+                   alt="Profile" class="h-9 w-9 rounded-full border object-cover" />
             </div>
           </div>
         </div>
       </section>
 
+      <!-- PRINT HEADER (hidden on screen, shown in print/pdf) -->
+      <div class="print-header hidden items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3">
+          <img src="https://dummyimage.com/140x40/0f172a/ffffff&text=AlgoHive" alt="Algohive" class="h-8">
+          <div class="text-xs text-slate-500">Fact Sheet • Generated on <span id="printDate"></span></div>
+        </div>
+        <div class="text-sm">mih@algohive • Dashboard Summary</div>
+      </div>
+
       <!-- PAGE SHELL -->
-      <div class="max-w-7xl mx-auto px-6">
+      <div class="max-w-7xl mx-auto px-6 page-shell" id="sheetArea">
         <!-- Greeting -->
         <section class="pt-6">
           <div class="flex items-center">
@@ -96,7 +111,7 @@
                     <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
                   </div>
                 </div>
-                <div class="flex items-center gap-2" id="eqTabs">
+                <div class="flex items-center gap-2 eq-controls" id="eqTabs">
                   <button class="tab-btn active" data-range="1M">1M</button>
                   <button class="tab-btn" data-range="3M">3M</button>
                   <button class="tab-btn" data-range="6M">6M</button>
@@ -121,6 +136,13 @@
 
               <!-- Legend / Benchmark chips -->
               <div id="eqLegend" class="flex flex-wrap items-center gap-2 mt-3 text-xs"></div>
+
+              <!-- Add Benchmark button (bottom-right of card) -->
+              <div class="mt-3 flex justify-end">
+                <button id="addBenchBtn" class="no-print border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                  <i class="fa-solid fa-plus mr-2"></i>Add Benchmark
+                </button>
+              </div>
             </div>
 
             <!-- PERFORMANCE SUMMARY -->
@@ -249,9 +271,13 @@
               </div>
             </div>
 
-            <!-- Financial Health -->
+            <!-- Financial Health (STATIC) -->
             <div class="card p-5">
-              <div class="font-semibold mb-3">Financial Health</div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Financial Health</div>
+                <button id="healthCta" class="text-[var(--olive-700)] text-sm hover:underline">View Financial Tracker</button>
+              </div>
+
               <div class="flex items-center justify-between mb-2">
                 <div>
                   <div class="text-xs text-slate-500">Health Score</div>
@@ -259,11 +285,15 @@
                 </div>
                 <div id="healthBadge" class="chip bg-green-50 text-green-700">Stable</div>
               </div>
+
               <div class="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div id="healthBar" class="h-2 bg-green-600" style="width: 0%"></div>
+                <!-- filled bar uses black→olive gradient, width shows score -->
+                <div id="healthBar" class="h-2 rounded-full"
+                     style="width:0%; background: linear-gradient(90deg,#000000,#111827 30%, var(--olive) 100%);"></div>
               </div>
+
               <p class="mt-3 text-xs text-slate-500">
-                Based on rating, drawdowns and volatility of the selected scope.
+                Static score summarising risk, drawdowns and consistency across your portfolio.
               </p>
             </div>
 
@@ -303,17 +333,21 @@
     </main>
   </div>
 
-  <!-- Popover Portal -->
-  <div id="configPortal"></div>
+  <!-- Popover Portal (Benchmarks) -->
+  <div id="benchPortal"></div>
 
   <script>
     /* ========== MENU PARTIAL ========== */
     async function loadMenu() {
       const mount = document.getElementById('sidebarMount');
       const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to load ' + url);
-      mount.outerHTML = await res.text();
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load ' + url);
+        mount.outerHTML = await res.text();
+      } catch (e) {
+        // fail silently for standalone demo
+      }
     }
     function buildMenu(activeKey = 'dashboard') {
       const navContainer = document.getElementById('navContainer');
@@ -366,26 +400,21 @@
     const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v);
     const greetLine = () => { const h = new Date().getHours(); const t = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); return `${t}, Mihle`; };
 
-    // drawEquity now supports benchmarks
     function drawEquity(svgEl, mainSeries, labels, benchLines = []) {
       const W = 900, H = 320, pad = 34;
       svgEl.innerHTML = '';
-
-      // grid lines
       for (let i = 0; i < 5; i++) {
         const y = pad + i * (H - 2 * pad) / 4;
         const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         ln.setAttribute('x1', pad); ln.setAttribute('x2', W - pad); ln.setAttribute('y1', y); ln.setAttribute('y2', y);
         ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
       }
-
-      // scale uses combined series
       const allVals = [ ...mainSeries, ...benchLines.flatMap(b => b.series) ];
       const min = Math.min(...allVals), max = Math.max(...allVals), rng = (max - min) || 1;
       const step = (W - 2 * pad) / Math.max(1,(mainSeries.length - 1));
       const X = i => pad + i * step, Y = v => H - pad - ((v - min) / rng) * (H - 2 * pad);
 
-      // gradient
+      // gradient fill for main
       const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
       grad.setAttribute('id', 'eqGrad'); grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
@@ -393,16 +422,15 @@
       const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#111827'); s2.setAttribute('stop-opacity', '0.02');
       grad.append(s1, s2); defs.appendChild(grad); svgEl.appendChild(defs);
 
-      // main path
+      // main area + line
       let dLine = '';
       mainSeries.forEach((v,i)=>{ dLine += `${i ? 'L' : 'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `; });
       const dArea = dLine + `L${X(mainSeries.length - 1).toFixed(2)},${H - pad} L${X(0).toFixed(2)},${H - pad} Z`;
-
       const area = document.createElementNS('http://www.w3.org/2000/svg', 'path'); area.setAttribute('d', dArea.trim()); area.setAttribute('fill', 'url(#eqGrad)'); svgEl.appendChild(area);
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'path'); line.setAttribute('d', dLine.trim()); line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#0f172a'); line.setAttribute('stroke-width', '2.75'); svgEl.appendChild(line);
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', X(mainSeries.length - 1)); dot.setAttribute('cy', Y(mainSeries.at(-1))); dot.setAttribute('r', '4.2'); dot.setAttribute('fill', '#0f172a'); svgEl.appendChild(dot);
 
-      // benchmark lines
+      // bench lines
       benchLines.forEach(b => {
         let d = '';
         b.series.forEach((v,i)=>{ d += `${i ? 'L' : 'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `; });
@@ -415,7 +443,7 @@
         svgEl.appendChild(l);
       });
 
-      // x labels
+      // labels
       const gL = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       labels.forEach((lb, i) => {
         const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -446,9 +474,10 @@
       const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
       grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
       const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
-      const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '60%'); s2.setAttribute('stop-color', '#111827');
+      const s2 = document.createElementNS('http://www.w3.org/200svg', 'stop'); // typo-safe fallback
+      const s2b = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2b.setAttribute('offset', '60%'); s2b.setAttribute('stop-color', '#111827');
       const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
-      grad.append(s1, s2, s3); defs.appendChild(grad); el.appendChild(defs);
+      grad.append(s1, s2b, s3); defs.appendChild(grad); el.appendChild(defs);
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
       bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#e5e7eb'); bg.setAttribute('stroke-width', '16'); el.appendChild(bg);
@@ -502,7 +531,12 @@
       svgEl.appendChild(g);
     }
 
-    /* ========== STRATEGY DATA (same structure as before) ========== */
+    /* ========== DATA (same as prior) ========== */
+    const BENCH_COLORS = ['#2563eb','#9333ea','#f59e0b','#ef4444','#10b981','#a855f7','#06b6d4'];
+    const YEARS = [2023, 2024, 2025];
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const logo = d => `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
+
     const EQ_TEMPLATES = {
       strong: {
         "1M": { lbl:['W1','W2','W3','W4','W5'], arr:[1.00,1.03,1.01,1.06,1.09] },
@@ -530,7 +564,6 @@
       }
     };
 
-    const logo = d => `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
     const HOLDINGS_TEMPLATES = {
       strong: [
         { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 22 },
@@ -564,9 +597,6 @@
       'Carry FX':      { tpl:'light',  bal:300_000,  cash:50_000,  rating:65, vol:1.0, feeGross:22_000,  baseMonthly:[0.2,0.3,0.1,0.2,0.4,0.2,0.3,0.1,0.4,0.2,0.3,0.2] },
     };
 
-    const YEARS = [2023, 2024, 2025];
-    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
     function monthlyForYear(base, year){
       return base.map((v,i)=>{
         const tweak = Math.sin((year - 2020) * 0.7 + i) * 0.15;
@@ -575,6 +605,8 @@
     }
 
     const strategies = {};
+    const YEARS_MAP = [2023, 2024, 2025];
+    YEARS_MAP.forEach(()=>{});
     Object.entries(baseStrategies).forEach(([k,v])=>{
       strategies[k] = {
         ...v,
@@ -607,12 +639,11 @@
 
     const HOLDINGS_TPL_FOR = (tpl) => HOLDINGS_TEMPLATES[tpl];
 
-    const BENCH_COLORS = ['#2563eb','#9333ea','#f59e0b','#ef4444','#10b981','#a855f7','#06b6d4'];
     const deltaYoY = +5.48;
 
     let currentStrat = 'FullPortfolio';
     let eqRange = '1Y';
-    let selectedBenchmarks = []; // array of strategy names
+    let selectedBenchmarks = [];
 
     /* ========== RENDER HELPERS ========== */
     function equityFromMonthly(returnsPct){ const eq=[1]; returnsPct.forEach(r=>eq.push(eq.at(-1)*(1+r/100))); return eq; }
@@ -639,9 +670,9 @@
       chip.className = 'chip ' + (deltaYoY >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
     }
 
-    function renderFinancialHealth(strat) {
-      const d = strategies[strat];
-      const score = Math.max(0, Math.min(100, Math.round((d.rating + (100 - d.vol * 10)) / 2)));
+    // STATIC Financial Health (not driven by selected strategy)
+    function renderFinancialHealthStatic() {
+      const score = 78; // fixed
       document.getElementById('healthScore').textContent = score + '/100';
       document.getElementById('healthBar').style.width = `${score}%`;
       const badge = document.getElementById('healthBadge');
@@ -653,22 +684,20 @@
 
     function renderEq(range, strat) {
       const meta = strategies[strat];
-      const tpl = EQ_TEMPLATES[meta.tpl][range] || EQ_TEMPLATES.strong['1Y'];
+      const tpl = (EQ_TEMPLATES[meta.tpl] && EQ_TEMPLATES[meta.tpl][range]) ? EQ_TEMPLATES[meta.tpl][range] : EQ_TEMPLATES.strong['1Y'];
       const mainSeries = tpl.arr;
       const labels = tpl.lbl;
 
-      // build benchmark lines
       const benchLines = selectedBenchmarks
         .filter(name => strategies[name])
         .map((name, idx) => {
           const m = strategies[name];
-          const t = EQ_TEMPLATES[m.tpl][range] || EQ_TEMPLATES.strong['1Y'];
+          const t = (EQ_TEMPLATES[m.tpl] && EQ_TEMPLATES[m.tpl][range]) ? EQ_TEMPLATES[m.tpl][range] : EQ_TEMPLATES.strong['1Y'];
           return { name, color: BENCH_COLORS[idx % BENCH_COLORS.length], series: t.arr };
         });
 
       drawEquity(document.getElementById('eqSvg'), mainSeries, labels, benchLines);
 
-      // main stats (based on main only)
       const first = mainSeries[0], last = mainSeries.at(-1);
       const value = meta.bal * last;
       const deltaPct = ((last / first) - 1) * 100;
@@ -676,6 +705,7 @@
       const dEl = document.getElementById('eqDelta');
       dEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%';
       dEl.className = 'chip ' + (deltaPct >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+
       const m = calcMetrics(mainSeries);
       document.getElementById('mRet').textContent = (m.ret >= 0 ? '+' : '') + m.ret.toFixed(2) + '%';
       document.getElementById('mDD').textContent = m.ddPct.toFixed(2) + '%';
@@ -683,7 +713,7 @@
       document.getElementById('mWin').textContent = m.wins.toFixed(0) + '%';
       document.getElementById('mVol').textContent = m.vol.toFixed(1) + '%';
 
-      // legend chips
+      // legend
       const legend = document.getElementById('eqLegend');
       const mainChip = `<span class="chip bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-full inline-block mr-1" style="background:#0f172a"></span>${strat}</span>`;
       const benchChips = benchLines.map(b => `
@@ -696,7 +726,7 @@
         btn.addEventListener('click', ()=>{
           const name = btn.getAttribute('data-remove-bench');
           selectedBenchmarks = selectedBenchmarks.filter(x => x !== name);
-          syncConfigChecks();
+          syncBenchChecks();
           renderEq(eqRange, currentStrat);
         });
       });
@@ -751,7 +781,7 @@
       const body = document.getElementById('holdingsBody');
       const bal = strategies[strat].bal;
       const cashWeight = Math.max(0, Math.min(100, (strategies[strat].cash / bal) * 100));
-      const rows = HOLDINGS_TPL_FOR(strategies[strat].tpl).slice();
+      const rows = HOLDINGS_TEMPLATES[strategies[strat].tpl].slice();
       rows.push({ name: 'Cash', ticker: 'ZAR', logo: 'https://img.icons8.com/?size=48&id=12227&format=png', weight: +cashWeight.toFixed(1) });
       const totW = rows.reduce((s, r) => s + r.weight, 0);
       const scale = totW > 100 ? 100 / totW : 1;
@@ -844,13 +874,94 @@
     function renderAll(strat, yearForMonthly, calMonthIndex, calYear) {
       setCardNames(strat);
       renderRating(strat);
-      renderFinancialHealth(strat);
       renderEq(eqRange, strat);
       renderAllocation(strat);
       renderFees(strat);
       renderHoldings(strat);
       renderMonthlyPerf(strat, yearForMonthly);
       renderCalendar(strat, calMonthIndex, calYear);
+      renderFinancialHealthStatic(); // stays static
+    }
+
+    /* ======= Benchmarks Popover (opened by Add Benchmark) ======= */
+    function createBenchPopover(){
+      const portal = document.getElementById('benchPortal');
+      portal.innerHTML = `
+        <div id="benchPanel" class="popover card p-4 w-[320px] border shadow-xl absolute z-30 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">Add Benchmarks</div>
+            <button id="bnClose" class="h-7 w-7 grid place-items-center rounded hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Choose strategies to compare</div>
+              <div id="bnList" class="grid grid-cols-2 gap-2"></div>
+            </div>
+            <div class="pt-2 flex items-center justify-between">
+              <button id="bnReset" class="text-slate-600 hover:text-slate-900">Clear</button>
+              <div class="flex items-center gap-2">
+                <button id="bnCancel" class="border rounded-lg px-3 py-1.5 hover:bg-slate-50">Cancel</button>
+                <button id="bnApply" class="bg-[var(--olive)] text-white rounded-lg px-3 py-1.5 hover:bg-[var(--olive-700)]">Apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      const list = document.getElementById('bnList');
+      const names = Object.keys(strategies).filter(n => n !== currentStrat);
+      list.innerHTML = names.map((n,i)=>`
+        <label class="flex items-center gap-2 border rounded-lg px-2 py-1 hover:bg-slate-50">
+          <input type="checkbox" value="${n}" class="accent-[var(--olive)] bn-check">
+          <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:${BENCH_COLORS[i % BENCH_COLORS.length]}"></span>
+          <span class="truncate">${n}</span>
+        </label>
+      `).join('');
+      syncBenchChecks();
+
+      // wire events
+      document.getElementById('bnClose').onclick = closeBenchPopover;
+      document.getElementById('bnCancel').onclick = closeBenchPopover;
+      document.getElementById('bnReset').onclick = ()=>{ selectedBenchmarks=[]; syncBenchChecks(); renderEq(eqRange, currentStrat); };
+      document.getElementById('bnApply').onclick = ()=>{
+        selectedBenchmarks = Array.from(document.querySelectorAll('.bn-check')).filter(cb=>cb.checked).map(cb=>cb.value);
+        selectedBenchmarks = selectedBenchmarks.filter(n => n !== currentStrat);
+        renderEq(eqRange, currentStrat);
+        closeBenchPopover();
+      };
+      // click-outside
+      document.addEventListener('click', (e)=>{
+        const p = document.getElementById('benchPanel'); const btn = document.getElementById('addBenchBtn');
+        if (!p.classList.contains('hidden') && !p.contains(e.target) && !btn.contains(e.target)) closeBenchPopover();
+      });
+      window.addEventListener('resize', ()=>{ const p = document.getElementById('benchPanel'); if (!p.classList.contains('hidden')) positionBenchPopover(); });
+      window.addEventListener('scroll', ()=>{ const p = document.getElementById('benchPanel'); if (!p.classList.contains('hidden')) positionBenchPopover(); }, { passive:true });
+    }
+
+    function positionBenchPopover(){
+      const panel = document.getElementById('benchPanel');
+      const btn = document.getElementById('addBenchBtn');
+      const r = btn.getBoundingClientRect();
+      panel.style.top = (r.bottom + window.scrollY + 10) + 'px';
+      panel.style.left = (Math.min(r.right - 320, window.innerWidth - 340) + window.scrollX) + 'px';
+    }
+    function openBenchPopover(){ const p = document.getElementById('benchPanel'); p.classList.remove('hidden'); positionBenchPopover(); }
+    function closeBenchPopover(){ const p = document.getElementById('benchPanel'); p.classList.add('hidden'); }
+    function syncBenchChecks(){ document.querySelectorAll('.bn-check').forEach(cb => cb.checked = selectedBenchmarks.includes(cb.value)); }
+
+    /* ======= Export Fact Sheet (PDF) ======= */
+    function exportFactSheet(){
+      // show date in print header
+      document.getElementById('printDate').textContent = new Date().toLocaleString();
+      const element = document.getElementById('sheetArea');
+      const opt = {
+        margin:       [10,10,10,10],
+        filename:     `Algohive_Fact_Sheet_${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { avoid: ['.card','table','h1','h2','h3'] }
+      };
+      html2pdf().from(document.body.cloneNode(true)).set(opt).toPdf().get('pdf').save();
     }
 
     /* ========== INIT & INTERACTION ========== */
@@ -876,143 +987,10 @@
       const yr = +yearSel.value;
       const dpMonth = document.getElementById('dpMonth');
       const dpYear = document.getElementById('dpYear');
-      renderAll(name, yr, +dpMonth.value, +dpYear.value);
-      // keep selected benches (but prevent self)
+      // keep benchmarks but ensure no self
       selectedBenchmarks = selectedBenchmarks.filter(b => b !== name);
-      syncConfigChecks();
-      renderEq(eqRange, currentStrat);
-    }
-
-    // ===== Configure Portfolio Popover =====
-    function createConfigPopover(){
-      const portal = document.getElementById('configPortal');
-      portal.innerHTML = `
-        <div id="configPanel" class="popover card p-4 w-[320px] border shadow-xl absolute z-30 hidden">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-semibold">Configure Portfolio</div>
-            <button id="cfgClose" class="h-7 w-7 grid place-items-center rounded hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-
-          <div class="space-y-3 text-sm">
-            <div>
-              <div class="text-xs text-slate-500 mb-1">Default Strategy</div>
-              <select id="cfgDefaultStrat" class="w-full border rounded-lg px-2 py-1"></select>
-            </div>
-
-            <div>
-              <div class="text-xs text-slate-500 mb-1">Benchmarks (compare on equity curve)</div>
-              <div id="cfgBenchList" class="grid grid-cols-2 gap-2"></div>
-            </div>
-
-            <div class="pt-1">
-              <div class="text-xs text-slate-500 mb-1">Options</div>
-              <label class="flex items-center gap-2">
-                <input id="cfgShowLegend" type="checkbox" class="accent-[var(--olive)]" checked>
-                <span>Show legend chips</span>
-              </label>
-            </div>
-
-            <div class="pt-2 flex items-center justify-between">
-              <button id="cfgReset" class="text-slate-600 hover:text-slate-900">Reset</button>
-              <div class="flex items-center gap-2">
-                <button id="cfgCancel" class="border rounded-lg px-3 py-1.5 hover:bg-slate-50">Cancel</button>
-                <button id="cfgApply" class="bg-[var(--olive)] text-white rounded-lg px-3 py-1.5 hover:bg-[var(--olive-700)]">Apply</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function positionPopover(){
-      const panel = document.getElementById('configPanel');
-      const btn = document.getElementById('configureBtn');
-      const r = btn.getBoundingClientRect();
-      panel.style.top = (r.bottom + window.scrollY + 10) + 'px';
-      panel.style.left = (Math.min(r.left, window.innerWidth - 340) + window.scrollX) + 'px';
-    }
-
-    function openPopover(){
-      const panel = document.getElementById('configPanel');
-      panel.classList.remove('hidden');
-      positionPopover();
-      setTimeout(()=> panel.dataset.open = '1', 0);
-    }
-    function closePopover(){
-      const panel = document.getElementById('configPanel');
-      panel.classList.add('hidden');
-      delete panel.dataset.open;
-    }
-
-    function syncConfigUI(){
-      // default strategy list
-      const sel = document.getElementById('cfgDefaultStrat');
-      sel.innerHTML = Object.keys(strategies).map(n => `<option value="${n}">${n}</option>`).join('');
-      sel.value = currentStrat;
-
-      // benchmarks list (checkboxes)
-      const list = document.getElementById('cfgBenchList');
-      const names = Object.keys(strategies).filter(n => n !== currentStrat);
-      list.innerHTML = names.map((n,i)=>`
-        <label class="flex items-center gap-2 border rounded-lg px-2 py-1 hover:bg-slate-50">
-          <input type="checkbox" value="${n}" class="accent-[var(--olive)] cfg-bench">
-          <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:${BENCH_COLORS[i % BENCH_COLORS.length]}"></span>
-          <span class="truncate">${n}</span>
-        </label>
-      `).join('');
-      syncConfigChecks();
-    }
-
-    function syncConfigChecks(){
-      document.querySelectorAll('.cfg-bench').forEach(cb => {
-        cb.checked = selectedBenchmarks.includes(cb.value);
-      });
-      // hide/show legend
-      const show = document.getElementById('cfgShowLegend')?.checked ?? true;
-      document.getElementById('eqLegend').style.display = show ? '' : 'none';
-    }
-
-    function wirePopover(){
-      const btn = document.getElementById('configureBtn');
-      btn.addEventListener('click', ()=>{
-        const panel = document.getElementById('configPanel');
-        if (panel.classList.contains('hidden')) { openPopover(); }
-        else { closePopover(); }
-      });
-
-      window.addEventListener('resize', ()=>{ const p = document.getElementById('configPanel'); if (!p.classList.contains('hidden')) positionPopover(); });
-      window.addEventListener('scroll', ()=>{ const p = document.getElementById('configPanel'); if (!p.classList.contains('hidden')) positionPopover(); }, { passive:true });
-
-      document.addEventListener('click', (e)=>{
-        const p = document.getElementById('configPanel');
-        const btn = document.getElementById('configureBtn');
-        if (!p.classList.contains('hidden') && !p.contains(e.target) && !btn.contains(e.target)) closePopover();
-      });
-
-      document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closePopover(); });
-
-      document.getElementById('cfgClose').addEventListener('click', closePopover);
-      document.getElementById('cfgCancel').addEventListener('click', closePopover);
-      document.getElementById('cfgReset').addEventListener('click', ()=>{
-        selectedBenchmarks = [];
-        syncConfigChecks();
-        renderEq(eqRange, currentStrat);
-      });
-
-      document.getElementById('cfgApply').addEventListener('click', ()=>{
-        const sel = document.getElementById('cfgDefaultStrat');
-        const newStrat = sel.value;
-        selectedBenchmarks = Array.from(document.querySelectorAll('.cfg-bench')).filter(cb=>cb.checked).map(cb=>cb.value);
-        // don’t allow main as benchmark
-        selectedBenchmarks = selectedBenchmarks.filter(n => n !== newStrat);
-        setStrategy(newStrat);
-        renderEq(eqRange, currentStrat);
-        closePopover();
-      });
-
-      document.getElementById('cfgShowLegend').addEventListener('change', ()=>{
-        syncConfigChecks();
-      });
+      renderAll(name, yr, +dpMonth.value, +dpYear.value);
+      createBenchPopover(); // refresh options
     }
 
     (async function () {
@@ -1020,7 +998,7 @@
       buildMenu('dashboard');
       document.getElementById('greet').textContent = greetLine();
 
-      // Equity range tabs
+      // Equity tabs
       document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('#eqTabs .tab-btn').forEach(x => x.classList.remove('active'));
@@ -1030,17 +1008,9 @@
         });
       });
 
-      // Strategies side list (with FullPortfolio)
+      // Strategies side list
       const subsWrap = document.getElementById('subsWrap');
-      subsWrap.innerHTML = [
-        { name: 'FullPortfolio', provider: 'All',       change: +0.9, aum: 'Aggregate', series:[9,9.2,9.5,9.3,9.7,10.2,10.5] },
-        { name: 'Trend Alpha',   provider: 'AlgoForge', change: +1.8, aum: 'R1.2m',     series:[10,12,11,13,12,15,14,16] },
-        { name: 'Momentum FX',   provider: 'QuantBee',  change: +0.9, aum: 'R820k',     series:[8,8.4,8.2,8.6,8.9,9.2,9.6] },
-        { name: 'Grid Delta',    provider: 'GridOps',   change: -0.6, aum: 'R540k',     series:[7,6.9,6.7,6.8,6.6,6.7,6.5] },
-        { name: 'NewsPulse',     provider: 'PulseAI',   change: +1.2, aum: 'R410k',     series:[6,6.2,6.4,6.1,6.5,6.7,6.9] },
-        { name: 'Equity Trend+', provider: 'AlgoForge', change: +0.4, aum: 'R2.0m',     series:[9,9.1,9.2,9.3,9.5,9.6,9.8] },
-        { name: 'Carry FX',      provider: 'QuantBee',  change: +0.3, aum: 'R300k',     series:[5,5.1,5.2,5.15,5.25,5.3,5.35] }
-      ].map(s => `
+      subsWrap.innerHTML = subs.map(s => `
         <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
           <div class="flex items-center justify-between">
             <div class="font-medium text-sm truncate">${s.name}</div>
@@ -1049,23 +1019,18 @@
           <div class="text-xs text-slate-500">${s.provider} · AUM ${s.aum}</div>
           <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
         </div>`).join('');
-      document.querySelectorAll('#subsWrap .sub-card').forEach(card => {
-        card.addEventListener('click', () => setStrategy(card.getAttribute('data-key')));
-      });
+      document.querySelectorAll('#subsWrap .sub-card').forEach(card => card.addEventListener('click', () => setStrategy(card.getAttribute('data-key'))));
 
-      // Strategy dropdown + Year dropdown
+      // Strategy + Year selectors
       const stratSel = document.getElementById('stratSel');
       stratSel.innerHTML = Object.keys(strategies).map(n => `<option value="${n}">${n}</option>`).join('');
       stratSel.addEventListener('change', e => setStrategy(e.target.value));
-
       const yearSel = document.getElementById('yearSel');
       yearSel.innerHTML = YEARS.map(y=>`<option value="${y}">${y}</option>`).join('');
       yearSel.value = new Date().getFullYear();
-      yearSel.addEventListener('change', ()=>{
-        renderMonthlyPerf(currentStrat, +yearSel.value);
-      });
+      yearSel.addEventListener('change', ()=> renderMonthlyPerf(currentStrat, +yearSel.value));
 
-      // Daily Performance month/year selectors
+      // Daily perf selectors
       const dpMonth = document.getElementById('dpMonth');
       dpMonth.innerHTML = MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
       const dpYear = document.getElementById('dpYear');
@@ -1076,14 +1041,23 @@
       dpMonth.addEventListener('change', ()=> renderCalendar(currentStrat, +dpMonth.value, +dpYear.value));
       dpYear.addEventListener('change', ()=> renderCalendar(currentStrat, +dpMonth.value, +dpYear.value));
 
-      // Config popover
-      createConfigPopover();
-      syncConfigUI();
-      wirePopover();
+      // Bench popover
+      createBenchPopover();
+      document.getElementById('addBenchBtn').addEventListener('click', ()=>{
+        const p = document.getElementById('benchPanel');
+        if (p.classList.contains('hidden')) openBenchPopover(); else closeBenchPopover();
+      });
+
+      // Export
+      document.getElementById('exportBtn').addEventListener('click', exportFactSheet);
+
+      // Health CTA
+      document.getElementById('healthCta').addEventListener('click', ()=> {
+        alert('Opening Financial Tracker… (hook this into your route when ready).');
+      });
 
       // Initial render
       stratSel.value = currentStrat;
-      document.getElementById('greet').textContent = greetLine();
       renderAll(currentStrat, +yearSel.value, +dpMonth.value, +dpYear.value);
     })();
   </script>
