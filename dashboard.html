@@ -42,6 +42,17 @@
       .print-header { display:flex !important; }
       .card { box-shadow:none !important; }
     }
+    /* Sidebar collapse behavior */
+#sidebar { width: 260px; transition: width .2s ease; }
+#sidebar.is-collapsed { width: 64px; }
+#sidebar .label { transition: opacity .15s ease; }
+#sidebar.is-collapsed .label { opacity: 0; pointer-events: none; }
+
+/* Optional: tighten link layout when collapsed */
+#sidebar.is-collapsed .sidebar-link { justify-content: center; }
+#sidebar .sidebar-link { display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:.5rem; }
+#sidebar .sidebar-link i { width:18px; text-align:center; }
+
   </style>
 </head>
 
@@ -349,52 +360,87 @@
         // fail silently for standalone demo
       }
     }
-    function buildMenu(activeKey = 'dashboard') {
-      const navContainer = document.getElementById('navContainer');
-      if (!navContainer) return;
-      const menu = [{
-        section: "Menu", items: [
-          { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
-          { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
-          { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
-          { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
-          { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
-          { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
-          { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
-        ]
-      }, {
-        section: "General", items: [
-          { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
-          { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
-          { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
-          { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
-        ]
-      }];
-      function group(sec) {
-        const g = document.createElement('div'); g.className = 'mb-2';
-        const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
-        const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
-        const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
-        const body = document.createElement('div'); body.className = 'group-body';
-        const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
-        sec.items.forEach(it => {
-          const a = document.createElement('a'); a.href = it.href; a.className = 'sidebar-link'; a.title = it.label;
-          if (it.key === activeKey) a.classList.add('active');
-          a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`; list.appendChild(a);
-        });
-        body.appendChild(list); header.append(title, right); g.append(header, body);
-        requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
-        header.addEventListener('click', () => {
-          const exp = header.getAttribute('aria-expanded') === 'true';
-          header.setAttribute('aria-expanded', String(!exp));
-          const chev = header.querySelector('.chev');
-          if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); }
-          else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
-        });
-        return g;
-      }
-      navContainer.innerHTML = ''; menu.forEach(s => navContainer.appendChild(group(s)));
-    }
+function buildMenu(activeKey = 'dashboard') {
+  const navContainer = document.getElementById('navContainer');
+  if (!navContainer) return;
+
+  const menu = [{
+    section: "Menu", items: [
+      { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
+      { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
+      { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
+      { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
+      { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
+      { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
+      { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
+    ]
+  }, {
+    section: "General", items: [
+      { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
+      { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
+      { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
+      { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
+    ]
+  }];
+
+  function group(sec) {
+    const g = document.createElement('div'); g.className = 'mb-2';
+    const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
+    const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
+    const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
+    const body = document.createElement('div'); body.className = 'group-body';
+    const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
+
+    sec.items.forEach(it => {
+      const a = document.createElement('a');
+      a.href = it.href;
+      a.className = 'sidebar-link';
+      a.title = it.label;
+      if (it.key === activeKey) a.classList.add('active');
+      a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`;
+      list.appendChild(a);
+    });
+
+    body.appendChild(list); header.append(title, right); g.append(header, body);
+    requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
+
+    header.addEventListener('click', () => {
+      const exp = header.getAttribute('aria-expanded') === 'true';
+      header.setAttribute('aria-expanded', String(!exp));
+      const chev = header.querySelector('.chev');
+      if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); }
+      else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
+    });
+    return g;
+  }
+
+  navContainer.innerHTML = '';
+  menu.forEach(s => navContainer.appendChild(group(s)));
+
+  // ✅ Collapse wiring
+  const sidebar = document.getElementById('sidebar');
+  const collapseBtn = document.getElementById('collapseBtn');
+  if (sidebar && collapseBtn) {
+    const applyState = (collapsed) => {
+      sidebar.classList.toggle('is-collapsed', collapsed);
+      collapseBtn.innerHTML = collapsed
+        ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+        : '<i class="fa-solid fa-angles-left text-sm"></i>';
+    };
+
+    // restore persisted state
+    let collapsed = false;
+    try { collapsed = sessionStorage.getItem('ah_sidebar_collapsed') === '1'; } catch(e){}
+    applyState(collapsed);
+
+    collapseBtn.addEventListener('click', () => {
+      collapsed = !collapsed;
+      applyState(collapsed);
+      try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e){}
+    });
+  }
+}
+
 
     /* ========== UTIL & DRAW ========== */
     const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v);
