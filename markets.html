@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AlgoHive — Markets</title>
+
+  <!-- Tailwind + Fonts + Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
+    html,body{ font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page-bg); color:#0f172a }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
+    .glass{ backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
+    .topbar{ height:52px }
+    .sidebar-link.active{ background:linear-gradient(90deg, rgba(85,107,47,.10), transparent); border-left:3px solid var(--olive); }
+    .news-row:hover{ background: #fafafa; }
+    .shadow-soft{ box-shadow:0 8px 30px rgba(0,0,0,.06) }
+    .tag{ font-size:.68rem; border:1px solid #e5e7eb; border-radius: 999px; padding: .15rem .5rem; }
+    @media (max-width: 1024px){ .hide-lg{ display:none } }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex">
+    <!-- GLOBAL MENU (same partial system) -->
+    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+
+    <!-- MAIN -->
+    <main class="flex-1 min-h-screen">
+      <!-- Topbar -->
+      <section class="glass sticky top-0 z-10 topbar">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
+          <a href="/dashboard.html" class="text-sm text-slate-600 hover:underline">Dashboard</a>
+          <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+          <div class="text-sm text-slate-900 font-medium">Markets</div>
+
+          <div class="flex items-center gap-2 w-full">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
+              <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
+              <input id="search" placeholder="Search headlines or sources…" class="outline-none text-sm w-64"/>
+            </div>
+
+            <div class="ml-auto flex items-center gap-2">
+              <select id="selCategory" class="border rounded-lg text-sm px-2 py-1">
+                <option value="">All</option>
+                <option value="stocks">Stocks</option>
+                <option value="crypto">Crypto</option>
+                <option value="forex">Forex</option>
+                <option value="economy">Economy</option>
+              </select>
+              <select id="selLang" class="border rounded-lg text-sm px-2 py-1 hide-lg">
+                <option value="">Lang: Any</option>
+                <option value="en">English</option>
+              </select>
+              <button id="btnRefresh" class="rounded-lg h-9 px-3 border bg-white">
+                <i class="fa-solid fa-rotate-right mr-2"></i>Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Page container -->
+      <div class="max-w-7xl mx-auto px-6">
+        <!-- Header / Tabs -->
+        <section class="pt-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-slate-500">Market News & Insights</div>
+              <h1 class="text-[28px] font-semibold leading-tight">Live Headlines</h1>
+              <div class="text-sm text-slate-500" id="lastUpdated">Updated —</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1.5 text-sm border rounded-lg tab" data-tab="top">Top Stories</button>
+              <button class="px-3 py-1.5 text-sm border rounded-lg tab active" data-tab="latest">Latest</button>
+              <button class="px-3 py-1.5 text-sm border rounded-lg tab" data-tab="crypto">Crypto</button>
+              <button class="px-3 py-1.5 text-sm border rounded-lg tab" data-tab="stocks">Stocks</button>
+              <button class="px-3 py-1.5 text-sm border rounded-lg tab" data-tab="forex">Forex</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Content Grid -->
+        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT MAIN -->
+          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+            <!-- News list -->
+            <div class="card p-4 sm:p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Headlines</div>
+                <div class="text-xs text-slate-500" id="count"></div>
+              </div>
+              <div id="newsList" class="divide-y"></div>
+              <div id="emptyState" class="hidden text-sm text-slate-500 text-center py-8">No news found.</div>
+
+              <div class="flex justify-center pt-4">
+                <button id="btnLoadMore" class="px-4 py-2 border rounded-lg text-sm bg-white">Load more</button>
+              </div>
+            </div>
+
+            <!-- Sources leaderboard -->
+            <div class="card p-4 sm:p-5">
+              <div class="font-semibold mb-3">Top Sources (session)</div>
+              <div id="sourceCloud" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
+            <!-- Quick filters -->
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Quick Filters</div>
+              <div class="flex flex-wrap gap-2">
+                <button class="tag quick" data-q="Fed">Fed</button>
+                <button class="tag quick" data-q="ECB">ECB</button>
+                <button class="tag quick" data-q="earnings">Earnings</button>
+                <button class="tag quick" data-q="merger">M&A</button>
+                <button class="tag quick" data-q="Bitcoin">Bitcoin</button>
+                <button class="tag quick" data-q="Rand">Rand</button>
+                <button class="tag quick" data-q="Gold">Gold</button>
+                <button class="tag quick" data-q="Oil">Oil</button>
+              </div>
+            </div>
+
+            <!-- Market tickers (static placeholders – swap in live later) -->
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Snapshot</div>
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center justify-between"><span>USD/ZAR</span><span class="font-medium">—</span></div>
+                <div class="flex items-center justify-between"><span>S&P 500</span><span class="font-medium">—</span></div>
+                <div class="flex items-center justify-between"><span>BTC/USD</span><span class="font-medium">—</span></div>
+                <div class="flex items-center justify-between"><span>Gold</span><span class="font-medium">—</span></div>
+              </div>
+              <div class="text-xs text-slate-400 mt-2">* Coming soon: real quotes.</div>
+            </div>
+
+            <!-- Saved articles (client-side) -->
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Reading List</div>
+              <div id="readingList" class="text-sm space-y-2"></div>
+              <button id="btnClearRL" class="mt-3 px-3 py-1.5 text-xs border rounded-lg">Clear</button>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ===== MENU PARTIAL (reuse your existing) ===== */
+    async function loadMenu(){
+      const mount=document.getElementById('sidebarMount');
+      const url=(mount.getAttribute('data-menu')||'/partials/menu.html').trim();
+      const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('Failed to load '+url);
+      mount.outerHTML=await res.text();
+    }
+    function buildMenu(activeKey='news'){ // highlight Markets/News item
+      const navContainer=document.getElementById('navContainer'); if(!navContainer) return;
+      // assuming your partial renders links with ids; otherwise keep your existing function
+      const link = navContainer.querySelector('a[href="/news.html"], a[href="/markets.html"]');
+      if(link) link.classList.add('active');
+    }
+
+    /* ===== DATA FUNNEL =====
+       API (TradingView RapidAPI -> node script) -> writes /news/data/latest.json -> UI fetches it here.
+       If your UI is on another host, set window.NEWS_JSON_URL to your RAW GitHub URL.
+    */
+    window.NEWS_JSON_URL = ""; // e.g. "https://raw.githubusercontent.com/<you>/<repo>/main/news/data/latest.json"
+
+    const $news = document.getElementById('newsList');
+    const $count = document.getElementById('count');
+    const $empty = document.getElementById('emptyState');
+    const $search = document.getElementById('search');
+    const $selCat = document.getElementById('selCategory');
+    const $selLang = document.getElementById('selLang');
+    const $btnRefresh = document.getElementById('btnRefresh');
+    const $btnMore = document.getElementById('btnLoadMore');
+    const $lastUpdated = document.getElementById('lastUpdated');
+    const $sourceCloud = document.getElementById('sourceCloud');
+    const $readingList = document.getElementById('readingList');
+    const $btnClearRL = document.getElementById('btnClearRL');
+
+    const $tabs = Array.from(document.querySelectorAll('.tab'));
+    let TAB = 'latest';
+    let ALL = [];       // normalized items
+    let VIEW = [];      // filtered view
+    let PAGE = 1;       // client-side paging
+    const PAGE_SIZE = 20;
+
+    function fmtTime(t){
+      try{
+        const n = typeof t==='number' ? (t>1e12?t:t*1000) : Date.parse(t);
+        const d = new Date(n); if(isNaN(d)) return '';
+        return d.toLocaleString();
+      }catch{return''}
+    }
+
+    // Normalize TradingView shapes
+    function norm(x){
+      const title = x.title || x.headline || x.name || '';
+      const url = x.url || x.link || x.storyUrl || x.shareUrl || '#';
+      const source = (x.source && (x.source.title||x.source.name)) || x.provider || x.channel || 'TradingView';
+      const ts = x.time_published || x.published_time || x.published || x.datetime || x.timestamp || x.date;
+      const cats = x.categories || x.category || [];
+      const syms = x.symbols || x.tickers || [];
+      // flatten
+      const catList = Array.isArray(cats)? cats : (cats ? [cats] : []);
+      const symList = Array.isArray(syms)? syms : (syms ? [syms] : []);
+      // infer a coarse category for tabs
+      const catGuess = (()=>{
+        const t = (title||'').toLowerCase();
+        if (t.includes('bitcoin')||t.includes('crypto')||t.includes('ethereum')||t.includes('btc')||t.includes('eth')) return 'crypto';
+        if (t.includes('forex')||t.includes('eurusd')||t.includes('usdzar')||t.includes('usd/zar')||t.includes('fx')) return 'forex';
+        if (t.includes('stock')||t.includes('nasdaq')||t.includes('s&p')||t.includes('earnings')) return 'stocks';
+        if (t.includes('inflation')||t.includes('gdp')||t.includes('cpi')||t.includes('economy')||t.includes('fomc')) return 'economy';
+        return '';
+      })();
+
+      return {
+        title: String(title).trim(),
+        url, source, time: ts,
+        categories: catList.map(s=>String(s).toLowerCase()),
+        symbols: symList,
+        tab: catGuess
+      }
+    }
+
+    function saveRL(item){
+      try{
+        const key='ah_reading_list';
+        const cur=JSON.parse(localStorage.getItem(key)||'[]');
+        if(!cur.find(x=>x.url===item.url)){ cur.unshift({title:item.title,url:item.url,ts:Date.now()}); }
+        localStorage.setItem(key, JSON.stringify(cur.slice(0,50)));
+        renderRL();
+      }catch{}
+    }
+    function renderRL(){
+      try{
+        const key='ah_reading_list';
+        const cur=JSON.parse(localStorage.getItem(key)||'[]');
+        $readingList.innerHTML = cur.length
+          ? cur.map(i=>`<div class="flex items-center justify-between gap-2">
+              <a class="truncate hover:underline" href="${i.url}" target="_blank" rel="noopener">${i.title}</a>
+              <span class="text-xs text-slate-400">${fmtTime(i.ts)}</span>
+            </div>`).join('')
+          : '<div class="text-slate-500 text-sm">Nothing saved yet.</div>';
+      }catch{ $readingList.innerHTML = '<div class="text-slate-500 text-sm">Nothing saved yet.</div>'; }
+    }
+
+    function renderSources(items){
+      const by = {};
+      items.forEach(i=>{ by[i.source]=(by[i.source]||0)+1; });
+      const sorted = Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,12);
+      $sourceCloud.innerHTML = sorted.map(([s,c])=> `<span class="tag">${s} · ${c}</span>`).join('');
+    }
+
+    function renderList(reset=false){
+      if(reset){ $news.innerHTML=''; PAGE=1; }
+      const start=(PAGE-1)*PAGE_SIZE, end=PAGE*PAGE_SIZE;
+      const slice = VIEW.slice(start,end);
+      if(reset && !slice.length){ $empty.classList.remove('hidden'); $count.textContent='0 items'; return; }
+      $empty.classList.add('hidden');
+
+      const frag = document.createDocumentFragment();
+      slice.forEach(it=>{
+        const row=document.createElement('div'); row.className='news-row py-3 flex items-start gap-3';
+        row.innerHTML = `
+          <div class="grow min-w-0">
+            <a class="font-medium hover:underline block truncate" href="${it.url}" target="_blank" rel="noopener">${it.title || '(No title)'}</a>
+            <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-2">
+              <span>${it.source}</span>·<span>${fmtTime(it.time)}</span>
+            </div>
+            <div class="mt-1 flex flex-wrap gap-1">
+              ${it.categories.slice(0,4).map(c=>`<span class="tag">${c}</span>`).join('')}
+              ${Array.isArray(it.symbols)&&it.symbols.length? `<span class="tag">${it.symbols.slice(0,3).join(' · ')}</span>`:''}
+            </div>
+          </div>
+          <div class="shrink-0">
+            <button class="px-2 py-1 border rounded-md text-xs" data-save>Save</button>
+          </div>`;
+        row.querySelector('[data-save]').addEventListener('click', ()=> saveRL(it));
+        frag.appendChild(row);
+      });
+      if(reset) $news.appendChild(frag); else $news.appendChild(frag);
+
+      $count.textContent = `${VIEW.length} items`;
+      $btnMore.classList.toggle('hidden', VIEW.length <= end);
+    }
+
+    function applyFilters(){
+      const q = ($search.value||'').toLowerCase().trim();
+      const cat = ($selCat.value||'').toLowerCase();
+      const lang = ($selLang.value||'').toLowerCase();
+
+      VIEW = ALL.filter(it=>{
+        const okTab = !TAB || TAB==='latest' || (TAB==='top' ? true : it.tab===TAB);
+        const okCat = !cat || it.categories.includes(cat) || it.tab===cat;
+        const okQ = !q || it.title.toLowerCase().includes(q) || (it.source||'').toLowerCase().includes(q);
+        // language check is best-effort; TradingView payload may not include lang—skip unless present
+        const okLang = !lang || (it.lang||'').toLowerCase()===lang;
+        return okTab && okCat && okQ && okLang;
+      });
+
+      renderSources(VIEW);
+      renderList(true);
+    }
+
+    async function fetchLatest(){
+      const candidates = [
+        '/news/data/latest.json',
+        window.NEWS_JSON_URL
+      ].filter(Boolean);
+
+      let data=null, lastErr=null;
+      for(const u of candidates){
+        try{
+          const r=await fetch(u, {cache:'no-store'});
+          if(!r.ok) throw new Error(r.status);
+          data = await r.json();
+          break;
+        }catch(e){ lastErr = e; }
+      }
+      if(!data){ console.error('Failed to load latest.json', lastErr); return; }
+
+      // accept array or {data:[...]}
+      const arr = Array.isArray(data) ? data
+                : Array.isArray(data.data) ? data.data
+                : Array.isArray(data.items) ? data.items
+                : Array.isArray(data.news) ? data.news
+                : [];
+
+      ALL = arr.map(norm).filter(x=>x.title);
+      $lastUpdated.textContent = 'Updated ' + new Date().toLocaleString();
+      applyFilters();
+    }
+
+    (async function boot(){
+      await loadMenu();
+      buildMenu('news');
+
+      // events
+      $tabs.forEach(b=>{
+        b.addEventListener('click', ()=>{
+          $tabs.forEach(x=>x.classList.remove('active'));
+          b.classList.add('active');
+          TAB = b.dataset.tab;
+          applyFilters();
+        });
+      });
+      document.querySelectorAll('.quick').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          $search.value = b.dataset.q || '';
+          applyFilters();
+        });
+      });
+      $search.addEventListener('input', applyFilters);
+      $selCat.addEventListener('change', applyFilters);
+      $selLang.addEventListener('change', applyFilters);
+      $btnRefresh.addEventListener('click', fetchLatest);
+      $btnMore.addEventListener('click', ()=>{ PAGE++; renderList(false); });
+      $btnClearRL.addEventListener('click', ()=>{ localStorage.removeItem('ah_reading_list'); renderRL(); });
+
+      renderRL();
+      fetchLatest();
+    })();
+  </script>
+</body>
+</html>
