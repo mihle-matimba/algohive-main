@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlgoHive — News & Insights</title>
+  <title>AlgoHive — News</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,11 +19,8 @@
     .topbar{ height:52px }
     .sidebar-link.active{ background:linear-gradient(90deg, rgba(85,107,47,.10), transparent); border-left:3px solid var(--olive); }
     .news-row:hover{ background:#fafafa; }
-    .shadow-soft{ box-shadow:0 8px 30px rgba(0,0,0,.06) }
     .tag{ font-size:.68rem; border:1px solid #e5e7eb; border-radius:999px; padding:.15rem .5rem; }
-    @media (max-width: 1024px){ .hide-lg{ display:none } }
-
-    /* Sidebar collapse behavior (same as dashboard) */
+    /* Sidebar collapse */
     #sidebar { width: 260px; transition: width .2s ease; }
     #sidebar.is-collapsed { width: 64px; }
     #sidebar .label { transition: opacity .15s ease; }
@@ -45,7 +42,7 @@
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
           <a href="/dashboard.html" class="text-sm text-slate-600 hover:underline">Dashboard</a>
           <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-          <div class="text-sm text-slate-900 font-medium">News & Insights</div>
+          <div class="text-sm text-slate-900 font-medium">News</div>
 
           <div class="flex items-center gap-2 w-full">
             <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
@@ -61,10 +58,6 @@
                 <option value="forex">Forex</option>
                 <option value="economy">Economy</option>
               </select>
-              <select id="selLang" class="border rounded-lg text-sm px-2 py-1 hide-lg">
-                <option value="">Lang: Any</option>
-                <option value="en">English</option>
-              </select>
               <button id="btnRefresh" class="rounded-lg h-9 px-3 border bg-white">
                 <i class="fa-solid fa-rotate-right mr-2"></i>Refresh
               </button>
@@ -79,8 +72,8 @@
         <section class="pt-6">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div class="text-xs uppercase tracking-wider text-slate-500">Market News & Insights</div>
-              <h1 class="text-[28px] font-semibold leading-tight">Live Headlines</h1>
+              <div class="text-xs uppercase tracking-wider text-slate-500">Market News</div>
+              <h1 class="text-[28px] font-semibold leading-tight">News</h1>
               <div class="text-sm text-slate-500" id="lastUpdated">Updated —</div>
             </div>
             <div class="flex items-center gap-2">
@@ -120,21 +113,6 @@
 
           <!-- RIGHT RAIL -->
           <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
-            <!-- Quick filters -->
-            <div class="card p-5">
-              <div class="font-semibold mb-2">Quick Filters</div>
-              <div class="flex flex-wrap gap-2">
-                <button class="tag quick" data-q="Fed">Fed</button>
-                <button class="tag quick" data-q="ECB">ECB</button>
-                <button class="tag quick" data-q="earnings">Earnings</button>
-                <button class="tag quick" data-q="merger">M&A</button>
-                <button class="tag quick" data-q="Bitcoin">Bitcoin</button>
-                <button class="tag quick" data-q="Rand">Rand</button>
-                <button class="tag quick" data-q="Gold">Gold</button>
-                <button class="tag quick" data-q="Oil">Oil</button>
-              </div>
-            </div>
-
             <!-- Snapshot (placeholder) -->
             <div class="card p-5">
               <div class="font-semibold mb-2">Snapshot</div>
@@ -168,11 +146,8 @@
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to load ' + url);
         mount.outerHTML = await res.text();
-      } catch (e) {
-        // fail silently if partial missing (keeps standalone workable)
-      }
+      } catch (e) { /* silent for standalone */ }
     }
-
     function buildMenu(activeKey = 'news') {
       const navContainer = document.getElementById('navContainer');
       if (!navContainer) return;
@@ -184,7 +159,7 @@
           { key: "portfolio",       label: "My Portfolio",       icon: "fa-chart-line",     href: "/portfolio.html" },
           { key: "funding",         label: "Funding",            icon: "fa-wallet",         href: "/funding.html" },
           { key: "reports",         label: "Reports",            icon: "fa-file-invoice",   href: "/reports.html" },
-          { key: "news",            label: "News & Insights",    icon: "fa-newspaper",      href: "/news.html" },
+          { key: "news",            label: "News",               icon: "fa-newspaper",      href: "/news.html" },
           { key: "alerts",          label: "Notifications",      icon: "fa-bell",           href: "/alerts.html" },
         ]
       }, {
@@ -230,7 +205,6 @@
       navContainer.innerHTML = '';
       menu.forEach(s => navContainer.appendChild(group(s)));
 
-      // Collapse wiring
       const sidebar = document.getElementById('sidebar');
       const collapseBtn = document.getElementById('collapseBtn');
       if (sidebar && collapseBtn) {
@@ -240,12 +214,9 @@
             ? '<i class="fa-solid fa-angles-right text-sm"></i>'
             : '<i class="fa-solid fa-angles-left text-sm"></i>';
         };
-
-        // restore persisted state
         let collapsed = false;
         try { collapsed = sessionStorage.getItem('ah_sidebar_collapsed') === '1'; } catch(e){}
         applyState(collapsed);
-
         collapseBtn.addEventListener('click', () => {
           collapsed = !collapsed;
           applyState(collapsed);
@@ -255,15 +226,13 @@
     }
 
     /* ========== NEWS DATA ========== */
-    // If your JSON lives elsewhere, set this to a full URL (e.g. GitHub raw).
-    window.NEWS_JSON_URL = ""; // "https://raw.githubusercontent.com/<you>/<repo>/main/news/data/latest.json"
+    window.NEWS_JSON_URL = ""; // set to absolute URL if hosting JSON elsewhere
 
     const $news = document.getElementById('newsList');
     const $count = document.getElementById('count');
     const $empty = document.getElementById('emptyState');
     const $search = document.getElementById('search');
     const $selCat = document.getElementById('selCategory');
-    const $selLang = document.getElementById('selLang');
     const $btnRefresh = document.getElementById('btnRefresh');
     const $btnMore = document.getElementById('btnLoadMore');
     const $lastUpdated = document.getElementById('lastUpdated');
@@ -286,11 +255,32 @@
       }catch{return''}
     }
 
+    function toAbsoluteUrl(u){
+      try{
+        if(!u) return "";
+        if(u.startsWith("//")) return "https:" + u;
+        if(!/^https?:\/\//i.test(u)) return "https://" + u;
+        return new URL(u).toString();
+      }catch{return "";}
+    }
+
+    function faviconFor(urlStr, fallbackDomain=""){
+      try{
+        const h = new URL(urlStr).hostname || fallbackDomain || "";
+        if(!h) return "";
+        return `https://www.google.com/s2/favicons?domain=${h}&sz=64`;
+      }catch{
+        if(fallbackDomain) return `https://www.google.com/s2/favicons?domain=${fallbackDomain}&sz=64`;
+        return "";
+      }
+    }
+
     // Normalize varied shapes
     function norm(x){
       const title = x.title || x.headline || x.name || '';
-      const url = x.url || x.link || x.storyUrl || x.shareUrl || '#';
-      const source = (x.source && (x.source.title||x.source.name)) || x.provider || x.channel || 'TradingView';
+      const url = x.url || x.link || x.storyUrl || x.shareUrl || '';
+      const absUrl = toAbsoluteUrl(url);
+      const source = (x.source && (x.source.title||x.source.name)) || x.provider || x.channel || '';
       const ts = x.time_published || x.published_time || x.published || x.datetime || x.timestamp || x.date;
       const cats = x.categories || x.category || [];
       const syms = x.symbols || x.tickers || [];
@@ -308,11 +298,12 @@
 
       return {
         title: String(title).trim(),
-        url, source, time: ts,
+        url: absUrl,
+        source: source || (absUrl ? new URL(absUrl).hostname : '—'),
+        time: ts,
         categories: catList.map(s=>String(s).toLowerCase()),
         symbols: symList,
-        tab: catGuess,
-        lang: x.lang || x.language || ''
+        tab: catGuess
       }
     }
 
@@ -333,7 +324,7 @@
         $readingList.innerHTML = cur.length
           ? cur.map(i=>`
               <div class="flex items-center justify-between gap-2">
-                <a class="truncate hover:underline" href="${i.url}" target="_blank" rel="noopener">${i.title}</a>
+                <a class="truncate hover:underline" href="${i.url}" target="_blank" rel="noopener noreferrer">${i.title}</a>
                 <span class="text-xs text-slate-400">${fmtTime(i.ts)}</span>
               </div>`).join('')
           : '<div class="text-slate-500 text-sm">Nothing saved yet.</div>';
@@ -366,14 +357,16 @@
       slice.forEach(it=>{
         const row=document.createElement('div');
         row.className='news-row py-3 flex items-start gap-3';
+        const logo = faviconFor(it.url, (it.source||'').replace(/\s+/g,'').toLowerCase()+'.com');
         row.innerHTML = `
+          <img src="${logo}" class="h-5 w-5 rounded mt-0.5 shrink-0 border border-slate-200" alt="">
           <div class="grow min-w-0">
             <a class="font-medium hover:underline block truncate"
-               href="${it.url}" target="_blank" rel="noopener">
+               href="${it.url || '#'}" target="_blank" rel="noopener noreferrer">
               ${it.title || '(No title)'}
             </a>
-            <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-2">
-              <span>${it.source}</span>·<span>${fmtTime(it.time)}</span>
+            <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-2 items-center">
+              <span>${it.source || '—'}</span>·<span>${fmtTime(it.time)}</span>
             </div>
             <div class="mt-1 flex flex-wrap gap-1">
               ${it.categories.slice(0,4).map(c=>`<span class="tag">${c}</span>`).join('')}
@@ -395,14 +388,12 @@
     function applyFilters(){
       const q = ($search?.value||'').toLowerCase().trim();
       const cat = ($selCat?.value||'').toLowerCase();
-      const lang = ($selLang?.value||'').toLowerCase();
 
       VIEW = ALL.filter(it=>{
         const okTab = !TAB || TAB==='latest' || (TAB==='top' ? true : it.tab===TAB);
         const okCat = !cat || it.categories.includes(cat) || it.tab===cat;
         const okQ = !q || it.title.toLowerCase().includes(q) || (it.source||'').toLowerCase().includes(q);
-        const okLang = !lang || (it.lang||'').toLowerCase()===lang;
-        return okTab && okCat && okQ && okLang;
+        return okTab && okCat && okQ;
       });
 
       renderSources(VIEW);
@@ -410,10 +401,11 @@
     }
 
     async function fetchLatest(){
+      const ts = Date.now();
       const candidates = [
-        '/news/data/latest.json',          // site-root path
-        'news/data/latest.json',           // relative fallback (if hosted in subfolder)
-        window.NEWS_JSON_URL               // absolute override (e.g. GitHub raw)
+        `/news/data/latest.json?ts=${ts}`,
+        `news/data/latest.json?ts=${ts}`,
+        window.NEWS_JSON_URL ? `${window.NEWS_JSON_URL}?ts=${ts}` : ""
       ].filter(Boolean);
 
       let data=null, lastErr=null;
@@ -432,14 +424,13 @@
         return;
       }
 
-      // accept array or {data|items|news}
       const arr = Array.isArray(data) ? data
                 : Array.isArray(data.data) ? data.data
                 : Array.isArray(data.items) ? data.items
                 : Array.isArray(data.news) ? data.news
                 : [];
 
-      ALL = arr.map(norm).filter(x=>x.title);
+      ALL = arr.map(norm).filter(x=>x.title && x.url); // require URL to ensure link works
       $lastUpdated.textContent = 'Updated ' + new Date().toLocaleString();
       applyFilters();
     }
@@ -458,18 +449,9 @@
         });
       });
 
-      // quick filters
-      document.querySelectorAll('.quick').forEach(b=>{
-        b.addEventListener('click', ()=>{
-          $search.value = b.dataset.q || '';
-          applyFilters();
-        });
-      });
-
       // inputs
       $search?.addEventListener('input', applyFilters);
       $selCat?.addEventListener('change', applyFilters);
-      $selLang?.addEventListener('change', applyFilters);
 
       // actions
       $btnRefresh.addEventListener('click', fetchLatest);
