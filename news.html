@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlgoHive — Markets</title>
+  <title>AlgoHive — News & Insights</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,10 +20,10 @@
     .sidebar-link.active{ background:linear-gradient(90deg, rgba(85,107,47,.10), transparent); border-left:3px solid var(--olive); }
     .news-row:hover{ background:#fafafa; }
     .shadow-soft{ box-shadow:0 8px 30px rgba(0,0,0,.06) }
-    .tag{ font-size:.68rem; border:1px solid #e5e7eb; border-radius: 999px; padding: .15rem .5rem; }
+    .tag{ font-size:.68rem; border:1px solid #e5e7eb; border-radius:999px; padding:.15rem .5rem; }
     @media (max-width: 1024px){ .hide-lg{ display:none } }
 
-    /* Sidebar collapse behavior (matches dashboard) */
+    /* Sidebar collapse behavior (same as dashboard) */
     #sidebar { width: 260px; transition: width .2s ease; }
     #sidebar.is-collapsed { width: 64px; }
     #sidebar .label { transition: opacity .15s ease; }
@@ -35,7 +35,7 @@
 </head>
 <body>
   <div class="min-h-screen flex">
-    <!-- GLOBAL MENU (same partial system) -->
+    <!-- GLOBAL MENU (partial) -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
     <!-- MAIN -->
@@ -45,7 +45,7 @@
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
           <a href="/dashboard.html" class="text-sm text-slate-600 hover:underline">Dashboard</a>
           <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-          <div class="text-sm text-slate-900 font-medium">Markets</div>
+          <div class="text-sm text-slate-900 font-medium">News & Insights</div>
 
           <div class="flex items-center gap-2 w-full">
             <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
@@ -135,7 +135,7 @@
               </div>
             </div>
 
-            <!-- Market tickers (static placeholders – swap in live later) -->
+            <!-- Snapshot (placeholder) -->
             <div class="card p-5">
               <div class="font-semibold mb-2">Snapshot</div>
               <div class="space-y-2 text-sm">
@@ -144,10 +144,10 @@
                 <div class="flex items-center justify-between"><span>BTC/USD</span><span class="font-medium">—</span></div>
                 <div class="flex items-center justify-between"><span>Gold</span><span class="font-medium">—</span></div>
               </div>
-              <div class="text-xs text-slate-400 mt-2">* Coming soon: real quotes.</div>
+              <div class="text-xs text-slate-400 mt-2">* Live quotes coming soon.</div>
             </div>
 
-            <!-- Saved articles (client-side) -->
+            <!-- Reading List -->
             <div class="card p-5">
               <div class="font-semibold mb-2">Reading List</div>
               <div id="readingList" class="text-sm space-y-2"></div>
@@ -160,7 +160,7 @@
   </div>
 
   <script>
-    /* ===== MENU PARTIAL (same behavior as Dashboard) ===== */
+    /* ========== MENU PARTIAL (same pattern as dashboard) ========== */
     async function loadMenu() {
       const mount = document.getElementById('sidebarMount');
       const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
@@ -169,26 +169,13 @@
         if (!res.ok) throw new Error('Failed to load ' + url);
         mount.outerHTML = await res.text();
       } catch (e) {
-        // optional: inline fallback if partial not found
-        const fallback = document.createElement('aside');
-        fallback.id = "sidebar";
-        fallback.className = "border-r bg-white";
-        fallback.innerHTML = `
-          <div class="p-3 flex items-center justify-between">
-            <div class="font-bold">AlgoHive</div>
-            <button id="collapseBtn" class="h-8 w-8 grid place-items-center rounded hover:bg-slate-100">
-              <i class="fa-solid fa-angles-left text-sm"></i>
-            </button>
-          </div>
-          <div id="navContainer" class="px-3 pb-4"></div>`;
-        mount.replaceWith(fallback);
-        buildMenu('news');
+        // fail silently if partial missing (keeps standalone workable)
       }
     }
 
     function buildMenu(activeKey = 'news') {
       const navContainer = document.getElementById('navContainer');
-      if (!navContainer) return; // partial must include #navContainer, #sidebar, #collapseBtn
+      if (!navContainer) return;
 
       const menu = [{
         section: "Menu", items: [
@@ -197,7 +184,7 @@
           { key: "portfolio",       label: "My Portfolio",       icon: "fa-chart-line",     href: "/portfolio.html" },
           { key: "funding",         label: "Funding",            icon: "fa-wallet",         href: "/funding.html" },
           { key: "reports",         label: "Reports",            icon: "fa-file-invoice",   href: "/reports.html" },
-          { key: "news",            label: "News & Insights",    icon: "fa-newspaper",      href: "/markets.html" },
+          { key: "news",            label: "News & Insights",    icon: "fa-newspaper",      href: "/news.html" },
           { key: "alerts",          label: "Notifications",      icon: "fa-bell",           href: "/alerts.html" },
         ]
       }, {
@@ -223,7 +210,7 @@
           a.className = 'sidebar-link';
           a.title = it.label;
           if (it.key === activeKey) a.classList.add('active');
-          a.innerHTML = \`<i class="fa-solid \${it.icon}"></i><span class="label">\${it.label}</span>\`;
+          a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`;
           list.appendChild(a);
         });
 
@@ -267,11 +254,9 @@
       }
     }
 
-    /* ===== DATA FUNNEL =====
-       Your backend (e.g. TradingView -> Node job) writes /news/data/latest.json
-       UI fetches from that path, or from window.NEWS_JSON_URL if set.
-    */
-    window.NEWS_JSON_URL = ""; // e.g. "https://raw.githubusercontent.com/<you>/<repo>/main/news/data/latest.json"
+    /* ========== NEWS DATA ========== */
+    // If your JSON lives elsewhere, set this to a full URL (e.g. GitHub raw).
+    window.NEWS_JSON_URL = ""; // "https://raw.githubusercontent.com/<you>/<repo>/main/news/data/latest.json"
 
     const $news = document.getElementById('newsList');
     const $count = document.getElementById('count');
@@ -285,12 +270,12 @@
     const $sourceCloud = document.getElementById('sourceCloud');
     const $readingList = document.getElementById('readingList');
     const $btnClearRL = document.getElementById('btnClearRL');
-
     const $tabs = Array.from(document.querySelectorAll('.tab'));
+
     let TAB = 'latest';
-    let ALL = [];       // normalized items
-    let VIEW = [];      // filtered view
-    let PAGE = 1;       // client-side paging
+    let ALL = [];
+    let VIEW = [];
+    let PAGE = 1;
     const PAGE_SIZE = 20;
 
     function fmtTime(t){
@@ -301,7 +286,7 @@
       }catch{return''}
     }
 
-    // Normalize TradingView-ish shapes
+    // Normalize varied shapes
     function norm(x){
       const title = x.title || x.headline || x.name || '';
       const url = x.url || x.link || x.storyUrl || x.shareUrl || '#';
@@ -326,7 +311,8 @@
         url, source, time: ts,
         categories: catList.map(s=>String(s).toLowerCase()),
         symbols: symList,
-        tab: catGuess
+        tab: catGuess,
+        lang: x.lang || x.language || ''
       }
     }
 
@@ -397,18 +383,7 @@
           <div class="shrink-0">
             <button class="px-2 py-1 border rounded-md text-xs" data-save>Save</button>
           </div>`;
-        // Save handler
-        row.querySelector('[data-save]').addEventListener('click', (e)=>{
-          e.stopPropagation();
-          saveRL(it);
-        });
-        // Ensure link always opens new tab (no hijack)
-        row.querySelectorAll('a[href]').forEach(a=>{
-          a.addEventListener('click', (e)=>{
-            a.setAttribute('target','_blank');
-            a.setAttribute('rel','noopener');
-          });
-        });
+        row.querySelector('[data-save]').addEventListener('click', (e)=>{ e.stopPropagation(); saveRL(it); });
         frag.appendChild(row);
       });
       $news.appendChild(frag);
@@ -418,15 +393,15 @@
     }
 
     function applyFilters(){
-      const q = ($search.value||'').toLowerCase().trim();
-      const cat = ($selCat.value||'').toLowerCase();
-      const lang = ($selLang.value||'').toLowerCase();
+      const q = ($search?.value||'').toLowerCase().trim();
+      const cat = ($selCat?.value||'').toLowerCase();
+      const lang = ($selLang?.value||'').toLowerCase();
 
       VIEW = ALL.filter(it=>{
         const okTab = !TAB || TAB==='latest' || (TAB==='top' ? true : it.tab===TAB);
         const okCat = !cat || it.categories.includes(cat) || it.tab===cat;
         const okQ = !q || it.title.toLowerCase().includes(q) || (it.source||'').toLowerCase().includes(q);
-        const okLang = !lang || (it.lang||'').toLowerCase()===lang; // best-effort
+        const okLang = !lang || (it.lang||'').toLowerCase()===lang;
         return okTab && okCat && okQ && okLang;
       });
 
@@ -436,15 +411,16 @@
 
     async function fetchLatest(){
       const candidates = [
-        '/news/data/latest.json',
-        window.NEWS_JSON_URL
+        '/news/data/latest.json',          // site-root path
+        'news/data/latest.json',           // relative fallback (if hosted in subfolder)
+        window.NEWS_JSON_URL               // absolute override (e.g. GitHub raw)
       ].filter(Boolean);
 
       let data=null, lastErr=null;
       for(const u of candidates){
         try{
           const r=await fetch(u, {cache:'no-store'});
-          if(!r.ok) throw new Error(r.status);
+          if(!r.ok) throw new Error(r.status + ' @ ' + u);
           data = await r.json();
           break;
         }catch(e){ lastErr = e; }
@@ -452,10 +428,11 @@
       if(!data){
         console.error('Failed to load latest.json', lastErr);
         $empty.classList.remove('hidden');
+        $lastUpdated.textContent = 'Updated — (failed to fetch)';
         return;
       }
 
-      // accept array or {data:[...]}
+      // accept array or {data|items|news}
       const arr = Array.isArray(data) ? data
                 : Array.isArray(data.data) ? data.data
                 : Array.isArray(data.items) ? data.items
@@ -490,9 +467,9 @@
       });
 
       // inputs
-      $search.addEventListener('input', applyFilters);
-      $selCat.addEventListener('change', applyFilters);
-      $selLang.addEventListener('change', applyFilters);
+      $search?.addEventListener('input', applyFilters);
+      $selCat?.addEventListener('change', applyFilters);
+      $selLang?.addEventListener('change', applyFilters);
 
       // actions
       $btnRefresh.addEventListener('click', fetchLatest);
