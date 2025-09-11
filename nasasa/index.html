@@ -1,1 +1,1067 @@
 
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stokvel — Portal</title>
+
+  <!-- Tailwind + Fonts + Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- html2pdf for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --olive: #556B2F;
+      --olive-700: #3e4f23;
+      --olive-100: #ecf4e6;
+      --page-bg: #f9fafb;
+    }
+
+    html,
+    body {
+      font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--page-bg);
+      color: #0f172a
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 1rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .04)
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 9999px;
+      padding: .2rem .55rem;
+      font-size: .74rem;
+      font-weight: 600
+    }
+
+    .glass {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, .65);
+      border-bottom: 1px solid rgba(229, 231, 235, .9)
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums
+    }
+
+    .tab-btn {
+      border: 1px solid #e5e7eb;
+      border-radius: .6rem;
+      padding: .35rem .7rem;
+      font-size: .85rem;
+      background: #fff
+    }
+
+    .tab-btn.active {
+      background: var(--olive);
+      border-color: var(--olive);
+      color: #fff
+    }
+
+    .aside-rail {
+      width: 360px
+    }
+
+    @media (max-width:1024px) {
+      .aside-rail {
+        width: auto
+      }
+    }
+
+    .eq-tip {
+      position: absolute;
+      pointer-events: none;
+      background: #111827;
+      color: #fff;
+      font-size: .75rem;
+      border-radius: .5rem;
+      padding: .35rem .5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, .12)
+    }
+
+    .spark {
+      height: 30px;
+      width: 120px
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: .35rem
+    }
+
+    .cal-cell {
+      border: 1px solid #e5e7eb;
+      border-radius: .6rem;
+      height: 58px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: .35rem .4rem
+    }
+
+    .cal-legend span {
+      display: inline-block;
+      width: 14px;
+      height: 10px;
+      border-radius: 3px;
+      border: 1px solid #e5e7eb
+    }
+
+    .topbar {
+      height: 52px
+    }
+
+    .sub-card.active {
+      background: var(--olive-100);
+      border-color: var(--olive);
+      box-shadow: inset 0 0 0 2px var(--olive-100);
+      position: relative;
+    }
+
+    .sub-card.active::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: var(--olive);
+      border-top-left-radius: .75rem;
+      border-bottom-left-radius: .75rem;
+    }
+
+    .popover::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      right: 18px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: transparent transparent #e5e7eb transparent;
+    }
+
+    .popover::after {
+      content: "";
+      position: absolute;
+      top: -5px;
+      right: 18px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent #fff transparent;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .glass,
+      #topbar-actions,
+      .eq-controls,
+      .no-print {
+        display: none !important;
+      }
+
+      .page-shell {
+        max-width: 100% !important;
+        padding: 0 24px !important;
+      }
+
+      .print-header {
+        display: flex !important;
+      }
+
+      .card {
+        box-shadow: none !important;
+      }
+    }
+
+    /* Sidebar collapse behavior */
+    #sidebar {
+      width: 260px;
+      transition: width .2s ease;
+    }
+
+    #sidebar.is-collapsed {
+      width: 64px;
+    }
+
+    #sidebar .label {
+      transition: opacity .15s ease;
+    }
+
+    #sidebar.is-collapsed .label {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #sidebar.is-collapsed .sidebar-link {
+      justify-content: center;
+    }
+
+    #sidebar .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .5rem .6rem;
+      border-radius: .5rem;
+    }
+
+    #sidebar .sidebar-link i {
+      width: 18px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="min-h-screen flex">
+    <!-- GLOBAL MENU (partial) -->
+    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+
+    <!-- MAIN -->
+    <main class="flex-1 min-h-screen" id="dashboardRoot">
+      <!-- Topbar -->
+      <section class="glass sticky top-0 z-20 topbar">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3 relative">
+          <div class="text-sm text-slate-600">Stokvel Dashboard</div>
+
+          <div class="flex items-center gap-2 flex-1">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white">
+              <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
+              <input id="search" placeholder="Search members, payments, groups…" class="outline-none text-sm w-64" />
+            </div>
+
+            <!-- Right actions -->
+            <div id="topbar-actions" class="ml-auto flex items-center gap-3">
+              <button id="exportBtn" class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                <i class="fa-solid fa-file-arrow-down mr-2"></i>Export Group Statement
+              </button>
+              <button id="whatsappBtn" class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                <i class="fa-brands fa-whatsapp mr-2"></i>WhatsApp Notice
+              </button>
+              <img src="https://ui-avatars.com/api/?name=Stokvel&background=0f172a&color=fff&rounded=true&size=64"
+                alt="Profile" class="h-9 w-9 rounded-full border object-cover" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRINT HEADER (hidden on screen, shown in print/pdf) -->
+      <div class="print-header hidden items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3">
+          <img src="https://dummyimage.com/140x40/0f172a/ffffff&text=STOKVEL" alt="Stokvel" class="h-8">
+          <div class="text-xs text-slate-500">Statement • Generated on <span id="printDate"></span></div>
+        </div>
+        <div class="text-sm">Group Statement</div>
+      </div>
+
+      <!-- PAGE SHELL -->
+      <div class="max-w-7xl mx-auto px-6 page-shell" id="sheetArea">
+        <!-- Greeting -->
+        <section class="pt-6">
+          <div class="flex items-center">
+            <div>
+              <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
+              <p class="text-sm text-slate-600">Track contributions, payouts, loans and member balances at a glance.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Actions Row -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 no-print">
+          <button id="addMemberBtn" class="card p-3 text-left hover:bg-slate-50">
+            <div class="font-semibold"><i class="fa-solid fa-user-plus mr-2"></i>Add Member</div>
+            <div class="text-xs text-slate-500">Capture details & KYC notes</div>
+          </button>
+          <button id="recordContributionBtn" class="card p-3 text-left hover:bg-slate-50">
+            <div class="font-semibold"><i class="fa-solid fa-hand-holding-dollar mr-2"></i>Record Contribution</div>
+            <div class="text-xs text-slate-500">Monthly savings, fines & once-off</div>
+          </button>
+          <button id="recordPayoutBtn" class="card p-3 text-left hover:bg-slate-50">
+            <div class="font-semibold"><i class="fa-solid fa-sack-dollar mr-2"></i>Record Payout</div>
+            <div class="text-xs text-slate-500">Rotate or emergency payouts</div>
+          </button>
+        </section>
+
+        <!-- Content Grid -->
+        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT COLUMN -->
+          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+
+            <!-- GROUP BALANCE GROWTH -->
+            <div class="card p-5">
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-sm text-slate-600">Group Balance Growth — <span id="eqGroupName"
+                      class="font-medium">—</span></div>
+                  <div class="flex items-center gap-2">
+                    <div id="eqValue" class="text-2xl font-semibold num">R —</div>
+                    <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 eq-controls" id="eqTabs">
+                  <button class="tab-btn active" data-range="1M">1M</button>
+                  <button class="tab-btn" data-range="3M">3M</button>
+                  <button class="tab-btn" data-range="6M">6M</button>
+                  <button class="tab-btn" data-range="YTD">YTD</button>
+                  <button class="tab-btn" data-range="1Y">1Y</button>
+                </div>
+              </div>
+
+              <div id="eqMetrics" class="mb-3 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Total Contributions</div>
+                  <div id="mContrib" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Payouts</div>
+                  <div id="mPayouts" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Fines</div>
+                  <div id="mFines" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Arrears</div>
+                  <div id="mArrears" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Members</div>
+                  <div id="mMembers" class="font-semibold">—</div>
+                </div>
+              </div>
+
+              <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
+                <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+                <div id="eqTip" class="eq-tip hidden"></div>
+              </div>
+
+              <div id="eqLegend" class="flex flex-wrap items-center gap-2 mt-3 text-xs"></div>
+            </div>
+
+            <!-- MONTHLY CONTRIBUTIONS -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Monthly Contributions — <span id="mpGroupName">—</span></div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-500">Group</label>
+                  <select id="groupSel" class="border rounded-lg text-sm px-2 py-1"></select>
+                  <label class="text-xs text-slate-500 ml-3">Year</label>
+                  <select id="yearSel" class="border rounded-lg text-sm px-2 py-1"></select>
+                </div>
+              </div>
+
+              <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
+                <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
+                <div id="stratTip" class="eq-tip hidden"></div>
+              </div>
+              <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
+                <div>Total contributions per month (selected year)</div>
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center gap-1"><span
+                      class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Inflow</span>
+                  <span class="inline-flex items-center gap-1"><span
+                      class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Outflow</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- CONTRIBUTION CALENDAR -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Contribution Calendar — <span id="calMonth"></span> — <span
+                    id="dpGroupName">—</span></div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-500">Month</label>
+                  <select id="dpMonth" class="border rounded-lg text-sm px-2 py-1"></select>
+                  <label class="text-xs text-slate-500">Year</label>
+                  <select id="dpYear" class="border rounded-lg text-sm px-2 py-1"></select>
+                  <div class="cal-legend text-xs text-slate-500 ml-3 hidden md:flex items-center gap-2">
+                    <span style="background:#dcfce7"></span> Paid &nbsp;
+                    <span style="background:#fde68a"></span> Due today &nbsp;
+                    <span style="background:#fee2e2"></span> Missed
+                  </div>
+                </div>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+            </div>
+
+            <!-- MEMBERS TABLE -->
+            <div class="card">
+              <div class="px-5 py-4 border-b flex items-center justify-between">
+                <div class="font-semibold">Members & Balances — <span id="membersGroupName">—</span></div>
+                <div class="text-xs text-slate-500">Contribution: <span id="groupContribution">—</span> / month ·
+                  Collection Day: <span id="collectionDay">—</span></div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-slate-600">
+                    <tr>
+                      <th class="text-left px-5 py-3">Member</th>
+                      <th class="text-left px-5 py-3">Phone</th>
+                      <th class="text-right px-5 py-3">Balance</th>
+                      <th class="text-right px-5 py-3">Arrears</th>
+                      <th class="text-right px-5 py-3">Next Payout</th>
+                      <th class="text-right px-5 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="membersBody" class="divide-y"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- BANK DETAILS / PAY-IN INFO -->
+            <div class="card p-5">
+              <div class="font-semibold mb-2">Bank Details for EFT</div>
+              <div class="grid sm:grid-cols-2 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-xs text-slate-500">Account Name</div>
+                  <div id="bankAccountName" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-xs text-slate-500">Bank</div>
+                  <div id="bankName" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-xs text-slate-500">Account Number</div>
+                  <div id="bankAccountNumber" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-xs text-slate-500">Branch Code</div>
+                  <div id="bankBranch" class="font-semibold">—</div>
+                </div>
+              </div>
+              <p class="mt-2 text-xs text-slate-500">Payment reference format: <span
+                  class="font-semibold">SVL-{memberCode}-{month}{year}</span> (e.g. SVL-THABO-0925)</p>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
+            <!-- My Groups -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">My Stokvels</div>
+                <a href="#" class="text-sm text-[var(--olive-700)] hover:underline">Manage Groups</a>
+              </div>
+              <div id="subsWrap" class="flex flex-col gap-3 max-h-72 overflow-y-auto"></div>
+            </div>
+
+            <!-- Group snapshot -->
+            <div class="card p-5">
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Total Balance</div>
+                  <div id="acctBal" class="font-semibold num">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Cash Available</div>
+                  <div id="acctCash" class="font-semibold num">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group Health -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Group Health — <span id="prGroupName">—</span></div>
+              <div class="flex items-center gap-4">
+                <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
+                <div>
+                  <div id="ratingText" class="text-lg font-semibold">—</div>
+                  <div class="text-xs text-slate-500">On-time contribution rate</div>
+                  <div class="mt-2">
+                    <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
+                    <span class="text-xs text-slate-500 ml-1">vs last year</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cashflow Breakdown -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Cashflow Breakdown — <span id="fbGroupName">—</span></div>
+              <div class="mb-3">
+                <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
+                  <div id="feeContrib" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
+                  <div id="feePayouts" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
+                  <div id="feeFines" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
+                  <div id="feeAdmin" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">Proportions of cash movement</div>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="text-slate-500">
+                  <tr>
+                    <th class="text-left py-2">Type</th>
+                    <th class="text-right py-2">Count</th>
+                    <th class="text-right py-2">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="feeRows" class="divide-y"></tbody>
+              </table>
+            </div>
+
+            <!-- Notices / POPIA -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Notices</div>
+                <button id="healthCta" class="text-[var(--olive-700)] text-sm hover:underline">View All</button>
+              </div>
+              <ul id="notices" class="text-sm space-y-2"></ul>
+              <p class="mt-3 text-xs text-slate-500">POPIA: member contact info is used only for stokvel admin and
+                notices.</p>
+            </div>
+          </aside>
+        </section>
+      </div>
+      <!-- /PAGE SHELL -->
+    </main>
+  </div>
+
+  <!-- Popover Portal (Benchmarks) -->
+  <div id="benchPortal"></div>
+
+</body>
+<script>
+  /* ========== MENU PARTIAL ========== */
+  async function loadMenu() {
+    const mount = document.getElementById('sidebarMount');
+    const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to load ' + url);
+      mount.outerHTML = await res.text();
+    } catch (e) { /* silent for demo */ }
+  }
+
+  function buildMenu(activeKey = 'dashboard') {
+    const navContainer = document.getElementById('navContainer');
+    if (!navContainer) return;
+
+    const menu = [{
+      section: "Menu", items: [
+        { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
+        { key: "groups", label: "Groups", icon: "fa-people-group", href: "#" },
+        { key: "members", label: "Members", icon: "fa-users", href: "#" },
+        { key: "contributions", label: "Contributions", icon: "fa-hand-holding-dollar", href: "#" },
+        { key: "payouts", label: "Payouts", icon: "fa-sack-dollar", href: "#" },
+        { key: "loans", label: "Loans", icon: "fa-file-signature", href: "#" },
+        { key: "meetings", label: "Meetings", icon: "fa-calendar-check", href: "#" },
+        { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "#" },
+        { key: "notices", label: "Notices", icon: "fa-bullhorn", href: "#" },
+      ]
+    }, {
+      section: "General", items: [
+        { key: "settings", label: "Settings", icon: "fa-gear", href: "#" },
+        { key: "help", label: "Help", icon: "fa-circle-question", href: "#" },
+        { key: "integrations", label: "Integrations", icon: "fa-plug", href: "#" },
+        { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "#" },
+      ]
+    }];
+
+    function group(sec) {
+      const g = document.createElement('div'); g.className = 'mb-2';
+      const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
+      const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
+      const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
+      const body = document.createElement('div'); body.className = 'group-body';
+      const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
+
+      sec.items.forEach(it => {
+        const a = document.createElement('a');
+        a.href = it.href; a.className = 'sidebar-link'; a.title = it.label;
+        if (it.key === activeKey) a.classList.add('active');
+        a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`;
+        list.appendChild(a);
+      });
+
+      body.appendChild(list); header.append(title, right); g.append(header, body);
+      requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
+
+      header.addEventListener('click', () => {
+        const exp = header.getAttribute('aria-expanded') === 'true';
+        header.setAttribute('aria-expanded', String(!exp));
+        const chev = header.querySelector('.chev');
+        if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); }
+        else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
+      });
+      return g;
+    }
+
+    navContainer.innerHTML = '';
+    menu.forEach(s => navContainer.appendChild(group(s)));
+
+    // Collapse wiring
+    const sidebar = document.getElementById('sidebar');
+    const collapseBtn = document.getElementById('collapseBtn');
+    if (sidebar && collapseBtn) {
+      const applyState = (collapsed) => {
+        sidebar.classList.toggle('is-collapsed', collapsed);
+        collapseBtn.innerHTML = collapsed
+          ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+          : '<i class="fa-solid fa-angles-left text-sm"></i>';
+      };
+      let collapsed = false;
+      try { collapsed = sessionStorage.getItem('sv_sidebar_collapsed') === '1'; } catch (e) { }
+      applyState(collapsed);
+      collapseBtn.addEventListener('click', () => {
+        collapsed = !collapsed; applyState(collapsed);
+        try { sessionStorage.setItem('sv_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { }
+      });
+    }
+  }
+
+  /* ========== UTIL & DRAW ========== */
+  const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v);
+  const greetLine = () => { const h = new Date().getHours(); const t = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); return `${t}, Mihle`; };
+
+  function drawEquity(svgEl, mainSeries, labels) {
+    const W = 900, H = 320, pad = 34;
+    svgEl.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const y = pad + i * (H - 2 * pad) / 4;
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', pad); ln.setAttribute('x2', W - pad); ln.setAttribute('y1', y); ln.setAttribute('y2', y);
+      ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
+    }
+    const min = Math.min(...mainSeries), max = Math.max(...mainSeries), rng = (max - min) || 1;
+    const step = (W - 2 * pad) / Math.max(1, (mainSeries.length - 1));
+    const X = i => pad + i * step, Y = v => H - pad - ((v - min) / rng) * (H - 2 * pad);
+
+    // gradient fill for main
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    grad.setAttribute('id', 'eqGrad'); grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+    const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#556B2F'); s1.setAttribute('stop-opacity', '.28');
+    const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#111827'); s2.setAttribute('stop-opacity', '0.02');
+    grad.append(s1, s2); defs.appendChild(grad); svgEl.appendChild(defs);
+
+    let dLine = '';
+    mainSeries.forEach((v, i) => { dLine += `${i ? 'L' : 'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `; });
+    const dArea = dLine + `L${X(mainSeries.length - 1).toFixed(2)},${H - pad} L${X(0).toFixed(2)},${H - pad} Z`;
+    const area = document.createElementNS('http://www.w3.org/2000/svg', 'path'); area.setAttribute('d', dArea.trim()); area.setAttribute('fill', 'url(#eqGrad)'); svgEl.appendChild(area);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path'); line.setAttribute('d', dLine.trim()); line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#0f172a'); line.setAttribute('stroke-width', '2.75'); svgEl.appendChild(line);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', X(mainSeries.length - 1)); dot.setAttribute('cy', Y(mainSeries.at(-1))); dot.setAttribute('r', '4.2'); dot.setAttribute('fill', '#0f172a'); svgEl.appendChild(dot);
+
+    // labels
+    const gL = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    labels.forEach((lb, i) => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.textContent = lb; t.setAttribute('x', X(i)); t.setAttribute('y', H - 8);
+      t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); gL.appendChild(t);
+    });
+    svgEl.appendChild(gL);
+  }
+
+  function drawDonut(el, percent) {
+    const r = 68, cx = 80, cy = 80, C = 2 * Math.PI * r, val = Math.max(0, Math.min(100, percent));
+    el.innerHTML = '';
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
+    grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
+    const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
+    const s2b = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2b.setAttribute('offset', '60%'); s2b.setAttribute('stop-color', '#111827');
+    const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
+    grad.append(s1, s2b, s3); defs.appendChild(grad); el.appendChild(defs);
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
+    bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#e5e7eb'); bg.setAttribute('stroke-width', '16'); el.appendChild(bg);
+    const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    arc.setAttribute('cx', cx); arc.setAttribute('cy', cy); arc.setAttribute('r', r);
+    arc.setAttribute('fill', 'none'); arc.setAttribute('stroke', 'url(#gOlive)'); arc.setAttribute('stroke-width', '16');
+    arc.setAttribute('stroke-linecap', 'round'); arc.setAttribute('transform', 'rotate(-90 80 80)');
+    arc.setAttribute('stroke-dasharray', `${(val / 100) * C} ${C}`); el.appendChild(arc);
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
+    txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt);
+  }
+
+  function drawBars(svgEl, values, labels) {
+    const W = 900, H = 260, padL = 42, padB = 26, padT = 16, padR = 12;
+    svgEl.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const y = padT + i * (H - padT - padB) / 3;
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', padL); ln.setAttribute('x2', W - padR);
+      ln.setAttribute('y1', y); ln.setAttribute('y2', y);
+      ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
+    }
+    const absMax = Math.max(2, Math.max(...values.map(v => Math.abs(v))));
+    const maxY = absMax, minY = -absMax;
+    const xw = (W - padL - padR) / values.length * 0.72;
+    const xPos = i => padL + (i + 0.5) * ((W - padL - padR) / values.length) - xw / 2;
+    const yPos = v => padT + (maxY - v) * ((H - padT - padB) / (maxY - minY));
+    const y0 = yPos(0);
+    const zero = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    zero.setAttribute('x1', padL); zero.setAttribute('x2', W - padR);
+    zero.setAttribute('y1', y0); zero.setAttribute('y2', y0);
+    zero.setAttribute('stroke', '#cbd5e1'); zero.setAttribute('stroke-width', '1.2'); svgEl.appendChild(zero);
+    values.forEach((v, i) => {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      const x = xPos(i), y = Math.min(y0, yPos(v)), h = Math.abs(yPos(v) - y0);
+      rect.setAttribute('x', x); rect.setAttribute('y', y); rect.setAttribute('width', xw); rect.setAttribute('height', Math.max(0.5, h));
+      rect.setAttribute('rx', '4'); rect.setAttribute('fill', v >= 0 ? '#10b981' : '#ef4444'); rect.dataset.idx = i; svgEl.appendChild(rect);
+    });
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    labels.forEach((lb, i) => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.textContent = lb; t.setAttribute('x', padL + (i + 0.5) * ((W - padL - padR) / labels.length));
+      t.setAttribute('y', H - 8); t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); g.appendChild(t);
+    });
+    svgEl.appendChild(g);
+  }
+
+  /* ========== SAMPLE DATA (Replace with API calls) ========== */
+  const YEARS = [2023, 2024, 2025];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const groups = {
+    'Ubuntu Savings': {
+      collectionDay: 5, contribution: 500, cash: 3500, balance: 42500, health: 88,
+      bank: { name: 'Standard Bank', accountName: 'Ubuntu Savings Stokvel', accountNumber: '000123456', branch: '051001' },
+      members: [
+        { name: 'Thabo M', phone: '+27 72 111 1111', status: 'Active', balance: 6800, arrears: 0, nextPayout: '2025-10-05', code: 'THABO', joinDate: '2024-02-01' },
+        { name: 'Ayanda P', phone: '+27 73 222 2222', status: 'Active', balance: 6400, arrears: 500, nextPayout: '2025-11-05', code: 'AYANDA', joinDate: '2024-03-01' },
+        { name: 'Sbu N', phone: '+27 71 333 3333', status: 'Active', balance: 7200, arrears: 0, nextPayout: '2025-12-05', code: 'SBU', joinDate: '2023-11-01' },
+        { name: 'Lerato K', phone: '+27 82 444 4444', status: 'Active', balance: 6100, arrears: 0, nextPayout: '2026-01-05', code: 'LERATO', joinDate: '2024-06-01' },
+        { name: 'Kagiso T', phone: '+27 83 555 5555', status: 'Active', balance: 5900, arrears: 1000, nextPayout: '2026-02-05', code: 'KAGISO', joinDate: '2023-09-01' },
+      ],
+      // total monthly inflow/outflow amounts
+      monthlyByYear: {
+        2023: [2500, 3000, 2500, 3000, 3500, 2500, 3000, 2500, 3000, 3500, 3000, 3500].map(v => v - 0),
+        2024: [3000, 2500, 3000, 3500, 3000, 3500, 4000, 3000, 3500, 3000, 3500, 4000].map((v, i) => i % 4 === 2 ? -1500 : v),
+        2025: [3500, 4000, 3500, 4500, 4000, 4500, 5000, 4500, 5000, 0, 0, 0]
+      },
+      balanceSeries: { // indexed series for ranges
+        '1M': { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [41000, 41250, 42000, 42300, 42500] },
+        '3M': { lbl: ['Jul', 'Aug', 'Sep'], arr: [39500, 41000, 42500] },
+        '6M': { lbl: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [36000, 37250, 38500, 39500, 41000, 42500] },
+        'YTD': { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [30000, 31500, 33000, 36000, 37250, 38500, 39500, 41000, 42500] },
+        '1Y': { lbl: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [28000, 29000, 29500, 30000, 31500, 33000, 36000, 37250, 38500, 39500, 41000, 42500] }
+      }
+    },
+    'Burial Society': {
+      collectionDay: 25, contribution: 300, cash: 1800, balance: 22000, health: 74,
+      bank: { name: 'FNB', accountName: 'Hope Burial Society', accountNumber: '62800012345', branch: '250655' },
+      members: [
+        { name: 'Nomsa D', phone: '+27 82 111 2222', status: 'Active', balance: 3900, arrears: 0, nextPayout: '2025-10-25', code: 'NOMSA', joinDate: '2024-01-01' },
+        { name: 'Bongani Z', phone: '+27 61 222 3333', status: 'Active', balance: 3600, arrears: 0, nextPayout: '2025-11-25', code: 'BONGANI', joinDate: '2023-12-01' },
+      ],
+      monthlyByYear: {
+        2024: [900, 900, 600, 900, 600, 900, 900, 900, 600, 600, 900, 900],
+        2025: [900, 900, 900, 600, 900, 600, 900, 900, 900, 0, 0, 0]
+      },
+      balanceSeries: {
+        '1M': { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [21000, 21400, 21700, 21900, 22000] },
+        '3M': { lbl: ['Jul', 'Aug', 'Sep'], arr: [20800, 21400, 22000] },
+        '6M': { lbl: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [20000, 20400, 20600, 20800, 21400, 22000] },
+        'YTD': { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [19500, 19900, 20300, 20000, 20400, 20600, 20800, 21400, 22000] },
+        '1Y': { lbl: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [19000, 19200, 19400, 19500, 19900, 20300, 20000, 20400, 20600, 20800, 21400, 22000] }
+      }
+    },
+    'Rotational Groceries': {
+      collectionDay: 15, contribution: 400, cash: 2200, balance: 28500, health: 79,
+      bank: { name: 'Capitec', accountName: 'RG Club', accountNumber: '1540001234', branch: '470010' },
+      members: [
+        { name: 'Karabo L', phone: '+27 66 123 0000', status: 'Active', balance: 5200, arrears: 0, nextPayout: '2025-10-15', code: 'KARABO', joinDate: '2024-05-01' },
+        { name: 'Zanele R', phone: '+27 67 321 9999', status: 'Active', balance: 4700, arrears: 400, nextPayout: '2025-11-15', code: 'ZANELE', joinDate: '2024-02-01' },
+      ],
+      monthlyByYear: {
+        2025: [1600, 2000, 1600, 2000, 1600, 2000, 2000, 1600, 2000, 0, 0, 0]
+      },
+      balanceSeries: {
+        '1M': { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [27000, 27500, 28000, 28300, 28500] },
+        '3M': { lbl: ['Jul', 'Aug', 'Sep'], arr: [26000, 27000, 28500] },
+        '6M': { lbl: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [24500, 25200, 26000, 27000, 27500, 28500] },
+        'YTD': { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [22500, 23500, 24000, 24500, 25200, 26000, 27000, 27500, 28500] },
+        '1Y': { lbl: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [21000, 21800, 22200, 22500, 23500, 24000, 24500, 25200, 26000, 27000, 27500, 28500] }
+      }
+    }
+  };
+
+  const noticesData = [
+    { date: '2025-09-05', text: 'Ubuntu Savings: Meeting this Saturday 10:00 at community hall.' },
+    { date: '2025-09-05', text: 'Reminder: Use correct EFT reference: SVL-{CODE}-{MMYY}.' },
+    { date: '2025-08-25', text: 'Burial Society: Policy renewal forms due 30 Sept.' },
+  ];
+
+  let currentGroup = 'Ubuntu Savings';
+  let eqRange = '1Y';
+
+  /* ========== RENDER HELPERS ========== */
+  function setCardNames(group) {
+    document.getElementById('eqGroupName').textContent = group;
+    document.getElementById('mpGroupName').textContent = group;
+    document.getElementById('dpGroupName').textContent = group;
+    document.getElementById('membersGroupName').textContent = group;
+    document.getElementById('fbGroupName').textContent = group;
+    document.getElementById('prGroupName').textContent = group;
+  }
+
+  function renderRating(group) {
+    const d = groups[group];
+    document.getElementById('acctBal').textContent = fmtMoney(d.balance);
+    document.getElementById('acctCash').textContent = fmtMoney(d.cash);
+    drawDonut(document.getElementById('ratingGauge'), d.health);
+    document.getElementById('ratingText').textContent = d.health >= 85 ? 'Excellent' : (d.health >= 70 ? 'Good' : 'Fair');
+    const deltaYoY = +3.8; // demo delta
+    const chip = document.getElementById('ratingDeltaChip');
+    chip.textContent = (deltaYoY >= 0 ? '+' : '') + deltaYoY.toFixed(1) + '%';
+    chip.className = 'chip ' + (deltaYoY >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+  }
+
+  function renderEq(range, group) {
+    const meta = groups[group];
+    const tpl = meta.balanceSeries[range] || meta.balanceSeries['1Y'];
+    const mainSeries = tpl.arr;
+    const labels = tpl.lbl;
+    drawEquity(document.getElementById('eqSvg'), mainSeries, labels);
+    const first = mainSeries[0], last = mainSeries.at(-1);
+    const deltaPct = ((last / first) - 1) * 100;
+    document.getElementById('eqValue').textContent = fmtMoney(last);
+    const dEl = document.getElementById('eqDelta');
+    dEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%';
+    dEl.className = 'chip ' + (deltaPct >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+
+    // headline metrics
+    const totalContrib = Object.values(meta.monthlyByYear)[0]?.reduce((s, v) => s + (v > 0 ? v : 0), 0) || 0;
+    const totalPayouts = Object.values(meta.monthlyByYear)[0]?.reduce((s, v) => s + (v < 0 ? -v : 0), 0) || 0;
+    const fines = Math.round(totalContrib * 0.02);
+    const arrears = meta.members.reduce((s, m) => s + m.arrears, 0);
+    document.getElementById('mContrib').textContent = fmtMoney(totalContrib);
+    document.getElementById('mPayouts').textContent = fmtMoney(totalPayouts);
+    document.getElementById('mFines').textContent = fmtMoney(fines);
+    document.getElementById('mArrears').textContent = fmtMoney(arrears);
+    document.getElementById('mMembers').textContent = meta.members.length;
+
+    // legend
+    document.getElementById('eqLegend').innerHTML = `<span class="chip bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-full inline-block mr-1" style="background:#0f172a"></span>${group}</span>`;
+  }
+
+  function renderMonthly(group, year) {
+    const d = groups[group];
+    const series = (d.monthlyByYear[year] || Array(12).fill(0)).map(v => v >= 0 ? v / 1 : -Math.abs(v));
+    const labels = MONTHS;
+    const svg = document.getElementById('stratChart');
+    // Convert ZAR values to +/- for bar (inflow/outflow)
+    drawBars(svg, series.map(v => v >= 0 ? v / 1000 : v / 1000), labels);
+    const tip = document.getElementById('stratTip');
+    document.querySelectorAll('#stratChart rect').forEach(r => {
+      r.onmouseenter = (e) => {
+        const i = +e.target.dataset.idx; const v = series[i];
+        tip.innerHTML = `<div class="font-semibold">${MONTHS[i]} ${year}</div><div>${v >= 0 ? '+' : ''}${fmtMoney(Math.abs(v))}</div>`;
+        tip.style.left = Math.min(820, Math.max(10, e.offsetX + 12)) + 'px'; tip.style.top = '10px'; tip.classList.remove('hidden');
+      };
+      r.onmouseleave = () => tip.classList.add('hidden');
+    });
+  }
+
+  function renderCalendar(group, monthIndex, year) {
+    const grid = document.getElementById('calGrid');
+    const g = groups[group];
+    const y = year, m = monthIndex;
+    const firstDay = new Date(y, m, 1); const startWeek = firstDay.getDay();
+    const days = new Date(y, m + 1, 0).getDate();
+    const today = new Date();
+    document.getElementById('calMonth').textContent = new Date(y, m, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    // Demo paid/missed logic
+    const dueDay = g.collectionDay;
+    const paidMembers = new Set(g.members.filter(m => Math.random() > 0.2).map(m => m.code));
+
+    const cells = [];
+    for (let i = 0; i < startWeek; i++) cells.push({ empty: true });
+    for (let d = 1; d <= days; d++) {
+      const isDue = d === dueDay;
+      const future = (y > today.getFullYear()) || (y === today.getFullYear() && (m > today.getMonth() || (m === today.getMonth() && d > today.getDate())));
+      if (future) { cells.push({ day: d, future: true, isDue }); continue; }
+      const paid = isDue ? paidMembers.size >= Math.ceil(g.members.length * 0.7) : false; // crude demo
+      const missed = isDue && !paid;
+      cells.push({ day: d, isDue, paid, missed });
+    }
+    grid.innerHTML = cells.map(c => {
+      if (c.empty) return `<div class="cal-cell bg-white"></div>`;
+      if (c.future) return `<div class="cal-cell bg-white opacity-50"><div class="text-[11px] text-slate-400">${c.day}</div></div>`;
+      const bg = c.paid ? `#dcfce7` : c.missed ? `#fee2e2` : c.isDue ? `#fde68a` : '#ffffff';
+      return `
+        <div class="cal-cell" style="background:${bg}">
+          <div class="text-[11px] text-slate-700">${c.day}</div>
+          <div class="text-[11px] ${c.paid ? 'text-emerald-700' : c.missed ? 'text-rose-700' : 'text-slate-400'} self-end">${c.paid ? 'Paid' : c.missed ? 'Missed' : c.isDue ? 'Due' : ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderMembers(group) {
+    const g = groups[group];
+    const body = document.getElementById('membersBody');
+    body.innerHTML = g.members.map(m => `
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-3">
+          <div class="font-medium">${m.name}</div>
+          <div class="text-xs text-slate-500">Joined ${new Date(m.joinDate).toLocaleDateString()}</div>
+        </td>
+        <td class="px-5 py-3">${m.phone}</td>
+        <td class="px-5 py-3 text-right num">${fmtMoney(m.balance)}</td>
+        <td class="px-5 py-3 text-right num">${m.arrears ? '-' + fmtMoney(m.arrears) : '—'}</td>
+        <td class="px-5 py-3 text-right">${new Date(m.nextPayout).toLocaleDateString()}</td>
+        <td class="px-5 py-3 text-right"><span class="chip ${m.arrears > 0 ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}">${m.status}</span></td>
+      </tr>`).join('');
+    document.getElementById('groupContribution').textContent = fmtMoney(g.contribution);
+    document.getElementById('collectionDay').textContent = `${g.collectionDay}th`;
+    // bank details
+    document.getElementById('bankAccountName').textContent = g.bank.accountName;
+    document.getElementById('bankName').textContent = g.bank.name;
+    document.getElementById('bankAccountNumber').textContent = g.bank.accountNumber;
+    document.getElementById('bankBranch').textContent = g.bank.branch;
+  }
+
+  function renderCashflow(group) {
+    const g = groups[group];
+    // derive simple stats from 2025 data where available
+    const yr = 2025 in g.monthlyByYear ? 2025 : Object.keys(g.monthlyByYear)[0];
+    const arr = g.monthlyByYear[yr];
+    const inflow = arr.reduce((s, v) => s + (v > 0 ? v : 0), 0);
+    const outflow = arr.reduce((s, v) => s + (v < 0 ? -v : 0), 0);
+    const fines = Math.round(inflow * 0.02);
+    const admin = Math.round(inflow * 0.01);
+    const total = inflow + outflow + fines + admin || 1;
+    document.getElementById('feeContrib').style.width = (inflow / total * 100).toFixed(1) + '%';
+    document.getElementById('feePayouts').style.width = (outflow / total * 100).toFixed(1) + '%';
+    document.getElementById('feeFines').style.width = (fines / total * 100).toFixed(1) + '%';
+    document.getElementById('feeAdmin').style.width = (admin / total * 100).toFixed(1) + '%';
+    document.getElementById('feeRows').innerHTML = `
+      <tr><td class="py-2">Contributions (in)</td><td class="py-2 text-right">${arr.filter(v => v > 0).length}</td><td class="py-2 text-right num">${fmtMoney(inflow)}</td></tr>
+      <tr><td class="py-2">Payouts (out)</td><td class="py-2 text-right">${arr.filter(v => v < 0).length}</td><td class="py-2 text-right num">${fmtMoney(outflow)}</td></tr>
+      <tr><td class="py-2">Fines</td><td class="py-2 text-right">${arr.filter(v => v === 0).length}</td><td class="py-2 text-right num">${fmtMoney(fines)}</td></tr>
+      <tr><td class="py-2">Admin</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(admin)}</td></tr>
+      <tr class="font-semibold"><td class="py-2">Net</td><td></td><td class="py-2 text-right num">${fmtMoney(inflow - outflow - admin + fines)}</td></tr>
+    `;
+  }
+
+  function renderNotices() {
+    const list = document.getElementById('notices');
+    list.innerHTML = noticesData.slice(0, 5).map(n => `<li><span class="text-slate-500">${new Date(n.date).toLocaleDateString()}:</span> ${n.text}</li>`).join('');
+  }
+
+  function renderAll(group, yearForMonthly, calMonthIndex, calYear) {
+    setCardNames(group);
+    document.getElementById('greet').textContent = greetLine();
+    renderRating(group);
+    renderEq(eqRange, group);
+    renderMonthly(group, yearForMonthly);
+    renderCalendar(group, calMonthIndex, calYear);
+    renderMembers(group);
+    renderCashflow(group);
+    renderNotices();
+  }
+
+  /* ======= Export Group Statement (PDF) ======= */
+  function exportStatement() {
+    document.getElementById('printDate').textContent = new Date().toLocaleString();
+    const opt = {
+      margin: [10, 10, 10, 10], filename: `Stokvel_Statement_${new Date().toISOString().slice(0, 10)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { avoid: ['.card', 'table', 'h1', 'h2', 'h3'] }
+    };
+    html2pdf().from(document.body.cloneNode(true)).set(opt).toPdf().get('pdf').save();
+  }
+
+  function setGroup(name) {
+    currentGroup = name;
+    const groupSel = document.getElementById('groupSel');
+    if (groupSel && groupSel.value !== name) groupSel.value = name;
+    document.querySelectorAll('#subsWrap .sub-card').forEach(card => {
+      const key = card.getAttribute('data-key');
+      card.classList.toggle('active', key === name);
+    });
+    const yearSel = document.getElementById('yearSel');
+    const yr = +yearSel.value;
+    const dpMonth = document.getElementById('dpMonth');
+    const dpYear = document.getElementById('dpYear');
+    renderAll(name, yr, +dpMonth.value, +dpYear.value);
+  }
+
+  (async function () {
+    await loadMenu();
+    buildMenu('dashboard');
+    document.getElementById('greet').textContent = greetLine();
+
+    // Range tabs
+    document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#eqTabs .tab-btn').forEach(x => x.classList.remove('active'));
+        btn.classList.add('active');
+        eqRange = btn.dataset.range; renderEq(eqRange, currentGroup);
+      });
+    });
+
+    // Groups side list
+    const subsWrap = document.getElementById('subsWrap');
+    subsWrap.innerHTML = Object.keys(groups).map(name => {
+      const g = groups[name];
+      const series = (g.balanceSeries['1M']?.arr || [1, 2, 3, 4, 5]).map((v, i) => v / (g.balance || 1) * 100);
+      const sparkSvg = (series) => {
+        const w = 120, h = 30, pad = 3, min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1;
+        const step = (w - 2 * pad) / Math.max(1, (series.length - 1));
+        let d = ''; series.forEach((v, i) => { const x = pad + i * step; const y = h - pad - ((v - min) / rng) * (h - 2 * pad); d += (i ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2) + ' '; });
+        return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="#0f172a" stroke-width="2"/></svg>`;
+      }
+      return `
+      <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card${name === currentGroup ? ' active' : ''}" data-key="${name}">
+        <div class="flex items-center justify-between">
+          <div class="font-medium text-sm truncate">${name}</div>
+          <span class="chip bg-slate-100 text-slate-700">${g.members.length} members</span>
+        </div>
+        <div class="text-xs text-slate-500">Collects R${g.contribution} on the ${g.collectionDay}th</div>
+        <div class="mt-2">${sparkSvg(series)}</div>
+      </div>`
+    }).join('');
+    document.querySelectorAll('#subsWrap .sub-card').forEach(card => card.addEventListener('click', () => setGroup(card.getAttribute('data-key'))));
+
+    // Group + Year selectors
+    const groupSel = document.getElementById('groupSel');
+    groupSel.innerHTML = Object.keys(groups).map(n => `<option value="${n}">${n}</option>`).join('');
+    groupSel.addEventListener('change', e => setGroup(e.target.value));
+    const yearSel = document.getElementById('yearSel');
+    yearSel.innerHTML = YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
+    yearSel.value = new Date().getFullYear();
+    yearSel.addEventListener('change', () => renderMonthly(currentGroup, +yearSel.value));
+
+    // Daily perf selectors
+    const dpMonth = document.getElementById('dpMonth');
+    dpMonth.innerHTML = MONTHS.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+    const dpYear = document.getElementById('dpYear');
+    dpYear.innerHTML = YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
+    const now = new Date();
+    dpMonth.value = now.getMonth();
+    dpYear.value = now.getFullYear();
+    dpMonth.addEventListener('change', () => renderCalendar(currentGroup, +dpMonth.value, +dpYear.value));
+    dpYear.addEventListener('change', () => renderCalendar(currentGroup, +dpMonth.value, +dpYear.value));
+
+    // Export + WhatsApp
+    document.getElementById('exportBtn').addEventListener('click', exportStatement);
+    document.getElementById('whatsappBtn').addEventListener('click', () => {
+      const text = encodeURIComponent(`[Notice] ${currentGroup}: Contributions due on the ${groups[currentGroup].collectionDay}th. Please use ref SVL-{CODE}-{MMYY}. Thanks!`);
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+    });
+
+    // Initial render
+    groupSel.value = currentGroup;
+    renderAll(currentGroup, +yearSel.value, +dpMonth.value, +dpYear.value);
+  })();
+</script>
+
+</html>
