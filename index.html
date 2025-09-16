@@ -161,7 +161,7 @@
       </div>
     </div>
   </section>
-<!-- STRATEGIES — Dates x-axis, Return% y-axis, Period picker, Desc + CTA -->
+<!-- STRATEGIES — clean axes, strategy picker, period filters -->
 <section id="strategies" class="py-16 lg:py-20">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <!-- Header (left-justified) -->
@@ -174,13 +174,10 @@
       </p>
     </div>
 
-    <!-- Asset tags + Period picker -->
-    <div id="strategyTags" class="mt-6 flex flex-wrap items-center gap-2">
-      <button type="button" data-asset="Equities"    class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">Equities</button>
-      <button type="button" data-asset="FX"          class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">FX</button>
-      <button type="button" data-asset="Crypto"      class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">Crypto</button>
-      <button type="button" data-asset="Futures"     class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">Futures</button>
-      <button type="button" data-asset="Commodities" class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">Commodities</button>
+    <!-- Strategy name buttons + Period picker -->
+    <div id="strategyBar" class="mt-6 flex flex-wrap items-center gap-2">
+      <!-- strategy name buttons will be injected here -->
+      <div id="strategyBtns" class="flex flex-wrap items-center gap-2"></div>
 
       <div class="ml-auto inline-flex items-center gap-1 rounded-full border border-black/10 bg-white p-1">
         <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="3M">3M</button>
@@ -190,7 +187,7 @@
       </div>
     </div>
 
-    <!-- WIDE CARD -->
+    <!-- Card -->
     <div class="relative mt-10">
       <article id="leftCard" class="swap-in rounded-3xl border border-black/10 bg-gradient-to-b from-white to-slate-50 p-6 shadow-[0_6px_24px_rgba(0,0,0,0.06)]">
         <!-- header row -->
@@ -206,7 +203,6 @@
               <span id="currency">—</span>
               <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-amber-50 text-amber-700" id="risk">Risk —</span>
               <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-emerald-50 text-emerald-700" id="aum">AUM —</span>
-              <span id="assetBadge" class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-black/5 text-slate-700">—</span>
             </div>
           </div>
           <div class="flex items-center gap-3 text-xs">
@@ -215,9 +211,9 @@
           </div>
         </div>
 
-        <!-- CHART (left) + METRICS & DESC (right) -->
+        <!-- chart + metrics -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <!-- LEFT: chart -->
+          <!-- chart -->
           <div class="lg:col-span-8 xl:col-span-9">
             <div class="flex items-center justify-between gap-3 mb-3">
               <div class="flex items-center gap-2">
@@ -227,8 +223,8 @@
               <div class="text-xs text-slate-500">* return vs period start</div>
             </div>
 
-            <div class="relative w-full h-[400px] overflow-hidden rounded-2xl border bg-white">
-              <svg id="equitySvg" viewBox="0 0 900 400" class="w-full h-full">
+            <div class="relative w-full h-[420px] overflow-hidden rounded-2xl border bg-white">
+              <svg id="equitySvg" viewBox="0 0 900 420" class="w-full h-full">
                 <defs>
                   <linearGradient id="eqLine" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="#7e8d52" stop-opacity="1"/>
@@ -242,7 +238,7 @@
             </div>
           </div>
 
-          <!-- RIGHT: metrics + description + CTA -->
+          <!-- metrics + desc + CTA -->
           <div class="lg:col-span-4 xl:col-span-3">
             <div id="eqMetrics" class="grid grid-cols-2 gap-3 text-sm">
               <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">CAGR</div><div id="mCagr" class="font-semibold">—</div></div>
@@ -263,7 +259,6 @@
       </article>
     </div>
 
-    <!-- Disclaimer -->
     <p class="mt-8 text-xs text-black/50">
       Strategy stats are illustrative. Performance isn’t guaranteed. Fees apply to returns, <span class="highlight">not AUM</span>.
     </p>
@@ -278,34 +273,40 @@
 
   <script>
     (function(){
-      // --- Helpers ---
       const $  = (s)=>document.querySelector(s);
       const $$ = (s)=>document.querySelectorAll(s);
-      const fmtPct = (n)=> (n>=0?'+':'') + n.toFixed(1) + '%';
+      const pct = (n,dp=1)=> (n>=0?'+':'') + n.toFixed(dp) + '%';
       const monthFmt = new Intl.DateTimeFormat('en-GB', { month:'short', year:'2-digit' });
 
-      // Generate n sequential months from YYYY-MM (inclusive)
+      // Build month sequence from YYYY-MM
       function genMonths(startYYYYMM, n){
         const [y,m] = startYYYYMM.split('-').map(Number);
-        const list = [];
-        for (let i=0;i<n;i++){
-          const d = new Date(y, m-1+i, 1);
-          list.push(d);
-        }
-        return list;
+        const out = [];
+        for (let i=0;i<n;i++) out.push(new Date(y, m-1+i, 1));
+        return out;
       }
 
-      // Nice y-ticks around min/max (rounded to 5%)
-      function niceTicks(minV, maxV){
-        if (minV === maxV) { minV -= 1; maxV += 1; }
-        const step = 5; // 5%
-        const lo = Math.floor(minV/step)*step;
-        const hi = Math.ceil(maxV/step)*step;
-        const mid = Math.round(((lo+hi)/2)/step)*step;
-        return [lo, mid, hi];
+      // Choose up to maxLabels evenly spaced indices (always include first and last)
+      function pickLabelIdx(n, maxLabels=6){
+        if (n<=1) return [0];
+        const step = Math.max(1, Math.round((n-1)/(maxLabels-1)));
+        const idxs = [];
+        for (let i=0; i<n; i+=step) idxs.push(i);
+        if (idxs[idxs.length-1] !== n-1) idxs.push(n-1);
+        return idxs;
       }
 
-      // --- Data (add desc + link + sinceMonth to build real dates) ---
+      // Nice padded extent including zero, rounded to 5%
+      function niceExtent(minV, maxV){
+        if (minV===maxV){ minV-=1; maxV+=1; }
+        const span = maxV - minV;
+        const pad = Math.max(5, span*0.12);
+        let lo = Math.floor((Math.min(0, minV - pad))/5)*5;
+        let hi = Math.ceil((Math.max(0, maxV + pad))/5)*5;
+        if (hi === lo) { hi = lo + 5; }
+        return [lo, hi];
+      }
+
       const STRATEGIES = [
         { asset:"Equities", name:"Trend Alpha — Indices", provider:"AlgoHive Quant", since:"2023-02", sinceMonth:"2023-02",
           currency:"USD", risk:"Moderate", aum:"R12.4m",
@@ -344,20 +345,40 @@
         }
       ];
 
-      let idx = 0;               // selected strategy
-      let selectedPeriod = 'ALL'; // 3M/6M/YTD/ALL
+      let idx = 0;
+      let selectedPeriod = 'ALL';
 
       const els = {
         stratName: $('#stratName'), provider: $('#provider'), since: $('#since'), currency: $('#currency'),
-        risk: $('#risk'), aum: $('#aum'), assetBadge: $('#assetBadge'), period: $('#period'),
+        risk: $('#risk'), aum: $('#aum'), period: $('#period'),
         eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
         mCagr: $('#mCagr'), mVol: $('#mVol'), mSharpe: $('#mSharpe'), mDD: $('#mDD'), mWin: $('#mWin'), mAvg: $('#mAvg'),
-        eqLine: $('#equityLine'), eqFill: $('#equityFill'), axes: $('#eqAxes'),
+        axes: $('#eqAxes'), line: $('#equityLine'), fill: $('#equityFill'),
         stratDesc: $('#stratDesc'), stratLink: $('#stratLink'),
-        leftCard: $('#leftCard')
+        leftCard: $('#leftCard'), strategyBtns: $('#strategyBtns')
       };
 
-      function filterByPeriod(vals, dates){
+      // Build strategy selector buttons (names)
+      function renderStrategyButtons(){
+        els.strategyBtns.innerHTML = '';
+        STRATEGIES.forEach((s, i)=>{
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.dataset.index = i;
+          b.className = 'strat px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5';
+          b.textContent = s.name;
+          b.addEventListener('click', ()=>{ idx = i; render(); });
+          els.strategyBtns.appendChild(b);
+        });
+      }
+
+      function markActive(){
+        $$('.strat').forEach((b,k)=> b.classList.toggle('tag-active', k===idx));
+        $$('.prd').forEach(b=> b.classList.toggle('prd-active', b.dataset.period===selectedPeriod));
+      }
+
+      // Filter by period (equity values + dates)
+      function filterByPeriod(vals, dts){
         const n = vals.length;
         const now = new Date();
         let startIdx = 0;
@@ -365,91 +386,105 @@
         if (selectedPeriod === '3M') startIdx = Math.max(0, n-3);
         else if (selectedPeriod === '6M') startIdx = Math.max(0, n-6);
         else if (selectedPeriod === 'YTD') {
-          // first month of current year
           const jan1 = new Date(now.getFullYear(), 0, 1);
-          startIdx = dates.findIndex(d => d >= jan1);
+          startIdx = dts.findIndex(d => d >= jan1);
           if (startIdx < 0) startIdx = 0;
         }
-
-        return {
-          series: vals.slice(startIdx),
-          dts: dates.slice(startIdx)
-        };
+        return { series: vals.slice(startIdx), dates: dts.slice(startIdx) };
       }
 
-      function drawAxesDatesReturn(svgW, svgH, pad, dts, retMin, retMax){
-        els.axes.innerHTML = '';
-        const g = els.axes;
+      // Draw axes + series, with proper ticks
+      function drawChart(equityVals, dates){
+        // convert to return % vs first point
+        const base = equityVals[0] || 1;
+        const rets = equityVals.map(v => ((v/base)-1)*100);
 
-        // y ticks
-        const [y0,y1,y2] = niceTicks(retMin, retMax);
-        [y0,y1,y2].forEach(t=>{
-          const y = svgH-pad - ((t - retMin)/(retMax-retMin||1))*(svgH-2*pad);
+        const W=900, H=420, P={top:16,right:24,bottom:40,left:52};
+        const innerW = W - P.left - P.right;
+        const innerH = H - P.top - P.bottom;
+
+        // extents
+        const rawMin = Math.min(...rets), rawMax = Math.max(...rets);
+        const [yMin, yMax] = niceExtent(rawMin, rawMax);
+
+        // scales
+        const sx = (i)=> P.left + (i*(innerW))/Math.max(1,(rets.length-1));
+        const sy = (r)=> P.top + (yMax - r)*(innerH)/(yMax - yMin || 1);
+
+        // clear axes group
+        els.axes.innerHTML = '';
+
+        // y ticks (5)
+        const yTicks = 5;
+        for (let t=0;t<=yTicks;t++){
+          const val = yMin + (t*(yMax-yMin))/yTicks;
+          const y = sy(val);
           const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
-          ln.setAttribute('x1', pad); ln.setAttribute('x2', svgW-pad);
-          ln.setAttribute('y1', y);   ln.setAttribute('y2', y);
+          ln.setAttribute('x1', P.left); ln.setAttribute('x2', W - P.right);
+          ln.setAttribute('y1', y);      ln.setAttribute('y2', y);
           ln.setAttribute('stroke', 'rgba(0,0,0,0.08)');
           ln.setAttribute('stroke-dasharray', '4 4');
-          g.appendChild(ln);
+          els.axes.appendChild(ln);
 
           const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
-          lab.setAttribute('x', pad-6); lab.setAttribute('y', y+4);
-          lab.setAttribute('text-anchor','end'); lab.setAttribute('font-size','10'); lab.setAttribute('fill','#64748b');
-          lab.textContent = `${t}%`;
-          g.appendChild(lab);
-        });
+          lab.setAttribute('x', P.left - 8);
+          lab.setAttribute('y', y + 4);
+          lab.setAttribute('text-anchor', 'end');
+          lab.setAttribute('font-size', '10');
+          lab.setAttribute('fill', '#64748b');
+          lab.textContent = pct(val,0);
+          els.axes.appendChild(lab);
+        }
+
+        // zero line (highlight)
+        if (yMin < 0 && yMax > 0){
+          const y0 = sy(0);
+          const zl = document.createElementNS('http://www.w3.org/2000/svg','line');
+          zl.setAttribute('x1', P.left); zl.setAttribute('x2', W - P.right);
+          zl.setAttribute('y1', y0);     zl.setAttribute('y2', y0);
+          zl.setAttribute('stroke', 'rgba(0,0,0,0.25)');
+          zl.setAttribute('stroke-width', '1');
+          els.axes.appendChild(zl);
+        }
 
         // x axis baseline
-        const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
-        xAxis.setAttribute('x1', pad); xAxis.setAttribute('x2', svgW-pad);
-        xAxis.setAttribute('y1', svgH-pad); xAxis.setAttribute('y2', svgH-pad);
-        xAxis.setAttribute('stroke', 'rgba(0,0,0,0.12)');
-        g.appendChild(xAxis);
+        const xb = document.createElementNS('http://www.w3.org/2000/svg','line');
+        xb.setAttribute('x1', P.left); xb.setAttribute('x2', W - P.right);
+        xb.setAttribute('y1', H - P.bottom); xb.setAttribute('y2', H - P.bottom);
+        xb.setAttribute('stroke', 'rgba(0,0,0,0.12)');
+        els.axes.appendChild(xb);
 
-        // x labels: start, mid, end using real dates
-        const idxs = [0, Math.floor((dts.length-1)/2), dts.length-1];
+        // x ticks (evenly spaced up to 6)
+        const idxs = pickLabelIdx(dates.length, 6);
         idxs.forEach((i, k)=>{
-          const x = pad + (i*(svgW-2*pad))/Math.max(1,(dts.length-1));
+          const x = sx(i);
+          const vl = document.createElementNS('http://www.w3.org/2000/svg','line');
+          vl.setAttribute('x1', x); vl.setAttribute('x2', x);
+          vl.setAttribute('y1', P.top); vl.setAttribute('y2', H - P.bottom);
+          vl.setAttribute('stroke', 'rgba(0,0,0,0.06)');
+          els.axes.appendChild(vl);
+
           const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
-          lab.setAttribute('x', x); lab.setAttribute('y', svgH-pad+14);
-          lab.setAttribute('text-anchor', k===0?'start':(k===2?'end':'middle'));
-          lab.setAttribute('font-size','10'); lab.setAttribute('fill','#64748b');
-          lab.textContent = monthFmt.format(dts[i]);
-          g.appendChild(lab);
+          lab.setAttribute('x', x);
+          lab.setAttribute('y', H - P.bottom + 14);
+          lab.setAttribute('text-anchor', k===0?'start':(k===idxs.length-1?'end':'middle'));
+          lab.setAttribute('font-size', '10');
+          lab.setAttribute('fill', '#64748b');
+          lab.textContent = monthFmt.format(dates[i]);
+          els.axes.appendChild(lab);
         });
 
-        // y axis title
-        const yTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
-        yTitle.setAttribute('x', 8); yTitle.setAttribute('y', 16);
-        yTitle.setAttribute('font-size','10'); yTitle.setAttribute('fill','#64748b');
-        yTitle.textContent = 'Return %';
-        g.appendChild(yTitle);
-      }
-
-      function drawSeries(equity, dts){
-        // compute returns vs first of period
-        const base = equity[0] || 1;
-        const rets = equity.map(v => ((v/base)-1)*100);
-
-        const W=900, H=400, P=36;
-        const min = Math.min(...rets), max = Math.max(...rets);
-        const nx = i => P + (i*(W-2*P))/Math.max(1,(rets.length-1));
-        const ny = r => H-P - ((r-min)/(max-min||1))*(H-2*P);
-
-        // axes
-        drawAxesDatesReturn(W,H,P,dts,min,max);
-
-        // path
-        const d = 'M ' + rets.map((r,i)=>`${nx(i)},${ny(r)}`).join(' L ');
-        els.eqLine.setAttribute('d', d);
-        const fillD = `${d} L ${nx(rets.length-1)},${H-P} L ${nx(0)},${H-P} Z`;
-        els.eqFill.setAttribute('d', fillD);
+        // series path
+        const d = 'M ' + rets.map((r,i)=>`${sx(i)},${sy(r)}`).join(' L ');
+        els.line.setAttribute('d', d);
+        const fillD = `${d} L ${sx(rets.length-1)},${H - P.bottom} L ${sx(0)},${H - P.bottom} Z`;
+        els.fill.setAttribute('d', fillD);
 
         // headline numbers
         const last = rets.at(-1);
-        const growthX = (last/100)+1; // since base is 0% => 1x
+        const growthX = (last/100) + 1;
         els.eqValue.textContent = `Growth: ${growthX.toFixed(2)}x`;
-        els.eqDelta.textContent = fmtPct(last);
+        els.eqDelta.textContent = pct(last);
         els.eqDelta.classList.toggle('bg-green-50', last>=0);
         els.eqDelta.classList.toggle('text-green-700', last>=0);
         els.eqDelta.classList.toggle('bg-rose-50', last<0);
@@ -458,8 +493,8 @@
 
       function render(){
         const s = STRATEGIES[idx];
-        const dates = genMonths(s.sinceMonth, s.equity.length);
-        const { series, dts } = filterByPeriod(s.equity, dates);
+        const allDates = genMonths(s.sinceMonth, s.equity.length);
+        const { series, dates } = filterByPeriod(s.equity, allDates);
 
         els.stratName.textContent = s.name;
         els.provider.textContent  = s.provider;
@@ -467,41 +502,28 @@
         els.currency.textContent  = s.currency;
         els.risk.textContent      = `Risk ${s.risk}`;
         els.aum.textContent       = `AUM ${s.aum}`;
-        els.assetBadge.textContent= s.asset;
 
-        els.mCagr.textContent     = s.cagr;
-        els.mVol.textContent      = s.vol;
-        els.mSharpe.textContent   = s.sharpe;
-        els.mDD.textContent       = s.dd;
-        els.mWin.textContent      = s.win;
-        els.mAvg.textContent      = s.avg;
+        els.mCagr.textContent   = s.cagr;
+        els.mVol.textContent    = s.vol;
+        els.mSharpe.textContent = s.sharpe;
+        els.mDD.textContent     = s.dd;
+        els.mWin.textContent    = s.win;
+        els.mAvg.textContent    = s.avg;
 
         els.stratDesc.textContent = s.desc;
         els.stratLink.setAttribute('href', s.link);
 
-        els.period.textContent    = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
+        els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
 
-        drawSeries(series, dts);
+        drawChart(series, dates);
 
-        // animate card
+        // animate + active classes
         els.leftCard.classList.remove('swap-in'); void els.leftCard.offsetWidth; els.leftCard.classList.add('swap-in');
-
-        // sync active styles
-        $$('#strategyTags .tag').forEach(b=>b.classList.toggle('tag-active', b.dataset.asset===s.asset));
-        $$('#strategyTags .prd').forEach(b=>b.classList.toggle('prd-active', b.dataset.period===selectedPeriod));
+        markActive();
       }
 
-      // tag handlers
-      $$('#strategyTags .tag').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const asset = btn.dataset.asset;
-          const i = STRATEGIES.findIndex(x=>x.asset===asset);
-          if (i>=0){ idx=i; render(); }
-        });
-      });
-
       // period handlers
-      $$('#strategyTags .prd').forEach(btn=>{
+      $$('.prd').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           selectedPeriod = btn.dataset.period || 'ALL';
           render();
@@ -509,11 +531,13 @@
       });
 
       // init
+      renderStrategyButtons();
       selectedPeriod = 'ALL';
       render();
     })();
   </script>
 </section>
+
 
 
 <!-- LENDING — Portfolio-Backed Credit (AlgoHive branding) -->
