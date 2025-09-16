@@ -161,11 +161,11 @@
       </div>
     </div>
   </section>
-<!-- STRATEGIES — Single wide equity card + Selectable tags (no arrow) -->
+<!-- STRATEGIES — Wide equity card + Tags + Period picker + Axes -->
 <section id="strategies" class="py-16 lg:py-20">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
-    <div class="text-center max-w-2xl mx-auto">
+    <!-- Header (left-justified now) -->
+    <div class="max-w-3xl">
       <h2 class="mt-0 text-4xl sm:text-5xl font-extrabold tracking-tight text-[var(--ink)]">
         Build your portfolio with our <span class="text-[var(--olive)]">managed</span> strategies.
       </h2>
@@ -175,7 +175,7 @@
     </div>
 
     <!-- Selection tags -->
-    <div id="strategyTags" class="mt-6 flex flex-wrap items-center justify-center gap-2">
+    <div id="strategyTags" class="mt-6 flex flex-wrap items-center gap-2">
       <button type="button" data-asset="Equities"
         class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">
         Equities
@@ -196,6 +196,14 @@
         class="tag px-3 py-1.5 rounded-full border border-black/10 bg-white text-sm font-medium text-[var(--ink)] hover:bg-black/5">
         Commodities
       </button>
+
+      <!-- Period picker (global) -->
+      <div class="ml-auto inline-flex items-center gap-1 rounded-full border border-black/10 bg-white p-1">
+        <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="3M">3M</button>
+        <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="6M">6M</button>
+        <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="YTD">YTD</button>
+        <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="ALL">All</button>
+      </div>
     </div>
 
     <!-- WIDE CARD -->
@@ -207,7 +215,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="min-w-0">
             <div class="flex items-center gap-2 text-xs text-slate-500">
-              <span id="period">Last 12 months</span>
+              <span id="period">All time</span>
             </div>
             <h3 id="stratName" class="text-[28px] leading-tight font-semibold truncate">—</h3>
             <div class="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-600">
@@ -236,17 +244,20 @@
                 <div class="text-2xl font-semibold" id="eqValue">—</div>
                 <span id="eqDelta" class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-green-50 text-green-700">+0.0%</span>
               </div>
-              <div class="text-xs text-slate-500 lg:hidden">* normalized to 100 at start</div>
+              <div class="text-xs text-slate-500">* normalized to 100 at start</div>
             </div>
 
-            <div class="relative w-full h-[360px] overflow-hidden rounded-2xl border bg-white">
-              <svg id="equitySvg" viewBox="0 0 900 360" class="w-full h-full">
+            <div class="relative w-full h-[380px] overflow-hidden rounded-2xl border bg-white">
+              <svg id="equitySvg" viewBox="0 0 900 380" class="w-full h-full">
                 <defs>
                   <linearGradient id="eqLine" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="#7e8d52" stop-opacity="1"/>
                     <stop offset="100%" stop-color="#7e8d52" stop-opacity="0.15"/>
                   </linearGradient>
                 </defs>
+                <!-- axes & grid will be drawn into this group -->
+                <g id="eqAxes"></g>
+                <!-- series -->
                 <path id="equityFill" d="" fill="url(#eqLine)" opacity="0.18"></path>
                 <path id="equityLine" d="" fill="none" stroke="#7e8d52" stroke-width="2.5" stroke-linecap="round"></path>
               </svg>
@@ -255,7 +266,6 @@
 
           <!-- RIGHT: metrics (2 per row) -->
           <div class="lg:col-span-4 xl:col-span-3">
-            <div class="hidden lg:block text-xs text-slate-500 mb-2">* normalized to 100 at start</div>
             <div id="eqMetrics" class="grid grid-cols-2 gap-3 text-sm">
               <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">CAGR</div><div id="mCagr" class="font-semibold">—</div></div>
               <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div id="mVol" class="font-semibold">—</div></div>
@@ -264,22 +274,27 @@
               <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div id="mWin" class="font-semibold">—</div></div>
               <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div id="mAvg" class="font-semibold">—</div></div>
             </div>
+            <!-- description under metrics -->
+            <p class="mt-3 text-[11px] leading-5 text-slate-600">
+              Metrics reflect the selected period and are computed on equity normalized to 100. Past performance is not a guarantee of future results.
+            </p>
           </div>
         </div>
       </article>
     </div>
 
     <!-- Disclaimer -->
-    <p class="mt-8 text-center text-xs text-black/50">
+    <p class="mt-8 text-xs text-black/50">
       Strategy stats are illustrative previews. Performance is not guaranteed. Fees apply to returns, <span class="highlight">not AUM</span>.
     </p>
   </div>
 
-  <!-- swap animation -->
+  <!-- swap animation + active styles -->
   <style>
     @keyframes swapIn { from {opacity:0; transform: translateY(8px) scale(.98)} to {opacity:1; transform: translateY(0) scale(1)} }
     .swap-in { animation: swapIn .45s cubic-bezier(.2,.8,.2,1) both }
     .tag-active { background: var(--olive); color: #fff; border-color: transparent; }
+    .prd-active { background: var(--olive); color:#fff; }
   </style>
 
   <!-- Logic -->
@@ -293,8 +308,10 @@
         { asset:"Commodities",name:"Commod Pairs — Spreads",  provider:"AlgoHive Quant", since:"2021-12", currency:"USD", risk:"Low–Mod",      aum:"R5.6m",  cagr:"8.4%",  vol:"6.0%",  sharpe:"1.10", dd:"5.4%",  win:"60%", avg:"+0.6%", equity:[100,100.5,101,101.4,101.8,102.3,102.9,103.2,103.9,104.4,104.8,105.2,105.9,106.5,107.1,107.6,108.0,108.8,109.3,109.9,110.4,111.0,111.5,112.0] }
       ];
 
-      let idx = 0; // default to Equities
-      const $ = (s)=>document.querySelector(s);
+      let idx = 0; // default strategy
+      let selectedPeriod = 'ALL'; // 3M, 6M, YTD, ALL
+
+      const $  = (s)=>document.querySelector(s);
       const $$ = (s)=>document.querySelectorAll(s);
 
       const els = {
@@ -302,23 +319,93 @@
         risk: $('#risk'), aum: $('#aum'), assetBadge: $('#assetBadge'), period: $('#period'),
         eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
         mCagr: $('#mCagr'), mVol: $('#mVol'), mSharpe: $('#mSharpe'), mDD: $('#mDD'), mWin: $('#mWin'), mAvg: $('#mAvg'),
-        eqLine: $('#equityLine'), eqFill: $('#equityFill'), leftCard: $('#leftCard')
+        eqLine: $('#equityLine'), eqFill: $('#equityFill'), axes: $('#eqAxes'), svg: $('#equitySvg'),
+        leftCard: $('#leftCard')
       };
 
       function fmtPct(n){ return (n>0?'+':'') + n.toFixed(1) + '%'; }
 
+      function filterByPeriod(vals){
+        const n = vals.length;
+        if (selectedPeriod === '3M')  return vals.slice(Math.max(0, n-3));
+        if (selectedPeriod === '6M')  return vals.slice(Math.max(0, n-6));
+        if (selectedPeriod === 'YTD') {
+          // assume monthly data; take months since Jan (current month index + 1)
+          const now = new Date();
+          const months = now.getMonth() + 1; // Jan=0 -> +1
+          return vals.slice(Math.max(0, n - months));
+        }
+        return vals; // ALL
+      }
+
+      function drawAxes(W,H,P,min,max,points){
+        // clear previous
+        els.axes.innerHTML = '';
+        const g = els.axes;
+
+        // gridlines (3 horizontal: min/mid/max)
+        const ticks = [min, (min+max)/2, max];
+        ticks.forEach(t=>{
+          const y = H-P - ((t-min)/(max-min||1))*(H-2*P);
+          const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+          ln.setAttribute('x1', P); ln.setAttribute('x2', W-P);
+          ln.setAttribute('y1', y); ln.setAttribute('y2', y);
+          ln.setAttribute('stroke', 'rgba(0,0,0,0.08)');
+          ln.setAttribute('stroke-dasharray', '4 4');
+          g.appendChild(ln);
+
+          const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
+          lab.setAttribute('x', P-6); lab.setAttribute('y', y+4);
+          lab.setAttribute('text-anchor','end');
+          lab.setAttribute('font-size','10');
+          lab.setAttribute('fill','#64748b');
+          lab.textContent = Math.round(t);
+          g.appendChild(lab);
+        });
+
+        // x-axis baseline
+        const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
+        xAxis.setAttribute('x1', P); xAxis.setAttribute('x2', W-P);
+        xAxis.setAttribute('y1', H-P); xAxis.setAttribute('y2', H-P);
+        xAxis.setAttribute('stroke', 'rgba(0,0,0,0.12)');
+        g.appendChild(xAxis);
+
+        // x labels: start, mid, end
+        const labels = ['Start', 'Mid', 'Now'];
+        const positions = [0, Math.floor((points-1)/2), points-1];
+        positions.forEach((i, idx)=>{
+          const x = P + (i*(W-2*P))/Math.max(1,(points-1));
+          const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
+          lab.setAttribute('x', x); lab.setAttribute('y', H-P+14);
+          lab.setAttribute('text-anchor', idx===0?'start':(idx===2?'end':'middle'));
+          lab.setAttribute('font-size','10');
+          lab.setAttribute('fill','#64748b');
+          lab.textContent = labels[idx];
+          g.appendChild(lab);
+        });
+      }
+
       function drawSpark(vals){
-        const W=900,H=360,P=12;
-        const min = Math.min(...vals), max = Math.max(...vals);
-        const nx = i => P + (i*(W-2*P))/(vals.length-1);
+        const series = filterByPeriod(vals);
+        const W=900,H=380,P=32;
+
+        const min = Math.min(...series), max = Math.max(...series);
+        const nx = i => P + (i*(W-2*P))/Math.max(1,(series.length-1));
         const ny = v => H-P - ((v-min)/(max-min||1))*(H-2*P);
-        const d = 'M ' + vals.map((v,i)=>`${nx(i)},${ny(v)}`).join(' L ');
+
+        // axes / grid
+        drawAxes(W,H,P,min,max,series.length);
+
+        // series
+        const d = 'M ' + series.map((v,i)=>`${nx(i)},${ny(v)}`).join(' L ');
         els.eqLine.setAttribute('d', d);
-        const fillD = `${d} L ${nx(vals.length-1)},${H-P} L ${nx(0)},${H-P} Z`;
+        const fillD = `${d} L ${nx(series.length-1)},${H-P} L ${nx(0)},${H-P} Z`;
         els.eqFill.setAttribute('d', fillD);
 
-        const start = vals[0], last = vals.at(-1);
-        const growthX = last/start, deltaPct = (growthX-1)*100;
+        // headline numbers
+        const start = series[0], last = series.at(-1);
+        const growthX = (start>0)? (last/start) : 1;
+        const deltaPct = (growthX-1)*100;
         els.eqValue.textContent = `Growth: ${growthX.toFixed(2)}x`;
         els.eqDelta.textContent = fmtPct(deltaPct);
         els.eqDelta.classList.toggle('bg-green-50', deltaPct>=0);
@@ -337,7 +424,6 @@
         els.risk.textContent      = `Risk ${s.risk}`;
         els.aum.textContent       = `AUM ${s.aum}`;
         els.assetBadge.textContent= s.asset;
-        els.period.textContent    = 'Last 12 months';
 
         els.mCagr.textContent     = s.cagr;
         els.mVol.textContent      = s.vol;
@@ -346,19 +432,28 @@
         els.mWin.textContent      = s.win;
         els.mAvg.textContent      = s.avg;
 
+        const pLabel = selectedPeriod === 'ALL' ? 'All time' : selectedPeriod;
+        els.period.textContent = pLabel;
+
         drawSpark(s.equity);
 
         // animate
         els.leftCard.classList.remove('swap-in'); void els.leftCard.offsetWidth; els.leftCard.classList.add('swap-in');
 
-        // sync active tag
+        // sync active tag & period
         syncTags(s.asset);
+        syncPeriods();
       }
 
       function syncTags(activeAsset){
         $$('#strategyTags .tag').forEach(btn => {
           const isActive = btn.dataset.asset === activeAsset;
           btn.classList.toggle('tag-active', isActive);
+        });
+      }
+      function syncPeriods(){
+        $$('#strategyTags .prd').forEach(btn=>{
+          btn.classList.toggle('prd-active', btn.dataset.period === selectedPeriod);
         });
       }
 
@@ -371,11 +466,21 @@
         });
       });
 
-      // init
+      // period click handlers (global)
+      $$('#strategyTags .prd').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          selectedPeriod = btn.dataset.period || 'ALL';
+          render();
+        });
+      });
+
+      // init default: mark ALL active
+      selectedPeriod = 'ALL';
       render();
     })();
   </script>
 </section>
+
 <!-- LENDING — Portfolio-Backed Credit (AlgoHive branding) -->
 <section id="lending" class="relative py-16 lg:py-20">
   <!-- soft halo -->
