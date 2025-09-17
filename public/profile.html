@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>AlgoHive — Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
   <style>
     :root{ --olive:#7e8d52; --olive-700:#576138; --ink:#0B1215; }
     body{ background:#f6f7f6 }
@@ -39,39 +40,38 @@
         <div class="md:col-span-1">
           <div class="flex flex-col items-start gap-3">
             <img id="avatar-preview" src="" alt="avatar" class="h-28 w-28 rounded-xl object-cover border border-black/10 bg-black/5">
-            <label class="text-sm">
-              <span class="block mb-1 text-slate-700">Avatar</span>
-              <input id="avatar" type="file" accept="image/*" class="block text-xs" />
-            </label>
-            <p class="text-[11px] text-slate-500">JPG/PNG, &lt; 2MB.</p>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm">
+                <span class="block mb-1 text-slate-700">Avatar</span>
+                <input id="avatar-file" type="file" accept="image/*" class="block text-xs" />
+              </label>
+              <button id="open-crop" type="button" class="hidden rounded px-3 py-2 bg-[var(--olive)] text-white">Crop & Upload</button>
+              <button id="remove-avatar" type="button" class="hidden text-xs underline text-rose-700">Remove avatar</button>
+            </div>
+            <p class="text-[11px] text-slate-500">JPG/PNG, ideally square. We’ll crop to 320×320.</p>
           </div>
         </div>
 
         <!-- right: fields -->
         <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label class="block">
-            <span class="text-xs text-slate-600">Full name</span>
-            <input name="full_name" class="mt-1 w-full border rounded px-3 py-2" placeholder="Your name" required>
+            <span class="text-xs text-slate-600">Email</span>
+            <input name="email" class="mt-1 w-full border rounded px-3 py-2 bg-slate-50" readonly>
           </label>
 
           <label class="block">
             <span class="text-xs text-slate-600">Phone</span>
-            <input name="phone" class="mt-1 w-full border rounded px-3 py-2" placeholder="+27 ...">
-          </label>
-
-          <label class="block sm:col-span-2">
-            <span class="text-xs text-slate-600">Bio</span>
-            <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-3 py-2" placeholder="Tell us a bit about you"></textarea>
+            <input name="phone" class="mt-1 w-full border rounded px-3 py-2" placeholder="+27 ..." inputmode="tel">
           </label>
 
           <label class="block">
-            <span class="text-xs text-slate-600">Risk level</span>
-            <select name="risk_level" class="mt-1 w-full border rounded px-3 py-2">
-              <option value="">Select…</option>
-              <option>Conservative</option>
-              <option>Moderate</option>
-              <option>Aggressive</option>
-            </select>
+            <span class="text-xs text-slate-600">First name</span>
+            <input name="first_name" class="mt-1 w-full border rounded px-3 py-2" placeholder="First name" required>
+          </label>
+
+          <label class="block">
+            <span class="text-xs text-slate-600">Last name</span>
+            <input name="last_name" class="mt-1 w-full border rounded px-3 py-2" placeholder="Last name" required>
           </label>
 
           <div class="sm:col-span-2 flex items-center gap-3 mt-2">
@@ -90,7 +90,22 @@
     </div>
   </main>
 
-  <!-- auth guard + logic -->
+  <!-- Cropper modal -->
+  <div id="crop-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+    <div class="bg-white w-[min(95vw,680px)] rounded-xl p-4 border border-black/10 shadow-2xl">
+      <h3 class="font-semibold mb-2">Crop your avatar</h3>
+      <div class="max-h-[60vh] overflow-auto">
+        <img id="crop-image" class="max-w-full" alt="Crop source">
+      </div>
+      <div class="mt-3 flex items-center justify-end gap-2">
+        <button id="crop-cancel" class="px-3 py-2 border rounded">Cancel</button>
+        <button id="crop-apply" class="px-3 py-2 rounded bg-[var(--olive)] text-white">Crop & Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
   <script type="module">
     import { supabase } from "/js/supabase.js";
     import { signOut } from "/js/auth.js";
@@ -109,8 +124,18 @@
     const msg  = document.getElementById("msg");
     const saveBtn = document.getElementById("saveBtn");
     const savedTick = document.getElementById("savedTick");
-    const avatarInput = document.getElementById("avatar");
     const avatarPreview = document.getElementById("avatar-preview");
+    const avatarFile = document.getElementById("avatar-file");
+    const openCropBtn = document.getElementById("open-crop");
+    const removeAvatarBtn = document.getElementById("remove-avatar");
+
+    // cropper modal
+    const cropModal = document.getElementById("crop-modal");
+    const cropImg   = document.getElementById("crop-image");
+    const cropCancel= document.getElementById("crop-cancel");
+    const cropApply = document.getElementById("crop-apply");
+    let cropper = null;
+    let pendingFile = null;
 
     // UI helpers
     function showMsg(text, type="info"){
@@ -120,15 +145,20 @@
       msg.textContent = text;
     }
     function clearMsg(){ msg.classList.add("hidden"); msg.textContent = ""; }
-    function setLoading(on){
+    function setSaving(on){
       saveBtn.disabled = on;
       saveBtn.textContent = on ? "Saving…" : "Save changes";
     }
+    function openModal(){ cropModal.classList.remove("hidden"); cropModal.classList.add("flex"); }
+    function closeModal(){ cropModal.classList.add("hidden"); cropModal.classList.remove("flex"); if (cropper) { cropper.destroy(); cropper = null; } }
 
     // load current profile
     async function loadProfile(){
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // email from auth
+      form.elements.email.value = user.email || "";
 
       // fetch row
       const { data, error } = await supabase
@@ -137,88 +167,154 @@
         .eq("id", user.id)
         .single();
 
-      if (error && error.code !== "PGRST116") { // not found is okay if table empty
+      if (error && error.code !== "PGRST116") { // not found is fine
         showMsg(error.message, "error");
         return;
       }
 
-      // fill fields
       const f = form.elements;
       if (data) {
-        f.full_name.value = data.full_name ?? "";
-        f.phone.value     = data.phone ?? "";
-        f.bio.value       = data.bio ?? "";
-        f.risk_level.value= data.risk_level ?? "";
+        f.first_name.value = data.first_name ?? "";
+        f.last_name.value  = data.last_name ?? "";
+        f.phone.value      = data.phone ?? "";
         if (data.avatar_url) {
           avatarPreview.src = data.avatar_url;
+          removeAvatarBtn.classList.remove("hidden");
         } else {
           avatarPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='112' height='112'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+          removeAvatarBtn.classList.add("hidden");
         }
       } else {
         avatarPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='112' height='112'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+        removeAvatarBtn.classList.add("hidden");
       }
     }
 
-    // preview selected avatar
-    avatarInput.addEventListener("change", () => {
-      const file = avatarInput.files?.[0];
-      if (file) avatarPreview.src = URL.createObjectURL(file);
+    // handle file choose -> open cropper
+    avatarFile.addEventListener("change", () => {
+      clearMsg();
+      const file = avatarFile.files?.[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { showMsg("Image too large. Please keep it under 2MB.", "error"); return; }
+      pendingFile = file;
+      const url = URL.createObjectURL(file);
+      cropImg.src = url;
+      // init cropper when image loads
+      cropImg.onload = () => {
+        if (cropper) cropper.destroy();
+        cropper = new window.Cropper(cropImg, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: "move",
+          autoCropArea: 1,
+          background: false,
+          zoomOnWheel: true
+        });
+      };
+      openModal();
+      openCropBtn.classList.remove("hidden"); // not used anymore, but keep visible if you want a second entry point
     });
 
-    // save profile
+    cropCancel.addEventListener("click", () => {
+      closeModal();
+      pendingFile = null;
+      avatarFile.value = "";
+    });
+
+    cropApply.addEventListener("click", async () => {
+      if (!cropper) return;
+      try {
+        const canvas = cropper.getCroppedCanvas({ width: 320, height: 320 });
+        const blob = await new Promise(res => canvas.toBlob(res, "image/png", 0.92));
+        if (!blob) throw new Error("Could not create image blob.");
+        await uploadAvatar(blob);
+        closeModal();
+        avatarFile.value = "";
+      } catch (err) {
+        showMsg(err.message || "Failed to crop/upload.", "error");
+      }
+    });
+
+    async function uploadAvatar(blob){
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in.");
+
+      const path = `${user.id}/avatar_${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: "image/png"
+      });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatar_url = pub.publicUrl;
+
+      // save immediately to profile
+      const { error: upsertErr } = await supabase.from("profiles").upsert({
+        id: user.id, avatar_url, updated_at: new Date().toISOString()
+      }).eq("id", user.id);
+      if (upsertErr) throw upsertErr;
+
+      avatarPreview.src = avatar_url;
+      removeAvatarBtn.classList.remove("hidden");
+      showMsg("Avatar updated.", "success");
+    }
+
+    // remove avatar
+    removeAvatarBtn.addEventListener("click", async ()=>{
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { error } = await supabase.from("profiles").update({ avatar_url: null, updated_at: new Date().toISOString() }).eq("id", user.id);
+        if (error) throw error;
+        avatarPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='112' height='112'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+        removeAvatarBtn.classList.add("hidden");
+        showMsg("Avatar removed.", "success");
+      } catch (err){
+        showMsg(err.message || "Could not remove avatar.", "error");
+      }
+    });
+
+    // save profile (names + phone)
     form.addEventListener("submit", async (e)=>{
-      e.preventDefault(); clearMsg(); setLoading(true); savedTick.classList.add("hidden");
+      e.preventDefault(); clearMsg(); setSaving(true); savedTick.classList.add("hidden");
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not signed in.");
 
-        // 1) upload avatar if provided
-        let avatar_url = null;
-        const file = avatarInput.files?.[0];
-        if (file) {
-          const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-          const path = `${user.id}/avatar.${ext}`;
-          const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
-            cacheControl: "3600",
-            upsert: true,
-            contentType: file.type || "image/*"
-          });
-          if (upErr) throw upErr;
+        const first_name = form.elements.first_name.value.trim();
+        const last_name  = form.elements.last_name.value.trim();
+        const phone      = form.elements.phone.value.trim();
+        const email      = form.elements.email.value.trim();
 
-          const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-          avatar_url = pub.publicUrl;
-        }
-
-        // 2) upsert profile row
         const payload = {
           id: user.id,
-          full_name: form.elements.full_name.value.trim(),
-          phone: form.elements.phone.value.trim(),
-          bio: form.elements.bio.value.trim(),
-          risk_level: form.elements.risk_level.value || null,
+          first_name,
+          last_name,
+          phone,
+          // store email if you want it duplicated in profiles:
+          email,
           updated_at: new Date().toISOString()
         };
-        if (avatar_url) payload.avatar_url = avatar_url;
 
         const { error: upsertErr } = await supabase.from("profiles").upsert(payload).eq("id", user.id);
         if (upsertErr) throw upsertErr;
 
-        // 3) (optional) keep Auth metadata in sync
-        await supabase.auth.updateUser({ data: { full_name: payload.full_name } }).catch(()=>{});
+        // keep auth metadata in sync (useful if you show name elsewhere)
+        await supabase.auth.updateUser({ data: { first_name, last_name, full_name: `${first_name} ${last_name}`.trim() } }).catch(()=>{});
 
         showMsg("Profile saved.", "success");
         savedTick.classList.remove("hidden");
       } catch (err) {
         showMsg(err.message || "Failed to save profile.", "error");
       } finally {
-        setLoading(false);
+        setSaving(false);
       }
     });
 
-    // init
+    // init + logout
     await loadProfile();
-
-    // logout
     document.querySelector(".js-logout")?.addEventListener("click", signOut);
   </script>
 </body>
