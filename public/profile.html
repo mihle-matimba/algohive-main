@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>AlgoHive — Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{ --olive:#7e8d52; --olive-700:#576138; --ink:#0B1215; }
+    body{ background:#f6f7f6 }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- top bar -->
+  <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-black/10">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/dashboard.html" class="flex items-center gap-2">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-7 w-auto">
+        <span class="font-extrabold text-[var(--ink)]">AlgoHive</span>
+      </a>
+      <nav class="flex items-center gap-2">
+        <a href="/dashboard.html" class="text-sm px-3 py-1.5 rounded border hover:bg-black/5">Dashboard</a>
+        <button class="js-logout text-sm px-3 py-1.5 rounded bg-black text-white">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-[var(--ink)]">Your Profile</h1>
+    <p class="text-sm text-slate-600 mt-1">Keep your details fresh. Avatar is optional.</p>
+
+    <!-- messages -->
+    <div id="msg" class="hidden mt-4 rounded-lg border text-sm px-3 py-2"></div>
+
+    <!-- card -->
+    <section class="mt-4 rounded-2xl border border-black/10 bg-white p-5 shadow">
+      <form id="profile-form" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- left: avatar -->
+        <div class="md:col-span-1">
+          <div class="flex flex-col items-start gap-3">
+            <img id="avatar-preview" src="" alt="avatar" class="h-28 w-28 rounded-xl object-cover border border-black/10 bg-black/5">
+            <label class="text-sm">
+              <span class="block mb-1 text-slate-700">Avatar</span>
+              <input id="avatar" type="file" accept="image/*" class="block text-xs" />
+            </label>
+            <p class="text-[11px] text-slate-500">JPG/PNG, &lt; 2MB.</p>
+          </div>
+        </div>
+
+        <!-- right: fields -->
+        <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs text-slate-600">Full name</span>
+            <input name="full_name" class="mt-1 w-full border rounded px-3 py-2" placeholder="Your name" required>
+          </label>
+
+          <label class="block">
+            <span class="text-xs text-slate-600">Phone</span>
+            <input name="phone" class="mt-1 w-full border rounded px-3 py-2" placeholder="+27 ...">
+          </label>
+
+          <label class="block sm:col-span-2">
+            <span class="text-xs text-slate-600">Bio</span>
+            <textarea name="bio" rows="3" class="mt-1 w-full border rounded px-3 py-2" placeholder="Tell us a bit about you"></textarea>
+          </label>
+
+          <label class="block">
+            <span class="text-xs text-slate-600">Risk level</span>
+            <select name="risk_level" class="mt-1 w-full border rounded px-3 py-2">
+              <option value="">Select…</option>
+              <option>Conservative</option>
+              <option>Moderate</option>
+              <option>Aggressive</option>
+            </select>
+          </label>
+
+          <div class="sm:col-span-2 flex items-center gap-3 mt-2">
+            <button id="saveBtn" class="rounded-xl bg-[var(--olive)] text-white px-5 py-2">Save changes</button>
+            <span id="savedTick" class="hidden text-sm text-emerald-700">Saved ✔</span>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- compliance footer -->
+    <div class="mt-6 rounded-2xl border border-black/10 bg-black/[0.03] p-4">
+      <p class="text-[11px] text-slate-600">
+        AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past performance is not a guarantee of future results.
+      </p>
+    </div>
+  </main>
+
+  <!-- auth guard + logic -->
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+    import { signOut } from "/js/auth.js";
+
+    // guard: redirect unauthenticated users
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const next = encodeURIComponent(location.pathname);
+        location.replace(`/auth.html?tab=in&redirect=${next}`);
+      }
+    })();
+
+    // elems
+    const form = document.getElementById("profile-form");
+    const msg  = document.getElementById("msg");
+    const saveBtn = document.getElementById("saveBtn");
+    const savedTick = document.getElementById("savedTick");
+    const avatarInput = document.getElementById("avatar");
+    const avatarPreview = document.getElementById("avatar-preview");
+
+    // UI helpers
+    function showMsg(text, type="info"){
+      msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
+      if(type==="success"){ msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200"); }
+      if(type==="error"){   msg.classList.add("bg-rose-50","text-rose-700","border-rose-200"); }
+      msg.textContent = text;
+    }
+    function clearMsg(){ msg.classList.add("hidden"); msg.textContent = ""; }
+    function setLoading(on){
+      saveBtn.disabled = on;
+      saveBtn.textContent = on ? "Saving…" : "Save changes";
+    }
+
+    // load current profile
+    async function loadProfile(){
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // fetch row
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") { // not found is okay if table empty
+        showMsg(error.message, "error");
+        return;
+      }
+
+      // fill fields
+      const f = form.elements;
+      if (data) {
+        f.full_name.value = data.full_name ?? "";
+        f.phone.value     = data.phone ?? "";
+        f.bio.value       = data.bio ?? "";
+        f.risk_level.value= data.risk_level ?? "";
+        if (data.avatar_url) {
+          avatarPreview.src = data.avatar_url;
+        } else {
+          avatarPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='112' height='112'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+        }
+      } else {
+        avatarPreview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='112' height='112'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+      }
+    }
+
+    // preview selected avatar
+    avatarInput.addEventListener("change", () => {
+      const file = avatarInput.files?.[0];
+      if (file) avatarPreview.src = URL.createObjectURL(file);
+    });
+
+    // save profile
+    form.addEventListener("submit", async (e)=>{
+      e.preventDefault(); clearMsg(); setLoading(true); savedTick.classList.add("hidden");
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not signed in.");
+
+        // 1) upload avatar if provided
+        let avatar_url = null;
+        const file = avatarInput.files?.[0];
+        if (file) {
+          const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+          const path = `${user.id}/avatar.${ext}`;
+          const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: file.type || "image/*"
+          });
+          if (upErr) throw upErr;
+
+          const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+          avatar_url = pub.publicUrl;
+        }
+
+        // 2) upsert profile row
+        const payload = {
+          id: user.id,
+          full_name: form.elements.full_name.value.trim(),
+          phone: form.elements.phone.value.trim(),
+          bio: form.elements.bio.value.trim(),
+          risk_level: form.elements.risk_level.value || null,
+          updated_at: new Date().toISOString()
+        };
+        if (avatar_url) payload.avatar_url = avatar_url;
+
+        const { error: upsertErr } = await supabase.from("profiles").upsert(payload).eq("id", user.id);
+        if (upsertErr) throw upsertErr;
+
+        // 3) (optional) keep Auth metadata in sync
+        await supabase.auth.updateUser({ data: { full_name: payload.full_name } }).catch(()=>{});
+
+        showMsg("Profile saved.", "success");
+        savedTick.classList.remove("hidden");
+      } catch (err) {
+        showMsg(err.message || "Failed to save profile.", "error");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // init
+    await loadProfile();
+
+    // logout
+    document.querySelector(".js-logout")?.addEventListener("click", signOut);
+  </script>
+</body>
+</html>
