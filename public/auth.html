@@ -7,85 +7,107 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen grid place-items-center bg-gray-50">
-  <main class="w-full max-w-md bg-white p-6 rounded-2xl shadow">
-    <div class="flex gap-2 mb-4">
-      <button id="tab-in"  class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
-      <button id="tab-up" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
-    </div>
+<main class="w-full max-w-md bg-white p-6 rounded-2xl shadow">
+  <div class="flex gap-2 mb-4">
+    <button id="tab-in"  type="button" class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
+    <button id="tab-up" type="button" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
+  </div>
 
-    <!-- Sign in -->
-    <form id="login-form" class="space-y-3">
-      <input name="email" type="email" placeholder="Email"    class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
-      <button class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
-    </form>
+  <div id="msg" class="hidden mb-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-sm px-3 py-2"></div>
 
-    <!-- Sign up -->
-    <form id="signup-form" class="space-y-3 hidden">
-      <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
-      <button class="w-full rounded px-3 py-2 bg-emerald-600 text-white">Create account</button>
-      <p class="text-xs text-gray-500">You may need to confirm your email if confirmations are enabled.</p>
-    </form>
+  <!-- Sign in -->
+  <form id="login-form" class="space-y-3">
+    <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
+    <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
+    <button type="submit" class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
+  </form>
 
-    <button id="forgot" class="mt-4 w-full text-sm text-emerald-700 underline">Forgot password?</button>
-  </main>
+  <!-- Sign up -->
+  <form id="signup-form" class="space-y-3 hidden">
+    <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
+    <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
+    <button type="submit" class="w-full rounded px-3 py-2 bg-emerald-600 text-white">Create account</button>
+    <p class="text-xs text-gray-500">You may need to confirm your email if confirmations are enabled.</p>
+  </form>
 
-  <script type="module">
-    import { signIn, signUp } from "/js/auth.js";
-    import { supabase }     from "/js/supabase.js";
+  <button id="forgot" type="button" class="mt-4 w-full text-sm text-emerald-700 underline">Forgot password?</button>
+</main>
 
-    const qs = new URLSearchParams(location.search);
-    const redirectTo = qs.get("redirect") || "/dashboard.html";
+<script type="module">
+  import { signIn, signUp } from "/js/auth.js";
+  import { supabase } from "/js/supabase.js";
 
-    const tabIn  = document.getElementById("tab-in");
-    const tabUp  = document.getElementById("tab-up");
-    const fIn    = document.getElementById("login-form");
-    const fUp    = document.getElementById("signup-form");
-    const btnFgt = document.getElementById("forgot");
+  const qs = new URLSearchParams(location.search);
+  const redirectTo = qs.get("redirect") || "/dashboard.html";
 
-    function show(tab) {
-      const onUp = tab === "up";
-      fUp.classList.toggle("hidden", !onUp);
-      fIn.classList.toggle("hidden", onUp);
-      tabUp.classList.toggle("bg-gray-100", !onUp);
-      tabUp.classList.toggle("bg-black", onUp);
-      tabUp.classList.toggle("text-white", onUp);
-      tabIn.classList.toggle("bg-gray-100", onUp);
-      tabIn.classList.toggle("bg-black", !onUp);
-      tabIn.classList.toggle("text-white", !onUp);
+  const tabIn  = document.getElementById("tab-in");
+  const tabUp  = document.getElementById("tab-up");
+  const fIn    = document.getElementById("login-form");
+  const fUp    = document.getElementById("signup-form");
+  const msg    = document.getElementById("msg");
+  const forgot = document.getElementById("forgot");
+
+  function showErr(text){
+    msg.textContent = text;
+    msg.classList.remove("hidden");
+  }
+  function clearErr(){ msg.classList.add("hidden"); msg.textContent = ""; }
+
+  function show(tab){
+    clearErr();
+    const up = tab === "up";
+    fUp.classList.toggle("hidden", !up);
+    fIn.classList.toggle("hidden", up);
+    tabUp.classList.toggle("bg-black", up);
+    tabUp.classList.toggle("text-white", up);
+    tabUp.classList.toggle("bg-gray-100", !up);
+    tabIn.classList.toggle("bg-black", !up);
+    tabIn.classList.toggle("text-white", !up);
+    tabIn.classList.toggle("bg-gray-100", up);
+  }
+
+  tabIn.addEventListener("click", () => show("in"));
+  tabUp.addEventListener("click", () => show("up"));
+
+  fIn.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErr();
+    try {
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      await signIn(email, password);
+      location.href = redirectTo;
+    } catch (err) {
+      showErr(err.message || "Sign in failed.");
     }
-    tabIn.onclick = () => show("in");
-    tabUp.onclick = () => show("up");
+  });
 
-    fIn.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      try {
-        const email = e.target.email.value;
-        const password = e.target.password.value;
-        await signIn(email, password);
-        location.href = redirectTo;
-      } catch (err) { alert(err.message); }
+  fUp.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErr();
+    try {
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      await signUp(email, password);
+      showErr("Account created. Check your email if confirmations are on.");
+      show("in");
+    } catch (err) {
+      showErr(err.message || "Sign up failed.");
+    }
+  });
+
+  forgot.addEventListener("click", async () => {
+    clearErr();
+    const email = prompt("Enter your account email");
+    if (!email) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${location.origin}/auth.html?reset=1`
     });
+    if (error) showErr(error.message);
+    else showErr("Reset link sent (if the email exists).");
+  });
 
-    fUp.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      try {
-        const email = e.target.email.value;
-        const password = e.target.password.value;
-        await signUp(email, password);
-        alert("Account created. If confirmations are ON, check your email.");
-      } catch (err) { alert(err.message); }
-    });
-
-    btnFgt.onclick = async () => {
-      const email = prompt("Enter your account email");
-      if (!email) return;
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${location.origin}/auth.html?reset=1`
-      });
-      if (error) alert(error.message); else alert("Reset link sent (if the email exists).");
-    };
-  </script>
+  // If JS fails to load, none of the above runs. Open devtools (Console) to see errors.
+</script>
 </body>
 </html>
