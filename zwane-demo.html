@@ -351,8 +351,13 @@
   /* ===== MENU PARTIAL (optional) ===== */
   async function loadMenu(){
     const mount=document.getElementById('sidebarMount');
-    const url=(mount.getAttribute('data-menu')||'/partials/menu.html').trim();
-    try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('Failed to load '+url); mount.outerHTML=await res.text(); }catch(e){}
+    const url=(mount?.getAttribute('data-menu')||'/partials/menu.html').trim();
+    if(!mount) return;
+    try{
+      const res=await fetch(url,{cache:'no-store'});
+      if(!res.ok) throw new Error('Failed to load '+url);
+      mount.outerHTML=await res.text();
+    }catch(e){}
   }
   function buildMenu(activeKey='dashboard'){
     const navContainer=document.getElementById('navContainer'); if(!navContainer) return;
@@ -371,22 +376,44 @@
       {key:'integrations',label:'Integrations',icon:'fa-plug',href:'#'},
       {key:'feedback',label:'Feedback',icon:'fa-comment-dots',href:'#'},
     ]}];
-    function group(sec){ const g=document.createElement('div'); g.className='mb-2';
+    function group(sec){
+      const g=document.createElement('div'); g.className='mb-2';
       const header=document.createElement('button'); header.className='w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded','true');
       const title=document.createElement('div'); title.className='section-title'; title.textContent=sec.section;
       const right=document.createElement('div'); right.className='label'; right.innerHTML='<i class="fa-solid fa-chevron-up chev text-xs"></i>';
       const body=document.createElement('div'); body.className='group-body';
       const list=document.createElement('nav'); list.className='space-y-1 px-0.5';
-      sec.items.forEach(it=>{ const a=document.createElement('a'); a.href=it.href; a.className='sidebar-link'; a.title=it.label; if(it.key===activeKey) a.classList.add('active'); a.innerHTML=`<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`; list.appendChild(a); });
+      sec.items.forEach(it=>{
+        const a=document.createElement('a'); a.href=it.href; a.className='sidebar-link'; a.title=it.label;
+        if(it.key===activeKey) a.classList.add('active');
+        a.innerHTML=`<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`;
+        list.appendChild(a);
+      });
       body.appendChild(list); header.append(title,right); g.append(header,body);
       requestAnimationFrame(()=>{ body.style.maxHeight=body.scrollHeight+'px'; });
-      header.addEventListener('click',()=>{ const exp=header.getAttribute('aria-expanded')==='true'; header.setAttribute('aria-expanded',String(!exp)); const chev=header.querySelector('.chev'); if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); } else { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); } });
-      return g; }
+      header.addEventListener('click',()=>{
+        const exp=header.getAttribute('aria-expanded')==='true';
+        header.setAttribute('aria-expanded',String(!exp));
+        const chev=header.querySelector('.chev');
+        if(exp){ body.style.maxHeight='0px'; chev.classList.add('rot'); }
+        else   { body.style.maxHeight=body.scrollHeight+'px'; chev.classList.remove('rot'); }
+      });
+      return g;
+    }
     navContainer.innerHTML=''; menu.forEach(s=>navContainer.appendChild(group(s)));
     const sidebar=document.getElementById('sidebar'); const collapseBtn=document.getElementById('collapseBtn');
-    if(sidebar&&collapseBtn){ const applyState=(collapsed)=>{ sidebar.classList.toggle('is-collapsed',collapsed); collapseBtn.innerHTML=collapsed?'<i class="fa-solid fa-angles-right text-sm"></i>':'<i class="fa-solid fa-angles-left text-sm"></i>'; };
-      let collapsed=false; try{ collapsed=sessionStorage.getItem('sv_sidebar_collapsed')==='1'; }catch(e){}
-      applyState(collapsed); collapseBtn.addEventListener('click',()=>{ collapsed=!collapsed; applyState(collapsed); try{ sessionStorage.setItem('sv_sidebar_collapsed',collapsed?'1':'0'); }catch(e){} }); }
+    if(sidebar&&collapseBtn){
+      const applyState=(collapsed)=>{
+        sidebar.classList.toggle('is-collapsed',collapsed);
+        collapseBtn.innerHTML=collapsed?'<i class="fa-solid fa-angles-right text-sm"></i>':'<i class="fa-solid fa-angles-left text-sm"></i>';
+      };
+      let collapsed=false; try{collapsed=sessionStorage.getItem('sv_sidebar_collapsed')==='1';}catch(e){}
+      applyState(collapsed);
+      collapseBtn.addEventListener('click',()=>{
+        collapsed=!collapsed; applyState(collapsed);
+        try{sessionStorage.setItem('sv_sidebar_collapsed',collapsed?'1':'0');}catch(e){}
+      });
+    }
   }
 
   /* ===== UTIL & DRAW ===== */
@@ -430,9 +457,301 @@
     const absMax=Math.max(2,Math.max(...values.map(v=>Math.abs(v)))); const maxY=absMax, minY=-absMax;
     const xw=(W-padL-padR)/values.length*0.72; const xPos=i=>padL+(i+0.5)*((W-padL-padR)/values.length)-xw/2; const yPos=v=>padT+(maxY-v)*((H-padT-padB)/(maxY-minY));
     const y0=yPos(0); const zero=document.createElementNS('http://www.w3.org/2000/svg','line'); zero.setAttribute('x1',padL); zero.setAttribute('x2',W-padR); zero.setAttribute('y1',y0); zero.setAttribute('y2',y0); zero.setAttribute('stroke','#cbd5e1'); zero.setAttribute('stroke-width','1.2'); svgEl.appendChild(zero);
-    values.forEach((v,i)=>{ const rect=document.createElementNS('http://www.w3.org/2000/svg','rect'); const x=xPos(i), y=Math.min(y0,yPos(v)), h=Math.abs(yPos(v)-y0); rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',xw); rect.setAttribute('height',Math.max(0.5,h)); rect.setAttribute('rx','4'); rect.setAttribute('fill', v>=0?'#10b981':'#ef4444'); rect.dataset.idx=i; svgEl.appendChild(rect); });
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g'); labels.forEach((lb,i)=>{ const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x',padL+(i+0.5)*((W-padL-padR)/labels.length)); t.setAttribute('y',H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g);
+    values.forEach((v,i)=>{ const rect=document.createElementNS('http://www.w3.org/2000/svg','rect'); const x=xPos(i), y=Math.min(y0,yPos(v)), h=Math.abs(yPos(v)-y0);
+      rect.setAttribute('x',x); rect.setAttribute('y',y); rect.setAttribute('width',xw); rect.setAttribute('height',Math.max(0.5,h)); rect.setAttribute('rx','4'); rect.setAttribute('fill', v>=0?'#10b981':'#ef4444'); rect.dataset.idx=i; svgEl.appendChild(rect);
+    });
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    labels.forEach((lb,i)=>{ const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x',padL+(i+0.5)*((W-padL-padR)/labels.length)); t.setAttribute('y',H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); });
+    svgEl.appendChild(g);
   }
+
+  /* ===== SAMPLE DATA (Loans) ===== */
+  const YEARS=[2023,2024,2025];
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const groups={
+    'Ubuntu Savings Loans':{
+      repaymentDay:5, instalment:850, cash:25000, outstanding:60500, health:86,
+      bank:{ name:'Standard Bank', accountName:'Ubuntu Loans Account', accountNumber:'000987654', branch:'051001' },
+      borrowers:[
+        { name:'Thabo M', phone:'+27 72 111 1111', loanAmount:8000, outstanding:5200, nextDue:'2025-10-05', rate:18, status:'Good', code:'THABO', disbursed:'2024-12-10' },
+        { name:'Ayanda P', phone:'+27 73 222 2222', loanAmount:6000, outstanding:4100, nextDue:'2025-11-05', rate:18, status:'Arrears', code:'AYANDA', disbursed:'2025-02-01' },
+        { name:'Sbu N',    phone:'+27 71 333 3333', loanAmount:9000, outstanding:6300, nextDue:'2025-12-05', rate:20, status:'Good', code:'SBU',   disbursed:'2024-10-22' },
+        { name:'Lerato K', phone:'+27 82 444 4444', loanAmount:7000, outstanding:5600, nextDue:'2026-01-05', rate:18, status:'Good', code:'LERATO',disbursed:'2025-06-01' },
+        { name:'Kagiso T', phone:'+27 83 555 5555', loanAmount:12000,outstanding:9800, nextDue:'2026-02-05', rate:22, status:'Arrears', code:'KAGISO',disbursed:'2023-09-01' },
+      ],
+      monthlyByYear:{ // + repayments (in), - disbursements (out)
+        2023:[-12000,1500,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600],
+        2024:[-9000,1700,1900,2100,-6000,2300,2500,2700,2900,3100,3300,3500],
+        2025:[-7000,2000,2200,2400,-5000,2600,2800,3000,3200,0,0,0]
+      },
+      balanceSeries:{
+        '1M':{lbl:['W1','W2','W3','W4','W5'],arr:[59000,59800,60200,60400,60500]},
+        '3M':{lbl:['Jul','Aug','Sep'],arr:[58500,59600,60500]},
+        '6M':{lbl:['Apr','May','Jun','Jul','Aug','Sep'],arr:[56000,57200,58000,58500,59600,60500]},
+        'YTD':{lbl:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],arr:[52000,53800,55600,56000,57200,58000,58500,59600,60500]},
+        '1Y':{lbl:['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],arr:[50000,51000,51500,52000,53800,55600,56000,57200,58000,58500,59600,60500]}
+      }
+    },
+    'Burial Society Loans':{
+      repaymentDay:25, instalment:600, cash:12000, outstanding:30500, health:74,
+      bank:{ name:'FNB', accountName:'Hope Loans', accountNumber:'62800012345', branch:'250655' },
+      borrowers:[
+        { name:'Nomsa D', phone:'+27 82 111 2222', loanAmount:5000, outstanding:3600, nextDue:'2025-10-25', rate:18, status:'Good', code:'NOMSA', disbursed:'2024-12-01' },
+        { name:'Bongani Z', phone:'+27 61 222 3333', loanAmount:4500, outstanding:3100, nextDue:'2025-11-25', rate:18, status:'Good', code:'BONGANI', disbursed:'2023-12-01' },
+      ],
+      monthlyByYear:{ 2024:[-4500,900,600,900,600,900,900,900,600,600,900,900], 2025:[-5000,900,900,600,900,600,900,900,900,0,0,0] },
+      balanceSeries:{
+        '1M':{lbl:['W1','W2','W3','W4','W5'],arr:[29200,29800,30200,30400,30500]},
+        '3M':{lbl:['Jul','Aug','Sep'],arr:[28800,29800,30500]},
+        '6M':{lbl:['Apr','May','Jun','Jul','Aug','Sep'],arr:[27000,28000,28600,28800,29800,30500]},
+        'YTD':{lbl:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],arr:[25000,26200,27000,27000,28000,28600,28800,29800,30500]},
+        '1Y':{lbl:['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],arr:[24000,24600,24800,25000,26200,27000,27000,28000,28600,28800,29800,30500]}
+      }
+    },
+    'Rotational Biz Loans':{
+      repaymentDay:15, instalment:750, cash:18000, outstanding:38500, health:79,
+      bank:{ name:'Capitec', accountName:'RB Loans', accountNumber:'1540001234', branch:'470010' },
+      borrowers:[
+        { name:'Karabo L', phone:'+27 66 123 0000', loanAmount:7000, outstanding:5200, nextDue:'2025-10-15', rate:20, status:'Good', code:'KARABO', disbursed:'2024-05-01' },
+        { name:'Zanele R', phone:'+27 67 321 9999', loanAmount:6500, outstanding:4700, nextDue:'2025-11-15', rate:18, status:'Arrears', code:'ZANELE', disbursed:'2024-02-01' },
+      ],
+      monthlyByYear:{ 2025:[-7000,1600,2000,1600,2000,1600,2000,2000,1600,0,0,0] },
+      balanceSeries:{
+        '1M':{lbl:['W1','W2','W3','W4','W5'],arr:[37000,37500,38000,38300,38500]},
+        '3M':{lbl:['Jul','Aug','Sep'],arr:[36000,37000,38500]},
+        '6M':{lbl:['Apr','May','Jun','Jul','Aug','Sep'],arr:[34500,35200,36000,37000,37500,38500]},
+        'YTD':{lbl:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],arr:[32500,33500,34000,34500,35200,36000,37000,37500,38500]},
+        '1Y':{lbl:['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],arr:[31000,31800,32200,32500,33500,34000,34500,35200,36000,37000,37500,38500]}
+      }
+    }
+  };
+
+  const noticesData=[
+    { date:'2025-09-05', text:'Ubuntu Loans: Next repayment run on the 5th. Please keep funds ready.' },
+    { date:'2025-09-05', text:'Reminder: Use correct EFT reference: LOAN-{CODE}-{MMYY}.' },
+    { date:'2025-08-25', text:'Burial Society Loans: Policy renewal forms due 30 Sept.' },
+  ];
+
+  let currentGroup='Ubuntu Savings Loans';
+  let eqRange='1Y';
+
+  /* ===== RENDER HELPERS ===== */
+  function setCardNames(group){
+    const ids=['eqGroupName','mpGroupName','dpGroupName','membersGroupName','fbGroupName','prGroupName'];
+    ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=group; });
+  }
+
+  function renderRating(group){
+    const d=groups[group];
+    const acctBal=document.getElementById('acctBal'); if(acctBal) acctBal.textContent=fmtMoney(d.outstanding);
+    const acctCash=document.getElementById('acctCash'); if(acctCash) acctCash.textContent=fmtMoney(d.cash);
+    const gauge=document.getElementById('ratingGauge'); if(gauge) drawDonut(gauge, d.health);
+    const ratingText=document.getElementById('ratingText'); if(ratingText) ratingText.textContent = d.health>=85?'Excellent':(d.health>=70?'Good':'Fair');
+    const deltaYoY=+2.9; const chip=document.getElementById('ratingDeltaChip');
+    if(chip){ chip.textContent=(deltaYoY>=0?'+':'')+deltaYoY.toFixed(1)+'%'; chip.className='chip '+(deltaYoY>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'); }
+  }
+
+  function renderEq(range, group){
+    const meta=groups[group];
+    const tpl=meta.balanceSeries[range]||meta.balanceSeries['1Y'];
+    const mainSeries=tpl.arr; const labels=tpl.lbl; drawEquity(document.getElementById('eqSvg'), mainSeries, labels);
+    const first=mainSeries[0], last=mainSeries.at(-1); const deltaPct=((last/first)-1)*100;
+    const eqValue=document.getElementById('eqValue'); if(eqValue) eqValue.textContent=fmtMoney(last);
+    const dEl=document.getElementById('eqDelta'); if(dEl){ dEl.textContent=(deltaPct>=0?'+':'')+deltaPct.toFixed(2)+'%'; dEl.className='chip '+(deltaPct>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'); }
+
+    // headline metrics
+    const totalDisb=Object.values(meta.monthlyByYear)[0]?.reduce((s,v)=>s+(v<0?-v:0),0)||0;
+    const repayments=Object.values(meta.monthlyByYear)[0]?.reduce((s,v)=>s+(v>0?v:0),0)||0;
+    const interest=Math.round(repayments*0.18*0.15); // demo approx
+    const arrears=meta.borrowers.reduce((s,m)=> s+(m.status==='Arrears' ? Math.min(0.2*m.outstanding, 1200):0), 0);
+    const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=fmtMoney(val); };
+    set('mDisbursed', totalDisb);
+    set('mOutstanding', meta.outstanding);
+    set('mInterest', interest);
+    set('mArrears', arrears);
+    const mLoans=document.getElementById('mLoans'); if(mLoans) mLoans.textContent=meta.borrowers.length;
+
+    const legend=document.getElementById('eqLegend');
+    if(legend) legend.innerHTML=`<span class="chip bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-full inline-block mr-1" style="background:#0f172a"></span>${group}</span>`;
+  }
+
+  function renderMonthly(group, year){
+    const d=groups[group]; const series=(d.monthlyByYear[year]||Array(12).fill(0)).map(v=>v>=0?v:-Math.abs(v));
+    drawBars(document.getElementById('stratChart'), series.map(v=>v/1000), MONTHS);
+    const tip=document.getElementById('stratTip');
+    document.querySelectorAll('#stratChart rect').forEach(r=>{
+      r.onmouseenter=(e)=>{ const i=+e.target.dataset.idx; const v=series[i];
+        if(tip){ tip.innerHTML=`<div class="font-semibold">${MONTHS[i]} ${year}</div><div>${v>=0?'+':''}${fmtMoney(Math.abs(v))} ${v>=0?'(Repayment)':'(Disbursement)'}</div>`;
+          tip.style.left=Math.min(820,Math.max(10,e.offsetX+12))+'px'; tip.style.top='10px'; tip.classList.remove('hidden'); }
+      };
+      if(tip) r.onmouseleave=()=>tip.classList.add('hidden');
+    });
+  }
+
+  function renderCalendar(group, monthIndex, year){
+    const grid=document.getElementById('calGrid'); if(!grid) return;
+    const g=groups[group]; const y=year, m=monthIndex; const firstDay=new Date(y,m,1); const startWeek=firstDay.getDay(); const days=new Date(y,m+1,0).getDate(); const today=new Date();
+    const calMonth=document.getElementById('calMonth'); if(calMonth) calMonth.textContent=new Date(y,m,1).toLocaleString('default',{month:'long',year:'numeric'});
+    const dueDay=g.repaymentDay; const paidBorrowers=new Set(g.borrowers.filter(b=>Math.random()>0.25).map(b=>b.code));
+    const cells=[]; for(let i=0;i<startWeek;i++) cells.push({empty:true});
+    for(let d=1; d<=days; d++){
+      const isDue=d===dueDay; const future=(y>today.getFullYear())||(y===today.getFullYear()&&(m>today.getMonth()||(m===today.getMonth()&&d>today.getDate())));
+      if(future){ cells.push({day:d,future:true,isDue}); continue; }
+      const paid=isDue ? paidBorrowers.size>=Math.ceil(g.borrowers.length*0.7) : false; const missed=isDue && !paid; cells.push({day:d,isDue,paid,missed});
+    }
+    grid.innerHTML=cells.map(c=>{
+      if(c.empty) return `<div class="cal-cell bg-white"></div>`;
+      if(c.future) return `<div class="cal-cell bg-white opacity-50"><div class="text-[11px] text-slate-400">${c.day}</div></div>`;
+      const bg=c.paid?`#dcfce7`:c.missed?`#fee2e2`:c.isDue?`#fde68a`:'#ffffff';
+      return `<div class="cal-cell" style="background:${bg}"><div class="text-[11px] text-slate-700">${c.day}</div><div class="text-[11px] ${c.paid?'text-emerald-700':c.missed?'text-rose-700':'text-slate-400'} self-end">${c.paid?'Paid':c.missed?'Missed':c.isDue?'Due':''}</div></div>`;
+    }).join('');
+  }
+
+  function renderMembers(group){
+    const g=groups[group]; const body=document.getElementById('membersBody'); if(!body) return;
+    body.innerHTML=g.borrowers.map(m=>`
+      <tr class="hover:bg-slate-50">
+        <td class="px-5 py-3">
+          <div class="font-medium">${m.name}</div>
+          <div class="text-xs text-slate-500">Disbursed ${new Date(m.disbursed).toLocaleDateString()}</div>
+        </td>
+        <td class="px-5 py-3">${m.phone}</td>
+        <td class="px-5 py-3 text-right num">${fmtMoney(m.loanAmount)}</td>
+        <td class="px-5 py-3 text-right num">${fmtMoney(m.outstanding)}</td>
+        <td class="px-5 py-3 text-right">${new Date(m.nextDue).toLocaleDateString()}</td>
+        <td class="px-5 py-3 text-right"><span class="chip ${m.status==='Arrears'?'bg-amber-50 text-amber-700':'bg-green-50 text-green-700'}">${m.status}</span></td>
+      </tr>`).join('');
+    const inst=document.getElementById('groupContribution'); if(inst) inst.textContent=fmtMoney(g.instalment);
+    const day=document.getElementById('collectionDay'); if(day) day.textContent=`${g.repaymentDay}th`;
+    const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+    set('bankAccountName', g.bank.accountName);
+    set('bankName', g.bank.name);
+    set('bankAccountNumber', g.bank.accountNumber);
+    set('bankBranch', g.bank.branch);
+  }
+
+  function renderCashflow(group){
+    const g=groups[group]; const yr=(2025 in g.monthlyByYear)?2025:Object.keys(g.monthlyByYear)[0]; const arr=g.monthlyByYear[yr];
+    const repayments=arr.reduce((s,v)=>s+(v>0?v:0),0); const disb=arr.reduce((s,v)=>s+(v<0?-v:0),0); const interest=Math.round(repayments*0.18*0.15); const admin=Math.round(repayments*0.01);
+    const total=repayments+disb+interest+admin || 1;
+    const w=(id,val)=>{ const el=document.getElementById(id); if(el) el.style.width=(val/total*100).toFixed(1)+'%'; };
+    w('feeRepay',repayments); w('feeDisb',disb); w('feeInterest',interest); w('feeAdmin',admin);
+    const feeRows=document.getElementById('feeRows'); if(feeRows) feeRows.innerHTML=
+      `<tr><td class="py-2">Repayments (in)</td><td class="py-2 text-right">${arr.filter(v=>v>0).length}</td><td class="py-2 text-right num">${fmtMoney(repayments)}</td></tr>
+       <tr><td class="py-2">Disbursements (out)</td><td class="py-2 text-right">${arr.filter(v=>v<0).length}</td><td class="py-2 text-right num">${fmtMoney(disb)}</td></tr>
+       <tr><td class="py-2">Interest (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(interest)}</td></tr>
+       <tr><td class="py-2">Admin</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(admin)}</td></tr>
+       <tr class="font-semibold"><td class="py-2">Net</td><td></td><td class="py-2 text-right num">${fmtMoney(repayments - disb - admin + interest)}</td></tr>`;
+  }
+
+  function renderNotices(){
+    const list=document.getElementById('notices'); if(!list) return;
+    list.innerHTML=noticesData.slice(0,5).map(n=>`<li><span class="text-slate-500">${new Date(n.date).toLocaleDateString()}:</span> ${n.text}</li>`).join('');
+  }
+
+  function renderAll(group, yearForMonthly, calMonthIndex, calYear){
+    setCardNames(group);
+    const greet=document.getElementById('greet'); if(greet) greet.textContent=greetLine();
+    renderRating(group);
+    renderEq(eqRange, group);
+    renderMonthly(group, yearForMonthly);
+    renderCalendar(group, calMonthIndex, calYear);
+    renderMembers(group);
+    renderCashflow(group);
+    renderNotices();
+  }
+
+  /* ===== Export PDF ===== */
+  function exportStatement(){
+    const pd=document.getElementById('printDate'); if(pd) pd.textContent=new Date().toLocaleString();
+    const opt={ margin:[10,10,10,10], filename:`Loans_Statement_${new Date().toISOString().slice(0,10)}.pdf`,
+      image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2,useCORS:true,scrollY:0},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}, pagebreak:{avoid:['.card','table','h1','h2','h3']} };
+    html2pdf().from(document.body.cloneNode(true)).set(opt).toPdf().get('pdf').save();
+  }
+
+  function setGroup(name){
+    currentGroup=name;
+    const groupSel=document.getElementById('groupSel'); if(groupSel && groupSel.value!==name) groupSel.value=name;
+    document.querySelectorAll('#subsWrap .sub-card').forEach(card=>{
+      const key=card.getAttribute('data-key');
+      card.classList.toggle('active', key===name);
+    });
+    const yearSel=document.getElementById('yearSel'); const yr=+yearSel.value;
+    const dpMonth=document.getElementById('dpMonth'); const dpYear=document.getElementById('dpYear');
+    renderAll(name, yr, +dpMonth.value, +dpYear.value);
+  }
+
+  (async function (){
+    await loadMenu(); buildMenu('dashboard');
+    const greet=document.getElementById('greet'); if(greet) greet.textContent=greetLine();
+
+    // Range tabs
+    document.querySelectorAll('#eqTabs .tab-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('#eqTabs .tab-btn').forEach(x=>x.classList.remove('active'));
+        btn.classList.add('active'); eqRange=btn.dataset.range; renderEq(eqRange,currentGroup);
+      });
+    });
+
+    // Groups side list
+    const subsWrap=document.getElementById('subsWrap');
+    if(subsWrap){
+      subsWrap.innerHTML=Object.keys(groups).map(name=>{
+        const g=groups[name];
+        const series=(g.balanceSeries['1M']?.arr||[1,2,3,4,5]).map(v=>v/(g.outstanding||1)*100);
+        const sparkSvg=(series)=>{
+          const w=120,h=30,pad=3,min=Math.min(...series),max=Math.max(...series),rng=(max-min)||1;
+          const step=(w-2*pad)/Math.max(1,(series.length-1)); let d='';
+          series.forEach((v,i)=>{ const x=pad+i*step; const y=h-pad-((v-min)/rng)*(h-2*pad); d+=(i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)+' '; });
+          return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="#0f172a" stroke-width="2"/></svg>`;
+        };
+        return `
+        <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card${name===currentGroup?' active':''}" data-key="${name}">
+          <div class="flex items-center justify-between">
+            <div class="font-medium text-sm truncate">${name}</div>
+            <span class="chip bg-slate-100 text-slate-700">${g.borrowers.length} borrowers</span>
+          </div>
+          <div class="text-xs text-slate-500">Repays R${g.instalment} on the ${g.repaymentDay}th</div>
+          <div class="mt-2">${sparkSvg(series)}</div>
+        </div>`;
+      }).join('');
+      document.querySelectorAll('#subsWrap .sub-card').forEach(card=>card.addEventListener('click',()=>setGroup(card.getAttribute('data-key'))));
+    }
+
+    // Group + Year selectors
+    const groupSel=document.getElementById('groupSel');
+    if(groupSel){
+      groupSel.innerHTML=Object.keys(groups).map(n=>`<option value="${n}">${n}</option>`).join('');
+      groupSel.addEventListener('change', e=> setGroup(e.target.value));
+    }
+    const yearSel=document.getElementById('yearSel');
+    if(yearSel){
+      yearSel.innerHTML=YEARS.map(y=>`<option value="${y}">${y}</option>`).join('');
+      yearSel.value=new Date().getFullYear();
+      yearSel.addEventListener('change', ()=> renderMonthly(currentGroup, +yearSel.value));
+    }
+
+    // Calendar selectors
+    const dpMonth=document.getElementById('dpMonth');
+    const dpYear=document.getElementById('dpYear');
+    const now=new Date();
+    if(dpMonth){ dpMonth.innerHTML=MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join(''); dpMonth.value=now.getMonth(); dpMonth.addEventListener('change', ()=> renderCalendar(currentGroup, +dpMonth.value, +dpYear.value)); }
+    if(dpYear){ dpYear.innerHTML=YEARS.map(y=>`<option value="${y}">${y}</option>`).join(''); dpYear.value=now.getFullYear(); dpYear.addEventListener('change', ()=> renderCalendar(currentGroup, +dpMonth.value, +dpYear.value)); }
+
+    // Export + WhatsApp
+    const exportBtn=document.getElementById('exportBtn'); if(exportBtn) exportBtn.addEventListener('click', exportStatement);
+    const whatsappBtn=document.getElementById('whatsappBtn'); if(whatsappBtn) whatsappBtn.addEventListener('click', ()=>{
+      const text=encodeURIComponent(`[Loan Reminder] ${currentGroup}: Repayments due on the ${groups[currentGroup].repaymentDay}th. Ref: LOAN-{CODE}-{MMYY}. Thanks!`);
+      window.open(`https://wa.me/?text=${text}`,'_blank');
+    });
+
+    // Initial render
+    if(groupSel) groupSel.value=currentGroup;
+    renderAll(currentGroup, +(document.getElementById('yearSel')?.value||new Date().getFullYear()), +(dpMonth?.value||now.getMonth()), +(dpYear?.value||now.getFullYear()));
+  })();
+</script>
 
 </body>
   </html>
