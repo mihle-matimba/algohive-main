@@ -19,45 +19,64 @@
     </form>
   </main>
 
-  <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-    const supabase = createClient("https://YOUR_PROJECT.supabase.co", "YOUR_PUBLIC_ANON_KEY", {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
+<script type="module">
+  import { supabase } from "/js/supabase.js";
 
-    const msg = document.getElementById("msg");
-    function showMsg(text, type="info"){
-      msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
-      if(type==="success"){ msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200"); }
-      if(type==="error"){   msg.classList.add("bg-rose-50","text-rose-700","border-rose-200"); }
-      msg.textContent = text;
+  const msg  = document.getElementById("msg");
+  const form = document.getElementById("reset-form");
+  const btn  = form.querySelector('button[type="submit"]');
+
+  function showMsg(text, type="info"){
+    msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
+    if(type==="success"){ msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200"); }
+    if(type==="error"){   msg.classList.add("bg-rose-50","text-rose-700","border-rose-200"); }
+    msg.textContent = text;
+  }
+  function setLoading(on){ btn.disabled = on; btn.textContent = on ? "Updating…" : "Update password"; }
+
+  // Ensure we have a recovery session. If not, set it from the URL hash.
+  async function ensureRecoverySession(){
+    let { data: { session } } = await supabase.auth.getSession();
+    if (session) return session;
+
+    const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const type = hash.get("type");
+    const access_token  = hash.get("access_token");
+    const refresh_token = hash.get("refresh_token");
+
+    if (type === "recovery" && access_token && refresh_token) {
+      const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+      if (error) {
+        console.error(error);
+        return null;
+      }
+      return data.session;
     }
+    return null;
+  }
 
-    // Ensure we have a recovery session (the link sets it)
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      showMsg("Recovery link invalid or expired. Click the email link again.", "error");
-      document.getElementById("reset-form").classList.add("hidden");
+  const session = await ensureRecoverySession();
+  if (!session) {
+    showMsg("Recovery link invalid or expired. Click the email link again.", "error");
+    form.classList.add("hidden");
+  }
+
+  form.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const password = e.target.password.value;
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      showMsg("Password updated. Redirecting…", "success");
+      setTimeout(()=> location.replace("/dashboard.html"), 800);
+    } catch (err){
+      showMsg(err.message || "Failed to update password.", "error");
+    } finally {
+      setLoading(false);
     }
+  });
+</script>
 
-    // Handle update
-    const form = document.getElementById("reset-form");
-    const btn  = form.querySelector('button[type="submit"]');
-    function setLoading(on){ btn.disabled = on; btn.textContent = on ? "Updating…" : "Update password"; }
-
-    form.addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      try {
-        setLoading(true);
-        const password = e.target.password.value;
-        const { error } = await supabase.auth.updateUser({ password });
-        if (error) throw error;
-        showMsg("Password updated. Redirecting…", "success");
-        setTimeout(()=> location.replace("/dashboard.html"), 800);
-      } catch (err){
-        showMsg(err.message || "Failed to update password.", "error");
-      } finally { setLoading(false); }
-    });
-  </script>
 </body>
 </html>
