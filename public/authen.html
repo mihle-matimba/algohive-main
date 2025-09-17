@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>AlgoHive — Sign in</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen grid place-items-center bg-gray-50">
+  <main class="w-full max-w-md bg-white p-6 rounded-2xl shadow">
+    <div class="flex gap-2 mb-4">
+      <button id="tab-in"  class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
+      <button id="tab-up" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
+    </div>
+
+    <!-- Sign in -->
+    <form id="login-form" class="space-y-3">
+      <input name="email" type="email" placeholder="Email"    class="w-full border rounded px-3 py-2" required />
+      <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
+      <button class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
+    </form>
+
+    <!-- Sign up -->
+    <form id="signup-form" class="space-y-3 hidden">
+      <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
+      <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
+      <button class="w-full rounded px-3 py-2 bg-emerald-600 text-white">Create account</button>
+      <p class="text-xs text-gray-500">You may need to confirm your email if confirmations are enabled.</p>
+    </form>
+
+    <button id="forgot" class="mt-4 w-full text-sm text-emerald-700 underline">Forgot password?</button>
+  </main>
+
+  <script type="module">
+    import { signIn, signUp } from "/js/auth.js";
+    import { supabase }     from "/js/supabase.js";
+
+    const qs = new URLSearchParams(location.search);
+    const redirectTo = qs.get("redirect") || "/dashboard.html";
+
+    const tabIn  = document.getElementById("tab-in");
+    const tabUp  = document.getElementById("tab-up");
+    const fIn    = document.getElementById("login-form");
+    const fUp    = document.getElementById("signup-form");
+    const btnFgt = document.getElementById("forgot");
+
+    function show(tab) {
+      const onUp = tab === "up";
+      fUp.classList.toggle("hidden", !onUp);
+      fIn.classList.toggle("hidden", onUp);
+      tabUp.classList.toggle("bg-gray-100", !onUp);
+      tabUp.classList.toggle("bg-black", onUp);
+      tabUp.classList.toggle("text-white", onUp);
+      tabIn.classList.toggle("bg-gray-100", onUp);
+      tabIn.classList.toggle("bg-black", !onUp);
+      tabIn.classList.toggle("text-white", !onUp);
+    }
+    tabIn.onclick = () => show("in");
+    tabUp.onclick = () => show("up");
+
+    fIn.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const email = e.target.email.value;
+        const password = e.target.password.value;
+        await signIn(email, password);
+        location.href = redirectTo;
+      } catch (err) { alert(err.message); }
+    });
+
+    fUp.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const email = e.target.email.value;
+        const password = e.target.password.value;
+        await signUp(email, password);
+        alert("Account created. If confirmations are ON, check your email.");
+      } catch (err) { alert(err.message); }
+    });
+
+    btnFgt.onclick = async () => {
+      const email = prompt("Enter your account email");
+      if (!email) return;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${location.origin}/auth.html?reset=1`
+      });
+      if (error) alert(error.message); else alert("Reset link sent (if the email exists).");
+    };
+  </script>
+</body>
+</html>
