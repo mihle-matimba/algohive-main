@@ -281,7 +281,21 @@
       </section>
     </main>
   </div>
-<script type="module" src="/js/guard.js"></script>
+<script type="module">
+  import { supabase } from "/js/supabase.js";
+  (async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname);
+      location.replace(`/auth.html?redirect=${next}`);
+    }
+  })();
+</script>
+<script type="module">
+  import { signOut } from "/js/auth.js";
+  document.querySelector(".js-logout")?.addEventListener("click", signOut);
+</script>
+
 
   <script>
     /* ========= MENU LOADER (replicates dashboard behavior, with fallback) ========= */
