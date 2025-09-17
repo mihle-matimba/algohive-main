@@ -40,6 +40,7 @@
   const qs = new URLSearchParams(location.search);
   const redirectTo = qs.get("redirect") || "/dashboard.html";
 
+  // elems
   const tabIn  = document.getElementById("tab-in");
   const tabUp  = document.getElementById("tab-up");
   const fIn    = document.getElementById("login-form");
@@ -47,14 +48,21 @@
   const msg    = document.getElementById("msg");
   const forgot = document.getElementById("forgot");
 
-  function showErr(text){
+  // ---- UI helpers ----
+  function showMsg(text, type="info"){ // "success" | "error" | "info"
+    msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
+    if(type==="success"){ msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200"); }
+    if(type==="error"){   msg.classList.add("bg-rose-50","text-rose-700","border-rose-200"); }
     msg.textContent = text;
-    msg.classList.remove("hidden");
   }
-  function clearErr(){ msg.classList.add("hidden"); msg.textContent = ""; }
+  function clearMsg(){ msg.classList.add("hidden"); msg.textContent = ""; }
+  function setLoading(btn, on, idle, busy){
+    btn.disabled = on;
+    btn.textContent = on ? busy : idle;
+  }
 
   function show(tab){
-    clearErr();
+    clearMsg();
     const up = tab === "up";
     fUp.classList.toggle("hidden", !up);
     fIn.classList.toggle("hidden", up);
@@ -66,48 +74,68 @@
     tabIn.classList.toggle("bg-gray-100", up);
   }
 
+  // tabs
   tabIn.addEventListener("click", () => show("in"));
   tabUp.addEventListener("click", () => show("up"));
 
+  // ---- Sign in ----
+  const inBtn = fIn.querySelector('button[type="submit"]');
   fIn.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearErr();
+    e.preventDefault(); clearMsg();
+    const email = e.target.email.value.trim();
+    const password = e.target.password.value;
     try {
-      const email = e.target.email.value.trim();
-      const password = e.target.password.value;
+      setLoading(inBtn, true, "Sign in", "Signing in…");
       await signIn(email, password);
+      showMsg("Signed in. Redirecting…", "success");
       location.href = redirectTo;
     } catch (err) {
-      showErr(err.message || "Sign in failed.");
+      showMsg(err.message || "Sign in failed.", "error");
+    } finally {
+      setLoading(inBtn, false, "Sign in");
     }
   });
 
+  // ---- Sign up ----
+  const upBtn = fUp.querySelector('button[type="submit"]');
   fUp.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearErr();
+    e.preventDefault(); clearMsg();
+    const email = e.target.email.value.trim();
+    const password = e.target.password.value;
     try {
-      const email = e.target.email.value.trim();
-      const password = e.target.password.value;
-      await signUp(email, password);
-      showErr("Account created. Check your email if confirmations are on.");
-      show("in");
+      setLoading(upBtn, true, "Create account", "Creating account…");
+      const { data } = await signUp(email, password); // returns { user, session }
+      const needsConfirm = !data?.session;            // if confirmations ON, session is null
+      if (needsConfirm) {
+        showMsg("Account created. Please check your email to confirm, then sign in.", "success");
+        show("in");
+      } else {
+        showMsg("Account created. Redirecting…", "success");
+        location.href = redirectTo;
+      }
     } catch (err) {
-      showErr(err.message || "Sign up failed.");
+      showMsg(err.message || "Sign up failed.", "error");
+    } finally {
+      setLoading(upBtn, false, "Create account");
     }
   });
 
+  // ---- Forgot password ----
   forgot.addEventListener("click", async () => {
-    clearErr();
+    clearMsg();
     const email = prompt("Enter your account email");
     if (!email) return;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${location.origin}/auth.html?reset=1`
+      redirectTo: `${location.origin}/reset.html`
     });
-    if (error) showErr(error.message);
-    else showErr("Reset link sent (if the email exists).");
+    if (error) showMsg(error.message, "error");
+    else showMsg("Reset link sent. Check your email.", "success");
   });
 
-  // If JS fails to load, none of the above runs. Open devtools (Console) to see errors.
+  // ---- On load cues ----
+  if (qs.get("tab") === "up") show("up"); else show("in");
+  if (qs.get("confirmed") === "1") showMsg("Email confirmed — you can sign in now.", "success");
 </script>
+
 </body>
 </html>
