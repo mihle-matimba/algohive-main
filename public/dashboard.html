@@ -607,6 +607,32 @@
     const avatarImg = document.getElementById("userAvatarImg");
     if (avatarImg) avatarImg.src = avatarUrl;
 
+    const initials = (displayName || user.email)
+      .trim()
+      .split(/\s+/)
+      .map(s => s[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+
+    if (avatarImg) {
+      // 1st fallback: ui-avatars (already our default)
+      avatarImg.onerror = () => {
+        avatarImg.onerror = () => {
+          // 2nd fallback: inline SVG so it never breaks
+          const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
+        <rect fill='#0f172a' width='100%' height='100%' rx='6' ry='6'/>
+        <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
+              fill='white' font-family='Inter,Arial' font-size='24' font-weight='700'>${initials}</text>
+      </svg>`;
+          avatarImg.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        };
+        avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=0f172a&color=fff&rounded=true&size=64`;
+      };
+      // (optional) some CDNs block referrers
+      avatarImg.setAttribute('referrerpolicy', 'no-referrer');
+    }
+
     // print header email
     const printHdr = document.querySelector(".print-header .text-sm");
     if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
@@ -626,6 +652,10 @@
 
     // we reuse your existing loader but call it here to guarantee order
     async function ensureMenuLoaded() {
+      // --- shims so the legacy init below doesn't explode ---
+      window.loadMenu = async () => { };                     // no-op (we already loaded the partial)
+      window.buildMenu = (k) => window.buildMenuFixed?.(k); // redirect to the new builder
+
       const mount = document.getElementById("sidebarMount");
       const url = (mount?.getAttribute("data-menu") || "/partials/menu.html").trim();
       try {
@@ -1345,8 +1375,9 @@
     }
 
     (async function () {
-      await loadMenu();
-      buildMenu('dashboard');
+      // menu already ensured by the module script; just (re)assert active item
+      window.buildMenuFixed?.('dashboard');
+
       document.getElementById('greet').textContent = greetLine();
 
       // Equity tabs
