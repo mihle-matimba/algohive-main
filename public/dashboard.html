@@ -792,666 +792,89 @@ if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
   </script>
 
 
-
-  <script>
-    /* ========== UTIL & DRAW ========== */
-    const fmtMoney = v => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(v);
-    const greetLine = () => { const h = new Date().getHours(); const t = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); return `${t}, Mihle`; };
-
-    function drawEquity(svgEl, mainSeries, labels, benchLines = []) {
-      const W = 900, H = 320, pad = 34;
-      svgEl.innerHTML = '';
-      for (let i = 0; i < 5; i++) {
-        const y = pad + i * (H - 2 * pad) / 4;
-        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        ln.setAttribute('x1', pad); ln.setAttribute('x2', W - pad); ln.setAttribute('y1', y); ln.setAttribute('y2', y);
-        ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
-      }
-      const allVals = [...mainSeries, ...benchLines.flatMap(b => b.series)];
-      const min = Math.min(...allVals), max = Math.max(...allVals), rng = (max - min) || 1;
-      const step = (W - 2 * pad) / Math.max(1, (mainSeries.length - 1));
-      const X = i => pad + i * step, Y = v => H - pad - ((v - min) / rng) * (H - 2 * pad);
-
-      // gradient fill for main
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-      grad.setAttribute('id', 'eqGrad'); grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
-      const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#556B2F'); s1.setAttribute('stop-opacity', '.28');
-      const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#111827'); s2.setAttribute('stop-opacity', '0.02');
-      grad.append(s1, s2); defs.appendChild(grad); svgEl.appendChild(defs);
-
-      // main area + line
-      let dLine = '';
-      mainSeries.forEach((v, i) => { dLine += `${i ? 'L' : 'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `; });
-      const dArea = dLine + `L${X(mainSeries.length - 1).toFixed(2)},${H - pad} L${X(0).toFixed(2)},${H - pad} Z`;
-      const area = document.createElementNS('http://www.w3.org/2000/svg', 'path'); area.setAttribute('d', dArea.trim()); area.setAttribute('fill', 'url(#eqGrad)'); svgEl.appendChild(area);
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path'); line.setAttribute('d', dLine.trim()); line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#0f172a'); line.setAttribute('stroke-width', '2.75'); svgEl.appendChild(line);
-      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', X(mainSeries.length - 1)); dot.setAttribute('cy', Y(mainSeries.at(-1))); dot.setAttribute('r', '4.2'); dot.setAttribute('fill', '#0f172a'); svgEl.appendChild(dot);
-
-      // bench lines
-      benchLines.forEach(b => {
-        let d = '';
-        b.series.forEach((v, i) => { d += `${i ? 'L' : 'M'}${X(i).toFixed(2)},${Y(v).toFixed(2)} `; });
-        const l = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        l.setAttribute('d', d.trim());
-        l.setAttribute('fill', 'none');
-        l.setAttribute('stroke', b.color);
-        l.setAttribute('stroke-width', '2');
-        l.setAttribute('stroke-dasharray', '6 4');
-        svgEl.appendChild(l);
-      });
-
-      // labels
-      const gL = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      labels.forEach((lb, i) => {
-        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        t.textContent = lb; t.setAttribute('x', X(i)); t.setAttribute('y', H - 8);
-        t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); gL.appendChild(t);
-      });
-      svgEl.appendChild(gL);
-    }
-
-    function calcMetrics(series) {
-      const first = series[0], last = series.at(-1);
-      const ret = ((last / first) - 1) * 100;
-      let peak = series[0], maxDD = 0;
-      for (const v of series) { peak = Math.max(peak, v); maxDD = Math.min(maxDD, (v / peak - 1)); }
-      const ddPct = Math.abs(maxDD * 100);
-      const rets = []; for (let i = 1; i < series.length; i++) rets.push((series[i] / series[i - 1]) - 1);
-      const avg = rets.reduce((a, b) => a + b, 0) / rets.length;
-      const sd = Math.sqrt(rets.reduce((a, b) => a + (b - avg) * (b - avg), 0) / rets.length) || 0.00001;
-      const sharpe = (avg / sd) * Math.sqrt(12);
-      const wins = rets.filter(r => r > 0).length / rets.length * 100;
-      const vol = sd * Math.sqrt(12) * 100;
-      return { ret, ddPct, sharpe, wins, vol, rets };
-    }
-
-    function drawDonut(el, percent) {
-      const r = 68, cx = 80, cy = 80, C = 2 * Math.PI * r, val = Math.max(0, Math.min(100, percent));
-      el.innerHTML = '';
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'); grad.setAttribute('id', 'gOlive');
-      grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '100%'); grad.setAttribute('y2', '0%');
-      const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#000');
-      const s2b = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s2b.setAttribute('offset', '60%'); s2b.setAttribute('stop-color', '#111827');
-      const s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop'); s3.setAttribute('offset', '100%'); s3.setAttribute('stop-color', '#556B2F');
-      grad.append(s1, s2b, s3); defs.appendChild(grad); el.appendChild(defs);
-      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
-      bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#e5e7eb'); bg.setAttribute('stroke-width', '16'); el.appendChild(bg);
-      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      arc.setAttribute('cx', cx); arc.setAttribute('cy', cy); arc.setAttribute('r', r);
-      arc.setAttribute('fill', 'none'); arc.setAttribute('stroke', 'url(#gOlive)'); arc.setAttribute('stroke-width', '16');
-      arc.setAttribute('stroke-linecap', 'round'); arc.setAttribute('transform', 'rotate(-90 80 80)');
-      arc.setAttribute('stroke-dasharray', `${(val / 100) * C} ${C}`); el.appendChild(arc);
-      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      txt.textContent = val.toFixed(0) + '%'; txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
-      txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '20'); txt.setAttribute('font-weight', '700'); txt.setAttribute('fill', '#0f172a'); el.appendChild(txt);
-    }
-
-    function sparkSvg(series, color = '#0f172a') {
-      const w = 120, h = 30, pad = 3, min = Math.min(...series), max = Math.max(...series), rng = (max - min) || 1;
-      const step = (w - 2 * pad) / Math.max(1, (series.length - 1));
-      let d = ''; series.forEach((v, i) => { const x = pad + i * step; const y = h - pad - ((v - min) / rng) * (h - 2 * pad); d += (i ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2) + ' '; });
-      return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
-    }
-    function drawBars(svgEl, values, labels) {
-      const W = 900, H = 260, padL = 42, padB = 26, padT = 16, padR = 12;
-      svgEl.innerHTML = '';
-      for (let i = 0; i < 4; i++) {
-        const y = padT + i * (H - padT - padB) / 3;
-        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        ln.setAttribute('x1', padL); ln.setAttribute('x2', W - padR);
-        ln.setAttribute('y1', y); ln.setAttribute('y2', y);
-        ln.setAttribute('stroke', '#e5e7eb'); ln.setAttribute('stroke-width', '1'); svgEl.appendChild(ln);
-      }
-      const absMax = Math.max(2, Math.max(...values.map(v => Math.abs(v))));
-      const maxY = absMax, minY = -absMax;
-      const xw = (W - padL - padR) / values.length * 0.72;
-      const xPos = i => padL + (i + 0.5) * ((W - padL - padR) / values.length) - xw / 2;
-      const yPos = v => padT + (maxY - v) * ((H - padT - padB) / (maxY - minY));
-      const y0 = yPos(0);
-      const zero = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      zero.setAttribute('x1', padL); zero.setAttribute('x2', W - padR);
-      zero.setAttribute('y1', y0); zero.setAttribute('y2', y0);
-      zero.setAttribute('stroke', '#cbd5e1'); zero.setAttribute('stroke-width', '1.2'); svgEl.appendChild(zero);
-      values.forEach((v, i) => {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        const x = xPos(i), y = Math.min(y0, yPos(v)), h = Math.abs(yPos(v) - y0);
-        rect.setAttribute('x', x); rect.setAttribute('y', y); rect.setAttribute('width', xw); rect.setAttribute('height', Math.max(0.5, h));
-        rect.setAttribute('rx', '4'); rect.setAttribute('fill', v >= 0 ? '#10b981' : '#ef4444'); rect.dataset.idx = i; svgEl.appendChild(rect);
-      });
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      labels.forEach((lb, i) => {
-        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        t.textContent = lb; t.setAttribute('x', padL + (i + 0.5) * ((W - padL - padR) / labels.length));
-        t.setAttribute('y', H - 8); t.setAttribute('font-size', '10'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('fill', '#64748b'); g.appendChild(t);
-      });
-      svgEl.appendChild(g);
-    }
-
-    /* ========== DATA ========== */
-    const BENCH_COLORS = ['#2563eb', '#9333ea', '#f59e0b', '#ef4444', '#10b981', '#a855f7', '#06b6d4'];
-    const YEARS = [2023, 2024, 2025];
-    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const logo = d => `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
-
-    const EQ_TEMPLATES = {
-      strong: {
-        "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.03, 1.01, 1.06, 1.09] },
-        "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.07, 1.12] },
-        "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.04, 1.02, 1.09, 1.13, 1.18] },
-        "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.03, 1.02, 1.08, 1.12, 1.15, 1.19, 1.22, 1.27] },
-        "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.03, 1.01, 1.07, 1.10, 1.12, 1.18, 1.21, 1.25, 1.32, 1.38, 1.43] },
-        "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.26, 1.58, 1.90] }
-      },
-      medium: {
-        "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.02, 0.99, 1.03, 1.05] },
-        "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.05, 1.08] },
-        "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.03, 1.01, 1.06, 1.09, 1.12] },
-        "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.02, 1.01, 1.05, 1.08, 1.10, 1.13, 1.15, 1.18] },
-        "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.02, 1.00, 1.05, 1.08, 1.10, 1.14, 1.16, 1.19, 1.23, 1.27, 1.31] },
-        "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.18, 1.38, 1.56] }
-      },
-      light: {
-        "1M": { lbl: ['W1', 'W2', 'W3', 'W4', 'W5'], arr: [1.00, 1.01, 1.00, 1.02, 1.03] },
-        "3M": { lbl: ['M1', 'M2', 'M3'], arr: [1.00, 1.03, 1.05] },
-        "6M": { lbl: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'], arr: [1.00, 1.02, 1.01, 1.03, 1.05, 1.06] },
-        "YTD": { lbl: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07] },
-        "1Y": { lbl: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], arr: [1.00, 1.01, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10] },
-        "3Y": { lbl: ['Y1', 'Y2', 'Y3', 'Y3+'], arr: [1.00, 1.10, 1.18, 1.25] }
-      }
-    };
-
-    const HOLDINGS_TEMPLATES = {
-      strong: [
-        { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 22 },
-        { name: 'Tesla', ticker: 'TSLA', logo: logo('tesla.com'), weight: 14 },
-        { name: 'Google', ticker: 'GOOG', logo: logo('google.com'), weight: 18 },
-        { name: 'NASDAQ', ticker: 'QQQ', logo: logo('nasdaq.com'), weight: 12 },
-        { name: 'USD/ZAR', ticker: 'FX', logo: logo('oanda.com'), weight: 10 },
-        { name: 'BTC', ticker: 'BTC', logo: logo('binance.com'), weight: 12 },
-      ],
-      medium: [
-        { name: 'Apple', ticker: 'AAPL', logo: logo('apple.com'), weight: 26 },
-        { name: 'S&P 500', ticker: 'SPY', logo: logo('spglobal.com'), weight: 18 },
-        { name: 'Brent Fut', ticker: 'BZ', logo: logo('ice.com'), weight: 10 },
-        { name: 'USD/ZAR', ticker: 'FX', logo: logo('oanda.com'), weight: 12 },
-        { name: 'Google', ticker: 'GOOG', logo: logo('google.com'), weight: 18 },
-      ],
-      light: [
-        { name: 'EUR/USD', ticker: 'FX', logo: logo('oanda.com'), weight: 25 },
-        { name: 'BTC', ticker: 'BTC', logo: logo('binance.com'), weight: 20 },
-        { name: 'ETH', ticker: 'ETH', logo: logo('binance.com'), weight: 15 },
-        { name: 'Gold', ticker: 'XAU', logo: logo('lbma.org.uk'), weight: 18 },
-      ]
-    };
-
-    const baseStrategies = {
-      'Trend Alpha': { tpl: 'strong', bal: 1_200_000, cash: 140_000, rating: 84, vol: 1.7, feeGross: 110_000, baseMonthly: [1.2, -0.6, 0.8, 1.1, 2.0, -0.4, 1.6, 0.9, 2.3, 0.7, 1.1, 1.5] },
-      'Momentum FX': { tpl: 'medium', bal: 820_000, cash: 95_000, rating: 76, vol: 1.4, feeGross: 75_000, baseMonthly: [-0.3, 0.6, 0.9, -0.4, 0.8, 1.2, 0.5, 0.7, -0.2, 0.3, 0.9, 1.1] },
-      'Grid Delta': { tpl: 'light', bal: 540_000, cash: 80_000, rating: 62, vol: 1.2, feeGross: 45_000, baseMonthly: [0.4, -0.8, 0.2, 0.1, -0.2, 0.3, 0.5, -0.1, 0.6, 0.2, 0.1, 0.3] },
-      'NewsPulse': { tpl: 'medium', bal: 410_000, cash: 60_000, rating: 70, vol: 1.4, feeGross: 38_000, baseMonthly: [0.7, 0.8, -0.6, 1.0, 0.9, -0.3, 0.6, 1.2, 0.5, 0.6, 0.4, 0.9] },
-      'Equity Trend+': { tpl: 'strong', bal: 2_000_000, cash: 180_000, rating: 88, vol: 1.8, feeGross: 180_000, baseMonthly: [0.5, 0.7, 0.6, 0.8, 0.9, 1.0, 0.4, 0.6, 1.1, 0.8, 0.9, 1.0] },
-      'Carry FX': { tpl: 'light', bal: 300_000, cash: 50_000, rating: 65, vol: 1.0, feeGross: 22_000, baseMonthly: [0.2, 0.3, 0.1, 0.2, 0.4, 0.2, 0.3, 0.1, 0.4, 0.2, 0.3, 0.2] },
-    };
-
-    const strategies = {};
-
-    function monthlyForYear(base, year) {
-      return base.map((v, i) => {
-        const tweak = Math.sin((year - 2020) * 0.7 + i) * 0.15;
-        return +(v + tweak).toFixed(2);
-      });
-    }
-
-    Object.entries(baseStrategies).forEach(([k, v]) => {
-      strategies[k] = {
-        ...v,
-        monthlyByYear: Object.fromEntries(YEARS.map(y => [y, monthlyForYear(v.baseMonthly, y)]))
-      };
+<script>
+// Minimal "No data" dashboard placeholders.
+// If your module script later sets window.__NO_DATA__ = false, this block will do nothing.
+(function () {
+  function setNoDataPlaceholders(msg = 'No data found') {
+    // Equity card
+    const eqSvg = document.getElementById('eqSvg');
+    if (eqSvg) eqSvg.innerHTML =
+      `<text x="450" y="160" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
+    const eqLegend = document.getElementById('eqLegend'); if (eqLegend) eqLegend.innerHTML = '';
+    const eqValue = document.getElementById('eqValue');   if (eqValue) eqValue.textContent = msg;
+    const eqDelta = document.getElementById('eqDelta');   if (eqDelta) eqDelta.textContent = '—';
+    ['mRet','mDD','mSharpe','mWin','mVol'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = msg;
     });
 
-    function computeFullPortfolio() {
-      const keys = Object.keys(baseStrategies);
-      const totBal = keys.reduce((s, k) => s + baseStrategies[k].bal, 0);
-      const totCash = keys.reduce((s, k) => s + baseStrategies[k].cash, 0);
-      const avgRating = Math.round(keys.reduce((s, k) => s + baseStrategies[k].rating, 0) / keys.length);
-      const avgVol = +(keys.reduce((s, k) => s + baseStrategies[k].vol, 0) / keys.length).toFixed(2);
-      const totFee = keys.reduce((s, k) => s + baseStrategies[k].feeGross, 0);
-      const monthlyByYear = {};
-      YEARS.forEach(y => {
-        const arrs = keys.map(k => strategies[k].monthlyByYear[y]);
-        monthlyByYear[y] = MONTHS.map((_, i) => +(arrs.reduce((s, a) => s + a[i], 0) / arrs.length).toFixed(2));
-      });
-      const tpl = avgRating >= 82 ? 'strong' : avgRating >= 70 ? 'medium' : 'light';
-      return { tpl, bal: totBal, cash: totCash, rating: avgRating, vol: avgVol, feeGross: totFee, monthlyByYear };
-    }
-    strategies['Full Portfolio'] = computeFullPortfolio();
+    // Performance summary
+    ['sumBest','sumWorst','sumAvg','sumPos','sumDays','sumCagr'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = msg;
+    });
 
-    const ALLOC_TEMPLATES = {
-      strong: [{ label: 'Equities', pct: 48, color: '#0f172a' }, { label: 'FX', pct: 18, color: '#10b981' }, { label: 'Crypto', pct: 12, color: '#f59e0b' }, { label: 'Futures', pct: 14, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 2, color: '#94a3b8' }],
-      medium: [{ label: 'Equities', pct: 54, color: '#0f172a' }, { label: 'FX', pct: 12, color: '#10b981' }, { label: 'Crypto', pct: 6, color: '#f59e0b' }, { label: 'Futures', pct: 16, color: '#6366f1' }, { label: 'Commodities', pct: 6, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
-      light: [{ label: 'Equities', pct: 30, color: '#0f172a' }, { label: 'FX', pct: 30, color: '#10b981' }, { label: 'Crypto', pct: 20, color: '#f59e0b' }, { label: 'Futures', pct: 10, color: '#6366f1' }, { label: 'Commodities', pct: 4, color: '#ef4444' }, { label: 'Cash', pct: 6, color: '#94a3b8' }],
-    };
+    // Monthly performance
+    const stratChart = document.getElementById('stratChart');
+    if (stratChart) stratChart.innerHTML =
+      `<text x="450" y="130" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
 
-    const deltaYoY = +5.48;
+    // Daily calendar
+    const calMonth = document.getElementById('calMonth'); if (calMonth) calMonth.textContent = '';
+    const calGrid  = document.getElementById('calGrid');
+    if (calGrid) calGrid.innerHTML =
+      `<div class="col-span-7 text-center py-10 text-slate-500">${msg}</div>`;
 
-    let currentStrat = 'Full Portfolio';
-    let eqRange = '1Y';
-    let selectedBenchmarks = [];
+    // Holdings
+    const hb = document.getElementById('holdingsBody');
+    if (hb) hb.innerHTML =
+      `<tr><td colspan="3" class="px-5 py-6 text-center text-slate-500">${msg}</td></tr>`;
+    const hwt = document.getElementById('holdingsWeightTot'); if (hwt) hwt.textContent = '—';
+    const hvt = document.getElementById('holdingsValTot');    if (hvt) hvt.textContent = '—';
 
-    /* ========== RENDER HELPERS ========== */
-    function setCardNames(strat) {
-      document.getElementById('eqStratName').textContent = strat;
-      document.getElementById('sumStratName').textContent = strat;
-      document.getElementById('mpStratName').textContent = strat;
-      document.getElementById('dpStratName').textContent = strat;
-      document.getElementById('holdStratName').textContent = strat;
-      document.getElementById('aaStratName').textContent = strat;
-      document.getElementById('fbStratName').textContent = strat;
-      document.getElementById('prStratName').textContent = strat;
-    }
+    // Account snapshot
+    const acctBal  = document.getElementById('acctBal');  if (acctBal)  acctBal.textContent  = msg;
+    const acctCash = document.getElementById('acctCash'); if (acctCash) acctCash.textContent = msg;
 
-    function renderRating(strat) {
-      const d = strategies[strat];
-      document.getElementById('acctBal').textContent = fmtMoney(d.bal);
-      document.getElementById('acctCash').textContent = fmtMoney(d.cash);
-      drawDonut(document.getElementById('ratingGauge'), d.rating);
-      document.getElementById('ratingText').textContent = d.rating >= 85 ? 'Excellent' : (d.rating >= 70 ? 'Very Good' : 'Fair');
-      const chip = document.getElementById('ratingDeltaChip');
-      chip.textContent = (deltaYoY >= 0 ? '+' : '') + deltaYoY.toFixed(2) + '%';
-      chip.className = 'chip ' + (deltaYoY >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
-    }
+    // Strategy rating
+    const gauge = document.getElementById('ratingGauge');
+    if (gauge) gauge.innerHTML =
+      `<text x="80" y="84" text-anchor="middle" fill="#94a3b8" font-size="12">${msg}</text>`;
+    const rt = document.getElementById('ratingText'); if (rt) rt.textContent = msg;
+    const rc = document.getElementById('ratingDeltaChip'); if (rc) rc.textContent = '—';
 
-    function renderEq(range, strat) {
-      const meta = strategies[strat];
-      const tpl = (EQ_TEMPLATES[meta.tpl] && EQ_TEMPLATES[meta.tpl][range]) ? EQ_TEMPLATES[meta.tpl][range] : EQ_TEMPLATES.strong['1Y'];
-      const mainSeries = tpl.arr;
-      const labels = tpl.lbl;
+    // Allocation
+    const alloc = document.getElementById('allocBars');
+    if (alloc) alloc.innerHTML = `<div class="text-center text-slate-500 py-6">${msg}</div>`;
 
-      const benchLines = selectedBenchmarks
-        .filter(name => strategies[name])
-        .map((name, idx) => {
-          const m = strategies[name];
-          const t = (EQ_TEMPLATES[m.tpl] && EQ_TEMPLATES[m.tpl][range]) ? EQ_TEMPLATES[m.tpl][range] : EQ_TEMPLATES.strong['1Y'];
-          return { name, color: BENCH_COLORS[idx % BENCH_COLORS.length], series: t.arr };
-        });
+    // Fees
+    ['feeMgmt','feePerf','feeBrok','feeSlip'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.width = '0%';
+    });
+    const feeRows = document.getElementById('feeRows');
+    if (feeRows) feeRows.innerHTML =
+      `<tr><td colspan="3" class="py-6 text-center text-slate-500">${msg}</td></tr>`;
 
-      drawEquity(document.getElementById('eqSvg'), mainSeries, labels, benchLines);
+    // Strategies list (right rail)
+    const subsWrap = document.getElementById('subsWrap');
+    if (subsWrap) subsWrap.innerHTML =
+      `<div class="text-center text-slate-500 py-6 border rounded-xl">${msg}</div>`;
 
-      const first = mainSeries[0], last = mainSeries.at(-1);
-      const value = meta.bal * last;
-      const deltaPct = ((last / first) - 1) * 100;
-      document.getElementById('eqValue').textContent = fmtMoney(value);
-      const dEl = document.getElementById('eqDelta');
-      dEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%';
-      dEl.className = 'chip ' + (deltaPct >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700');
+    // Disable interactive controls
+    document.querySelectorAll('.tab-btn, #addBenchBtn, #exportBtn, #stratSel, #yearSel, #dpMonth, #dpYear')
+      .forEach(el => { if (el) { el.disabled = true; el.classList.add('opacity-60','pointer-events-none'); } });
+  }
 
-      const m = calcMetrics(mainSeries);
-      document.getElementById('mRet').textContent = (m.ret >= 0 ? '+' : '') + m.ret.toFixed(2) + '%';
-      document.getElementById('mDD').textContent = m.ddPct.toFixed(2) + '%';
-      document.getElementById('mSharpe').textContent = m.sharpe.toFixed(2);
-      document.getElementById('mWin').textContent = m.wins.toFixed(0) + '%';
-      document.getElementById('mVol').textContent = m.vol.toFixed(1) + '%';
+  // Show placeholders unless a module script explicitly says there IS data.
+  const shouldShowNoData = (window.__NO_DATA__ !== false);
 
-      // legend
-      const legend = document.getElementById('eqLegend');
-      const mainChip = `<span class="chip bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-full inline-block mr-1" style="background:#0f172a"></span>${strat}</span>`;
-      const benchChips = benchLines.map(b => `
-        <button class="chip bg-slate-100 hover:bg-slate-200 text-slate-700" data-remove-bench="${b.name}">
-          <span class="w-2.5 h-2.5 rounded-full inline-block mr-1" style="background:${b.color}"></span>${b.name}
-          <i class="fa-solid fa-xmark ml-1 text-[10px]"></i>
-        </button>`).join('');
-      legend.innerHTML = mainChip + benchChips;
-      legend.querySelectorAll('[data-remove-bench]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const name = btn.getAttribute('data-remove-bench');
-          selectedBenchmarks = selectedBenchmarks.filter(x => x !== name);
-          syncBenchChecks();
-          renderEq(eqRange, currentStrat);
-        });
-      });
-    }
-
-    function renderAllocation(strat) {
-      const bars = document.getElementById('allocBars');
-      const arr = ALLOC_TEMPLATES[strategies[strat].tpl];
-      bars.innerHTML = arr.map(a => `
-        <div>
-          <div class="flex items-center justify-between text-sm mb-1">
-            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full inline-block" style="background:${a.color}"></span>${a.label}</div>
-            <div class="num">${a.pct}%</div>
-          </div>
-          <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div class="h-2" style="width:${a.pct}%; background:${a.color}"></div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function renderFees(strat) {
-      const grossProfit = strategies[strat].feeGross;
-      const feeModel = {
-        mgmt: { label: 'Management', rate: '1.0% p.a.', pctOfProfit: 0.18 },
-        perf: { label: 'Performance', rate: '15% of profits', pctOfProfit: 0.15 },
-        brok: { label: 'Brokerage', rate: '0.12% notional', pctOfProfit: 0.05 },
-        slip: { label: 'Slippage est.', rate: '—', pctOfProfit: 0.03 },
-      };
-      const amounts = {
-        mgmt: Math.round(grossProfit * feeModel.mgmt.pctOfProfit),
-        perf: Math.round(grossProfit * feeModel.perf.pctOfProfit),
-        brok: Math.round(grossProfit * feeModel.brok.pctOfProfit),
-        slip: Math.round(grossProfit * feeModel.slip.pctOfProfit),
-      };
-      const total = amounts.mgmt + amounts.perf + amounts.brok + amounts.slip;
-      const pct = k => (amounts[k] / total * 100).toFixed(1) + '%';
-      document.getElementById('feeMgmt').style.width = pct('mgmt');
-      document.getElementById('feePerf').style.width = pct('perf');
-      document.getElementById('feeBrok').style.width = pct('brok');
-      document.getElementById('feeSlip').style.width = pct('slip');
-      document.getElementById('feeRows').innerHTML = `
-        <tr><td class="py-2">Management</td><td class="py-2 text-right">${feeModel.mgmt.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.mgmt)}</td></tr>
-        <tr><td class="py-2">Performance</td><td class="py-2 text-right">${feeModel.perf.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.perf)}</td></tr>
-        <tr><td class="py-2">Brokerage</td><td class="py-2 text-right">${feeModel.brok.rate}</td><td class="py-2 text-right num">${fmtMoney(amounts.brok)}</td></tr>
-        <tr><td class="py-2">Slippage (est.)</td><td class="py-2 text-right">—</td><td class="py-2 text-right num">${fmtMoney(amounts.slip)}</td></tr>
-        <tr class="font-semibold"><td class="py-2">Total Fees</td><td></td><td class="py-2 text-right num">${fmtMoney(total)}</td></tr>
-      `;
-    }
-
-    function renderHoldings(strat) {
-      const body = document.getElementById('holdingsBody');
-      const bal = strategies[strat].bal;
-      const cashWeight = Math.max(0, Math.min(100, (strategies[strat].cash / bal) * 100));
-      const rows = HOLDINGS_TEMPLATES[strategies[strat].tpl].slice();
-      rows.push({ name: 'Cash', ticker: 'ZAR', logo: 'https://img.icons8.com/?size=48&id=12227&format=png', weight: +cashWeight.toFixed(1) });
-      const totW = rows.reduce((s, r) => s + r.weight, 0);
-      const scale = totW > 100 ? 100 / totW : 1;
-      let sumW = 0, sumV = 0;
-      body.innerHTML = rows.map(r => {
-        const w = +(r.weight * scale).toFixed(1);
-        const val = Math.round(bal * (w / 100));
-        sumW += w; sumV += val;
-        return `
-          <tr class="hover:bg-slate-50">
-            <td class="px-5 py-3">
-              <div class="flex items-center gap-3">
-                <img src="${r.logo}" class="h-6 w-6 rounded" alt="">
-                <div>
-                  <div class="font-medium">${r.name}</div>
-                  <div class="text-xs text-slate-500">${r.ticker}</div>
-                </div>
-              </div>
-            </td>
-            <td class="px-5 py-3 text-right num">${w.toFixed(1)}%</td>
-            <td class="px-5 py-3 text-right num">${fmtMoney(val)}</td>
-          </tr>`;
-      }).join('');
-      document.getElementById('holdingsWeightTot').textContent = sumW.toFixed(1) + '%';
-      document.getElementById('holdingsValTot').textContent = fmtMoney(sumV);
-    }
-
-    function renderCalendar(strat, monthIndex, year) {
-      const grid = document.getElementById('calGrid');
-      const y = year, m = monthIndex;
-      const firstDay = new Date(y, m, 1); const startWeek = firstDay.getDay();
-      const days = new Date(y, m + 1, 0).getDate();
-      const today = new Date();
-      document.getElementById('calMonth').textContent = new Date(y, m, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
-      const vol = strategies[strat].vol ?? 1.5;
-      const cells = [];
-      for (let i = 0; i < startWeek; i++) cells.push({ empty: true });
-      for (let d = 1; d <= days; d++) {
-        const inPastOrThisMonth = (y < today.getFullYear()) || (y === today.getFullYear() && (m < today.getMonth() || (m === today.getMonth() && d <= today.getDate())));
-        if (inPastOrThisMonth) {
-          const ret = +((Math.random() * 4 - 2) * (vol / 1.8)).toFixed(2);
-          cells.push({ day: d, ret });
-        } else {
-          cells.push({ day: d, future: true });
-        }
-      }
-      grid.innerHTML = cells.map(c => {
-        if (c.empty) return `<div class="cal-cell bg-white"></div>`;
-        if (c.future) return `<div class="cal-cell bg-white opacity-50"><div class="text-[11px] text-slate-400">${c.day}</div></div>`;
-        const a = Math.min(1, Math.abs(c.ret) / 2);
-        const bg = c.ret >= 0 ? `rgba(16,185,129,${0.15 + a * 0.35})` : `rgba(239,68,68,${0.18 + a * 0.35})`;
-        return `
-          <div class="cal-cell" style="background:${bg}">
-            <div class="text-[11px] text-slate-700">${c.day}</div>
-            <div class="text-[11px] ${c.ret >= 0 ? 'text-emerald-700' : 'text-rose-700'} self-end">${c.ret >= 0 ? '+' : ''}${c.ret.toFixed(2)}%</div>
-          </div>`;
-      }).join('');
-
-      const rets = cells.filter(x => x.ret !== undefined).map(x => x.ret / 100);
-      if (rets.length) {
-        const best = Math.max(...rets) * 100;
-        const worst = Math.min(...rets) * 100;
-        const avg = (rets.reduce((a, b) => a + b, 0) / rets.length) * 100;
-        const pos = rets.filter(r => r > 0).length;
-        const cagr = (Math.pow(1 + avg / 100, 252) - 1) * 100;
-        document.getElementById('sumBest').textContent = `${best >= 0 ? '+' : ''}${best.toFixed(2)}%`;
-        document.getElementById('sumWorst').textContent = `${worst.toFixed(2)}%`;
-        document.getElementById('sumAvg').textContent = `${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%`;
-        document.getElementById('sumPos').textContent = `${pos} days`;
-        document.getElementById('sumDays').textContent = `${rets.length}`;
-        document.getElementById('sumCagr').textContent = `${cagr.toFixed(1)}%`;
-      }
-    }
-
-    function renderMonthlyPerf(strat, year) {
-      const d = strategies[strat];
-      const series = d.monthlyByYear[year];
-      drawBars(document.getElementById('stratChart'), series, MONTHS);
-      const tip = document.getElementById('stratTip');
-      document.querySelectorAll('#stratChart rect').forEach(r => {
-        r.onmouseenter = (e) => {
-          const i = +e.target.dataset.idx; const v = series[i];
-          tip.innerHTML = `<div class="font-semibold">${MONTHS[i]} ${year}</div><div>${v >= 0 ? '+' : ''}${v.toFixed(2)}%</div>`;
-          tip.style.left = Math.min(820, Math.max(10, e.offsetX + 12)) + 'px'; tip.style.top = '10px'; tip.classList.remove('hidden');
-        };
-        r.onmouseleave = () => tip.classList.add('hidden');
-      });
-    }
-
-    function renderFinancialHealthStatic() {
-      const score = 78; // fixed/static
-      document.getElementById('healthScore').textContent = score + '/100';
-      document.getElementById('healthBar').style.width = `${score}%`;
-      const badge = document.getElementById('healthBadge');
-      if (score >= 80) { badge.textContent = 'Excellent'; badge.className = 'chip bg-green-50 text-green-700'; }
-      else if (score >= 60) { badge.textContent = 'Stable'; badge.className = 'chip bg-emerald-50 text-emerald-700'; }
-      else if (score >= 40) { badge.textContent = 'At Risk'; badge.className = 'chip bg-amber-50 text-amber-700'; }
-      else { badge.textContent = 'Critical'; badge.className = 'chip bg-rose-50 text-rose-700'; }
-    }
-
-    function renderAll(strat, yearForMonthly, calMonthIndex, calYear) {
-      setCardNames(strat);
-      renderRating(strat);
-      renderEq(eqRange, strat);
-      renderAllocation(strat);
-      renderFees(strat);
-      renderHoldings(strat);
-      renderMonthlyPerf(strat, yearForMonthly);
-      renderCalendar(strat, calMonthIndex, calYear);
-      renderFinancialHealthStatic(); // stays static
-    }
-
-    /* ======= Benchmarks Popover (opened by Add Benchmark) ======= */
-    function createBenchPopover() {
-      const portal = document.getElementById('benchPortal');
-      portal.innerHTML = `
-        <div id="benchPanel" class="popover card p-4 w-[320px] border shadow-xl absolute z-30 hidden">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-semibold">Add Benchmarks</div>
-            <button id="bnClose" class="h-7 w-7 grid place-items-center rounded hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-          <div class="space-y-3 text-sm">
-            <div>
-              <div class="text-xs text-slate-500 mb-1">Choose strategies to compare</div>
-              <div id="bnList" class="grid grid-cols-2 gap-2"></div>
-            </div>
-            <div class="pt-2 flex items-center justify-between">
-              <button id="bnReset" class="text-slate-600 hover:text-slate-900">Clear</button>
-              <div class="flex items-center gap-2">
-                <button id="bnCancel" class="border rounded-lg px-3 py-1.5 hover:bg-slate-50">Cancel</button>
-                <button id="bnApply" class="bg-[var(--olive)] text-white rounded-lg px-3 py-1.5 hover:bg-[var(--olive-700)]">Apply</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      const list = document.getElementById('bnList');
-      const names = Object.keys(strategies).filter(n => n !== currentStrat);
-      list.innerHTML = names.map((n, i) => `
-        <label class="flex items-center gap-2 border rounded-lg px-2 py-1 hover:bg-slate-50">
-          <input type="checkbox" value="${n}" class="accent-[var(--olive)] bn-check">
-          <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:${BENCH_COLORS[i % BENCH_COLORS.length]}"></span>
-          <span class="truncate">${n}</span>
-        </label>
-      `).join('');
-      syncBenchChecks();
-
-      // wire events
-      document.getElementById('bnClose').onclick = closeBenchPopover;
-      document.getElementById('bnCancel').onclick = closeBenchPopover;
-      document.getElementById('bnReset').onclick = () => { selectedBenchmarks = []; syncBenchChecks(); renderEq(eqRange, currentStrat); };
-      document.getElementById('bnApply').onclick = () => {
-        selectedBenchmarks = Array.from(document.querySelectorAll('.bn-check')).filter(cb => cb.checked).map(cb => cb.value);
-        selectedBenchmarks = selectedBenchmarks.filter(n => n !== currentStrat);
-        renderEq(eqRange, currentStrat);
-        closeBenchPopover();
-      };
-      // click-outside
-      document.addEventListener('click', (e) => {
-        const p = document.getElementById('benchPanel'); const btn = document.getElementById('addBenchBtn');
-        if (!p.classList.contains('hidden') && !p.contains(e.target) && !btn.contains(e.target)) closeBenchPopover();
-      });
-      window.addEventListener('resize', () => { const p = document.getElementById('benchPanel'); if (!p.classList.contains('hidden')) positionBenchPopover(); });
-      window.addEventListener('scroll', () => { const p = document.getElementById('benchPanel'); if (!p.classList.contains('hidden')) positionBenchPopover(); }, { passive: true });
-    }
-
-    function positionBenchPopover() {
-      const panel = document.getElementById('benchPanel');
-      const btn = document.getElementById('addBenchBtn');
-      const r = btn.getBoundingClientRect();
-      panel.style.top = (r.bottom + window.scrollY + 10) + 'px';
-      panel.style.left = (Math.min(r.right - 320, window.innerWidth - 340) + window.scrollX) + 'px';
-    }
-    function openBenchPopover() { const p = document.getElementById('benchPanel'); p.classList.remove('hidden'); positionBenchPopover(); }
-    function closeBenchPopover() { const p = document.getElementById('benchPanel'); p.classList.add('hidden'); }
-    function syncBenchChecks() { document.querySelectorAll('.bn-check').forEach(cb => cb.checked = selectedBenchmarks.includes(cb.value)); }
-
-    /* ======= Export Fact Sheet (PDF) ======= */
-    function exportFactSheet() {
-      document.getElementById('printDate').textContent = new Date().toLocaleString();
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `Algohive_Fact_Sheet_${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { avoid: ['.card', 'table', 'h1', 'h2', 'h3'] }
-      };
-      html2pdf().from(document.body.cloneNode(true)).set(opt).toPdf().get('pdf').save();
-    }
-
-    /* ========== INIT & INTERACTION ========== */
-    const subs = [
-      { name: 'Full Portfolio', provider: 'All', change: +0.9, aum: 'Aggregate', series: [9, 9.2, 9.5, 9.3, 9.7, 10.2, 10.5] },
-      { name: 'Trend Alpha', provider: 'AlgoForge', change: +1.8, aum: 'R1.2m', series: [10, 12, 11, 13, 12, 15, 14, 16] },
-      { name: 'Momentum FX', provider: 'QuantBee', change: +0.9, aum: 'R820k', series: [8, 8.4, 8.2, 8.6, 8.9, 9.2, 9.6] },
-      { name: 'Grid Delta', provider: 'GridOps', change: -0.6, aum: 'R540k', series: [7, 6.9, 6.7, 6.8, 6.6, 6.7, 6.5] },
-      { name: 'NewsPulse', provider: 'PulseAI', change: +1.2, aum: 'R410k', series: [6, 6.2, 6.4, 6.1, 6.5, 6.7, 6.9] },
-      { name: 'Equity Trend+', provider: 'AlgoForge', change: +0.4, aum: 'R2.0m', series: [9, 9.1, 9.2, 9.3, 9.5, 9.6, 9.8] },
-      { name: 'Carry FX', provider: 'QuantBee', change: +0.3, aum: 'R300k', series: [5, 5.1, 5.2, 5.15, 5.25, 5.3, 5.35] }
-    ];
-
-    function setStrategy(name) {
-      currentStrat = name;
-      const stratSel = document.getElementById('stratSel');
-      if (stratSel && stratSel.value !== name) stratSel.value = name;
-      document.querySelectorAll('#subsWrap .sub-card').forEach(card => {
-        const key = card.getAttribute('data-key');
-        card.classList.toggle('active', key === name);
-      });
-      const yearSel = document.getElementById('yearSel');
-      const yr = +yearSel.value;
-      const dpMonth = document.getElementById('dpMonth');
-      const dpYear = document.getElementById('dpYear');
-      selectedBenchmarks = selectedBenchmarks.filter(b => b !== name);
-      renderAll(name, yr, +dpMonth.value, +dpYear.value);
-      createBenchPopover();
-    }
-
-    (async function () {
-      // menu already ensured by the module script; just (re)assert active item
-      window.buildMenuFixed?.('dashboard');
-
-      document.getElementById('greet').textContent = greetLine();
-
-      // Equity tabs
-      document.querySelectorAll('#eqTabs .tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('#eqTabs .tab-btn').forEach(x => x.classList.remove('active'));
-          btn.classList.add('active');
-          eqRange = btn.dataset.range;
-          renderEq(eqRange, currentStrat);
-        });
-      });
-
-      // Strategies side list (TCM label + default active)
-      const subsWrap = document.getElementById('subsWrap');
-      subsWrap.innerHTML = subs.map(s => `
-        <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card${s.name === currentStrat ? ' active' : ''}" data-key="${s.name}">
-          <div class="flex items-center justify-between">
-            <div class="font-medium text-sm truncate">${s.name}</div>
-            <span class="chip ${s.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(1)}%</span>
-          </div>
-          <div class="text-xs text-slate-500">${s.provider} · TCM ${s.aum}</div>
-          <div class="mt-2">${sparkSvg(s.series, '#0f172a')}</div>
-        </div>`).join('');
-      document.querySelectorAll('#subsWrap .sub-card').forEach(card => card.addEventListener('click', () => setStrategy(card.getAttribute('data-key'))));
-
-      // Strategy + Year selectors
-      const stratSel = document.getElementById('stratSel');
-      stratSel.innerHTML = Object.keys(strategies).map(n => `<option value="${n}">${n}</option>`).join('');
-      stratSel.addEventListener('change', e => setStrategy(e.target.value));
-      const yearSel = document.getElementById('yearSel');
-      yearSel.innerHTML = YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
-      yearSel.value = new Date().getFullYear();
-      yearSel.addEventListener('change', () => renderMonthlyPerf(currentStrat, +yearSel.value));
-
-      // Daily perf selectors
-      const dpMonth = document.getElementById('dpMonth');
-      dpMonth.innerHTML = MONTHS.map((m, i) => `<option value="${i}">${m}</option>`).join('');
-      const dpYear = document.getElementById('dpYear');
-      dpYear.innerHTML = YEARS.map(y => `<option value="${y}">${y}</option>`).join('');
-      const now = new Date();
-      dpMonth.value = now.getMonth();
-      dpYear.value = now.getFullYear();
-      dpMonth.addEventListener('change', () => renderCalendar(currentStrat, +dpMonth.value, +dpYear.value));
-      dpYear.addEventListener('change', () => renderCalendar(currentStrat, +dpMonth.value, +dpYear.value));
-
-      // Bench popover
-      createBenchPopover();
-      document.getElementById('addBenchBtn').addEventListener('click', () => {
-        const p = document.getElementById('benchPanel');
-        if (p.classList.contains('hidden')) openBenchPopover(); else closeBenchPopover();
-      });
-
-      // Export
-      document.getElementById('exportBtn').addEventListener('click', exportFactSheet);
-
-      // Health CTA
-      document.getElementById('healthCta').addEventListener('click', () => {
-        alert('Opening Financial Tracker… (hook this into your route when ready).');
-      });
-
-      // Initial render
-      stratSel.value = currentStrat;
-      renderAll(currentStrat, +yearSel.value, +dpMonth.value, +dpYear.value);
-    })();
-  </script>
+  function run() { if (shouldShowNoData) setNoDataPlaceholders(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else {
+    run();
+  }
+})();
+</script>
 
 
 </body>
