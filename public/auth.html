@@ -83,6 +83,25 @@
     import { signIn, signUp } from "/js/auth.js";
     import { supabase } from "/js/supabase.js";
 
+    async function isProfileComplete(uid) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("first_name,last_name")
+    .eq("id", uid)
+    .single();
+  return !error && data && (data.first_name || "").trim() && (data.last_name || "").trim();
+}
+
+async function routePostAuth(preferred = "/dashboard.html") {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return; // signup with email-confirmation on = no session yet
+  const complete = await isProfileComplete(session.user.id);
+  const dest = complete ? preferred
+                        : `/profile.html?onboarding=1&next=${encodeURIComponent(preferred)}`;
+  location.replace(dest);
+}
+
+
     const qs = new URLSearchParams(location.search);
     const redirectTo = qs.get("redirect") || "/dashboard.html";
 
