@@ -1,27 +1,39 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AlgoHive — Sign in</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root{ --olive:#7e8d52; --olive-700:#576138; --ink:#0B1215; }
-    body{ background:#f6f7f6 }
+    :root {
+      --olive: #7e8d52;
+      --olive-700: #576138;
+      --ink: #0B1215;
+    }
+
+    body {
+      background: #f6f7f6
+    }
   </style>
 </head>
+
 <body class="min-h-screen grid place-items-center">
   <main class="w-full max-w-md bg-white p-6 rounded-2xl shadow border border-black/10">
     <!-- Brand -->
     <div class="flex items-center gap-2 mb-4">
-      <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-7 w-auto">
+      <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive"
+        class="h-7 w-auto">
       <h1 class="text-lg font-extrabold text-[var(--ink)]">AlgoHive</h1>
     </div>
 
     <!-- Tabs -->
     <div class="flex gap-2 mb-4">
-      <button id="tab-in"  type="button" class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
-      <button id="tab-up" type="button" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
+      <button id="tab-in" type="button" class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign
+        in</button>
+      <button id="tab-up" type="button" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create
+        account</button>
     </div>
 
     <!-- Messages -->
@@ -32,7 +44,8 @@
       <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
       <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
       <button type="submit" class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
-      <button id="forgot" type="button" class="w-full text-sm text-[var(--olive-700)] underline">Forgot password?</button>
+      <button id="forgot" type="button" class="w-full text-sm text-[var(--olive-700)] underline">Forgot
+        password?</button>
     </form>
 
     <!-- Inline forgot form -->
@@ -49,7 +62,8 @@
     <!-- Sign up -->
     <form id="signup-form" class="space-y-3 hidden mt-2">
       <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
+      <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2"
+        required />
 
       <!-- Legal acceptance -->
       <label class="flex items-start gap-2 text-xs text-slate-700">
@@ -63,7 +77,8 @@
         </span>
       </label>
 
-      <button id="signup-btn" type="submit" class="w-full rounded px-3 py-2 bg-[var(--olive)] text-white disabled:opacity-50" disabled>
+      <button id="signup-btn" type="submit"
+        class="w-full rounded px-3 py-2 bg-[var(--olive)] text-white disabled:opacity-50" disabled>
         Create account
       </button>
       <p class="text-[11px] text-slate-500">
@@ -74,7 +89,8 @@
     <!-- FSP notice -->
     <div class="mt-6 rounded-xl border border-black/10 bg-black/[0.03] p-3">
       <p class="text-[11px] leading-5 text-slate-600">
-        AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past performance is not indicative of future results.
+        AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past
+        performance is not indicative of future results.
       </p>
     </div>
   </main>
@@ -84,51 +100,51 @@
     import { supabase } from "/js/supabase.js";
 
     async function isProfileComplete(uid) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("first_name,last_name")
-    .eq("id", uid)
-    .single();
-  return !error && data && (data.first_name || "").trim() && (data.last_name || "").trim();
-}
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name,last_name")
+        .eq("id", uid)
+        .single();
+      return !error && data && (data.first_name || "").trim() && (data.last_name || "").trim();
+    }
 
-async function routePostAuth(preferred = "/dashboard.html") {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return; // signup with email-confirmation on = no session yet
-  const complete = await isProfileComplete(session.user.id);
-  const dest = complete ? preferred
-                        : `/profile.html?onboarding=1&next=${encodeURIComponent(preferred)}`;
-  location.replace(dest);
-}
+    async function routePostAuth(preferred = "/dashboard.html") {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return; // signup with email-confirmation on = no session yet
+      const complete = await isProfileComplete(session.user.id);
+      const dest = complete ? preferred
+        : `/profile.html?onboarding=1&next=${encodeURIComponent(preferred)}`;
+      location.replace(dest);
+    }
 
 
     const qs = new URLSearchParams(location.search);
     const redirectTo = qs.get("redirect") || "/dashboard.html";
 
     // elems
-    const tabIn  = document.getElementById("tab-in");
-    const tabUp  = document.getElementById("tab-up");
-    const fIn    = document.getElementById("login-form");
-    const fUp    = document.getElementById("signup-form");
-    const msg    = document.getElementById("msg");
+    const tabIn = document.getElementById("tab-in");
+    const tabUp = document.getElementById("tab-up");
+    const fIn = document.getElementById("login-form");
+    const fUp = document.getElementById("signup-form");
+    const msg = document.getElementById("msg");
     const forgot = document.getElementById("forgot");
-    const forgotWrap   = document.getElementById("forgot-wrap");
-    const forgotForm   = document.getElementById("forgot-form");
+    const forgotWrap = document.getElementById("forgot-wrap");
+    const forgotForm = document.getElementById("forgot-form");
     const forgotCancel = document.getElementById("forgot-cancel");
-    const agree        = document.getElementById("agree");
-    const signupBtn    = document.getElementById("signup-btn");
+    const agree = document.getElementById("agree");
+    const signupBtn = document.getElementById("signup-btn");
 
     // ---- UI helpers ----
-    function showMsg(text, type="info"){ // "success" | "error" | "info"
-      msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
-      if(type==="success"){ msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200"); }
-      if(type==="error"){   msg.classList.add("bg-rose-50","text-rose-700","border-rose-200"); }
+    function showMsg(text, type = "info") { // "success" | "error" | "info"
+      msg.classList.remove("hidden", "bg-rose-50", "text-rose-700", "border-rose-200", "bg-emerald-50", "text-emerald-700", "border-emerald-200");
+      if (type === "success") { msg.classList.add("bg-emerald-50", "text-emerald-700", "border-emerald-200"); }
+      if (type === "error") { msg.classList.add("bg-rose-50", "text-rose-700", "border-rose-200"); }
       msg.textContent = text;
     }
-    function clearMsg(){ msg.classList.add("hidden"); msg.textContent = ""; }
-    function setLoading(btn, on, idle, busy){ btn.disabled = on; btn.textContent = on ? busy : idle; }
+    function clearMsg() { msg.classList.add("hidden"); msg.textContent = ""; }
+    function setLoading(btn, on, idle, busy) { btn.disabled = on; btn.textContent = on ? busy : idle; }
 
-    function show(tab){
+    function show(tab) {
       clearMsg();
       const up = tab === "up";
       fUp.classList.toggle("hidden", !up);
@@ -166,7 +182,8 @@ async function routePostAuth(preferred = "/dashboard.html") {
         setLoading(inBtn, true, "Sign in", "Signing in…");
         await signIn(email, password);
         showMsg("Signed in. Redirecting…", "success");
-        location.href = redirectTo;
+        await routePostAuth(redirectTo);
+
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -239,4 +256,5 @@ async function routePostAuth(preferred = "/dashboard.html") {
     if (qs.get("confirmed") === "1") showMsg("Email confirmed — you can sign in now.", "success");
   </script>
 </body>
+
 </html>
