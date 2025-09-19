@@ -577,73 +577,73 @@
       }
     });
 
-// ---------- USER PROFILE HYDRATION ----------
-const user = session.user;
+    // ---------- USER PROFILE HYDRATION ----------
+    const user = session.user;
 
-// pull profile (optional)
-const { data: profileRow } = await supabase
-  .from("profiles")
-  .select("full_name, avatar_url, handle")
-  .eq("id", user.id)
-  .maybeSingle();
+    // pull profile (optional)
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select('*')
+      .eq("id", user.id)
+      .maybeSingle();
 
-const displayName =
-  profileRow?.full_name ||
-  user.user_metadata?.full_name ||
-  user.user_metadata?.name ||
-  user.email.split("@")[0];
+    const displayName =
+      profileRow?.full_name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email.split("@")[0];
 
-// make initials (2 letters max)
-const initials = (displayName || user.email)
-  .trim()
-  .split(/\s+/)
-  .map(s => s[0])
-  .slice(0, 2)
-  .join("")
-  .toUpperCase();
+    // make initials (2 letters max)
+    const initials = (displayName || user.email)
+      .trim()
+      .split(/\s+/)
+      .map(s => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
 
-// ALWAYS build ui-avatars using ONLY initials (privacy)
-const uiAvatar = (ini) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(ini)}&background=0f172a&color=fff&rounded=true&size=64`;
+    // ALWAYS build ui-avatars using ONLY initials (privacy)
+    const uiAvatar = (ini) =>
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(ini)}&background=0f172a&color=fff&rounded=true&size=64`;
 
-// prefer explicit custom avatar_url; otherwise initials-only avatar
-const preferredAvatar =
-  profileRow?.avatar_url ||
-  user.user_metadata?.avatar_url ||
-  uiAvatar(initials);
+    // prefer explicit custom avatar_url; otherwise initials-only avatar
+    const preferredAvatar =
+      profileRow?.avatar_url ||
+      user.user_metadata?.avatar_url ||
+      uiAvatar(initials);
 
-// greet
-const greetEl = document.getElementById("greet");
-if (greetEl) {
-  const h = new Date().getHours();
-  const t = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-  greetEl.textContent = `${t}, ${displayName}`;
-}
+    // greet
+    const greetEl = document.getElementById("greet");
+    if (greetEl) {
+      const h = new Date().getHours();
+      const t = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+      greetEl.textContent = `${t}, ${displayName}`;
+    }
 
-// avatar with bullet-proof fallbacks
-const avatarImg = document.getElementById("userAvatarImg");
-if (avatarImg) {
-  avatarImg.setAttribute("referrerpolicy", "no-referrer");
-  avatarImg.src = preferredAvatar;
+    // avatar with bullet-proof fallbacks
+    const avatarImg = document.getElementById("userAvatarImg");
+    if (avatarImg) {
+      avatarImg.setAttribute("referrerpolicy", "no-referrer");
+      avatarImg.src = preferredAvatar;
 
-  avatarImg.onerror = () => {
-    // fallback to initials-only ui-avatars (in case custom URL fails)
-    avatarImg.onerror = () => {
-      // final fallback: inline SVG, never hits the network
-      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
+      avatarImg.onerror = () => {
+        // fallback to initials-only ui-avatars (in case custom URL fails)
+        avatarImg.onerror = () => {
+          // final fallback: inline SVG, never hits the network
+          const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
         <rect fill='#0f172a' width='100%' height='100%' rx='6' ry='6'/>
         <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
               fill='white' font-family='Inter,Arial' font-size='24' font-weight='700'>${initials}</text>
       </svg>`;
-      avatarImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-    };
-    avatarImg.src = uiAvatar(initials);
-  };
-}
+          avatarImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+        };
+        avatarImg.src = uiAvatar(initials);
+      };
+    }
 
-// print header email
-const printHdr = document.querySelector(".print-header .text-sm");
-if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
+    // print header email
+    const printHdr = document.querySelector(".print-header .text-sm");
+    if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
 
 
     // ---------- MENU PARTIAL LOAD + FIXES ----------
@@ -792,89 +792,89 @@ if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
   </script>
 
 
-<script>
-// Minimal "No data" dashboard placeholders.
-// If your module script later sets window.__NO_DATA__ = false, this block will do nothing.
-(function () {
-  function setNoDataPlaceholders(msg = 'No data found') {
-    // Equity card
-    const eqSvg = document.getElementById('eqSvg');
-    if (eqSvg) eqSvg.innerHTML =
-      `<text x="450" y="160" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
-    const eqLegend = document.getElementById('eqLegend'); if (eqLegend) eqLegend.innerHTML = '';
-    const eqValue = document.getElementById('eqValue');   if (eqValue) eqValue.textContent = msg;
-    const eqDelta = document.getElementById('eqDelta');   if (eqDelta) eqDelta.textContent = '—';
-    ['mRet','mDD','mSharpe','mWin','mVol'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.textContent = msg;
-    });
+  <script>
+    // Minimal "No data" dashboard placeholders.
+    // If your module script later sets window.__NO_DATA__ = false, this block will do nothing.
+    (function () {
+      function setNoDataPlaceholders(msg = 'No data found') {
+        // Equity card
+        const eqSvg = document.getElementById('eqSvg');
+        if (eqSvg) eqSvg.innerHTML =
+          `<text x="450" y="160" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
+        const eqLegend = document.getElementById('eqLegend'); if (eqLegend) eqLegend.innerHTML = '';
+        const eqValue = document.getElementById('eqValue'); if (eqValue) eqValue.textContent = msg;
+        const eqDelta = document.getElementById('eqDelta'); if (eqDelta) eqDelta.textContent = '—';
+        ['mRet', 'mDD', 'mSharpe', 'mWin', 'mVol'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.textContent = msg;
+        });
 
-    // Performance summary
-    ['sumBest','sumWorst','sumAvg','sumPos','sumDays','sumCagr'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.textContent = msg;
-    });
+        // Performance summary
+        ['sumBest', 'sumWorst', 'sumAvg', 'sumPos', 'sumDays', 'sumCagr'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.textContent = msg;
+        });
 
-    // Monthly performance
-    const stratChart = document.getElementById('stratChart');
-    if (stratChart) stratChart.innerHTML =
-      `<text x="450" y="130" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
+        // Monthly performance
+        const stratChart = document.getElementById('stratChart');
+        if (stratChart) stratChart.innerHTML =
+          `<text x="450" y="130" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
 
-    // Daily calendar
-    const calMonth = document.getElementById('calMonth'); if (calMonth) calMonth.textContent = '';
-    const calGrid  = document.getElementById('calGrid');
-    if (calGrid) calGrid.innerHTML =
-      `<div class="col-span-7 text-center py-10 text-slate-500">${msg}</div>`;
+        // Daily calendar
+        const calMonth = document.getElementById('calMonth'); if (calMonth) calMonth.textContent = '';
+        const calGrid = document.getElementById('calGrid');
+        if (calGrid) calGrid.innerHTML =
+          `<div class="col-span-7 text-center py-10 text-slate-500">${msg}</div>`;
 
-    // Holdings
-    const hb = document.getElementById('holdingsBody');
-    if (hb) hb.innerHTML =
-      `<tr><td colspan="3" class="px-5 py-6 text-center text-slate-500">${msg}</td></tr>`;
-    const hwt = document.getElementById('holdingsWeightTot'); if (hwt) hwt.textContent = '—';
-    const hvt = document.getElementById('holdingsValTot');    if (hvt) hvt.textContent = '—';
+        // Holdings
+        const hb = document.getElementById('holdingsBody');
+        if (hb) hb.innerHTML =
+          `<tr><td colspan="3" class="px-5 py-6 text-center text-slate-500">${msg}</td></tr>`;
+        const hwt = document.getElementById('holdingsWeightTot'); if (hwt) hwt.textContent = '—';
+        const hvt = document.getElementById('holdingsValTot'); if (hvt) hvt.textContent = '—';
 
-    // Account snapshot
-    const acctBal  = document.getElementById('acctBal');  if (acctBal)  acctBal.textContent  = msg;
-    const acctCash = document.getElementById('acctCash'); if (acctCash) acctCash.textContent = msg;
+        // Account snapshot
+        const acctBal = document.getElementById('acctBal'); if (acctBal) acctBal.textContent = msg;
+        const acctCash = document.getElementById('acctCash'); if (acctCash) acctCash.textContent = msg;
 
-    // Strategy rating
-    const gauge = document.getElementById('ratingGauge');
-    if (gauge) gauge.innerHTML =
-      `<text x="80" y="84" text-anchor="middle" fill="#94a3b8" font-size="12">${msg}</text>`;
-    const rt = document.getElementById('ratingText'); if (rt) rt.textContent = msg;
-    const rc = document.getElementById('ratingDeltaChip'); if (rc) rc.textContent = '—';
+        // Strategy rating
+        const gauge = document.getElementById('ratingGauge');
+        if (gauge) gauge.innerHTML =
+          `<text x="80" y="84" text-anchor="middle" fill="#94a3b8" font-size="12">${msg}</text>`;
+        const rt = document.getElementById('ratingText'); if (rt) rt.textContent = msg;
+        const rc = document.getElementById('ratingDeltaChip'); if (rc) rc.textContent = '—';
 
-    // Allocation
-    const alloc = document.getElementById('allocBars');
-    if (alloc) alloc.innerHTML = `<div class="text-center text-slate-500 py-6">${msg}</div>`;
+        // Allocation
+        const alloc = document.getElementById('allocBars');
+        if (alloc) alloc.innerHTML = `<div class="text-center text-slate-500 py-6">${msg}</div>`;
 
-    // Fees
-    ['feeMgmt','feePerf','feeBrok','feeSlip'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.style.width = '0%';
-    });
-    const feeRows = document.getElementById('feeRows');
-    if (feeRows) feeRows.innerHTML =
-      `<tr><td colspan="3" class="py-6 text-center text-slate-500">${msg}</td></tr>`;
+        // Fees
+        ['feeMgmt', 'feePerf', 'feeBrok', 'feeSlip'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.style.width = '0%';
+        });
+        const feeRows = document.getElementById('feeRows');
+        if (feeRows) feeRows.innerHTML =
+          `<tr><td colspan="3" class="py-6 text-center text-slate-500">${msg}</td></tr>`;
 
-    // Strategies list (right rail)
-    const subsWrap = document.getElementById('subsWrap');
-    if (subsWrap) subsWrap.innerHTML =
-      `<div class="text-center text-slate-500 py-6 border rounded-xl">${msg}</div>`;
+        // Strategies list (right rail)
+        const subsWrap = document.getElementById('subsWrap');
+        if (subsWrap) subsWrap.innerHTML =
+          `<div class="text-center text-slate-500 py-6 border rounded-xl">${msg}</div>`;
 
-    // Disable interactive controls
-    document.querySelectorAll('.tab-btn, #addBenchBtn, #exportBtn, #stratSel, #yearSel, #dpMonth, #dpYear')
-      .forEach(el => { if (el) { el.disabled = true; el.classList.add('opacity-60','pointer-events-none'); } });
-  }
+        // Disable interactive controls
+        document.querySelectorAll('.tab-btn, #addBenchBtn, #exportBtn, #stratSel, #yearSel, #dpMonth, #dpYear')
+          .forEach(el => { if (el) { el.disabled = true; el.classList.add('opacity-60', 'pointer-events-none'); } });
+      }
 
-  // Show placeholders unless a module script explicitly says there IS data.
-  const shouldShowNoData = (window.__NO_DATA__ !== false);
+      // Show placeholders unless a module script explicitly says there IS data.
+      const shouldShowNoData = (window.__NO_DATA__ !== false);
 
-  function run() { if (shouldShowNoData) setNoDataPlaceholders(); }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run);
-  } else {
-    run();
-  }
-})();
-</script>
+      function run() { if (shouldShowNoData) setNoDataPlaceholders(); }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+      } else {
+        run();
+      }
+    })();
+  </script>
 
 
 </body>
