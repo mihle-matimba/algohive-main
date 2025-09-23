@@ -223,16 +223,60 @@
       width: 18px;
       text-align: center;
     }
+    /* Lock app to viewport height and kill body scroll */
+html, body {
+  height: 100%;
+  overflow: hidden; /* page itself never scrolls */
+}
+
+/* Modern mobile-safe viewport unit */
+.app-shell { height: 100vh; }
+@supports (height: 100svh) {
+  .app-shell { height: 100svh; } /* avoids iOS URL bar jump */
+}
+
+/* Main layout: header sticks, content scrolls inside */
+main {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* ensure no extra scroll containers */
+}
+
+/* The only vertical scroll region */
+.page-scroll {
+  flex: 1 1 auto;
+  min-height: 0;               /* critical so child can shrink */
+  overflow: auto;              /* scrolls here only */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sidebar: its own scroll if content exceeds screen */
+#sidebar {
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/* Safety: right rail won’t push beyond the viewport */
+.aside-rail {
+  max-height: 100%;
+  overflow: visible; /* inside the page-scroll container */
+}
+
+/* Topbar already sticky; just ensure fixed height */
+.topbar { height: 52px; }
+
   </style>
 </head>
 
 <body>
-  <div class="min-h-screen flex">
+<div class="app-shell h-[100svh] flex overflow-hidden">
     <!-- GLOBAL MENU (partial) -->
     <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
     <!-- MAIN -->
-    <main class="flex-1 min-h-screen" id="dashboardRoot">
+<main class="flex-1 h-full flex flex-col overflow-hidden" id="dashboardRoot">
       <!-- Topbar -->
       <section class="glass sticky top-0 z-20 topbar">
         <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3 relative">
@@ -268,7 +312,7 @@
       </div>
 
       <!-- PAGE SHELL -->
-      <div class="max-w-7xl mx-auto px-6 page-shell" id="sheetArea">
+<div class="max-w-7xl mx-auto px-6 page-shell page-scroll" id="sheetArea">
         <!-- Greeting -->
         <section class="pt-6">
           <div class="flex items-center">
