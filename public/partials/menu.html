@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Dashboard</title>
+
+  <!-- Tailwind + Fonts + Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- html2pdf for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --olive: #556B2F;
+      --olive-700: #3e4f23;
+      --olive-100: #ecf4e6;
+      --page-bg: #f9fafb;
+    }
+
+    html,
+    body {
+      font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--page-bg);
+      color: #0f172a
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 1rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .04)
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 9999px;
+      padding: .2rem .55rem;
+      font-size: .74rem;
+      font-weight: 600
+    }
+
+    .glass {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, .65);
+      border-bottom: 1px solid rgba(229, 231, 235, .9)
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums
+    }
+
+    .tab-btn {
+      border: 1px solid #e5e7eb;
+      border-radius: .6rem;
+      padding: .35rem .7rem;
+      font-size: .85rem;
+      background: #fff
+    }
+
+    .tab-btn.active {
+      background: var(--olive);
+      border-color: var(--olive);
+      color: #fff
+    }
+
+    .aside-rail {
+      width: 360px
+    }
+
+    @media (max-width:1024px) {
+      .aside-rail {
+        width: auto
+      }
+    }
+
+    .eq-tip {
+      position: absolute;
+      pointer-events: none;
+      background: #111827;
+      color: #fff;
+      font-size: .75rem;
+      border-radius: .5rem;
+      padding: .35rem .5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, .12)
+    }
+
+    .spark {
+      height: 30px;
+      width: 120px
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: .35rem
+    }
+
+    .cal-cell {
+      border: 1px solid #e5e7eb;
+      border-radius: .6rem;
+      height: 58px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: .35rem .4rem
+    }
+
+    .cal-legend span {
+      display: inline-block;
+      width: 14px;
+      height: 10px;
+      border-radius: 3px;
+      border: 1px solid #e5e7eb
+    }
+
+    .topbar {
+      height: 52px
+    }
+
+    .sub-card.active {
+      background: var(--olive-100);
+      border-color: var(--olive);
+      box-shadow: inset 0 0 0 2px var(--olive-100);
+      position: relative;
+    }
+
+    .sub-card.active::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: var(--olive);
+      border-top-left-radius: .75rem;
+      border-bottom-left-radius: .75rem;
+    }
+
+    /* small popover under buttons */
+    .popover::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      right: 18px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: transparent transparent #e5e7eb transparent;
+    }
+
+    .popover::after {
+      content: "";
+      position: absolute;
+      top: -5px;
+      right: 18px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent #fff transparent;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .glass,
+      #topbar-actions,
+      .eq-controls,
+      .no-print {
+        display: none !important;
+      }
+
+      .page-shell {
+        max-width: 100% !important;
+        padding: 0 24px !important;
+      }
+
+      .print-header {
+        display: flex !important;
+      }
+
+      .card {
+        box-shadow: none !important;
+      }
+    }
+
+    /* Sidebar collapse behavior */
+    #sidebar {
+      width: 260px;
+      transition: width .2s ease;
+    }
+
+    #sidebar.is-collapsed {
+      width: 64px;
+    }
+
+    #sidebar .label {
+      transition: opacity .15s ease;
+    }
+
+    #sidebar.is-collapsed .label {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #sidebar.is-collapsed .sidebar-link {
+      justify-content: center;
+    }
+
+    #sidebar .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .5rem .6rem;
+      border-radius: .5rem;
+    }
+
+    #sidebar .sidebar-link i {
+      width: 18px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="min-h-screen flex">
+    <!-- GLOBAL MENU (partial) -->
+    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+
+    <!-- MAIN -->
+    <main class="flex-1 min-h-screen" id="dashboardRoot">
+      <!-- Topbar -->
+      <section class="glass sticky top-0 z-20 topbar">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3 relative">
+          <div class="text-sm text-slate-600">Dashboard</div>
+
+          <div class="flex items-center gap-2 flex-1">
+            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white">
+              <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
+              <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
+            </div>
+
+            <!-- Right actions -->
+            <div id="topbar-actions" class="ml-auto flex items-center gap-3">
+              <button id="exportBtn" class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                <i class="fa-solid fa-file-arrow-down mr-2"></i>Export Fact Sheet
+              </button>
+              <img id="userAvatarImg"
+                src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/avatars/514e9e9c-9736-42f7-81a5-dddb4f165257/avatar_1758194395035.png"
+                alt="Profile" class="h-9 w-9 rounded-full border object-cover" />
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRINT HEADER (hidden on screen, shown in print/pdf) -->
+      <div class="print-header hidden items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3">
+          <img src="https://dummyimage.com/140x40/0f172a/ffffff&text=AlgoHive" alt="Algohive" class="h-8">
+          <div class="text-xs text-slate-500">Fact Sheet • Generated on <span id="printDate"></span></div>
+        </div>
+        <div class="text-sm">mih@algohive • Dashboard Summary</div>
+      </div>
+
+      <!-- PAGE SHELL -->
+      <div class="max-w-7xl mx-auto px-6 page-shell" id="sheetArea">
+        <!-- Greeting -->
+        <section class="pt-6">
+          <div class="flex items-center">
+            <div>
+              <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
+              <p class="text-sm text-slate-600">Your strategy-driven performance, risk and activity at a glance.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Content Grid -->
+        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT COLUMN -->
+          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+
+            <!-- EQUITY CURVE -->
+            <div class="card p-5">
+              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-sm text-slate-600">Equity Curve — <span id="eqStratName" class="font-medium">—</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div id="eqValue" class="text-2xl font-semibold num">R —</div>
+                    <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 eq-controls" id="eqTabs">
+                  <button class="tab-btn active" data-range="1M">1M</button>
+                  <button class="tab-btn" data-range="3M">3M</button>
+                  <button class="tab-btn" data-range="6M">6M</button>
+                  <button class="tab-btn" data-range="YTD">YTD</button>
+                  <button class="tab-btn" data-range="1Y">1Y</button>
+                  <button class="tab-btn" data-range="3Y">3Y</button>
+                </div>
+              </div>
+
+              <div id="eqMetrics" class="mb-3 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Return</div>
+                  <div id="mRet" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Max Drawdown</div>
+                  <div id="mDD" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Sharpe (sim.)</div>
+                  <div id="mSharpe" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Win Rate</div>
+                  <div id="mWin" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Volatility</div>
+                  <div id="mVol" class="font-semibold">—</div>
+                </div>
+              </div>
+
+              <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
+                <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+                <div id="eqTip" class="eq-tip hidden"></div>
+              </div>
+
+              <!-- Legend / Benchmark chips -->
+              <div id="eqLegend" class="flex flex-wrap items-center gap-2 mt-3 text-xs"></div>
+
+              <!-- Add Benchmark button (bottom-right of card) -->
+              <div class="mt-3 flex justify-end">
+                <button id="addBenchBtn" class="no-print border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
+                  <i class="fa-solid fa-plus mr-2"></i>Add Benchmark
+                </button>
+              </div>
+            </div>
+
+            <!-- PERFORMANCE SUMMARY -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Performance Summary — <span id="sumStratName">—</span></div>
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Best Day</div>
+                  <div id="sumBest" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Worst Day</div>
+                  <div id="sumWorst" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Avg Daily Return</div>
+                  <div id="sumAvg" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Positive Days</div>
+                  <div id="sumPos" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Trading Days</div>
+                  <div id="sumDays" class="font-semibold">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">CAGR (sim.)</div>
+                  <div id="sumCagr" class="font-semibold">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MONTHLY PERFORMANCE -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Monthly Performance — <span id="mpStratName">—</span></div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-500">Strategy</label>
+                  <select id="stratSel" class="border rounded-lg text-sm px-2 py-1"></select>
+                  <label class="text-xs text-slate-500 ml-3">Year</label>
+                  <select id="yearSel" class="border rounded-lg text-sm px-2 py-1"></select>
+                </div>
+              </div>
+
+              <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
+                <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
+                <div id="stratTip" class="eq-tip hidden"></div>
+              </div>
+              <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
+                <div>Monthly returns (selected year)</div>
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center gap-1"><span
+                      class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
+                  <span class="inline-flex items-center gap-1"><span
+                      class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- DAILY PERFORMANCE CAL -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Daily Performance — <span id="calMonth"></span> — <span
+                    id="dpStratName">—</span></div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-500">Month</label>
+                  <select id="dpMonth" class="border rounded-lg text-sm px-2 py-1"></select>
+                  <label class="text-xs text-slate-500">Year</label>
+                  <select id="dpYear" class="border rounded-lg text-sm px-2 py-1"></select>
+                  <div class="cal-legend text-xs text-slate-500 ml-3 hidden md:flex items-center gap-2">
+                    <span style="background:#fee2e2"></span> -2% &nbsp;
+                    <span style="background:#fde68a"></span> 0% &nbsp;
+                    <span style="background:#dcfce7"></span> +2%
+                  </div>
+                </div>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+            </div>
+
+            <!-- HOLDINGS -->
+            <div class="card">
+              <div class="px-5 py-4 border-b flex items-center justify-between">
+                <div class="font-semibold">Holdings — <span id="holdStratName">—</span></div>
+                <div class="text-xs text-slate-500">Breakdown for selected scope</div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-slate-600">
+                    <tr>
+                      <th class="text-left px-5 py-3">Instrument</th>
+                      <th class="text-right px-5 py-3">Weight</th>
+                      <th class="text-right px-5 py-3">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holdingsBody" class="divide-y"></tbody>
+                  <tfoot class="bg-slate-50">
+                    <tr>
+                      <td class="px-5 py-3 font-semibold">Total</td>
+                      <td id="holdingsWeightTot" class="px-5 py-3 text-right font-semibold">—</td>
+                      <td id="holdingsValTot" class="px-5 py-3 text-right font-semibold">—</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
+            <!-- My Strategies -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">My Strategies</div>
+                <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">View
+                  OpenStrategies</a>
+              </div>
+              <div id="subsWrap" class="flex flex-col gap-3 max-h-72 overflow-y-auto"></div>
+            </div>
+
+            <!-- Account snapshot -->
+            <div class="card p-5">
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Total Balance</div>
+                  <div id="acctBal" class="font-semibold num">—</div>
+                </div>
+                <div class="p-3 border rounded-xl">
+                  <div class="text-slate-500 text-xs">Cash Available</div>
+                  <div id="acctCash" class="font-semibold num">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Strategy Rating -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Strategy Rating — <span id="prStratName">—</span></div>
+              <div class="flex items-center gap-4">
+                <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
+                <div>
+                  <div id="ratingText" class="text-lg font-semibold">—</div>
+                  <div class="text-xs text-slate-500">Overall rating performance</div>
+                  <div class="mt-2">
+                    <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
+                    <span class="text-xs text-slate-500 ml-1">From last year</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Health (STATIC) -->
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Financial Health</div>
+                <button id="healthCta" class="text-[var(--olive-700)] text-sm hover:underline">View Financial
+                  Tracker</button>
+              </div>
+
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <div class="text-xs text-slate-500">Health Score</div>
+                  <div id="healthScore" class="text-lg font-semibold">—</div>
+                </div>
+                <div id="healthBadge" class="chip bg-green-50 text-green-700">Stable</div>
+              </div>
+
+              <div class="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                <!-- filled bar uses black→olive gradient, width shows score -->
+                <div id="healthBar" class="h-2 rounded-full"
+                  style="width:0%; background: linear-gradient(90deg,#000000,#111827 30%, var(--olive) 100%);"></div>
+              </div>
+
+              <p class="mt-3 text-xs text-slate-500">
+                Based on your AlgoWealth Profile
+              </p>
+            </div>
+
+            <!-- Asset Allocation -->
+            <div class="card">
+              <div class="px-5 py-4 border-b font-semibold">Asset Allocation — <span id="aaStratName">—</span></div>
+              <div id="allocBars" class="p-5 space-y-4"></div>
+            </div>
+
+            <!-- Fee Breakdown -->
+            <div class="card p-5">
+              <div class="font-semibold mb-3">Fee Breakdown — <span id="fbStratName">—</span></div>
+              <div class="mb-3">
+                <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
+                  <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
+                  <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
+                  <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
+                  <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="text-slate-500">
+                  <tr>
+                    <th class="text-left py-2">Type</th>
+                    <th class="text-right py-2">Rate</th>
+                    <th class="text-right py-2">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="feeRows" class="divide-y"></tbody>
+              </table>
+            </div>
+          </aside>
+        </section>
+      </div>
+      <!-- /PAGE SHELL -->
+    </main>
+  </div>
+
+  <!-- Popover Portal (Benchmarks) -->
+  <div id="benchPortal"></div>
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+    import { signOut } from "/js/auth.js";
+
+    // ---------- AUTH GATE ----------
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname + location.search);
+      location.replace(`/auth.html?redirect=${next}`);
+      throw new Error("Redirecting to auth...");
+    }
+
+    // keep user on page if they refresh token; bounce if it expires
+    supabase.auth.onAuthStateChange((_event, sess) => {
+      if (!sess) {
+        const next = encodeURIComponent(location.pathname + location.search);
+        location.replace(`/auth.html?redirect=${next}`);
+      }
+    });
+
+    // ---------- USER PROFILE HYDRATION ----------
+    const user = session.user;
+
+    // pull profile (optional)
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select('*')
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const displayName =
+      profileRow?.full_name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email.split("@")[0];
+
+    // make initials (2 letters max)
+    const initials = (displayName || user.email)
+      .trim()
+      .split(/\s+/)
+      .map(s => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+
+    // ALWAYS build ui-avatars using ONLY initials (privacy)
+    const uiAvatar = (ini) =>
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(ini)}&background=0f172a&color=fff&rounded=true&size=64`;
+
+    // prefer explicit custom avatar_url; otherwise initials-only avatar
+    const preferredAvatar =
+      profileRow?.avatar_url ||
+      user.user_metadata?.avatar_url ||
+      uiAvatar(initials);
+
+    // greet
+    const greetEl = document.getElementById("greet");
+    if (greetEl) {
+      const h = new Date().getHours();
+      const t = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+      greetEl.textContent = `${t}, ${displayName}`;
+    }
+
+    // avatar with bullet-proof fallbacks
+    const avatarImg = document.getElementById("userAvatarImg");
+    if (avatarImg) {
+      avatarImg.setAttribute("referrerpolicy", "no-referrer");
+      avatarImg.src = preferredAvatar;
+
+      avatarImg.onerror = () => {
+        // fallback to initials-only ui-avatars (in case custom URL fails)
+        avatarImg.onerror = () => {
+          // final fallback: inline SVG, never hits the network
+          const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
+        <rect fill='#0f172a' width='100%' height='100%' rx='6' ry='6'/>
+        <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
+              fill='white' font-family='Inter,Arial' font-size='24' font-weight='700'>${initials}</text>
+      </svg>`;
+          avatarImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+        };
+        avatarImg.src = uiAvatar(initials);
+      };
+    }
+
+    // print header email
+    const printHdr = document.querySelector(".print-header .text-sm");
+    if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
+
+
+    // ---------- MENU PARTIAL LOAD + FIXES ----------
+    // Wait for partial then build menu + wire logout
+    const waitFor = (sel, timeout = 5000) =>
+      new Promise((res, rej) => {
+        const t0 = Date.now();
+        (function poll() {
+          const el = document.querySelector(sel);
+          if (el) return res(el);
+          if (Date.now() - t0 > timeout) return rej(new Error("timeout " + sel));
+          requestAnimationFrame(poll);
+        })();
+      });
+
+    // we reuse your existing loader but call it here to guarantee order
+    async function ensureMenuLoaded() {
+      // --- shims so the legacy init below doesn't explode ---
+      window.loadMenu = async () => { };                     // no-op (we already loaded the partial)
+      window.buildMenu = (k) => window.buildMenuFixed?.(k); // redirect to the new builder
+
+      const mount = document.getElementById("sidebarMount");
+      const url = (mount?.getAttribute("data-menu") || "/partials/menu.html").trim();
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load " + url);
+        mount.outerHTML = await res.text();
+      } catch { }
+      // wait for nav container then build + active highlighting
+      await waitFor("#navContainer");
+      buildMenuFixed("dashboard");
+      // logout button may live inside the partial
+      document.querySelector(".js-logout")?.addEventListener("click", signOut);
+    }
+
+    // improved buildMenu: sets active by pathname, preserves collapsed state
+    window.buildMenuFixed = function buildMenuFixed(defaultKey = "dashboard") {
+      const navContainer = document.getElementById("navContainer");
+      if (!navContainer) return;
+
+      const path = location.pathname.replace(/\/+$/, "");
+      const items = [
+        { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
+        { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
+        { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
+        { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
+        { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
+        { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
+        { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
+        { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
+        { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
+        { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
+        { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
+      ];
+
+      // compute active by current path
+      const activeKey =
+        items.find(i => i.href.replace(/\/+$/, "") === path)?.key || defaultKey;
+
+      // render
+      navContainer.innerHTML = `
+      <nav class="space-y-2 px-1">
+        ${items
+          .map(
+            it => `
+          <a href="${it.href}" class="sidebar-link ${it.key === activeKey ? "active bg-[var(--olive-100)] border border-[var(--olive)]" : ""}" title="${it.label}">
+            <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>
+          </a>`
+          )
+          .join("")}
+      </nav>
+    `;
+
+      // collapse wiring
+      const sidebar = document.getElementById("sidebar");
+      const collapseBtn = document.getElementById("collapseBtn");
+      if (sidebar && collapseBtn) {
+        const apply = c => {
+          sidebar.classList.toggle("is-collapsed", c);
+          collapseBtn.innerHTML = c
+            ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+            : '<i class="fa-solid fa-angles-left text-sm"></i>';
+        };
+        let collapsed = false;
+        try { collapsed = sessionStorage.getItem("ah_sidebar_collapsed") === "1"; } catch { }
+        apply(collapsed);
+        collapseBtn.onclick = () => {
+          collapsed = !collapsed;
+          apply(collapsed);
+          try { sessionStorage.setItem("ah_sidebar_collapsed", collapsed ? "1" : "0"); } catch { }
+        };
+      }
+    };
+
+    await ensureMenuLoaded();
+
+    // ---------- USER-SPECIFIC SUBSCRIPTIONS (optional; falls back to mock) ----------
+    // expected table: subscriptions(user_id, name, provider, aum_num, delta_7d, spark_series)
+    let dbSubs = [];
+    try {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("name, provider, aum_num, delta_7d, spark_series")
+        .eq("user_id", user.id)
+        .order("name", { ascending: true });
+      dbSubs = data || [];
+    } catch { }
+
+    if (dbSubs.length) {
+      const toChip = v => `${v >= 0 ? "+" : ""}${Number(v).toFixed(1)}%`;
+      const subsWrap = document.getElementById("subsWrap");
+      subsWrap.innerHTML = dbSubs
+        .map(s => {
+          const series = Array.isArray(s.spark_series) ? s.spark_series : [5, 6, 6.5, 6.2, 6.9, 7.1];
+          const spark = series
+            .map((v, i, arr) => {
+              // tiny 0..100 normalize
+              const min = Math.min(...arr), max = Math.max(...arr) || 1;
+              const x = (v - min) / (max - min || 1);
+              return Math.round(10 + x * 18);
+            });
+          const path = spark.map((y, i) => `${i ? 'L' : 'M'}${i * 14},${30 - y}`).join(' ');
+          return `
+          <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
+            <div class="flex items-center justify-between">
+              <div class="font-medium text-sm truncate">${s.name}</div>
+              <span class="chip ${s.delta_7d >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${toChip(s.delta_7d)}</span>
+            </div>
+            <div class="text-xs text-slate-500">${s.provider || "—"} · TCM ${new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(s.aum_num || 0)}</div>
+            <div class="mt-2">
+              <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#0f172a" stroke-width="2"/></svg>
+            </div>
+          </div>`;
+        })
+        .join("");
+
+      // clicking a card sets current strategy (reuses your setStrategy)
+      document.querySelectorAll("#subsWrap .sub-card").forEach(card => {
+        card.addEventListener("click", () => {
+          const key = card.getAttribute("data-key");
+          // If the name exists in your in-memory strategies, use it; otherwise fallback to "Full Portfolio"
+          try { window.setStrategy?.(key); } catch { }
+        });
+      });
+    }
+  </script>
+
+
+  <script>
+    // Minimal "No data" dashboard placeholders.
+    // If your module script later sets window.__NO_DATA__ = false, this block will do nothing.
+    (function () {
+      function setNoDataPlaceholders(msg = 'No data found') {
+        // Equity card
+        const eqSvg = document.getElementById('eqSvg');
+        if (eqSvg) eqSvg.innerHTML =
+          `<text x="450" y="160" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
+        const eqLegend = document.getElementById('eqLegend'); if (eqLegend) eqLegend.innerHTML = '';
+        const eqValue = document.getElementById('eqValue'); if (eqValue) eqValue.textContent = msg;
+        const eqDelta = document.getElementById('eqDelta'); if (eqDelta) eqDelta.textContent = '—';
+        ['mRet', 'mDD', 'mSharpe', 'mWin', 'mVol'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.textContent = msg;
+        });
+
+        // Performance summary
+        ['sumBest', 'sumWorst', 'sumAvg', 'sumPos', 'sumDays', 'sumCagr'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.textContent = msg;
+        });
+
+        // Monthly performance
+        const stratChart = document.getElementById('stratChart');
+        if (stratChart) stratChart.innerHTML =
+          `<text x="450" y="130" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
+
+        // Daily calendar
+        const calMonth = document.getElementById('calMonth'); if (calMonth) calMonth.textContent = '';
+        const calGrid = document.getElementById('calGrid');
+        if (calGrid) calGrid.innerHTML =
+          `<div class="col-span-7 text-center py-10 text-slate-500">${msg}</div>`;
+
+        // Holdings
+        const hb = document.getElementById('holdingsBody');
+        if (hb) hb.innerHTML =
+          `<tr><td colspan="3" class="px-5 py-6 text-center text-slate-500">${msg}</td></tr>`;
+        const hwt = document.getElementById('holdingsWeightTot'); if (hwt) hwt.textContent = '—';
+        const hvt = document.getElementById('holdingsValTot'); if (hvt) hvt.textContent = '—';
+
+        // Account snapshot
+        const acctBal = document.getElementById('acctBal'); if (acctBal) acctBal.textContent = msg;
+        const acctCash = document.getElementById('acctCash'); if (acctCash) acctCash.textContent = msg;
+
+        // Strategy rating
+        const gauge = document.getElementById('ratingGauge');
+        if (gauge) gauge.innerHTML =
+          `<text x="80" y="84" text-anchor="middle" fill="#94a3b8" font-size="12">${msg}</text>`;
+        const rt = document.getElementById('ratingText'); if (rt) rt.textContent = msg;
+        const rc = document.getElementById('ratingDeltaChip'); if (rc) rc.textContent = '—';
+
+        // Allocation
+        const alloc = document.getElementById('allocBars');
+        if (alloc) alloc.innerHTML = `<div class="text-center text-slate-500 py-6">${msg}</div>`;
+
+        // Fees
+        ['feeMgmt', 'feePerf', 'feeBrok', 'feeSlip'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.style.width = '0%';
+        });
+        const feeRows = document.getElementById('feeRows');
+        if (feeRows) feeRows.innerHTML =
+          `<tr><td colspan="3" class="py-6 text-center text-slate-500">${msg}</td></tr>`;
+
+        // Strategies list (right rail)
+        const subsWrap = document.getElementById('subsWrap');
+        if (subsWrap) subsWrap.innerHTML =
+          `<div class="text-center text-slate-500 py-6 border rounded-xl">${msg}</div>`;
+
+        // Disable interactive controls
+        document.querySelectorAll('.tab-btn, #addBenchBtn, #exportBtn, #stratSel, #yearSel, #dpMonth, #dpYear')
+          .forEach(el => { if (el) { el.disabled = true; el.classList.add('opacity-60', 'pointer-events-none'); } });
+      }
+
+      // Show placeholders unless a module script explicitly says there IS data.
+      const shouldShowNoData = (window.__NO_DATA__ !== false);
+
+      function run() { if (shouldShowNoData) setNoDataPlaceholders(); }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+      } else {
+        run();
+      }
+    })();
+  </script>
+
+
+</body>
+
+</html>
