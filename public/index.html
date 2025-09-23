@@ -110,7 +110,8 @@
             <div class="absolute inset-0 bg-gradient-to-tr from-white/60 via-transparent to-transparent"></div>
 
             <!-- floating metrics -->
-            <div class="absolute bottom-4 left-4 right-4 grid grid-cols-3 gap-3">
+            <div class="absolute bottom-4 left-4 right-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+
               <div class="metric-card glass rounded-xl p-3 shadow-sm ring-1 ring-white/30 hover:bg-[var(--olive)] hover:text-white hover:ring-white/50">
                 <p class="text-xs text-black/60 transition-colors duration-200">Total Capital Managed</p>
                 <p class="text-lg font-semibold text-[var(--ink)] transition-colors duration-200">R75mn</p>
@@ -123,6 +124,15 @@
                 <p class="text-xs text-black/60 transition-colors duration-200">Total Strategies</p>
                 <p class="text-lg font-semibold text-[var(--ink)] transition-colors duration-200">25</p>
               </div>
+              <!-- countdown -->
+<div class="metric-card glass rounded-xl p-3 shadow-sm ring-1 ring-white/30 hover:bg-[var(--olive)] hover:text-white hover:ring-white/50">
+  <p class="text-xs text-black/60 transition-colors duration-200">Countdown</p>
+  <p class="text-lg font-semibold text-[var(--ink)] transition-colors duration-200">
+    <span id="cdDays">--</span>d <span id="cdHrs">--</span>h
+  </p>
+  <p class="mt-0.5 text-[11px] text-slate-600 transition-colors duration-200" id="cdLabel">to 21 Oct</p>
+</div>
+Ï
             </div>
           </div>
         </div>
@@ -1044,6 +1054,54 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     // year
     document.getElementById('yr').textContent = new Date().getFullYear();
   </script>
+  <script>
+  (function(){
+    // Target: 21 Oct 2025 00:00 in Africa/Johannesburg (+02:00)
+    const target = new Date('2025-10-21T00:00:00+02:00');
+
+    const daysEl  = document.getElementById('cdDays');
+    const hrsEl   = document.getElementById('cdHrs');
+    const labelEl = document.getElementById('cdLabel');
+
+    if (!daysEl || !hrsEl || !labelEl) return; // safety
+
+    function update(){
+      const now = new Date();
+      let ms = target - now;
+
+      if (ms <= 0){
+        daysEl.textContent = '0';
+        hrsEl.textContent  = '0';
+        labelEl.textContent = 'Today';
+        return;
+      }
+
+      const d = Math.floor(ms / (1000*60*60*24));
+      ms -= d * (1000*60*60*24);
+      const h = Math.floor(ms / (1000*60*60));
+
+      daysEl.textContent = d.toString();
+      hrsEl.textContent  = h.toString();
+
+      // If we’re inside the day, tweak the label
+      if (d === 0){
+        labelEl.textContent = 'later today';
+      } else if (d === 1){
+        labelEl.textContent = 'in 1 day';
+      } else {
+        labelEl.textContent = 'to 21 Oct';
+      }
+    }
+
+    update();
+    // 1-second tick so hours roll smoothly; cheap enough
+    const t = setInterval(update, 1000);
+
+    // Stop once countdown is done
+    setTimeout(()=>{ clearInterval(t); }, Math.max(0, target - new Date()) + 2000);
+  })();
+</script>
+
 </footer>
 
 
