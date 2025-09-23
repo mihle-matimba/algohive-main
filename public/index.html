@@ -121,15 +121,18 @@
                 <p class="text-xs text-black/60 transition-colors duration-200">Total Strategies</p>
                 <p class="text-lg font-semibold text-[var(--ink)] transition-colors duration-200">25</p>
               </div>
-              <!-- countdown -->
 <!-- countdown -->
 <div class="metric-card glass rounded-xl p-3 shadow-sm ring-1 ring-white/50 bg-[var(--olive)] text-white">
   <p class="text-xs text-white/80">Countdown</p>
   <p class="text-lg font-semibold">
-    <span id="cdMin">--</span>m <span id="cdSec">--</span>s
+    <span id="cdDays">--</span>d
+    <span id="cdHrs">--</span>h
+    <span id="cdMin">--</span>m
+    <span id="cdSec">--</span>s
   </p>
-  <p class="mt-0.5 text-[11px] text-white/70" id="cdLabel">to Launch</p>
+  <p class="mt-0.5 text-[11px] text-white/70" id="cdLabel">Launch</p>
 </div>
+
 
 
             </div>
@@ -1058,42 +1061,49 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     // Target: 21 Oct 2025 00:00 in Africa/Johannesburg (+02:00)
     const target = new Date('2025-10-21T00:00:00+02:00');
 
-    const minEl   = document.getElementById('cdMin');
-    const secEl   = document.getElementById('cdSec');
+    const daysEl = document.getElementById('cdDays');
+    const hrsEl  = document.getElementById('cdHrs');
+    const minEl  = document.getElementById('cdMin');
+    const secEl  = document.getElementById('cdSec');
     const labelEl = document.getElementById('cdLabel');
 
-    if (!minEl || !secEl || !labelEl) return;
+    if (!daysEl || !hrsEl || !minEl || !secEl || !labelEl) return;
 
     function update(){
       const now = new Date();
       let ms = target - now;
 
       if (ms <= 0){
-        minEl.textContent = '0';
-        secEl.textContent = '0';
-        labelEl.textContent = 'Now';
+        daysEl.textContent = '0';
+        hrsEl.textContent  = '0';
+        minEl.textContent  = '0';
+        secEl.textContent  = '0';
+        labelEl.textContent = 'Launched 🚀';
         return;
       }
 
+      const d = Math.floor(ms / (1000*60*60*24));
+      ms -= d * (1000*60*60*24);
+      const h = Math.floor(ms / (1000*60*60));
+      ms -= h * (1000*60*60);
       const m = Math.floor(ms / (1000*60));
       ms -= m * (1000*60);
       const s = Math.floor(ms / 1000);
 
-      minEl.textContent = m.toString();
-      secEl.textContent = s.toString().padStart(2,'0');
+      daysEl.textContent = d;
+      hrsEl.textContent  = h;
+      minEl.textContent  = m;
+      secEl.textContent  = s.toString().padStart(2,'0');
 
-      if (m === 0){
-        labelEl.textContent = 'seconds left';
-      } else {
-        labelEl.textContent = 'to 21 Oct';
-      }
+      labelEl.textContent = 'Launch';
     }
 
     update();
     const t = setInterval(update, 1000);
-    setTimeout(()=>{ clearInterval(t); }, Math.max(0, target - new Date()) + 2000);
+    setTimeout(()=> clearInterval(t), Math.max(0, target - new Date()) + 2000);
   })();
 </script>
+
 
 
 </footer>
