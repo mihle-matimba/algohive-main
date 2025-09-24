@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AlgoHive — Dashboard (Clean 100vh)</title>
+  <title>AlgoHive — Dashboard (100vh, Split Layout)</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,303 +13,172 @@
   <style>
     :root{ --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page:#f7f8fb }
     html,body{ height:100%; overflow:hidden; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page); color:#0f172a }
-    /* Smooth cards */
-    .card{ @apply bg-white rounded-2xl shadow-sm border border-black/5; }
-    .pill{ @apply inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-3 py-1.5 text-xs font-medium; }
-    /* Prevent horizontal scroll entirely */
-    #app { overflow: hidden; }
+    .card{ @apply bg-white rounded-2xl shadow-sm border border-black/10; }
+    .pill{ @apply inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium; }
+    .pill-muted{ @apply inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-medium; }
+    .muted{ @apply text-slate-500; }
   </style>
 </head>
 <body>
-  <!-- App wrapper: full viewport height, no horizontal scroll -->
   <div id="app" class="h-[100svh] w-full flex overflow-hidden">
 
-    <!-- Sidebar (desktop) -->
-    <aside id="sidebar" class="hidden lg:flex w-72 shrink-0 flex-col border-r border-black/10 bg-white">
-      <div class="px-4 py-4 flex items-center gap-3">
-        <div class="h-9 w-9 rounded-xl bg-[var(--olive-100)] grid place-items-center text-[var(--olive-700)]"><i class="fa-solid fa-robot"></i></div>
-        <div>
-          <div class="text-sm text-slate-500">AlgoHive</div>
-          <div class="font-semibold">Dashboard</div>
-        </div>
-      </div>
-      <nav class="px-2 py-2 space-y-1 overflow-y-auto">
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700 font-medium bg-[var(--olive-100)]/70"><i class="fa-solid fa-gauge"></i> Overview</a>
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-chart-line"></i> Strategies</a>
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-wallet"></i> Portfolio</a>
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-newspaper"></i> Feed</a>
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-gear"></i> Settings</a>
-      </nav>
-      <div class="mt-auto p-3">
-        <div class="card p-3 flex items-center gap-3">
-          <img id="avatar" src="" alt="" class="h-9 w-9 rounded-full bg-slate-100 object-cover"/>
-          <div class="min-w-0">
-            <div id="userName" class="truncate text-sm font-semibold">Guest</div>
-            <div id="userEmail" class="truncate text-xs text-slate-500">—</div>
-          </div>
-          <button class="ml-auto pill" onclick="alert('Sign out')"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
-        </div>
-      </div>
-    </aside>
+    <!-- MAIN SCROLL AREA (left content + right rail split) -->
+    <main class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+      <div class="mx-auto max-w-7xl px-4 md:px-6 py-6">
+        <!-- Greeting -->
+        <header class="mb-4">
+          <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Good <span id="greetTime">afternoon</span>, <span id="greetName">Mihle Matimba</span></h1>
+          <p class="muted mt-1">Your strategy‑driven performance, risk and activity at a glance.</p>
+        </header>
 
-    <!-- Drawer (mobile) -->
-    <div id="drawer" class="lg:hidden fixed inset-0 z-40 hidden">
-      <div class="absolute inset-0 bg-black/40" onclick="toggleDrawer(false)"></div>
-      <aside class="absolute left-0 top-0 h-full w-72 bg-white border-r border-black/10 p-4">
-        <div class="flex items-center justify-between mb-4">
-          <div class="font-semibold">Menu</div>
-          <button class="pill" onclick="toggleDrawer(false)"><i class="fa-solid fa-xmark"></i> Close</button>
-        </div>
-        <nav class="space-y-1">
-          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Overview</a>
-          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Strategies</a>
-          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Portfolio</a>
-          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Feed</a>
-          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Settings</a>
-        </nav>
-      </aside>
-    </div>
+        <!-- Split grid: main canvas + right rail -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <!-- LEFT: MAIN CANVAS -->
+          <section class="xl:col-span-2 space-y-4">
+            <!-- Equity Curve block -->
+            <div class="card p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="font-semibold">Equity Curve — <span class="muted">—</span></div>
+                  <div class="text-2xl md:text-3xl font-extrabold mt-1">No data found <span class="pill-muted">—</span></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="pill" data-range="3M">3M</button>
+                  <button class="pill" data-range="6M">6M</button>
+                  <button class="pill" data-range="YTD">YTD</button>
+                  <button class="pill" data-range="1Y">1Y</button>
+                  <button class="pill" data-range="3Y">3Y</button>
+                  <button class="pill bg-[var(--olive-100)] text-[var(--olive-700)]" data-range="1M">1M</button>
+                </div>
+              </div>
 
-    <!-- Main area -->
-    <div class="flex-1 flex flex-col min-w-0">
-      <!-- Topbar -->
-      <header class="h-16 shrink-0 bg-white border-b border-black/10 px-4 md:px-6 flex items-center gap-3">
-        <button class="lg:hidden pill" onclick="toggleDrawer(true)"><i class="fa-solid fa-bars"></i> Menu</button>
-        <div class="hidden sm:flex items-center gap-2 text-sm text-slate-500">
-          <span class="pill"><i class="fa-regular fa-circle-check"></i> Live</span>
-          <span class="pill"><i class="fa-regular fa-clock"></i> 100% Uptime</span>
-        </div>
-        <div class="ml-auto flex items-center gap-2">
-          <input id="globalSearch" class="w-52 sm:w-64 md:w-80 rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--olive)]" placeholder="Search…"/>
-          <button class="pill"><i class="fa-regular fa-bell"></i> Alerts</button>
-        </div>
-      </header>
+              <!-- KPI mini tiles -->
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Return</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Max Drawdown</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Sharpe (sim.)</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Win Rate</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Volatility</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+              </div>
 
-      <!-- Content: scrolls vertically only -->
-      <main class="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-6">
-        <!-- KPI row -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div class="card p-4">
-            <div class="text-xs text-slate-500">Total Equity</div>
-            <div id="kpiEquity" class="text-2xl font-bold mt-1">—</div>
-            <div class="mt-2 text-xs text-slate-500">No data found</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-xs text-slate-500">24h P/L</div>
-            <div id="kpiPL" class="text-2xl font-bold mt-1">—</div>
-            <div class="mt-2 text-xs text-slate-500">No data found</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-xs text-slate-500">Open Positions</div>
-            <div id="kpiOpen" class="text-2xl font-bold mt-1">—</div>
-            <div class="mt-2 text-xs text-slate-500">No data found</div>
-          </div>
-          <div class="card p-4">
-            <div class="text-xs text-slate-500">Drawdown</div>
-            <div id="kpiDD" class="text-2xl font-bold mt-1">—</div>
-            <div class="mt-2 text-xs text-slate-500">No data found</div>
-          </div>
-        </section>
-
-        <!-- Chart + Right rail -->
-        <section class="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div class="card p-4 xl:col-span-2">
-            <div class="flex items-center justify-between gap-2">
-              <div class="font-semibold">Equity Curve</div>
-              <div class="flex items-center gap-2">
-                <button class="pill">1D</button>
-                <button class="pill">1W</button>
-                <button class="pill">1M</button>
-                <button class="pill">YTD</button>
-                <button class="pill">ALL</button>
+              <!-- Chart placeholder -->
+              <div class="mt-4">
+                <div class="h-64 md:h-72 w-full rounded-xl border border-black/10 bg-white grid place-items-center muted">
+                  No data found
+                </div>
+                <div class="mt-4 flex justify-end">
+                  <button class="pill"><i class="fa-solid fa-plus"></i> Add Benchmark</button>
+                </div>
               </div>
             </div>
-            <!-- Simple SVG line as placeholder (no external libs) -->
-            <div class="mt-3">
-              <svg viewBox="0 0 600 220" class="w-full h-48">
-                <defs>
-                  <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stop-color="#8fb28b" stop-opacity="0.7"/>
-                    <stop offset="100%" stop-color="#8fb28b" stop-opacity="0.1"/>
-                  </linearGradient>
-                </defs>
-                <rect x="0" y="0" width="600" height="220" fill="#f6f8f9"/>
-                <path d="M0,180 C80,150 120,170 200,120 C280,70 320,120 400,90 C480,60 520,110 600,80" fill="none" stroke="#556B2F" stroke-width="3"/>
-                <path d="M0,220 L0,180 C80,150 120,170 200,120 C280,70 320,120 400,90 C480,60 520,110 600,80 L600,220 Z" fill="url(#grad)"/>
-              </svg>
-              <p class="text-xs text-slate-500 text-center">No data found — connect data source to render live chart.</p>
-            </div>
-          </div>
 
-          <div class="card p-4">
-            <div class="font-semibold">Activity</div>
-            <ul id="activity" class="mt-3 space-y-3 max-h-60 overflow-y-auto pr-1">
-              <li class="text-sm text-slate-500">No data found</li>
-            </ul>
-          </div>
-        </section>
-
-        <!-- Tables -->
-        <section class="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div class="card p-4">
-            <div class="flex items-center justify-between">
-              <div class="font-semibold">Open Positions</div>
-              <button class="pill" onclick="alert('Export CSV soon')"><i class="fa-regular fa-file-lines"></i> Export</button>
+            <!-- Performance Summary block -->
+            <div class="card p-4">
+              <div class="font-semibold">Performance Summary — <span class="muted">—</span></div>
+              <div class="mt-3 h-48 rounded-xl border border-black/10 grid place-items-center muted">No data found</div>
             </div>
-            <div class="mt-3 overflow-x-auto">
-              <table class="min-w-full text-sm">
-                <thead class="text-left text-slate-500">
-                  <tr>
-                    <th class="py-2 pr-4">Symbol</th>
-                    <th class="py-2 pr-4">Side</th>
-                    <th class="py-2 pr-4">Size</th>
-                    <th class="py-2 pr-4">P/L</th>
-                  </tr>
-                </thead>
-                <tbody id="tblOpen">
-                  <tr>
-                    <td colspan="4" class="py-6 text-center text-slate-500">No data found</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          </section>
 
-          <div class="card p-4">
-            <div class="flex items-center justify-between">
-              <div class="font-semibold">Strategies</div>
-              <div class="flex items-center gap-2">
-                <button class="pill"><i class="fa-regular fa-star"></i> Watchlist</button>
-                <button class="pill"><i class="fa-solid fa-filter"></i> Filter</button>
+          <!-- RIGHT RAIL -->
+          <aside class="space-y-4">
+            <!-- My Strategies -->
+            <div class="card p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold">My Strategies</div>
+                <a class="text-sm font-medium text-[var(--olive-700)] hover:underline" href="#">View OpenStrategies</a>
+              </div>
+              <div class="mt-3 h-28 rounded-xl border border-black/10 grid place-items-center muted">No data found</div>
+            </div>
+
+            <!-- Balance -->
+            <div class="card p-4">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-xl border border-black/10 p-3">
+                  <div class="text-xs muted">Total Balance</div>
+                  <div class="text-xl font-bold">—</div>
+                </div>
+                <div class="rounded-xl border border-black/10 p-3">
+                  <div class="text-xs muted">Cash Available</div>
+                  <div class="text-xl font-bold">—</div>
+                </div>
               </div>
             </div>
-            <div id="strategies" class="mt-3 grid sm:grid-cols-2 gap-3">
-              <!-- Placeholder card -->
-              <div class="p-3 rounded-xl border border-dashed border-black/10 text-sm text-slate-500">No data found</div>
+
+            <!-- Strategy Rating -->
+            <div class="card p-4">
+              <div class="font-semibold">Strategy Rating — <span class="muted">—</span></div>
+              <div class="mt-2 grid grid-cols-3 gap-3 items-center">
+                <div class="col-span-1 muted text-sm">No data found</div>
+                <div class="col-span-2">
+                  <div class="text-2xl font-extrabold">No data found</div>
+                  <div class="muted text-sm">Overall rating performance</div>
+                  <div class="pill-muted mt-2"><i class="fa-solid fa-minus"></i> From last year</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
-      </main>
-    </div>
+
+            <!-- Financial Health -->
+            <div class="card p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold">Financial Health</div>
+                <a class="text-sm font-medium text-[var(--olive-700)] hover:underline" href="#">View Financial Tracker</a>
+              </div>
+              <div class="mt-3 space-y-3">
+                <div>
+                  <div class="text-xs muted">Health Score</div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="h-2 flex-1 rounded-full bg-slate-200 overflow-hidden"><span class="block w-1/5 h-full bg-emerald-400"></span></span>
+                    <span class="text-sm muted">No data</span>
+                  </div>
+                </div>
+                <div class="rounded-xl border border-black/10 p-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <div class="text-xs muted">Income</div>
+                    <div class="font-semibold">—</div>
+                  </div>
+                  <div>
+                    <div class="text-xs muted">Expenses</div>
+                    <div class="font-semibold">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script>
-    // --- Helpers ---
-    const byId = (id) => document.getElementById(id);
+    // Greeting logic
+    (function(){
+      const name = 'Mihle Matimba'; // replace from auth when wired
+      const hour = new Date().getHours();
+      const greet = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+      document.getElementById('greetTime').textContent = greet;
+      document.getElementById('greetName').textContent = name;
+    })();
 
-    function toggleDrawer(open){
-      const el = byId('drawer');
-      if(!el) return;
-      el.classList.toggle('hidden', !open);
-    }
-
-    // Prevent horizontal scroll anywhere
-    window.addEventListener('resize', () => {
-      document.body.style.overflowX = 'hidden';
-      document.documentElement.style.overflowX = 'hidden';
-    });
-    document.body.style.overflowX = 'hidden';
-    document.documentElement.style.overflowX = 'hidden';
-
-    // --- Demo: Safe defaults for avatar + name ---
-    const avatarUrl = '';
-    const firstName = '';
-    const lastName = '';
-    const email = '';
-
-    const avatarEl = byId('avatar');
-    const nameEl = byId('userName');
-    const emailEl = byId('userEmail');
-
-    // Fallback image: initials graphic
-    function initialsSVG(name){
-      const initials = (name||'GU').split(' ').map(s=>s[0]?.toUpperCase()).slice(0,2).join('') || 'GU';
-      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
-        <rect width='100%' height='100%' fill='#ecf4e6'/>
-        <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='Inter' fill='#3e4f23'>${initials}</text>
-      </svg>`;
-      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-    }
-
-    // Apply safe data
-    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'Guest User';
-    nameEl.textContent = fullName;
-    emailEl.textContent = email || 'guest@example.com';
-    avatarEl.src = avatarUrl || initialsSVG(fullName);
-    avatarEl.alt = fullName;
-
-    // --- Example: how to push real data safely ---
-    // setKPIs({equity:"$0.00", pl:"$0.00", open:0, dd:"0%"})
-    function setKPIs({equity, pl, open, dd}){
-      byId('kpiEquity').textContent = equity ?? '—';
-      byId('kpiPL').textContent = pl ?? '—';
-      byId('kpiOpen').textContent = open ?? '—';
-      byId('kpiDD').textContent = dd ?? '—';
-    }
-
-    // setActivity(["Connected IBKR","No trades yet"]) 
-    function setActivity(items){
-      const ul = byId('activity');
-      ul.innerHTML = '';
-      if(!items || !items.length){
-        ul.innerHTML = '<li class="text-sm text-slate-500">No data found</li>';
-        return;
-      }
-      items.forEach(t => {
-        const li = document.createElement('li');
-        li.className = 'flex items-start gap-2';
-        li.innerHTML = `<span class='pill'><i class='fa-regular fa-clock'></i></span><div class='text-sm'>${t}</div>`;
-        ul.appendChild(li);
-      });
-    }
-
-    // setOpenPositions([...])
-    function setOpenPositions(rows){
-      const tbody = byId('tblOpen');
-      tbody.innerHTML = '';
-      if(!rows || !rows.length){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan='4' class='py-6 text-center text-slate-500'>No data found</td>`;
-        tbody.appendChild(tr);
-        return;
-      }
-      rows.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class='py-2 pr-4'>${r.symbol}</td>
-          <td class='py-2 pr-4'>${r.side}</td>
-          <td class='py-2 pr-4'>${r.size}</td>
-          <td class='py-2 pr-4 ${Number(r.pl) < 0 ? 'text-red-600' : 'text-emerald-600'}'>${r.pl}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // setStrategies([...])
-    function setStrategies(list){
-      const wrap = document.getElementById('strategies');
-      wrap.innerHTML = '';
-      if(!list || !list.length){
-        wrap.innerHTML = `<div class='p-3 rounded-xl border border-dashed border-black/10 text-sm text-slate-500'>No data found</div>`;
-        return;
-      }
-      list.forEach(s => {
-        const el = document.createElement('div');
-        el.className = 'card p-3';
-        el.innerHTML = `
-          <div class='flex items-start justify-between gap-2'>
-            <div>
-              <div class='font-semibold'>${s.name}</div>
-              <div class='text-xs text-slate-500'>${s.provider || '—'}</div>
-            </div>
-            <span class='pill'><i class='fa-solid fa-percent'></i> ${s.return ?? '—'}</span>
-          </div>
-          <div class='mt-3 text-sm text-slate-600'>${s.note || 'No description'}</div>
-          <div class='mt-3 flex items-center gap-2'>
-            <button class='pill'><i class='fa-regular fa-star'></i> Follow</button>
-            <button class='pill'><i class='fa-solid fa-arrow-trend-up'></i> Allocate</button>
-          </div>`;
-        wrap.appendChild(el);
-      });
+    // API wiring stubs — call these to hydrate the page
+    function setEquityKPIs({ret, dd, sharpe, win, vol}){
+      const blocks = document.querySelectorAll('.card .font-semibold');
+      // left-most card structure is fixed; this is just a friendly stub
+      console.debug('setEquityKPIs', {ret, dd, sharpe, win, vol});
     }
   </script>
 </body>
