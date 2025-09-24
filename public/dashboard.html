@@ -716,5 +716,76 @@
       }
     })();
   </script>
+  <script>
+  // Build the menu items into #navContainer
+  function buildMenuFixed(defaultKey = "dashboard") {
+    const navContainer = document.getElementById("navContainer");
+    if (!navContainer) return;
+
+    const path = location.pathname.replace(/\/+$/, "");
+    const items = [
+      { key: "dashboard",       label: "Dashboard",        icon: "fa-gauge",          href: "/dashboard.html" },
+      { key: "open-strategies", label: "Open Strategies",  icon: "fa-cubes",          href: "/open-strategies.html" },
+      { key: "portfolio",       label: "My Portfolio",     icon: "fa-chart-line",     href: "/portfolio.html" },
+      { key: "funding",         label: "Funding",          icon: "fa-wallet",         href: "/funding.html" },
+      { key: "reports",         label: "Reports",          icon: "fa-file-invoice",   href: "/reports.html" },
+      { key: "news",            label: "News & Insights",  icon: "fa-newspaper",      href: "/news.html" },
+      { key: "alerts",          label: "Notifications",    icon: "fa-bell",           href: "/alerts.html" },
+      { key: "settings",        label: "Settings",         icon: "fa-gear",           href: "/settings.html" },
+      { key: "help",            label: "Help Desk",        icon: "fa-circle-question",href: "/help.html" },
+      { key: "integration",     label: "Integration",      icon: "fa-plug",           href: "/integrations.html" },
+      { key: "feedback",        label: "Feedback",         icon: "fa-comment-dots",   href: "/feedback.html" },
+    ];
+
+    const activeKey = items.find(i => i.href.replace(/\/+$/, "") === path)?.key || defaultKey;
+
+    navContainer.innerHTML = `
+      <nav class="space-y-2 px-1">
+        ${items.map(it => `
+          <a href="${it.href}"
+             class="sidebar-link ${it.key === activeKey ? "active bg-[var(--olive-100)] border border-[var(--olive)]" : ""}"
+             title="${it.label}">
+            <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>
+          </a>
+        `).join("")}
+      </nav>
+    `;
+
+    // Collapse toggle
+    const sidebar = document.getElementById("sidebar");
+    const collapseBtn = document.getElementById("collapseBtn");
+    if (sidebar && collapseBtn) {
+      const apply = (c) => {
+        sidebar.classList.toggle("is-collapsed", c);
+        collapseBtn.innerHTML = c
+          ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+          : '<i class="fa-solid fa-angles-left text-sm"></i>';
+      };
+      let collapsed = false;
+      try { collapsed = sessionStorage.getItem("ah_sidebar_collapsed") === "1"; } catch {}
+      apply(collapsed);
+      collapseBtn.onclick = () => {
+        collapsed = !collapsed;
+        apply(collapsed);
+        try { sessionStorage.setItem("ah_sidebar_collapsed", collapsed ? "1" : "0"); } catch {}
+      };
+    }
+
+    // Logout (works if window.signOut exists; else no-op)
+    document.querySelector(".js-logout")?.addEventListener("click", async () => {
+      try { await window.signOut?.(); } catch {}
+      // Fallback: just go to auth page
+      location.href = "/auth.html";
+    });
+  }
+
+  // Auto-run when the HTML is on the page
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => buildMenuFixed("dashboard"));
+  } else {
+    buildMenuFixed("dashboard");
+  }
+</script>
+
 </body>
 </html>
