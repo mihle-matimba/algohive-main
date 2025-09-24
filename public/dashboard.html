@@ -14,101 +14,56 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
-    :root {
-      --olive: #556B2F;
-      --olive-700: #3e4f23;
-      --olive-100: #ecf4e6;
-      --page-bg: #f9fafb;
-    }
+    :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
 
     html, body {
       height: 100%;
-      overflow: hidden;            /* absolutely no scroll */
+      overflow: hidden; /* absolutely no scroll */
       font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--page-bg);
       color: #0f172a;
     }
-
     body { overflow-x: hidden; }   /* belt + braces for horizontal */
 
     .app-shell { height: 100vh; overflow: hidden; }
-    @supports (height: 100svh) {
-      .app-shell { height: 100svh; }
-    }
+    @supports (height: 100svh) { .app-shell { height: 100svh; } }
 
     /* Fit stage scales the ENTIRE dashboard area (topbar + content) */
     #fitRoot { position: absolute; inset: 0; overflow: hidden; }
     #fitStage { transform-origin: top center; }
 
-    .card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 1rem;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
-    }
-
-    .chip {
-      display: inline-flex; align-items: center;
-      border-radius: 9999px; padding: .2rem .55rem;
-      font-size: .74rem; font-weight: 600;
-    }
-
-    .glass {
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      background: rgba(255,255,255,.65);
-      border-bottom: 1px solid rgba(229,231,235,.9);
-    }
-
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .chip { display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600; }
+    .glass { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9); }
     .num { font-variant-numeric: tabular-nums; }
-
     .tab-btn { border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff; }
     .tab-btn.active { background:var(--olive); border-color:var(--olive); color:#fff; }
-
-    .aside-rail { width: 360px; }
-    @media (max-width:1024px){ .aside-rail { width:auto; } }
-
-    .eq-tip {
-      position:absolute; pointer-events:none; background:#111827; color:#fff;
-      font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12);
-    }
-
+    .aside-rail { width:360px; } @media (max-width:1024px){ .aside-rail { width:auto; } }
+    .eq-tip { position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12); }
     .spark { height:30px; width:120px; }
-
     .cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.35rem; }
     .cal-cell { border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem; }
     .cal-legend span { display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb; }
+    .topbar { height:52px; }
 
-    .topbar { height: 52px; }
+    .sub-card.active { background:var(--olive-100); border-color:var(--olive); box-shadow:inset 0 0 0 2px var(--olive-100); position:relative; }
+    .sub-card.active::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--olive); border-top-left-radius:.75rem; border-bottom-left-radius:.75rem; }
 
-    .sub-card.active {
-      background: var(--olive-100); border-color: var(--olive); box-shadow: inset 0 0 0 2px var(--olive-100); position: relative;
-    }
-    .sub-card.active::before {
-      content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--olive);
-      border-top-left-radius: .75rem; border-bottom-left-radius: .75rem;
-    }
+    .popover::before { content:""; position:absolute; top:-6px; right:18px; border-width:6px; border-style:solid; border-color:transparent transparent #e5e7eb transparent; }
+    .popover::after  { content:""; position:absolute; top:-5px; right:18px; border-width:5px; border-style:solid; border-color:transparent transparent #fff transparent; }
 
-    .popover::before {
-      content:""; position:absolute; top:-6px; right:18px; border-width:6px; border-style:solid; border-color:transparent transparent #e5e7eb transparent;
-    }
-    .popover::after {
-      content:""; position:absolute; top:-5px; right:18px; border-width:5px; border-style:solid; border-color:transparent transparent #fff transparent;
-    }
-
-    /* PRINT */
     @media print {
       body { background:#fff; }
       .glass, #topbar-actions, .eq-controls, .no-print { display:none !important; }
-      .page-shell { max-width:100% !important; padding: 0 24px !important; }
+      .page-shell { max-width:100% !important; padding:0 24px !important; }
       .print-header { display:flex !important; }
       .card { box-shadow:none !important; }
     }
 
     /* Sidebar collapse behavior */
-    #sidebar { width: 260px; transition: width .2s ease; }
-    #sidebar.is-collapsed { width: 64px; }
-    #sidebar .label { transition: opacity .15s ease; }
+    #sidebar { width:260px; transition:width .2s ease; }
+    #sidebar.is-collapsed { width:64px; }
+    #sidebar .label { transition:opacity .15s ease; }
     #sidebar.is-collapsed .label { opacity:0; pointer-events:none; }
     #sidebar.is-collapsed .sidebar-link { justify-content:center; }
     #sidebar .sidebar-link { display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:.5rem; }
@@ -116,44 +71,41 @@
   </style>
 </head>
 
-<body
-  <!-- Sidebar: drop this where #sidebarMount was -->
-<aside id="sidebar" class="h-full shrink-0 border-r bg-white flex flex-col">
-  <!-- Brand + collapse -->
-  <div class="h-14 flex items-center justify-between px-3 border-b">
-    <a href="/" class="flex items-center gap-2">
-      <span class="inline-block h-7 w-7 rounded-lg bg-[#0f172a]"></span>
-      <span class="label font-semibold tracking-tight">AlgoHive</span>
-    </a>
-    <button id="collapseBtn" class="border rounded-md px-2 py-1.5 hover:bg-slate-50" title="Collapse"></button>
-  </div>
-
-  <!-- Search (optional) -->
-  <div class="px-3 pt-3">
-    <div class="label hidden md:flex items-center border rounded-lg px-2 h-9 bg-white">
-      <i class="fa-solid fa-magnifying-glass text-gray-500 mr-2"></i>
-      <input placeholder="Search…" class="outline-none text-sm w-full" />
-    </div>
-  </div>
-
-  <!-- Nav gets injected here -->
-  <div class="mt-3 px-2 flex-1 overflow-y-auto" id="navContainer"></div>
-
-  <!-- Bottom actions -->
-  <div class="border-t px-3 py-3 space-y-2">
-    <a href="/settings.html" class="sidebar-link">
-      <i class="fa-solid fa-user-gear"></i><span class="label">Account</span>
-    </a>
-    <button class="sidebar-link js-logout w-full text-left">
-      <i class="fa-solid fa-right-from-bracket"></i><span class="label">Sign out</span>
-    </button>
-    <div class="text-[10px] text-slate-400 label pt-1">v1.0 • © AlgoHive</div>
-  </div>
-</aside>
-
+<body>
   <div class="app-shell flex overflow-hidden">
-    <!-- GLOBAL MENU (partial) -->
-    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
+    <!-- INLINE SIDEBAR (single source of truth) -->
+    <aside id="sidebar" class="h-full shrink-0 border-r bg-white flex flex-col">
+      <!-- Brand + collapse -->
+      <div class="h-14 flex items-center justify-between px-3 border-b">
+        <a href="/" class="flex items-center gap-2">
+          <span class="inline-block h-7 w-7 rounded-lg bg-[#0f172a]"></span>
+          <span class="label font-semibold tracking-tight">AlgoHive</span>
+        </a>
+        <button id="collapseBtn" class="border rounded-md px-2 py-1.5 hover:bg-slate-50" title="Collapse"></button>
+      </div>
+
+      <!-- Search (optional) -->
+      <div class="px-3 pt-3">
+        <div class="label hidden md:flex items-center border rounded-lg px-2 h-9 bg-white">
+          <i class="fa-solid fa-magnifying-glass text-gray-500 mr-2"></i>
+          <input placeholder="Search…" class="outline-none text-sm w-full" />
+        </div>
+      </div>
+
+      <!-- Nav gets injected here -->
+      <div class="mt-3 px-2 flex-1 overflow-y-auto" id="navContainer"></div>
+
+      <!-- Bottom actions -->
+      <div class="border-t px-3 py-3 space-y-2">
+        <a href="/settings.html" class="sidebar-link">
+          <i class="fa-solid fa-user-gear"></i><span class="label">Account</span>
+        </a>
+        <button class="sidebar-link js-logout w-full text-left">
+          <i class="fa-solid fa-right-from-bracket"></i><span class="label">Sign out</span>
+        </button>
+        <div class="text-[10px] text-slate-400 label pt-1">v1.0 • © AlgoHive</div>
+      </div>
+    </aside>
 
     <!-- MAIN (scaled to fit, no scroll) -->
     <main class="flex-1 h-full overflow-hidden relative" id="dashboardRoot">
@@ -176,8 +128,8 @@
                     <i class="fa-solid fa-file-arrow-down mr-2"></i>Export Fact Sheet
                   </button>
                   <img id="userAvatarImg"
-                    src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/avatars/514e9e9c-9736-42f7-81a5-dddb4f165257/avatar_1758194395035.png"
-                    alt="Profile" class="h-9 w-9 rounded-full border object-cover" />
+                       src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/avatars/514e9e9c-9736-42f7-81a5-dddb4f165257/avatar_1758194395035.png"
+                       alt="Profile" class="h-9 w-9 rounded-full border object-cover" />
                 </div>
               </div>
             </div>
@@ -227,14 +179,6 @@
                       <button class="tab-btn" data-range="1Y">1Y</button>
                       <button class="tab-btn" data-range="3Y">3Y</button>
                     </div>
-                  </div>
-
-                  <div id="eqMetrics" class="mb-3 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Return</div><div id="mRet" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div id="mDD" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div id="mSharpe" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div id="mWin" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility</div><div id="mVol" class="font-semibold">—</div></div>
                   </div>
 
                   <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
@@ -509,128 +453,14 @@
     const printHdr = document.querySelector(".print-header .text-sm");
     if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
 
-    // ---------- MENU PARTIAL LOAD + FIXES ----------
-    const waitFor = (sel, timeout = 5000) =>
-      new Promise((res, rej) => {
-        const t0 = Date.now();
-        (function poll() {
-          const el = document.querySelector(sel);
-          if (el) return res(el);
-          if (Date.now() - t0 > timeout) return rej(new Error("timeout " + sel));
-          requestAnimationFrame(poll);
-        })();
-      });
-
-    async function ensureMenuLoaded() {
-      window.loadMenu = async () => { };
-      window.buildMenu = (k) => window.buildMenuFixed?.(k);
-
-      const mount = document.getElementById("sidebarMount");
-      const url = (mount?.getAttribute("data-menu") || "partials/menu.html").trim();
-      try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load " + url);
-        mount.outerHTML = await res.text();
-      } catch { }
-      await waitFor("#navContainer");
-      buildMenuFixed("dashboard");
-      document.querySelector(".js-logout")?.addEventListener("click", signOut);
-    }
-
-    window.buildMenuFixed = function buildMenuFixed(defaultKey = "dashboard") {
-      const navContainer = document.getElementById("navContainer");
-      if (!navContainer) return;
-
-      const path = location.pathname.replace(/\/+$/, "");
-      const items = [
-        { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
-        { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
-        { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
-        { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
-        { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
-        { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
-        { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
-        { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
-        { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
-        { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
-        { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
-      ];
-
-      const activeKey = items.find(i => i.href.replace(/\/+$/, "") === path)?.key || defaultKey;
-
-      navContainer.innerHTML = `
-        <nav class="space-y-2 px-1">
-          ${items.map(it => `
-            <a href="${it.href}" class="sidebar-link ${it.key === activeKey ? "active bg-[var(--olive-100)] border border-[var(--olive)]" : ""}" title="${it.label}">
-              <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>
-            </a>`).join("")}
-        </nav>
-      `;
-
-      const sidebar = document.getElementById("sidebar");
-      const collapseBtn = document.getElementById("collapseBtn");
-      if (sidebar && collapseBtn) {
-        const apply = c => {
-          sidebar.classList.toggle("is-collapsed", c);
-          collapseBtn.innerHTML = c
-            ? '<i class="fa-solid fa-angles-right text-sm"></i>'
-            : '<i class="fa-solid fa-angles-left text-sm"></i>';
-        };
-        let collapsed = false;
-        try { collapsed = sessionStorage.getItem("ah_sidebar_collapsed") === "1"; } catch { }
-        apply(collapsed);
-        collapseBtn.onclick = () => {
-          collapsed = !collapsed; apply(collapsed);
-          try { sessionStorage.setItem("ah_sidebar_collapsed", collapsed ? "1" : "0"); } catch { }
-        };
-      }
-    };
-
-    await ensureMenuLoaded();
-
-    // ---------- USER-SPECIFIC SUBSCRIPTIONS (optional; falls back to mock) ----------
-    let dbSubs = [];
-    try {
-      const { data } = await supabase
-        .from("subscriptions")
-        .select("name, provider, aum_num, delta_7d, spark_series")
-        .eq("user_id", user.id)
-        .order("name", { ascending: true });
-      dbSubs = data || [];
-    } catch { }
-
-    if (dbSubs.length) {
-      const toChip = v => `${v >= 0 ? "+" : ""}${Number(v).toFixed(1)}%`;
-      const subsWrap = document.getElementById("subsWrap");
-      subsWrap.innerHTML = dbSubs.map(s => {
-        const series = Array.isArray(s.spark_series) ? s.spark_series : [5, 6, 6.5, 6.2, 6.9, 7.1];
-        const spark = series.map((v, i, arr) => {
-          const min = Math.min(...arr), max = Math.max(...arr) || 1;
-          const x = (v - min) / (max - min || 1);
-          return Math.round(10 + x * 18);
-        });
-        const path = spark.map((y, i) => `${i ? 'L' : 'M'}${i * 14},${30 - y}`).join(' ');
-        return `
-          <div class="border rounded-xl p-3 hover:bg-[var(--olive-100)] transition sub-card" data-key="${s.name}">
-            <div class="flex items-center justify-between">
-              <div class="font-medium text-sm truncate">${s.name}</div>
-              <span class="chip ${s.delta_7d >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}">${toChip(s.delta_7d)}</span>
-            </div>
-            <div class="text-xs text-slate-500">${s.provider || "—"} · TCM ${new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(s.aum_num || 0)}</div>
-            <div class="mt-2"><svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#0f172a" stroke-width="2"/></svg></div>
-          </div>`;
-      }).join("");
-
-      document.querySelectorAll("#subsWrap .sub-card").forEach(card => {
-        card.addEventListener("click", () => {
-          const key = card.getAttribute("data-key");
-          try { window.setStrategy?.(key); } catch { }
-        });
-      });
-    }
+    // Attach logout to inline menu
+    document.querySelector(".js-logout")?.addEventListener("click", async () => {
+      try { await signOut(); } catch {}
+      location.href = "/auth.html";
+    });
   </script>
 
-  <!-- No-data placeholders (leave as-is) -->
+  <!-- No-data placeholders -->
   <script>
     (function () {
       function setNoDataPlaceholders(msg = 'No data found') {
@@ -682,23 +512,18 @@
       if (!root || !stage) return;
 
       function fit() {
-        // Reset to natural size to measure
         stage.style.transform = 'none';
         stage.style.position = 'static';
 
-        // Natural dimensions
         const rect = stage.getBoundingClientRect();
         const naturalW = Math.max(stage.scrollWidth, rect.width || 1);
         const naturalH = Math.max(stage.scrollHeight, rect.height || 1);
 
-        // Available size (main area only, excludes sidebar)
         const vw = root.clientWidth || 1;
         const vh = root.clientHeight || 1;
 
-        // Scale to fit both width & height
         const scale = Math.min(vw / naturalW, vh / naturalH);
 
-        // Center horizontally, stick to top
         const scaledW = naturalW * scale;
         const offsetX = (vw - scaledW) / 2;
 
@@ -716,76 +541,66 @@
       }
     })();
   </script>
+
+  <!-- Sidebar builder (inline, no partials) -->
   <script>
-  // Build the menu items into #navContainer
-  function buildMenuFixed(defaultKey = "dashboard") {
-    const navContainer = document.getElementById("navContainer");
-    if (!navContainer) return;
+    function buildMenuFixed(defaultKey = "dashboard") {
+      const navContainer = document.getElementById("navContainer");
+      if (!navContainer) return;
 
-    const path = location.pathname.replace(/\/+$/, "");
-    const items = [
-      { key: "dashboard",       label: "Dashboard",        icon: "fa-gauge",          href: "/dashboard.html" },
-      { key: "open-strategies", label: "Open Strategies",  icon: "fa-cubes",          href: "/open-strategies.html" },
-      { key: "portfolio",       label: "My Portfolio",     icon: "fa-chart-line",     href: "/portfolio.html" },
-      { key: "funding",         label: "Funding",          icon: "fa-wallet",         href: "/funding.html" },
-      { key: "reports",         label: "Reports",          icon: "fa-file-invoice",   href: "/reports.html" },
-      { key: "news",            label: "News & Insights",  icon: "fa-newspaper",      href: "/news.html" },
-      { key: "alerts",          label: "Notifications",    icon: "fa-bell",           href: "/alerts.html" },
-      { key: "settings",        label: "Settings",         icon: "fa-gear",           href: "/settings.html" },
-      { key: "help",            label: "Help Desk",        icon: "fa-circle-question",href: "/help.html" },
-      { key: "integration",     label: "Integration",      icon: "fa-plug",           href: "/integrations.html" },
-      { key: "feedback",        label: "Feedback",         icon: "fa-comment-dots",   href: "/feedback.html" },
-    ];
+      const path = location.pathname.replace(/\/+$/, "");
+      const items = [
+        { key: "dashboard",       label: "Dashboard",        icon: "fa-gauge",           href: "/dashboard.html" },
+        { key: "open-strategies", label: "Open Strategies",  icon: "fa-cubes",           href: "/open-strategies.html" },
+        { key: "portfolio",       label: "My Portfolio",     icon: "fa-chart-line",      href: "/portfolio.html" },
+        { key: "funding",         label: "Funding",          icon: "fa-wallet",          href: "/funding.html" },
+        { key: "reports",         label: "Reports",          icon: "fa-file-invoice",    href: "/reports.html" },
+        { key: "news",            label: "News & Insights",  icon: "fa-newspaper",       href: "/news.html" },
+        { key: "alerts",          label: "Notifications",    icon: "fa-bell",            href: "/alerts.html" },
+        { key: "settings",        label: "Settings",         icon: "fa-gear",            href: "/settings.html" },
+        { key: "help",            label: "Help Desk",        icon: "fa-circle-question", href: "/help.html" },
+        { key: "integration",     label: "Integration",      icon: "fa-plug",            href: "/integrations.html" },
+        { key: "feedback",        label: "Feedback",         icon: "fa-comment-dots",    href: "/feedback.html" },
+      ];
 
-    const activeKey = items.find(i => i.href.replace(/\/+$/, "") === path)?.key || defaultKey;
+      const activeKey = items.find(i => i.href.replace(/\/+$/, "") === path)?.key || defaultKey;
 
-    navContainer.innerHTML = `
-      <nav class="space-y-2 px-1">
-        ${items.map(it => `
-          <a href="${it.href}"
-             class="sidebar-link ${it.key === activeKey ? "active bg-[var(--olive-100)] border border-[var(--olive)]" : ""}"
-             title="${it.label}">
-            <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>
-          </a>
-        `).join("")}
-      </nav>
-    `;
+      navContainer.innerHTML = `
+        <nav class="space-y-2 px-1">
+          ${items.map(it => `
+            <a href="${it.href}"
+               class="sidebar-link ${it.key === activeKey ? "active bg-[var(--olive-100)] border border-[var(--olive)]" : ""}"
+               title="${it.label}">
+              <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>
+            </a>
+          `).join("")}
+        </nav>
+      `;
 
-    // Collapse toggle
-    const sidebar = document.getElementById("sidebar");
-    const collapseBtn = document.getElementById("collapseBtn");
-    if (sidebar && collapseBtn) {
-      const apply = (c) => {
-        sidebar.classList.toggle("is-collapsed", c);
-        collapseBtn.innerHTML = c
-          ? '<i class="fa-solid fa-angles-right text-sm"></i>'
-          : '<i class="fa-solid fa-angles-left text-sm"></i>';
-      };
-      let collapsed = false;
-      try { collapsed = sessionStorage.getItem("ah_sidebar_collapsed") === "1"; } catch {}
-      apply(collapsed);
-      collapseBtn.onclick = () => {
-        collapsed = !collapsed;
+      const sidebar = document.getElementById("sidebar");
+      const collapseBtn = document.getElementById("collapseBtn");
+      if (sidebar && collapseBtn) {
+        const apply = (c) => {
+          sidebar.classList.toggle("is-collapsed", c);
+          collapseBtn.innerHTML = c
+            ? '<i class="fa-solid fa-angles-right text-sm"></i>'
+            : '<i class="fa-solid fa-angles-left text-sm"></i>';
+        };
+        let collapsed = false;
+        try { collapsed = sessionStorage.getItem("ah_sidebar_collapsed") === "1"; } catch {}
         apply(collapsed);
-        try { sessionStorage.setItem("ah_sidebar_collapsed", collapsed ? "1" : "0"); } catch {}
-      };
+        collapseBtn.onclick = () => {
+          collapsed = !collapsed; apply(collapsed);
+          try { sessionStorage.setItem("ah_sidebar_collapsed", collapsed ? "1" : "0"); } catch {}
+        };
+      }
     }
 
-    // Logout (works if window.signOut exists; else no-op)
-    document.querySelector(".js-logout")?.addEventListener("click", async () => {
-      try { await window.signOut?.(); } catch {}
-      // Fallback: just go to auth page
-      location.href = "/auth.html";
-    });
-  }
-
-  // Auto-run when the HTML is on the page
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => buildMenuFixed("dashboard"));
-  } else {
-    buildMenuFixed("dashboard");
-  }
-</script>
-
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => buildMenuFixed("dashboard"));
+    } else {
+      buildMenuFixed("dashboard");
+    }
+  </script>
 </body>
 </html>
