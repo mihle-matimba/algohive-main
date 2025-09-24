@@ -1,635 +1,315 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlgoHive — Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlgoHive — Dashboard (Clean 100vh)</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <!-- html2pdf for PDF export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
   <style>
-    :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
-
-    html, body {
-      height: 100%;
-      overflow: hidden; /* absolutely no scroll */
-      font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: var(--page-bg);
-      color: #0f172a;
-    }
-    body { overflow-x: hidden; }   /* belt + braces for horizontal */
-
-    .app-shell { height: 100vh; overflow: hidden; }
-    @supports (height: 100svh) { .app-shell { height: 100svh; } }
-
-    /* Fit stage scales the ENTIRE dashboard area (topbar + content) */
-    #fitRoot { position: absolute; inset: 0; overflow: hidden; }
-    #fitStage { transform-origin: top center; }
-
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04); }
-    .chip { display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600; }
-    .glass { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9); }
-    .num { font-variant-numeric: tabular-nums; }
-    .tab-btn { border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff; }
-    .tab-btn.active { background:var(--olive); border-color:var(--olive); color:#fff; }
-    .aside-rail { width:360px; } @media (max-width:1024px){ .aside-rail { width:auto; } }
-    .eq-tip { position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12); }
-    .spark { height:30px; width:120px; }
-    .cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.35rem; }
-    .cal-cell { border:1px solid #e5e7eb; border-radius:.6rem; height:58px; display:flex; flex-direction:column; justify-content:space-between; padding:.35rem .4rem; }
-    .cal-legend span { display:inline-block; width:14px; height:10px; border-radius:3px; border:1px solid #e5e7eb; }
-    .topbar { height:52px; }
-
-    .sub-card.active { background:var(--olive-100); border-color:var(--olive); box-shadow:inset 0 0 0 2px var(--olive-100); position:relative; }
-    .sub-card.active::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--olive); border-top-left-radius:.75rem; border-bottom-left-radius:.75rem; }
-
-    .popover::before { content:""; position:absolute; top:-6px; right:18px; border-width:6px; border-style:solid; border-color:transparent transparent #e5e7eb transparent; }
-    .popover::after  { content:""; position:absolute; top:-5px; right:18px; border-width:5px; border-style:solid; border-color:transparent transparent #fff transparent; }
-
-    @media print {
-      body { background:#fff; }
-      .glass, #topbar-actions, .eq-controls, .no-print { display:none !important; }
-      .page-shell { max-width:100% !important; padding:0 24px !important; }
-      .print-header { display:flex !important; }
-      .card { box-shadow:none !important; }
-    }
-
-    /* Sidebar collapse behavior */
-    #sidebar { width:260px; transition:width .2s ease; }
-    #sidebar.is-collapsed { width:64px; }
-    #sidebar .label { transition:opacity .15s ease; }
-    #sidebar.is-collapsed .label { opacity:0; pointer-events:none; }
-    #sidebar.is-collapsed .sidebar-link { justify-content:center; }
-    #sidebar .sidebar-link { display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem; border-radius:.5rem; }
-    #sidebar .sidebar-link i { width:18px; text-align:center; }
-    html, body {
-  height: 100%;
-  overflow: hidden;              /* no page scroll */
-}
-
-/* Default to dynamic viewport (mobile-safe), then prefer small-viewport if supported */
-.app-shell,
-main#dashboardRoot,
-#fitRoot {
-  height: 100dvh;                /* iOS/Android safe */
-}
-@supports (height: 100svh) {
-  .app-shell,
-  main#dashboardRoot,
-  #fitRoot {
-    height: 100svh;              /* desktop precise */
-  }
-}
-
-/* Sidebar stretches full height */
-#sidebar { height: 100%; }
-
-/* Fit stage always spans the available height (your scaler still runs) */
-#fitStage { min-height: 100%; }
-    .page-shell,
-.topbar {
-  overflow: hidden;
-}
-
-
+    :root{ --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page:#f7f8fb }
+    html,body{ height:100%; overflow:hidden; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page); color:#0f172a }
+    /* Smooth cards */
+    .card{ @apply bg-white rounded-2xl shadow-sm border border-black/5; }
+    .pill{ @apply inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-3 py-1.5 text-xs font-medium; }
+    /* Prevent horizontal scroll entirely */
+    #app { overflow: hidden; }
   </style>
 </head>
-
 <body>
-  <div class="app-shell flex overflow-hidden">
-    <!-- INLINE SIDEBAR (single source of truth) -->
-    <aside id="sidebar" class="h-full shrink-0 border-r bg-white flex flex-col">
-      <!-- Brand + collapse -->
-      <div class="h-14 flex items-center justify-between px-3 border-b">
-        <a href="/" class="flex items-center gap-2">
-          <span class="inline-block h-7 w-7 rounded-lg bg-[#0f172a]"></span>
-          <span class="label font-semibold tracking-tight">AlgoHive</span>
-        </a>
-        <button id="collapseBtn" class="border rounded-md px-2 py-1.5 hover:bg-slate-50" title="Collapse"></button>
-      </div>
+  <!-- App wrapper: full viewport height, no horizontal scroll -->
+  <div id="app" class="h-[100svh] w-full flex overflow-hidden">
 
-      <!-- Search (optional) -->
-      <div class="px-3 pt-3">
-        <div class="label hidden md:flex items-center border rounded-lg px-2 h-9 bg-white">
-          <i class="fa-solid fa-magnifying-glass text-gray-500 mr-2"></i>
-          <input placeholder="Search…" class="outline-none text-sm w-full" />
+    <!-- Sidebar (desktop) -->
+    <aside id="sidebar" class="hidden lg:flex w-72 shrink-0 flex-col border-r border-black/10 bg-white">
+      <div class="px-4 py-4 flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-[var(--olive-100)] grid place-items-center text-[var(--olive-700)]"><i class="fa-solid fa-robot"></i></div>
+        <div>
+          <div class="text-sm text-slate-500">AlgoHive</div>
+          <div class="font-semibold">Dashboard</div>
         </div>
       </div>
-
-      <!-- Nav gets injected here -->
-      <div class="mt-3 px-2 flex-1 overflow-y-auto" id="navContainer"></div>
-
-      <!-- Bottom actions -->
-      <div class="border-t px-3 py-3 space-y-2">
-        <a href="/settings.html" class="sidebar-link">
-          <i class="fa-solid fa-user-gear"></i><span class="label">Account</span>
-        </a>
-        <button class="sidebar-link js-logout w-full text-left">
-          <i class="fa-solid fa-right-from-bracket"></i><span class="label">Sign out</span>
-        </button>
-        <div class="text-[10px] text-slate-400 label pt-1">v1.0 • © AlgoHive</div>
+      <nav class="px-2 py-2 space-y-1 overflow-y-auto">
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700 font-medium bg-[var(--olive-100)]/70"><i class="fa-solid fa-gauge"></i> Overview</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-chart-line"></i> Strategies</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-wallet"></i> Portfolio</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-newspaper"></i> Feed</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-black/5 text-slate-700"><i class="fa-solid fa-gear"></i> Settings</a>
+      </nav>
+      <div class="mt-auto p-3">
+        <div class="card p-3 flex items-center gap-3">
+          <img id="avatar" src="" alt="" class="h-9 w-9 rounded-full bg-slate-100 object-cover"/>
+          <div class="min-w-0">
+            <div id="userName" class="truncate text-sm font-semibold">Guest</div>
+            <div id="userEmail" class="truncate text-xs text-slate-500">—</div>
+          </div>
+          <button class="ml-auto pill" onclick="alert('Sign out')"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
+        </div>
       </div>
     </aside>
 
-    <!-- MAIN (scaled to fit, no scroll) -->
-    <main class="flex-1 h-full overflow-hidden relative" id="dashboardRoot">
-      <div id="fitRoot">
-        <div id="fitStage">
-          <!-- Topbar -->
-          <section class="glass topbar flex items-center z-20">
-            <div class="max-w-7xl mx-auto px-6 h-full w-full flex items-center gap-3 relative">
-              <div class="text-sm text-slate-600">Dashboard</div>
-
-              <div class="flex items-center gap-2 flex-1">
-                <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white">
-                  <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
-                  <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
-                </div>
-
-                <!-- Right actions -->
-                <div id="topbar-actions" class="ml-auto flex items-center gap-3">
-                  <button id="exportBtn" class="border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
-                    <i class="fa-solid fa-file-arrow-down mr-2"></i>Export Fact Sheet
-                  </button>
-                  <img id="userAvatarImg"
-                       src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/avatars/514e9e9c-9736-42f7-81a5-dddb4f165257/avatar_1758194395035.png"
-                       alt="Profile" class="h-9 w-9 rounded-full border object-cover" />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- PRINT HEADER (hidden on screen, shown in print/pdf) -->
-          <div class="print-header hidden items-center justify-between px-6 py-4">
-            <div class="flex items-center gap-3">
-              <img src="https://dummyimage.com/140x40/0f172a/ffffff&text=AlgoHive" alt="Algohive" class="h-8">
-              <div class="text-xs text-slate-500">Fact Sheet • Generated on <span id="printDate"></span></div>
-            </div>
-            <div class="text-sm">mih@algohive • Dashboard Summary</div>
-          </div>
-
-          <!-- PAGE SHELL (all content) -->
-          <div class="max-w-7xl mx-auto px-6 page-shell" id="sheetArea">
-            <!-- Greeting -->
-            <section class="pt-6">
-              <div class="flex items-center">
-                <div>
-                  <h1 id="greet" class="text-[28px] leading-tight font-semibold">Good morning</h1>
-                  <p class="text-sm text-slate-600">Your strategy-driven performance, risk and activity at a glance.</p>
-                </div>
-              </div>
-            </section>
-
-            <!-- Content Grid -->
-            <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <!-- LEFT COLUMN -->
-              <div class="lg:col-span-8 xl:col-span-9 space-y-6">
-
-                <!-- EQUITY CURVE -->
-                <div class="card p-5">
-                  <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    <div>
-                      <div class="text-sm text-slate-600">Equity Curve — <span id="eqStratName" class="font-medium">—</span></div>
-                      <div class="flex items-center gap-2">
-                        <div id="eqValue" class="text-2xl font-semibold num">R —</div>
-                        <span id="eqDelta" class="chip bg-green-50 text-green-700">+0.0%</span>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-2 eq-controls" id="eqTabs">
-                      <button class="tab-btn active" data-range="1M">1M</button>
-                      <button class="tab-btn" data-range="3M">3M</button>
-                      <button class="tab-btn" data-range="6M">6M</button>
-                      <button class="tab-btn" data-range="YTD">YTD</button>
-                      <button class="tab-btn" data-range="1Y">1Y</button>
-                      <button class="tab-btn" data-range="3Y">3Y</button>
-                    </div>
-                  </div>
-
-                  <div id="eqWrap" class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
-                    <svg id="eqSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
-                    <div id="eqTip" class="eq-tip hidden"></div>
-                  </div>
-
-                  <div id="eqLegend" class="flex flex-wrap items-center gap-2 mt-3 text-xs"></div>
-
-                  <div class="mt-3 flex justify-end">
-                    <button id="addBenchBtn" class="no-print border rounded-lg h-9 px-3 bg-white hover:bg-slate-50">
-                      <i class="fa-solid fa-plus mr-2"></i>Add Benchmark
-                    </button>
-                  </div>
-                </div>
-
-                <!-- PERFORMANCE SUMMARY -->
-                <div class="card p-5">
-                  <div class="font-semibold mb-3">Performance Summary — <span id="sumStratName">—</span></div>
-                  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Best Day</div><div id="sumBest" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Worst Day</div><div id="sumWorst" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Daily Return</div><div id="sumAvg" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Positive Days</div><div id="sumPos" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trading Days</div><div id="sumDays" class="font-semibold">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">CAGR (sim.)</div><div id="sumCagr" class="font-semibold">—</div></div>
-                  </div>
-                </div>
-
-                <!-- MONTHLY PERFORMANCE -->
-                <div class="card p-5">
-                  <div class="flex items-center justify-between mb-3">
-                    <div class="font-semibold">Monthly Performance — <span id="mpStratName">—</span></div>
-                    <div class="flex items-center gap-2">
-                      <label class="text-xs text-slate-500">Strategy</label>
-                      <select id="stratSel" class="border rounded-lg text-sm px-2 py-1"></select>
-                      <label class="text-xs text-slate-500 ml-3">Year</label>
-                      <select id="yearSel" class="border rounded-lg text-sm px-2 py-1"></select>
-                    </div>
-                  </div>
-
-                  <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
-                    <svg id="stratChart" viewBox="0 0 900 260" class="w-full h-full"></svg>
-                    <div id="stratTip" class="eq-tip hidden"></div>
-                  </div>
-                  <div class="flex items-center justify-between mt-2 text-xs text-slate-600">
-                    <div>Monthly returns (selected year)</div>
-                    <div class="flex items-center gap-3">
-                      <span class="inline-flex items-center gap-1"><span class="w-3 h-2 inline-block rounded-sm bg-emerald-500"></span>Gain</span>
-                      <span class="inline-flex items-center gap-1"><span class="w-3 h-2 inline-block rounded-sm bg-rose-500"></span>Loss</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- DAILY PERFORMANCE CAL -->
-                <div class="card p-5">
-                  <div class="flex items-center justify-between mb-3">
-                    <div class="font-semibold">Daily Performance — <span id="calMonth"></span> — <span id="dpStratName">—</span></div>
-                    <div class="flex items-center gap-2">
-                      <label class="text-xs text-slate-500">Month</label>
-                      <select id="dpMonth" class="border rounded-lg text-sm px-2 py-1"></select>
-                      <label class="text-xs text-slate-500">Year</label>
-                      <select id="dpYear" class="border rounded-lg text-sm px-2 py-1"></select>
-                      <div class="cal-legend text-xs text-slate-500 ml-3 hidden md:flex items-center gap-2">
-                        <span style="background:#fee2e2"></span> -2% &nbsp;
-                        <span style="background:#fde68a"></span> 0% &nbsp;
-                        <span style="background:#dcfce7"></span> +2%
-                      </div>
-                    </div>
-                  </div>
-                  <div class="cal-grid" id="calGrid"></div>
-                </div>
-
-                <!-- HOLDINGS -->
-                <div class="card">
-                  <div class="px-5 py-4 border-b flex items-center justify-between">
-                    <div class="font-semibold">Holdings — <span id="holdStratName">—</span></div>
-                    <div class="text-xs text-slate-500">Breakdown for selected scope</div>
-                  </div>
-                  <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                      <thead class="text-slate-600">
-                        <tr>
-                          <th class="text-left px-5 py-3">Instrument</th>
-                          <th class="text-right px-5 py-3">Weight</th>
-                          <th class="text-right px-5 py-3">Value</th>
-                        </tr>
-                      </thead>
-                      <tbody id="holdingsBody" class="divide-y"></tbody>
-                      <tfoot class="bg-slate-50">
-                        <tr>
-                          <td class="px-5 py-3 font-semibold">Total</td>
-                          <td id="holdingsWeightTot" class="px-5 py-3 text-right font-semibold">—</td>
-                          <td id="holdingsValTot" class="px-5 py-3 text-right font-semibold">—</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <!-- RIGHT COLUMN -->
-              <aside class="lg:col-span-4 xl:col-span-3 space-y-6 aside-rail">
-                <!-- My Strategies -->
-                <div class="card p-5">
-                  <div class="flex items-center justify-between mb-3">
-                    <div class="font-semibold">My Strategies</div>
-                    <a href="/open-strategies.html" class="text-sm text-[var(--olive-700)] hover:underline">View OpenStrategies</a>
-                  </div>
-                  <div id="subsWrap" class="flex flex-col gap-3 max-h-72 overflow-y-auto"></div>
-                </div>
-
-                <!-- Account snapshot -->
-                <div class="card p-5">
-                  <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Total Balance</div><div id="acctBal" class="font-semibold num">—</div></div>
-                    <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Cash Available</div><div id="acctCash" class="font-semibold num">—</div></div>
-                  </div>
-                </div>
-
-                <!-- Strategy Rating -->
-                <div class="card p-5">
-                  <div class="font-semibold mb-3">Strategy Rating — <span id="prStratName">—</span></div>
-                  <div class="flex items-center gap-4">
-                    <svg id="ratingGauge" viewBox="0 0 160 160" class="h-36 w-36"></svg>
-                    <div>
-                      <div id="ratingText" class="text-lg font-semibold">—</div>
-                      <div class="text-xs text-slate-500">Overall rating performance</div>
-                      <div class="mt-2">
-                        <span id="ratingDeltaChip" class="chip bg-green-50 text-green-700">+0.0%</span>
-                        <span class="text-xs text-slate-500 ml-1">From last year</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Financial Health (STATIC) -->
-                <div class="card p-5">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="font-semibold">Financial Health</div>
-                    <button id="healthCta" class="text-[var(--olive-700)] text-sm hover:underline">View Financial Tracker</button>
-                  </div>
-
-                  <div class="flex items-center justify-between mb-2">
-                    <div>
-                      <div class="text-xs text-slate-500">Health Score</div>
-                      <div id="healthScore" class="text-lg font-semibold">—</div>
-                    </div>
-                    <div id="healthBadge" class="chip bg-green-50 text-green-700">Stable</div>
-                  </div>
-
-                  <div class="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                    <div id="healthBar" class="h-2 rounded-full"
-                      style="width:0%; background: linear-gradient(90deg,#000000,#111827 30%, var(--olive) 100%);"></div>
-                  </div>
-
-                  <p class="mt-3 text-xs text-slate-500">Based on your AlgoWealth Profile</p>
-                </div>
-
-                <!-- Asset Allocation -->
-                <div class="card">
-                  <div class="px-5 py-4 border-b font-semibold">Asset Allocation — <span id="aaStratName">—</span></div>
-                  <div id="allocBars" class="p-5 space-y-4"></div>
-                </div>
-
-                <!-- Fee Breakdown -->
-                <div class="card p-5">
-                  <div class="font-semibold mb-3">Fee Breakdown — <span id="fbStratName">—</span></div>
-                  <div class="mb-3">
-                    <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
-                      <div id="feeMgmt" class="h-3 float-left" style="background:#0f172a;width:0%"></div>
-                      <div id="feePerf" class="h-3 float-left" style="background:#556B2F;width:0%"></div>
-                      <div id="feeBrok" class="h-3 float-left" style="background:#94a3b8;width:0%"></div>
-                      <div id="feeSlip" class="h-3 float-left" style="background:#f59e0b;width:0%"></div>
-                    </div>
-                    <div class="text-xs text-slate-500 mt-1">Proportions relative to gross profits</div>
-                  </div>
-                  <table class="w-full text-sm">
-                    <thead class="text-slate-500">
-                      <tr>
-                        <th class="text-left py-2">Type</th>
-                        <th class="text-right py-2">Rate</th>
-                        <th class="text-right py-2">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody id="feeRows" class="divide-y"></tbody>
-                  </table>
-                </div>
-              </aside>
-            </section>
-          </div>
-          <!-- /PAGE SHELL -->
+    <!-- Drawer (mobile) -->
+    <div id="drawer" class="lg:hidden fixed inset-0 z-40 hidden">
+      <div class="absolute inset-0 bg-black/40" onclick="toggleDrawer(false)"></div>
+      <aside class="absolute left-0 top-0 h-full w-72 bg-white border-r border-black/10 p-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-semibold">Menu</div>
+          <button class="pill" onclick="toggleDrawer(false)"><i class="fa-solid fa-xmark"></i> Close</button>
         </div>
-      </div>
-    </main>
+        <nav class="space-y-1">
+          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Overview</a>
+          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Strategies</a>
+          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Portfolio</a>
+          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Feed</a>
+          <a href="#" class="block px-3 py-2 rounded-lg hover:bg-black/5">Settings</a>
+        </nav>
+      </aside>
+    </div>
+
+    <!-- Main area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Topbar -->
+      <header class="h-16 shrink-0 bg-white border-b border-black/10 px-4 md:px-6 flex items-center gap-3">
+        <button class="lg:hidden pill" onclick="toggleDrawer(true)"><i class="fa-solid fa-bars"></i> Menu</button>
+        <div class="hidden sm:flex items-center gap-2 text-sm text-slate-500">
+          <span class="pill"><i class="fa-regular fa-circle-check"></i> Live</span>
+          <span class="pill"><i class="fa-regular fa-clock"></i> 100% Uptime</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+          <input id="globalSearch" class="w-52 sm:w-64 md:w-80 rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--olive)]" placeholder="Search…"/>
+          <button class="pill"><i class="fa-regular fa-bell"></i> Alerts</button>
+        </div>
+      </header>
+
+      <!-- Content: scrolls vertically only -->
+      <main class="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-6">
+        <!-- KPI row -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="card p-4">
+            <div class="text-xs text-slate-500">Total Equity</div>
+            <div id="kpiEquity" class="text-2xl font-bold mt-1">—</div>
+            <div class="mt-2 text-xs text-slate-500">No data found</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-slate-500">24h P/L</div>
+            <div id="kpiPL" class="text-2xl font-bold mt-1">—</div>
+            <div class="mt-2 text-xs text-slate-500">No data found</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-slate-500">Open Positions</div>
+            <div id="kpiOpen" class="text-2xl font-bold mt-1">—</div>
+            <div class="mt-2 text-xs text-slate-500">No data found</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-slate-500">Drawdown</div>
+            <div id="kpiDD" class="text-2xl font-bold mt-1">—</div>
+            <div class="mt-2 text-xs text-slate-500">No data found</div>
+          </div>
+        </section>
+
+        <!-- Chart + Right rail -->
+        <section class="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div class="card p-4 xl:col-span-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-semibold">Equity Curve</div>
+              <div class="flex items-center gap-2">
+                <button class="pill">1D</button>
+                <button class="pill">1W</button>
+                <button class="pill">1M</button>
+                <button class="pill">YTD</button>
+                <button class="pill">ALL</button>
+              </div>
+            </div>
+            <!-- Simple SVG line as placeholder (no external libs) -->
+            <div class="mt-3">
+              <svg viewBox="0 0 600 220" class="w-full h-48">
+                <defs>
+                  <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#8fb28b" stop-opacity="0.7"/>
+                    <stop offset="100%" stop-color="#8fb28b" stop-opacity="0.1"/>
+                  </linearGradient>
+                </defs>
+                <rect x="0" y="0" width="600" height="220" fill="#f6f8f9"/>
+                <path d="M0,180 C80,150 120,170 200,120 C280,70 320,120 400,90 C480,60 520,110 600,80" fill="none" stroke="#556B2F" stroke-width="3"/>
+                <path d="M0,220 L0,180 C80,150 120,170 200,120 C280,70 320,120 400,90 C480,60 520,110 600,80 L600,220 Z" fill="url(#grad)"/>
+              </svg>
+              <p class="text-xs text-slate-500 text-center">No data found — connect data source to render live chart.</p>
+            </div>
+          </div>
+
+          <div class="card p-4">
+            <div class="font-semibold">Activity</div>
+            <ul id="activity" class="mt-3 space-y-3 max-h-60 overflow-y-auto pr-1">
+              <li class="text-sm text-slate-500">No data found</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Tables -->
+        <section class="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div class="card p-4">
+            <div class="flex items-center justify-between">
+              <div class="font-semibold">Open Positions</div>
+              <button class="pill" onclick="alert('Export CSV soon')"><i class="fa-regular fa-file-lines"></i> Export</button>
+            </div>
+            <div class="mt-3 overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="text-left text-slate-500">
+                  <tr>
+                    <th class="py-2 pr-4">Symbol</th>
+                    <th class="py-2 pr-4">Side</th>
+                    <th class="py-2 pr-4">Size</th>
+                    <th class="py-2 pr-4">P/L</th>
+                  </tr>
+                </thead>
+                <tbody id="tblOpen">
+                  <tr>
+                    <td colspan="4" class="py-6 text-center text-slate-500">No data found</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card p-4">
+            <div class="flex items-center justify-between">
+              <div class="font-semibold">Strategies</div>
+              <div class="flex items-center gap-2">
+                <button class="pill"><i class="fa-regular fa-star"></i> Watchlist</button>
+                <button class="pill"><i class="fa-solid fa-filter"></i> Filter</button>
+              </div>
+            </div>
+            <div id="strategies" class="mt-3 grid sm:grid-cols-2 gap-3">
+              <!-- Placeholder card -->
+              <div class="p-3 rounded-xl border border-dashed border-black/10 text-sm text-slate-500">No data found</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   </div>
 
-  <!-- Popover Portal (Benchmarks) -->
-  <div id="benchPortal"></div>
+  <script>
+    // --- Helpers ---
+    const byId = (id) => document.getElementById(id);
 
-  <!-- Supabase & Auth (module) -->
-  <script type="module">
-    import { supabase } from "/js/supabase.js";
-    import { signOut } from "/js/auth.js";
-
-    // ---------- AUTH GATE ----------
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const next = encodeURIComponent(location.pathname + location.search);
-      location.replace(`/auth.html?redirect=${next}`);
-      throw new Error("Redirecting to auth...");
+    function toggleDrawer(open){
+      const el = byId('drawer');
+      if(!el) return;
+      el.classList.toggle('hidden', !open);
     }
 
-    supabase.auth.onAuthStateChange((_event, sess) => {
-      if (!sess) {
-        const next = encodeURIComponent(location.pathname + location.search);
-        location.replace(`/auth.html?redirect=${next}`);
-      }
+    // Prevent horizontal scroll anywhere
+    window.addEventListener('resize', () => {
+      document.body.style.overflowX = 'hidden';
+      document.documentElement.style.overflowX = 'hidden';
     });
+    document.body.style.overflowX = 'hidden';
+    document.documentElement.style.overflowX = 'hidden';
 
-    // ---------- USER PROFILE HYDRATION ----------
-    const user = session.user;
+    // --- Demo: Safe defaults for avatar + name ---
+    const avatarUrl = '';
+    const firstName = '';
+    const lastName = '';
+    const email = '';
 
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select('*')
-      .eq("id", user.id)
-      .maybeSingle();
+    const avatarEl = byId('avatar');
+    const nameEl = byId('userName');
+    const emailEl = byId('userEmail');
 
-    const displayName =
-      profileRow?.full_name ||
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      user.email.split("@")[0];
-
-    const initials = (displayName || user.email)
-      .trim().split(/\s+/).map(s => s[0]).slice(0, 2).join("").toUpperCase();
-
-    const uiAvatar = (ini) =>
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(ini)}&background=0f172a&color=fff&rounded=true&size=64`;
-
-    const preferredAvatar =
-      profileRow?.avatar_url ||
-      user.user_metadata?.avatar_url ||
-      uiAvatar(initials);
-
-    const greetEl = document.getElementById("greet");
-    if (greetEl) {
-      const h = new Date().getHours();
-      const t = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-      greetEl.textContent = `${t}, ${displayName}`;
+    // Fallback image: initials graphic
+    function initialsSVG(name){
+      const initials = (name||'GU').split(' ').map(s=>s[0]?.toUpperCase()).slice(0,2).join('') || 'GU';
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
+        <rect width='100%' height='100%' fill='#ecf4e6'/>
+        <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='Inter' fill='#3e4f23'>${initials}</text>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
-    const avatarImg = document.getElementById("userAvatarImg");
-    if (avatarImg) {
-      avatarImg.setAttribute("referrerpolicy", "no-referrer");
-      avatarImg.src = preferredAvatar;
+    // Apply safe data
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'Guest User';
+    nameEl.textContent = fullName;
+    emailEl.textContent = email || 'guest@example.com';
+    avatarEl.src = avatarUrl || initialsSVG(fullName);
+    avatarEl.alt = fullName;
 
-      avatarImg.onerror = () => {
-        avatarImg.onerror = () => {
-          const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
-            <rect fill='#0f172a' width='100%' height='100%' rx='6' ry='6'/>
-            <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
-                  fill='white' font-family='Inter,Arial' font-size='24' font-weight='700'>${initials}</text>
-          </svg>`;
-          avatarImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-        };
-        avatarImg.src = uiAvatar(initials);
-      };
+    // --- Example: how to push real data safely ---
+    // setKPIs({equity:"$0.00", pl:"$0.00", open:0, dd:"0%"})
+    function setKPIs({equity, pl, open, dd}){
+      byId('kpiEquity').textContent = equity ?? '—';
+      byId('kpiPL').textContent = pl ?? '—';
+      byId('kpiOpen').textContent = open ?? '—';
+      byId('kpiDD').textContent = dd ?? '—';
     }
 
-    const printHdr = document.querySelector(".print-header .text-sm");
-    if (printHdr) printHdr.textContent = `${user.email} • Dashboard Summary`;
-
-    // Attach logout to inline menu
-    document.querySelector(".js-logout")?.addEventListener("click", async () => {
-      try { await signOut(); } catch {}
-      location.href = "/auth.html";
-    });
-  </script>
-
-  <!-- No-data placeholders -->
-  <script>
-    (function () {
-      function setNoDataPlaceholders(msg = 'No data found') {
-        const eqSvg = document.getElementById('eqSvg'); if (eqSvg) eqSvg.innerHTML = `<text x="450" y="160" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
-        const eqLegend = document.getElementById('eqLegend'); if (eqLegend) eqLegend.innerHTML = '';
-        const eqValue = document.getElementById('eqValue'); if (eqValue) eqValue.textContent = msg;
-        const eqDelta = document.getElementById('eqDelta'); if (eqDelta) eqDelta.textContent = '—';
-        ['mRet', 'mDD', 'mSharpe', 'mWin', 'mVol'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = msg; });
-
-        ['sumBest', 'sumWorst', 'sumAvg', 'sumPos', 'sumDays', 'sumCagr'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = msg; });
-
-        const stratChart = document.getElementById('stratChart');
-        if (stratChart) stratChart.innerHTML = `<text x="450" y="130" text-anchor="middle" fill="#94a3b8" font-size="14">${msg}</text>`;
-
-        const calMonth = document.getElementById('calMonth'); if (calMonth) calMonth.textContent = '';
-        const calGrid = document.getElementById('calGrid'); if (calGrid) calGrid.innerHTML = `<div class="col-span-7 text-center py-10 text-slate-500">${msg}</div>`;
-
-        const hb = document.getElementById('holdingsBody'); if (hb) hb.innerHTML = `<tr><td colspan="3" class="px-5 py-6 text-center text-slate-500">${msg}</td></tr>`;
-        const hwt = document.getElementById('holdingsWeightTot'); if (hwt) hwt.textContent = '—';
-        const hvt = document.getElementById('holdingsValTot'); if (hvt) hvt.textContent = '—';
-
-        const gauge = document.getElementById('ratingGauge'); if (gauge) gauge.innerHTML = `<text x="80" y="84" text-anchor="middle" fill="#94a3b8" font-size="12">${msg}</text>`;
-        const rt = document.getElementById('ratingText'); if (rt) rt.textContent = msg;
-        const rc = document.getElementById('ratingDeltaChip'); if (rc) rc.textContent = '—';
-
-        const alloc = document.getElementById('allocBars'); if (alloc) alloc.innerHTML = `<div class="text-center text-slate-500 py-6">${msg}</div>`;
-
-        ['feeMgmt', 'feePerf', 'feeBrok', 'feeSlip'].forEach(id => { const el = document.getElementById(id); if (el) el.style.width = '0%'; });
-        const feeRows = document.getElementById('feeRows');
-        if (feeRows) feeRows.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-500">${msg}</td></tr>`;
-
-        const subsWrap = document.getElementById('subsWrap'); if (subsWrap) subsWrap.innerHTML = `<div class="text-center text-slate-500 py-6 border rounded-xl">${msg}</div>`;
-
-        document.querySelectorAll('.tab-btn, #addBenchBtn, #exportBtn, #stratSel, #yearSel, #dpMonth, #dpYear')
-          .forEach(el => { if (el) { el.disabled = true; el.classList.add('opacity-60', 'pointer-events-none'); } });
+    // setActivity(["Connected IBKR","No trades yet"]) 
+    function setActivity(items){
+      const ul = byId('activity');
+      ul.innerHTML = '';
+      if(!items || !items.length){
+        ul.innerHTML = '<li class="text-sm text-slate-500">No data found</li>';
+        return;
       }
-
-      const shouldShowNoData = (window.__NO_DATA__ !== false);
-      function run() { if (shouldShowNoData) setNoDataPlaceholders(); }
-      if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', run); } else { run(); }
-    })();
-  </script>
-
-  <!-- Auto-fit: scale dashboard to EXACTLY fill viewport area (no scroll) -->
-  <script>
-    (function () {
-      const root = document.getElementById('fitRoot');
-      const stage = document.getElementById('fitStage');
-      if (!root || !stage) return;
-
-      function fit() {
-        stage.style.transform = 'none';
-        stage.style.position = 'static';
-
-        const rect = stage.getBoundingClientRect();
-        const naturalW = Math.max(stage.scrollWidth, rect.width || 1);
-        const naturalH = Math.max(stage.scrollHeight, rect.height || 1);
-
-        const vw = root.clientWidth || 1;
-        const vh = root.clientHeight || 1;
-
-        const scale = Math.min(vw / naturalW, vh / naturalH);
-
-        const scaledW = naturalW * scale;
-        const offsetX = (vw - scaledW) / 2;
-
-        stage.style.position = 'absolute';
-        stage.style.left = '0';
-        stage.style.top = '0';
-        stage.style.transform = `translateX(${offsetX}px) scale(${scale})`;
-      }
-
-      window.addEventListener('resize', fit, { passive: true });
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', fit);
-      } else {
-        fit();
-      }
-    })();
-  </script>
-
-  <!-- Sidebar builder (inline, no partials) -->
-  <script>
-    function buildMenuFixed(defaultKey = "dashboard") {
-      const navContainer = document.getElementById("navContainer");
-      if (!navContainer) return;
-
-      const path = location.pathname.replace(/\/+$/, "");
-      const items = [
-        { key: "dashboard",       label: "Dashboard",        icon: "fa-gauge",           href: "/dashboard.html" },
-        { key: "open-strategies", label: "Open Strategies",  icon: "fa-cubes",           href: "/open-strategies.html" },
-        { key: "portfolio",       label: "My Portfolio",     icon: "fa-chart-line",      href: "/portfolio.html" },
-        { key: "funding",         label: "Funding",          icon: "fa-wallet",          href: "/funding.html" },
-        { key: "reports",         label: "Reports",          icon: "fa-file-invoice",    href: "/reports.html" },
-        { key: "news",            label: "News & Insights",  icon: "fa-newspaper",       href: "/news.html" },
-        { key: "alerts",          label: "Notifications",    icon: "fa-bell",            href: "/alerts.html" },
-        { key: "settings",        label: "Settings",         icon: "fa-gear",            href: "/settings.html" },
-        { key: "help",            label: "Help Desk",        icon: "fa-circle-question", href: "/help.html" },
-        { key: "integration",     label: "Integration",      icon: "fa-plug",            href: "/integrations.html" },
-        { key: "feedback",        label: "Feedback",         icon: "fa-comment-dots",    href: "/feedback.html" },
-      ];
-
-      const activeKey = items.find(i => i.href.replace(/\/+$/, "") === path)?.key || defaultKey;
-
-      navContainer.innerHTML = `
-        <nav class="space-y-2 px-1">
-          ${items.map(it => `
-            <a href="${it.href}"
-               class="sidebar-link ${it.key === activeKey ? "active bg-[var(--olive-100)] border border-[var(--olive)]" : ""}"
-               title="${it.label}">
-              <i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>
-            </a>
-          `).join("")}
-        </nav>
-      `;
-
-      const sidebar = document.getElementById("sidebar");
-      const collapseBtn = document.getElementById("collapseBtn");
-      if (sidebar && collapseBtn) {
-        const apply = (c) => {
-          sidebar.classList.toggle("is-collapsed", c);
-          collapseBtn.innerHTML = c
-            ? '<i class="fa-solid fa-angles-right text-sm"></i>'
-            : '<i class="fa-solid fa-angles-left text-sm"></i>';
-        };
-        let collapsed = false;
-        try { collapsed = sessionStorage.getItem("ah_sidebar_collapsed") === "1"; } catch {}
-        apply(collapsed);
-        collapseBtn.onclick = () => {
-          collapsed = !collapsed; apply(collapsed);
-          try { sessionStorage.setItem("ah_sidebar_collapsed", collapsed ? "1" : "0"); } catch {}
-        };
-      }
+      items.forEach(t => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2';
+        li.innerHTML = `<span class='pill'><i class='fa-regular fa-clock'></i></span><div class='text-sm'>${t}</div>`;
+        ul.appendChild(li);
+      });
     }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => buildMenuFixed("dashboard"));
-    } else {
-      buildMenuFixed("dashboard");
+    // setOpenPositions([...])
+    function setOpenPositions(rows){
+      const tbody = byId('tblOpen');
+      tbody.innerHTML = '';
+      if(!rows || !rows.length){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan='4' class='py-6 text-center text-slate-500'>No data found</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class='py-2 pr-4'>${r.symbol}</td>
+          <td class='py-2 pr-4'>${r.side}</td>
+          <td class='py-2 pr-4'>${r.size}</td>
+          <td class='py-2 pr-4 ${Number(r.pl) < 0 ? 'text-red-600' : 'text-emerald-600'}'>${r.pl}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // setStrategies([...])
+    function setStrategies(list){
+      const wrap = document.getElementById('strategies');
+      wrap.innerHTML = '';
+      if(!list || !list.length){
+        wrap.innerHTML = `<div class='p-3 rounded-xl border border-dashed border-black/10 text-sm text-slate-500'>No data found</div>`;
+        return;
+      }
+      list.forEach(s => {
+        const el = document.createElement('div');
+        el.className = 'card p-3';
+        el.innerHTML = `
+          <div class='flex items-start justify-between gap-2'>
+            <div>
+              <div class='font-semibold'>${s.name}</div>
+              <div class='text-xs text-slate-500'>${s.provider || '—'}</div>
+            </div>
+            <span class='pill'><i class='fa-solid fa-percent'></i> ${s.return ?? '—'}</span>
+          </div>
+          <div class='mt-3 text-sm text-slate-600'>${s.note || 'No description'}</div>
+          <div class='mt-3 flex items-center gap-2'>
+            <button class='pill'><i class='fa-regular fa-star'></i> Follow</button>
+            <button class='pill'><i class='fa-solid fa-arrow-trend-up'></i> Allocate</button>
+          </div>`;
+        wrap.appendChild(el);
+      });
     }
   </script>
 </body>
