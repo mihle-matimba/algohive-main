@@ -423,62 +423,64 @@
   </div>
 
   <!-- ===== Behavior ===== -->
-  <script>
-    // sidebar collapse memory
-    (function () {
-      const layout = document.getElementById('layout');
-      const aside = document.getElementById('ah-sidebar');
-      const btn = document.getElementById('ah-collapse');
-      const saved = localStorage.getItem('ah_collapsed') === 'true';
-      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
-      btn.addEventListener('click', () => {
-        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
-        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
-        aside.setAttribute('data-collapsed', String(!isCollapsed));
-        layout.classList.toggle('is-collapsed', !isCollapsed);
-        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+  <!-- ===== Behavior (non-module) ===== -->
+<script>
+  // Sidebar collapse memory
+  (function () {
+    const layout = document.getElementById('layout');
+    const aside = document.getElementById('ah-sidebar');
+    const btn = document.getElementById('ah-collapse');
+    const saved = localStorage.getItem('ah_collapsed') === 'true';
+    if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+    btn?.addEventListener('click', () => {
+      const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+      if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+      aside.setAttribute('data-collapsed', String(!isCollapsed));
+      layout.classList.toggle('is-collapsed', !isCollapsed);
+      localStorage.setItem('ah_collapsed', String(!isCollapsed));
+    });
+  })();
+
+  // ===== Hash-aware tab switcher (+ #kyc alias) =====
+  (function(){
+    const nav = document.getElementById('settings-nav');
+    const links = Array.from(nav.querySelectorAll('a[data-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-panel]'));
+
+    function show(tab){
+      links.forEach(a=>{
+        const active = a.dataset.tab === tab;
+        a.classList.toggle('bg-slate-100', active);
+        a.classList.toggle('text-slate-800', active);
+        a.classList.toggle('text-slate-700', !active);
       });
-    })();
+      panels.forEach(p=>p.classList.toggle('hidden', p.dataset.panel !== tab));
+      const el = document.getElementById(tab);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
-    // ===== Hash-aware tab switcher (+ #kyc alias) =====
-    (function(){
-      const nav = document.getElementById('settings-nav');
-      const links = Array.from(nav.querySelectorAll('a[data-tab]'));
-      const panels = Array.from(document.querySelectorAll('[data-panel]'));
+    function normalizeHash(h){
+      const id = (h.startsWith('#') ? h.slice(1) : h).toLowerCase();
+      return (id === 'kyc') ? 'docs' : id; // alias
+    }
 
-      function show(tab){
-        links.forEach(a=>{
-          const active = a.dataset.tab === tab;
-          a.classList.toggle('bg-slate-100', active);
-          a.classList.toggle('text-slate-800', active);
-          a.classList.toggle('text-slate-700', !active);
-        });
-        panels.forEach(p=>p.classList.toggle('hidden', p.dataset.panel !== tab));
-        const el = document.getElementById(tab);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+    function parseHash(){
+      const id = normalizeHash((location.hash || '').trim() || '#basic');
+      const allowed = new Set(links.map(a=>a.dataset.tab));
+      return allowed.has(id) ? id : 'basic';
+    }
 
-      function normalizeHash(h){
-        const id = (h.startsWith('#') ? h.slice(1) : h).toLowerCase();
-        return (id === 'kyc') ? 'docs' : id; // alias
-      }
+    window.addEventListener('hashchange', ()=> show(parseHash()));
+    show(parseHash());
+  })();
+</script>
 
-      function parseHash(){
-        const id = normalizeHash((location.hash || '').trim() || '#basic');
-        const allowed = new Set(links.map(a=>a.dataset.tab));
-        return allowed.has(id) ? id : 'basic';
-      }
 
-      window.addEventListener('hashchange', ()=> show(parseHash()));
-      show(parseHash());
-    })();
-  </script>
-
-  <!-- ===== Supabase integration ===== -->
+<!-- ===== Supabase + Gating (module) ===== -->
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // ---------- helpers ----------
+  // ---------- toast banner ----------
   function banner(msg, tone="warn"){
     let el=document.getElementById("banner");
     if(!el){
@@ -496,6 +498,7 @@
     el._t = setTimeout(()=>el.remove(), 4000);
   }
 
+  // ---------- profile helpers ----------
   const REQUIRED_FIELDS = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
   function computeProfileComplete(row){
     return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0);
@@ -511,7 +514,7 @@
     return up.data;
   }
 
-  // KYC utilities
+  // ---------- KYC helpers ----------
   function resolveKycBoolean(row) {
     const v = row?.kyc_status;
     if (typeof v === "boolean") return v;
@@ -549,7 +552,7 @@
     return "/kyc/start";
   }
 
-  // ---------- route guard ----------
+  // ---------- auth guard ----------
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -560,9 +563,9 @@
   // ---------- hydrate ----------
   const row = await ensureProfile(user.id, user.email || null);
 
-  // header bits
+  // email + account no
   const emailInput  = document.getElementById("email");
-  emailInput.value = user.email || "";
+  if (emailInput) emailInput.value = user.email || "";
   const acct = row?.account_number || "949915944";
   document.getElementById("acc-number").textContent = acct;
   document.getElementById("sidebar-acc").textContent = acct;
@@ -609,46 +612,62 @@
   const fallback = user.email?.split("@")[0] || "User";
   document.getElementById("hdr-name").textContent = (fn||ln) ? `${fn} ${ln}`.trim() : fallback;
 
-  // KYC
+  // KYC state
   let kycDone = resolveKycBoolean(row);
   setKycState(kycDone);
 
-  // ---------- gating (Profile + KYC) ----------
+  // ---------- gating (profile + kyc) ----------
   let profileComplete = computeProfileComplete(row);
-  const allowedTabsWhenGated = new Set(["extra","docs"]); // allowed even if gated
+  const allowedTabsWhenGated = new Set(["extra","docs"]); // allowed while gated
 
   function isGated(){ return !(profileComplete && kycDone); }
+  function gateReason(){
+    if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+    if (!profileComplete) return "Please finish Additional Info first.";
+    if (!kycDone) return "Please complete KYC first.";
+    return "";
+  }
 
-  // Gate sidebar links + summaries
+  // Disable sidebar items outside Settings when gated
   function lockMainNav(){
     const mainNav = document.getElementById("main-nav");
     if (!mainNav) return;
 
-    // links
+    function preventNav(e){
+      e.preventDefault();
+      banner(gateReason(), "warn");
+      location.hash = !profileComplete ? "#extra" : "#kyc"; // #kyc alias handled by router
+    }
+
+    // 1) links
     mainNav.querySelectorAll('a[href]').forEach(a=>{
-      const href = a.getAttribute("href") || "";
-      const isSettings = /settings\.html/i.test(href) || href.startsWith("#") || href === "";
+      const href = (a.getAttribute("href") || "").trim();
+      const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
       if (isGated() && !isSettings){
         a.classList.add("link-disabled");
+        a.setAttribute("aria-disabled","true");
+        a.title = "Locked until profile + KYC are complete";
         a.addEventListener("click", preventNav, { passive:false });
-      } else {
+      }else{
         a.classList.remove("link-disabled");
+        a.removeAttribute("aria-disabled");
+        a.removeAttribute("title");
         a.removeEventListener("click", preventNav);
       }
     });
 
-    // details summaries (collapse/expand) — keep them usable even when gated,
-    // but block clicks that navigate to children anchors outside settings (handled above).
-    function preventNav(e){
-      e.preventDefault();
-      banner("Please finish Additional Info and complete KYC first.", "warn");
-      // nudge them to KYC tab
-      location.hash = "#kyc";
-    }
+    // 2) summaries: allow toggle but nudge
+    mainNav.querySelectorAll('details > summary').forEach(sum=>{
+      function onSumClick(){
+        if (!isGated()) return;
+        setTimeout(()=>{ banner(gateReason(), "warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }, 0);
+      }
+      sum.removeEventListener("click", onSumClick);
+      sum.addEventListener("click", onSumClick);
+    });
   }
-  lockMainNav();
 
-  // Block switching to disallowed tabs while gated
+  // Block switching to disallowed settings tabs while gated
   const settingsNav = document.getElementById("settings-nav");
   settingsNav.addEventListener("click", (e)=>{
     const a = e.target.closest("a[data-tab]");
@@ -656,10 +675,42 @@
     const tab = a.dataset.tab;
     if (isGated() && !allowedTabsWhenGated.has(tab)){
       e.preventDefault();
-      banner("Finish your profile and KYC first.", "warn");
-      location.hash = "#extra";
+      banner(gateReason(), "warn");
+      location.hash = !profileComplete ? "#extra" : "#kyc";
     }
   });
+
+  // Router enforcement if someone lands deep-linked
+  function enforceSettingsGuard(){
+    if (!isGated()) return;
+    const hash = (location.hash || "#basic").toLowerCase();
+    const wanted = hash.replace(/^#/, "");
+    if (!allowedTabsWhenGated.has(wanted)){
+      const target = !profileComplete ? "#extra" : "#kyc";
+      if (hash !== target){
+        banner(gateReason(), "warn");
+        location.hash = target;
+      }
+    }
+  }
+
+  function refreshGates(){
+    lockMainNav();
+    enforceSettingsGuard();
+  }
+
+  // initial apply
+  lockMainNav();
+  enforceSettingsGuard();
+  window.addEventListener("hashchange", enforceSettingsGuard);
+
+  // Keep kycDone mirror in sync + refresh gates
+  const _origSetKycState = setKycState;
+  setKycState = function(isDone){
+    _origSetKycState(isDone);
+    kycDone = !!isDone;
+    refreshGates();
+  };
 
   // ---------- profile modal ----------
   const hdrProfileBtn = document.getElementById("hdr-profile-btn");
@@ -709,7 +760,7 @@
     const blank = blankAvatar; avPrev.src = blank; hdrAvatar.src = blank; avRemove.classList.add("hidden");
   });
 
-  // ---------- KYC button ----------
+  // ---------- KYC start ----------
   const kycBtnEl = document.getElementById("btn-kyc-start");
   const kycErrEl = document.getElementById("kyc-error");
   kycBtnEl?.addEventListener("click", async ()=>{
@@ -727,7 +778,7 @@
     }
   });
 
-  // ---------- Save additional info ----------
+  // ---------- Save Additional Info ----------
   const extraSave = document.getElementById("save-extra");
   const extraSaved = document.getElementById("extra-saved");
   function setBusy(btn,on,label="Save additional info"){ btn.disabled=on; btn.textContent = on? "Saving…" : label }
@@ -773,27 +824,32 @@
         kycDone = resolveKycBoolean(saved);
         setKycState(kycDone);
       }
-      lockMainNav();
 
       // header name
       const fn = (saved.first_name||"").trim(), ln = (saved.last_name||"").trim();
       const fallback = (user.email||"").split("@")[0] || "User";
       document.getElementById("hdr-name").textContent = (fn||ln) ? `${fn} ${ln}`.trim() : fallback;
 
+      // visual feedback
       extraSaved.classList.remove("hidden");
 
-      // If KYC not done, push to KYC tab (alias supported)
+      // gates
+      refreshGates();
+
+      // route nudge
       if (!kycDone) {
         banner("Saved. Next: please complete KYC.", "warn");
         location.hash = "#kyc"; // alias -> router shows #docs
-        // Optional auto-start:
-        // const url = await getKycUrl(user); if (url) location.href = url;
       } else if (!profileComplete) {
         banner("Saved. Still a few required fields missing.", "warn");
         location.hash = "#extra";
       } else {
         banner("Profile completed — nice! 🎉", "ok");
       }
+
+      // custom event for any external listeners
+      document.dispatchEvent(new Event("ah:profile-saved"));
+
     }catch(e){
       console.error(e);
       banner(e.message || "Save failed", "err");
@@ -803,6 +859,7 @@
   });
 
 </script>
+
 
 </body>
 </html>
