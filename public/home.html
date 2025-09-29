@@ -183,23 +183,22 @@
           </div>
 
           <!-- Accounts (replaces Strategies) -->
-          <div class="card p-5 border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">Accounts</h3>
-              <a href="/settings.html#accounts" class="text-sm text-olive-600 hover:underline">Manage</a>
-            </div>
+<!-- Accounts card (replaces your Strategies card) -->
+<div class="card p-5 border border-slate-200">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-base font-medium text-slate-900">Accounts</h3>
+    <a href="/settings.html#accounts" class="text-sm text-olive-600 hover:underline">Manage</a>
+  </div>
 
-            <div class="space-y-3">
-              <label for="acct-select" class="text-xs text-slate-500">Select account</label>
-              <select id="acct-select" class="h-9 rounded-lg border border-slate-200 px-3 text-sm w-full">
-                <option>Loading…</option>
-              </select>
+  <label class="block text-xs text-slate-500 mb-1.5" for="acct-select">Select account</label>
+  <select id="acct-select" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm">
+    <option>Loading…</option>
+  </select>
 
-              <div id="acct-meta" class="text-xs text-slate-500">
-                — 
-              </div>
-            </div>
-          </div>
+  <div id="acct-meta" class="text-xs text-slate-500 mt-3">—</div>
+  <div id="acct-empty" class="text-xs text-slate-400 mt-2 hidden">No investment accounts yet.</div>
+</div>
+
 
           <!-- Asset class allocation -->
           <div class="card p-5 border border-slate-200">
@@ -537,30 +536,28 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // ---------- tiny helpers ----------
+  // ---------- helpers ----------
   const $ = (q, el=document)=>el.querySelector(q);
   const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
   const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
-  const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+  const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
   const toNums = (x)=>{
-    if (Array.isArray(x)) return x.map(Number).filter(n=>Number.isFinite(n));
+    if (Array.isArray(x)) return x.map(Number).filter(Number.isFinite);
     if (typeof x === 'string' && x.trim()) {
-      try { const arr = JSON.parse(x); return Array.isArray(arr) ? arr.map(Number).filter(Number.isFinite) : []; }
+      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(Number).filter(Number.isFinite):[]; }
       catch { return []; }
     }
     return [];
   };
-  const avatarDataUrl = (nameOrEmail)=>{
-    const s = (nameOrEmail||'').trim();
+  const initialsAvatar = (text)=>{
+    const s = (text||'').trim();
     const initial = (s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
-    const svg = encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72">
-         <rect width="100%" height="100%" rx="8" ry="8" fill="#111827"/>
-         <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
-               font-family="Inter, Arial, sans-serif" font-size="36" fill="#ffffff">${initial}</text>
-       </svg>`
-    );
-    return `data:image/svg+xml;utf8,${decodeURIComponent(svg)}`;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+      <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
+      <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
+            font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
+    </svg>`;
+    return `data:image/svg+xml;utf8,${svg}`;
   };
 
   // ---------- auth ----------
@@ -571,20 +568,36 @@
   }
   const { data:{ user } } = await supabase.auth.getUser();
 
-  // ---------- hydrate header (name + avatar) ----------
-  const meta = user?.user_metadata || {};
-  const fullName = meta.full_name || meta.name || meta.username || '';
-  const email = user?.email || '';
-  const displayName = fullName || email || '—';
-  const avatarUrl = meta.avatar_url || avatarDataUrl(fullName || email);
-  $('#hdr-name').textContent = displayName;
-  $('#pm-email').textContent = email || '—';
-  const img = $('#hdr-avatar'); if (img) img.src = avatarUrl;
+  // ---------- profile (name + avatar) ----------
+  let profile = null;
+  try {
+    // Try explicit profiles table first
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+    if (error) throw error;
+    profile = data || null;
+  } catch (_) {
+    // Fallback to user metadata
+    profile = {
+      full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
+      avatar_url: user?.user_metadata?.avatar_url || ''
+    };
+  }
 
-  // ---------- fetch accounts (robust) ----------
-  const acctSel = $('#acct-select');
+  const name = (profile?.full_name || user?.email || '—').trim();
+  const avatarUrl = profile?.avatar_url || initialsAvatar(name || user?.email);
+  $('#hdr-name').textContent = name || '—';
+  $('#pm-email').textContent = user?.email || '—';
+  const hdrImg = $('#hdr-avatar'); if (hdrImg) hdrImg.src = avatarUrl;
+
+  // ---------- accounts ----------
+  const acctSel  = $('#acct-select');
   const acctMeta = $('#acct-meta');
-  const badge = $('#sidebar-acc');
+  const acctEmpty= $('#acct-empty');
+  const badge    = $('#sidebar-acc');
 
   let accounts = [];
   try {
@@ -594,32 +607,32 @@
       .eq('profile_id', user.id)
       .order('status', { ascending: true })
       .order('updated_at', { ascending: false });
-
     if (error) throw error;
     accounts = data || [];
   } catch (e) {
     console.error('Accounts load failed:', e);
-    if (acctMeta) acctMeta.textContent = `Failed to load accounts: ${e.message ?? e}`;
-    if (acctSel) { acctSel.innerHTML = `<option>—</option>`; acctSel.disabled = true; }
-    // Still init the chart UI so the page isn’t broken:
+    if (acctSel){ acctSel.innerHTML = `<option>Failed to load</option>`; acctSel.disabled = true; }
+    if (acctMeta){ acctMeta.textContent = `Failed to load accounts`; }
     initChartAndUI(null);
+    renderRange('1D');
     return;
   }
 
-  if (!accounts.length) {
+  if (!accounts.length){
     if (acctSel){ acctSel.innerHTML = `<option>—</option>`; acctSel.disabled = true; }
-    if (acctMeta){ acctMeta.textContent = 'No investment accounts yet.'; }
-    if (badge){ badge.textContent = '—'; }
+    acctMeta.textContent = '—';
+    acctEmpty.classList.remove('hidden');
+    if (badge) badge.textContent = '—';
     initChartAndUI(null);
+    renderRange('1D');
     return;
   }
 
-  // prefer ACTIVE, else first
-  let current = accounts.find(a=>a.status === 'ACTIVE') || accounts[0];
+  let current = accounts.find(a=>a.status==='ACTIVE') || accounts[0];
+  if (badge) badge.textContent = current.account_number || '—';
 
-  // fill selector (now in Accounts card)
   const labelFor = (a)=> (a.name && a.name.trim()) ? a.name : `${a.broker} • ${a.account_number}`;
-  const setAcctMeta = (a)=>{
+  const showAcctMeta = (a)=>{
     const sym = symFor(a.currency);
     acctMeta.innerHTML = `
       <div class="flex items-center justify-between">
@@ -629,31 +642,29 @@
       <div class="text-[11px] text-slate-400 mt-0.5">Acct # ${a.account_number}</div>
     `;
   };
-  if (acctSel){
-    acctSel.disabled = false;
-    acctSel.innerHTML = accounts.map(a => `<option value="${String(a.id)}">${labelFor(a)}</option>`).join('');
-    acctSel.value = String(current.id);
-    setAcctMeta(current);
-    acctSel.addEventListener('change', ()=>{
-      const chosen = accounts.find(a => String(a.id) === String(acctSel.value));
-      if (chosen){
-        current = chosen;
-        setAcctMeta(current);
-        if (badge) badge.textContent = current.account_number || '—';
-        renderRange(activeRange);
-      }
-    });
-  }
-  if (badge) badge.textContent = current.account_number || '—';
 
-  // ---------- chart wiring ----------
+  acctSel.disabled = false;
+  acctSel.innerHTML = accounts.map(a=>`<option value="${String(a.id)}">${labelFor(a)}</option>`).join('');
+  acctSel.value = String(current.id);
+  showAcctMeta(current);
+
+  acctSel.addEventListener('change', ()=>{
+    const chosen = accounts.find(a => String(a.id) === String(acctSel.value));
+    if (!chosen) return;
+    current = chosen;
+    showAcctMeta(current);
+    if (badge) badge.textContent = current.account_number || '—';
+    renderRange(activeRange);
+  });
+
+  // ---------- equity chart ----------
   let activeRange = '1D', chart, elUpdated, elVal, elChg, refreshBtn;
 
   function initChartAndUI(seed){
     elUpdated = $('#pf-updated');
-    elVal = $('#pf-value');
-    elChg = $('#pf-change');
-    refreshBtn = $('#pf-refresh');
+    elVal     = $('#pf-value');
+    elChg     = $('#pf-change');
+    refreshBtn= $('#pf-refresh');
 
     const ctx = document.getElementById('pf-chart').getContext('2d');
     const gradient = ctx.createLinearGradient(0,0,0,260);
@@ -669,7 +680,7 @@
         scales:{
           x:{ display:false, grid:{ display:false }},
           y:{ display:true, ticks:{ color:'#94a3b8', autoSkip:true, maxTicksLimit:3,
-            callback:(v)=>`${symFor((seed?.currency)||'USD')}${Number(v).toFixed(2)}` }, grid:{ display:false }}
+            callback:(v)=>`${symFor((seed?.currency)||current?.currency||'USD')}${Number(v).toFixed(2)}` }, grid:{ display:false }}
         }
       }
     });
@@ -726,11 +737,11 @@
     document.querySelectorAll('#portfolio-card .tab')
       .forEach(t=>t.classList.toggle('tab-active', t.dataset.range===range));
 
-    // Use real series if present; otherwise show a flat line placeholder so UI isn’t empty
     let data = getSeries(range);
     if (!data.length){
+      // placeholder line so UI doesn't look broken
       const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
-      data = Array.from({length: 30}, (_,i)=> base + (i? (Math.random()-.5)*0.5 : 0));
+      data = Array.from({length: 30}, (_,i)=> base + (Math.random()-.5)*0.5);
     }
 
     chart.data.labels = data.map((_,i)=>i);
@@ -740,10 +751,11 @@
     setTimestamp();
   }
 
-  // boot the chart + first paint
+  // boot
   initChartAndUI(current || { currency: 'USD' });
   renderRange('1D');
 </script>
+
 
 </body>
 </html>
