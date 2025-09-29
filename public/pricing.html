@@ -4,21 +4,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlgoHive — Pricing</title>
+  <title>AlgoHive — Plans & Features</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
   <style>
     :root{
-      --page:#0b1220;
-      --bg:#ffffff;
-      --muted:#64748b;
-      --ink:#0f172a;
-      --olive:#7e8d52;
-      --brand:#f59e0b;
-      --line:#e2e8f0;
-      --dark:#0f1629;      /* for the “popular” middle card */
+      --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a;
+      --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0; --dark:#0f1629;
     }
     html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); height:100% }
 
@@ -26,6 +20,7 @@
     .btn-olive{ background:var(--olive); color:#fff; border:0 }
     .btn-olive:hover{ filter:brightness(.92) }
     .btn-olive:disabled{ opacity:.6; cursor:not-allowed }
+    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem }
 
     #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
     #layout.is-collapsed{ --sb:64px }
@@ -38,18 +33,21 @@
     .btn-collapse :is(svg,i){ transition:transform .25s ease }
     #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
 
+    /* Active styles */
     .btn-active{ background:#f1f5f9 !important; color:var(--olive) !important; border:1px solid var(--olive) !important }
+    .nav-active{ background:#f1f5f9; color:var(--olive); border:1px solid var(--olive) }
 
     /* Pricing helpers */
-    .toggle .btn{
-      height:auto; padding:.375rem .75rem; border-radius:999px; font-weight:600
-    }
+    .toggle .btn{ height:auto; padding:.375rem .75rem; border-radius:999px; font-weight:600; border:0 }
     .plan-card{ border:1px solid var(--line); border-radius:16px; background:#fff }
     .plan-card.dark{ background:var(--dark); color:#fff; border-color:#0b1220 }
     .plan-price{ font-size:44px; line-height:1; font-weight:800; letter-spacing:-.02em }
     .badge{ font-size:12px; padding:.125rem .5rem; border-radius:999px }
-    .badge-pop{ background:#c7f28c; color:#0f1a07; }
+    .badge-pop{ background:#c7f28c; color:#0f1a07 }
     .check{ color:#16a34a }
+
+    /* Disabled link look when gated */
+    .link-disabled{ opacity:.5; pointer-events:none }
   </style>
 </head>
 
@@ -99,14 +97,20 @@
           </div>
         </details>
 
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span></a>
+        <!-- ACTIVE PAGE -->
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg nav-active font-medium" href="#" aria-current="page">
+          <i class="fa-regular fa-square-check w-4"></i><span class="label">Plans & Features</span>
+        </a>
+
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span></a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/settings.html"><i class="fa-solid fa-gear w-4 text-slate-500"></i><span class="label">Settings</span></a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
       </nav>
 
       <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
-        <button id="ah-settings" aria-current="page" class="btn btn-settings btn-active h-10 w-10 p-0 rounded-xl border-0" title="Settings">
+        <!-- keep gear “active” look OFF on this page -->
+        <button id="ah-settings" class="btn h-10 w-10 p-0 rounded-xl border-0" title="Settings">
           <i class="fa-solid fa-gear"></i>
         </button>
         <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
@@ -117,16 +121,18 @@
 
     <!-- ===== Main ===== -->
     <main class="flex-1 min-w-0">
-      <!-- Top bar -->
+      <!-- Top Header Bar -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
         <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
           <div class="relative w-full">
-            <input class="h-10 w-full pl-9 pr-3 border border-slate-200 rounded-xl" placeholder="Search" />
+            <input class="input w-full pl-9" placeholder="Search" />
             <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
             </svg>
           </div>
         </div>
+
+        <!-- Profile cluster -->
         <div class="flex items-center gap-3">
           <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
             <i class="fa-regular fa-bell text-slate-500"></i>
@@ -150,8 +156,8 @@
 
           <!-- Toggle -->
           <div class="toggle inline-flex items-center gap-2 bg-slate-100 rounded-full p-1">
-            <button id="btn-monthly" class="btn bg-white border-0" aria-pressed="true">Monthly billing</button>
-            <button id="btn-annual" class="btn bg-transparent border-0">Annual billing</button>
+            <button id="btn-monthly" class="btn bg-white" aria-pressed="true">Monthly billing</button>
+            <button id="btn-annual" class="btn">Annual billing</button>
           </div>
         </div>
 
@@ -231,7 +237,28 @@
     </main>
   </div>
 
-  <!-- Simple behavior: collapse + pricing toggle -->
+  <!-- ===== Profile Modal ===== -->
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
+      </div>
+      <div class="p-2">
+        <a href="/settings.html#basic" id="pm-profile" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Behavior (collapse + pricing toggle) ===== -->
   <script>
     // Sidebar collapse memory
     (function () {
@@ -249,7 +276,7 @@
       });
     })();
 
-    // Monthly/Annual toggle (simple text/price swap)
+    // Monthly/Annual toggle (simple example: ~20% off annual)
     (function () {
       const btnM = document.getElementById('btn-monthly');
       const btnA = document.getElementById('btn-annual');
@@ -263,8 +290,6 @@
         btnA.setAttribute('aria-pressed', String(annual));
         btnM.classList.toggle('bg-white', !annual);
         btnA.classList.toggle('bg-white', annual);
-
-        // Example discount (save ~20% on annual)
         basic.textContent = annual ? '$8'  : '$10';
         biz.textContent   = annual ? '$16' : '$20';
         ent.textContent   = annual ? '$32' : '$40';
@@ -272,6 +297,118 @@
       btnM?.addEventListener('click', () => setMode('monthly'));
       btnA?.addEventListener('click', () => setMode('annual'));
       setMode('monthly');
+    })();
+
+    // Simple banner helper
+    function banner(msg, tone = "warn") {
+      let el = document.getElementById("banner");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "banner";
+        el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+        document.body.appendChild(el);
+      }
+      el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+      if (tone === "warn") { el.classList.add("bg-amber-100","text-amber-900"); }
+      if (tone === "err")  { el.classList.add("bg-rose-100","text-rose-900"); }
+      if (tone === "ok")   { el.classList.add("bg-emerald-100","text-emerald-900"); }
+      el.textContent = msg;
+      clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 4000);
+    }
+  </script>
+
+  <!-- ===== Supabase + dynamic profile / gating ===== -->
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+
+    // --- Auth guard ---
+    const { data:{ session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    }
+    const { data:{ user } } = await supabase.auth.getUser();
+
+    // --- Ensure profile row exists ---
+    async function ensureProfile(userId, email) {
+      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      if (data) return data;
+      const payload = { id: userId, email, updated_at: new Date().toISOString() };
+      const up = await supabase.from("profiles").upsert(payload, { onConflict:"id" }).select("*").single();
+      if (up.error) throw up.error;
+      return up.data;
+    }
+    const row = await ensureProfile(user.id, user.email || null);
+
+    // --- Hydrate header + sidebar bits ---
+    const acct = row?.account_number || "949915944";
+    document.getElementById("sidebar-acc").textContent = acct;
+
+    const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+    const avatarUrl = row?.avatar_url || blankAvatar;
+    const hdrAvatar = document.getElementById("hdr-avatar");
+    if (hdrAvatar) hdrAvatar.src = avatarUrl;
+
+    const fn = (row?.first_name || "").trim(), ln = (row?.last_name || "").trim();
+    const fallback = (user.email || "").split("@")[0] || "User";
+    document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
+
+    // --- Profile modal ---
+    const hdrProfileBtn = document.getElementById("hdr-profile-btn");
+    const modal = document.getElementById("profile-modal");
+    const pmEmail = document.getElementById("pm-email");
+    const btnLogout = document.getElementById("pm-logout");
+    function openModal(){ modal.classList.remove("hidden") }
+    function closeModal(){ modal.classList.add("hidden") }
+    hdrProfileBtn?.addEventListener("click",(e)=>{ e.preventDefault(); pmEmail.textContent = user?.email || "—"; openModal(); });
+    modal.addEventListener("click",(e)=>{ if(e.target === modal || e.target.classList.contains("bg-black/40")) closeModal(); });
+    window.addEventListener("keydown",(e)=>{ if(e.key === "Escape") closeModal(); });
+    btnLogout?.addEventListener("click", async () => {
+      try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); }
+      catch { banner("Sorry, logout failed.","err"); }
+    });
+
+    // --- Gating (profile + kyc) ---
+    const REQUIRED = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
+    function computeProfileComplete(r){ return REQUIRED.every(k => String(r?.[k] ?? "").trim().length > 0); }
+    function resolveKycBoolean(r){
+      const v = r?.kyc_status;
+      if (typeof v === "boolean") return v;
+      if (typeof v === "string") return ["verified","approved","done","passed","kyc_done"].includes(v.toLowerCase());
+      return false;
+    }
+    let profileComplete = computeProfileComplete(row);
+    let kycDone = resolveKycBoolean(row);
+
+    function isGated(){ return !(profileComplete && kycDone); }
+    function gateReason(){
+      if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+      if (!profileComplete) return "Please finish Additional Info first.";
+      if (!kycDone) return "Please complete KYC first.";
+      return "";
+    }
+
+    // Lock main nav (but keep current page usable)
+    (function lockMainNav(){
+      const mainNav = document.getElementById("main-nav");
+      if (!mainNav) return;
+      function preventNav(e){
+        e.preventDefault();
+        banner(gateReason(),"warn");
+        const target = !profileComplete ? "/settings.html#extra" : "/settings.html#kyc";
+        location.href = target;
+      }
+      mainNav.querySelectorAll('a[href]').forEach(a=>{
+        const href = (a.getAttribute("href")||"").trim();
+        const isCurrent = a.matches('.nav-active') || href === "#" || href === "";
+        if (isGated() && !isCurrent) {
+          a.classList.add("link-disabled");
+          a.setAttribute("aria-disabled","true");
+          a.title = "Locked until profile + KYC are complete";
+          a.addEventListener("click", preventNav, { passive:false });
+        }
+      });
     })();
   </script>
 </body>
