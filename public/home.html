@@ -538,8 +538,9 @@
   </script>
 
 <script type="module">
-  import { supabase } from "/js/supabase.js";
+import { supabase } from "/js/supabase.js";
 
+(async () => {
   // ---------- helpers ----------
   const $ = (q, el=document)=>el.querySelector(q);
   const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
@@ -569,13 +570,13 @@
   if(!session){
     const next = encodeURIComponent(location.pathname + location.search + location.hash);
     location.replace(`/auth.html?tab=in&redirect=${next}`);
+    return; // safe to return inside the IIFE
   }
   const { data:{ user } } = await supabase.auth.getUser();
 
   // ---------- profile (name + avatar) ----------
   let profile = null;
   try {
-    // Try explicit profiles table first
     const { data, error } = await supabase
       .from('profiles')
       .select('full_name, avatar_url')
@@ -583,8 +584,7 @@
       .single();
     if (error) throw error;
     profile = data || null;
-  } catch (_) {
-    // Fallback to user metadata
+  } catch {
     profile = {
       full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
       avatar_url: user?.user_metadata?.avatar_url || ''
@@ -595,7 +595,11 @@
   const avatarUrl = profile?.avatar_url || initialsAvatar(name || user?.email);
   $('#hdr-name').textContent = name || '—';
   $('#pm-email').textContent = user?.email || '—';
-  const hdrImg = $('#hdr-avatar'); if (hdrImg) hdrImg.src = avatarUrl;
+  const hdrImg = $('#hdr-avatar');
+  if (hdrImg){
+    hdrImg.src = avatarUrl;
+    hdrImg.onerror = () => { hdrImg.src = initialsAvatar(name || user?.email); };
+  }
 
   // ---------- accounts ----------
   const acctSel  = $('#acct-select');
@@ -619,7 +623,7 @@
     if (acctMeta){ acctMeta.textContent = `Failed to load accounts`; }
     initChartAndUI(null);
     renderRange('1D');
-    return;
+    return; // inside IIFE, so it's valid
   }
 
   if (!accounts.length){
@@ -670,7 +674,9 @@
     elChg     = $('#pf-change');
     refreshBtn= $('#pf-refresh');
 
-    const ctx = document.getElementById('pf-chart').getContext('2d');
+    const ctxEl = document.getElementById('pf-chart');
+    if(!ctxEl){ return; }
+    const ctx = ctxEl.getContext('2d');
     const gradient = ctx.createLinearGradient(0,0,0,260);
     gradient.addColorStop(0,'rgba(85,107,47,0.35)');
     gradient.addColorStop(1,'rgba(85,107,47,0.06)');
@@ -708,7 +714,7 @@
   function setTimestamp(){
     const now = new Date();
     const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-    elUpdated.textContent = `${now.toLocaleString('en-ZA',opts)} SAST`;
+    $('#pf-updated').textContent = `${now.toLocaleString('en-ZA',opts)} SAST`;
   }
 
   function getSeries(range){
@@ -731,9 +737,10 @@
     const a0 = arr[0] ?? 0, aN = arr[arr.length-1] ?? 0;
     const changePct = pct(aN, a0);
     const sym = symFor(current?.currency || 'USD');
-    elVal.textContent = fmtMoney(sym, current?.equity ?? current?.balance ?? 0);
-    elChg.textContent = `${changePct>=0?'+':''}${changePct.toFixed(2)}%`;
-    elChg.style.color = changePct>=0 ? '#16a34a' : '#ef4444';
+    $('#pf-value').textContent = fmtMoney(sym, current?.equity ?? current?.balance ?? 0);
+    const chg = $('#pf-change');
+    chg.textContent = `${changePct>=0?'+':''}${changePct.toFixed(2)}%`;
+    chg.style.color = changePct>=0 ? '#16a34a' : '#ef4444';
   }
 
   function renderRange(range='1D'){
@@ -743,9 +750,8 @@
 
     let data = getSeries(range);
     if (!data.length){
-      // placeholder line so UI doesn't look broken
       const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
-      data = Array.from({length: 30}, (_,i)=> base + (Math.random()-.5)*0.5);
+      data = Array.from({length: 30}, ()=> base + (Math.random()-.5)*0.5);
     }
 
     chart.data.labels = data.map((_,i)=>i);
@@ -758,6 +764,7 @@
   // boot
   initChartAndUI(current || { currency: 'USD' });
   renderRange('1D');
+})();
 </script>
 
 
