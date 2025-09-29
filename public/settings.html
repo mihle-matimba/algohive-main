@@ -15,7 +15,7 @@
       --bg: #ffffff;
       --muted: #64748b;
       --ink: #0f172a;
-      --olive: #7e8d52;
+      --olive: #7e8d52; /* OLIVE */
       --brand: #f59e0b;
       --line: #e2e8f0;
     }
@@ -30,8 +30,12 @@
     #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary { justify-content:center; gap:.25rem }
     #ah-sidebar .footer { transition: all .2s ease }
     #ah-sidebar[data-collapsed="true"] .footer { justify-content:center; flex-direction:column; gap:12px }
-    #ah-sidebar[data-collapsed="true"] .btn-collapse { order:1 } #ah-sidebar[data-collapsed="true"] .btn-settings { order:2 }
     .btn-collapse :is(svg,i){ transition: transform .25s ease } #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform: rotate(180deg) }
+
+    /* Olive button utility */
+    .btn-olive{ background: var(--olive); color: #fff; border: 0; }
+    .btn-olive:hover{ filter: brightness(0.92); }
+    .btn-olive:disabled{ opacity:.6; cursor:not-allowed; }
   </style>
 </head>
 
@@ -117,7 +121,7 @@
             <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
           </button>
           <img id="hdr-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
-          <button class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
+          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
             <span id="hdr-name">—</span>
             <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
@@ -166,7 +170,7 @@
               </div>
 
               <div class="mt-8">
-                <button id="save-basic" class="btn bg-amber-100 text-amber-900 cursor-not-allowed opacity-60" disabled>Save changes</button>
+                <button id="save-basic" class="btn btn-olive cursor-not-allowed opacity-60" disabled>Save changes</button>
               </div>
             </div>
 
@@ -175,188 +179,181 @@
               <h2 class="text-xl font-semibold text-slate-900">Manage Accounts</h2>
               <p class="mt-4 text-sm text-slate-500">No linked sub-accounts yet.</p>
             </div>
-<!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
-<div data-panel="docs" class="card border border-slate-200 rounded-2xl p-6">
-  <div class="flex items-center justify-between">
-    <h2 class="text-xl font-semibold text-slate-900">KYC Verification</h2>
-    <span id="kyc-state"
-          class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900">
-      Complete your KYC
-    </span>
-  </div>
-  <p class="mt-2 text-sm text-slate-500">
-    We’ll take you to our verification partner. It takes ~3–5 minutes.
-  </p>
 
-  <div class="mt-6">
-    <button id="btn-kyc-start"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--olive)] text-white font-semibold">
-      <i class="fa-solid fa-id-card"></i>
-      Get Started mate
-    </button>
-    <span id="kyc-error" class="hidden ml-3 text-sm text-rose-700">Sorry, couldn’t start KYC. Try again.</span>
-  </div>
-</div>
+            <!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
+            <div data-panel="docs" class="card border border-slate-200 rounded-2xl p-6">
+              <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-slate-900">KYC Verification</h2>
+                <span id="kyc-state"
+                      class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900">
+                  Complete your KYC
+                </span>
+              </div>
+              <p class="mt-2 text-sm text-slate-500">
+                We’ll take you to our verification partner. It takes ~3–5 minutes.
+              </p>
 
+              <div class="mt-6">
+                <button id="btn-kyc-start" class="btn-olive inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold">
+                  <i class="fa-solid fa-id-card"></i>
+                  Get Started mate
+                </button>
+                <span id="kyc-error" class="hidden ml-3 text-sm text-rose-700">Sorry, couldn’t start KYC. Try again.</span>
+              </div>
+            </div>
 
+            <!-- ADDITIONAL INFO -->
+            <div data-panel="extra" class="hidden card border border-slate-200 rounded-2xl p-6">
+              <h2 class="text-xl font-semibold text-slate-900">Additional Info</h2>
+              <p class="mt-2 text-sm text-slate-500">Update your personal details, avatar and KYC suitability.</p>
 
-<!-- ADDITIONAL INFO -->
-<div data-panel="extra" class="hidden card border border-slate-200 rounded-2xl p-6">
-  <h2 class="text-xl font-semibold text-slate-900">Additional Info</h2>
-  <p class="mt-2 text-sm text-slate-500">Update your personal details, avatar and KYC suitability.</p>
+              <!-- Names -->
+              <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label class="block">
+                  <span class="text-sm text-slate-600">First name</span>
+                  <input id="first_name" class="input w-full" placeholder="First name" />
+                </label>
+                <label class="block">
+                  <span class="text-sm text-slate-600">Last name</span>
+                  <input id="last_name" class="input w-full" placeholder="Last name" />
+                </label>
+              </div>
 
-  <!-- Names -->
-  <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <label class="block">
-      <span class="text-sm text-slate-600">First name</span>
-      <input id="first_name" class="input w-full" placeholder="First name" />
-    </label>
-    <label class="block">
-      <span class="text-sm text-slate-600">Last name</span>
-      <input id="last_name" class="input w-full" placeholder="Last name" />
-    </label>
-  </div>
+              <!-- Avatar -->
+              <div class="mt-6">
+                <div class="flex items-center gap-4">
+                  <img id="avatar-preview" class="h-16 w-16 rounded-full object-cover border border-slate-200 bg-slate-50" alt="avatar"/>
+                  <div class="space-y-2">
+                    <label class="block">
+                      <span class="text-sm text-slate-600">Avatar</span>
+                      <input id="avatar-file" type="file" accept="image/*" class="block text-xs" />
+                    </label>
+                    <button id="remove-avatar" type="button" class="hidden text-xs underline text-rose-700">Remove avatar</button>
+                    <p class="text-[11px] text-slate-500">JPG/PNG, &lt; 2MB. Best results: 512×512px.</p>
+                  </div>
+                </div>
+              </div>
 
-  <!-- Avatar -->
-  <div class="mt-6">
-    <div class="flex items-center gap-4">
-      <img id="avatar-preview" class="h-16 w-16 rounded-full object-cover border border-slate-200 bg-slate-50" alt="avatar"/>
-      <div class="space-y-2">
-        <label class="block">
-          <span class="text-sm text-slate-600">Avatar</span>
-          <input id="avatar-file" type="file" accept="image/*" class="block text-xs" />
-        </label>
-        <button id="remove-avatar" type="button" class="hidden text-xs underline text-rose-700">Remove avatar</button>
-        <p class="text-[11px] text-slate-500">JPG/PNG, &lt; 2MB. Best results: 512×512px.</p>
-      </div>
-    </div>
-  </div>
+              <!-- Contact -->
+              <div class="mt-8">
+                <div class="font-semibold text-slate-900">Contact</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Phone</span>
+                    <input id="phone" class="input w-full" placeholder="+27 ..." inputmode="tel"/>
+                  </label>
+                  <div></div>
+                </div>
+              </div>
 
-  <!-- Contact -->
-  <div class="mt-8">
-    <div class="font-semibold text-slate-900">Contact</div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-      <label class="block">
-        <span class="text-sm text-slate-600">Phone</span>
-        <input id="phone" class="input w-full" placeholder="+27 ..." inputmode="tel"/>
-      </label>
-      <div></div>
-    </div>
-  </div>
+              <!-- Identity -->
+              <div class="mt-8">
+                <div class="font-semibold text-slate-900">Identity</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Date of birth</span>
+                    <input id="dob" type="date" class="input w-full"/>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">ID / Passport number</span>
+                    <input id="id_number" class="input w-full" placeholder="e.g. 910101..." />
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Nationality</span>
+                    <input id="nationality" class="input w-full" placeholder="South African"/>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Country of residence</span>
+                    <input id="country_residence" class="input w-full" placeholder="South Africa"/>
+                  </label>
+                </div>
+              </div>
 
-  <!-- Identity -->
-  <div class="mt-8">
-    <div class="font-semibold text-slate-900">Identity</div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-      <label class="block">
-        <span class="text-sm text-slate-600">Date of birth</span>
-        <input id="dob" type="date" class="input w-full"/>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">ID / Passport number</span>
-        <input id="id_number" class="input w-full" placeholder="e.g. 910101..." />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Nationality</span>
-        <input id="nationality" class="input w-full" placeholder="South African"/>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Country of residence</span>
-        <input id="country_residence" class="input w-full" placeholder="South Africa"/>
-      </label>
-    </div>
-  </div>
+              <!-- Employment & suitability -->
+              <div class="mt-8">
+                <div class="font-semibold text-slate-900">Employment & suitability</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Employment status</span>
+                    <select id="employment_status" class="input w-full">
+                      <option value="">Select…</option>
+                      <option>Employed</option><option>Self-employed</option><option>Student</option>
+                      <option>Unemployed</option><option>Retired</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Occupation</span>
+                    <input id="occupation" class="input w-full" />
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Employer</span>
+                    <input id="employer" class="input w-full" />
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Annual income bracket</span>
+                    <select id="income_bracket" class="input w-full">
+                      <option value="">Select…</option>
+                      <option>&lt; R250k</option><option>R250k–R500k</option><option>R500k–R1m</option>
+                      <option>R1m–R2m</option><option>&gt; R2m</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Source of funds</span>
+                    <select id="source_of_funds" class="input w-full">
+                      <option value="">Select…</option>
+                      <option>Salary</option><option>Business</option><option>Investments</option>
+                      <option>Inheritance</option><option>Gift</option><option>Other</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Net worth range</span>
+                    <select id="net_worth_range" class="input w-full">
+                      <option value="">Select…</option>
+                      <option>&lt; R500k</option><option>R500k–R1m</option><option>R1m–R5m</option>
+                      <option>R5m–R10m</option><option>&gt; R10m</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Experience level</span>
+                    <select id="experience_level" class="input w-full">
+                      <option value="">Select…</option>
+                      <option>None</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm text-slate-600">Risk tolerance</span>
+                    <select id="risk_tolerance" class="input w-full">
+                      <option value="">Select…</option>
+                      <option>Low</option><option>Moderate</option><option>High</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
 
-  <!-- Employment & suitability -->
-  <div class="mt-8">
-    <div class="font-semibold text-slate-900">Employment & suitability</div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-      <label class="block">
-        <span class="text-sm text-slate-600">Employment status</span>
-        <select id="employment_status" class="input w-full">
-          <option value="">Select…</option>
-          <option>Employed</option><option>Self-employed</option><option>Student</option>
-          <option>Unemployed</option><option>Retired</option>
-        </select>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Occupation</span>
-        <input id="occupation" class="input w-full" />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Employer</span>
-        <input id="employer" class="input w-full" />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Annual income bracket</span>
-        <select id="income_bracket" class="input w-full">
-          <option value="">Select…</option>
-          <option>&lt; R250k</option><option>R250k–R500k</option><option>R500k–R1m</option>
-          <option>R1m–R2m</option><option>&gt; R2m</option>
-        </select>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Source of funds</span>
-        <select id="source_of_funds" class="input w-full">
-          <option value="">Select…</option>
-          <option>Salary</option><option>Business</option><option>Investments</option>
-          <option>Inheritance</option><option>Gift</option><option>Other</option>
-        </select>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Net worth range</span>
-        <select id="net_worth_range" class="input w-full">
-          <option value="">Select…</option>
-          <option>&lt; R500k</option><option>R500k–R1m</option><option>R1m–R5m</option>
-          <option>R5m–R10m</option><option>&gt; R10m</option>
-        </select>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Experience level</span>
-        <select id="experience_level" class="input w-full">
-          <option value="">Select…</option>
-          <option>None</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option>
-        </select>
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Risk tolerance</span>
-        <select id="risk_tolerance" class="input w-full">
-          <option value="">Select…</option>
-          <option>Low</option><option>Moderate</option><option>High</option>
-        </select>
-      </label>
-    </div>
+              <div class="mt-4">
+                <span class="text-sm text-slate-600 block mb-2">Investment objectives</span>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Growth"> Growth</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Income"> Income</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Preservation"> Capital preservation</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Speculation"> Speculation</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Hedging"> Hedging</label>
+                </div>
+              </div>
 
-    <div class="mt-4">
-      <span class="text-sm text-slate-600 block mb-2">Investment objectives</span>
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Growth"> Growth</label>
-        <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Income"> Income</label>
-        <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Preservation"> Capital preservation</label>
-        <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Speculation"> Speculation</label>
-        <label class="flex items-center gap-2"><input type="checkbox" name="objectives" value="Hedging"> Hedging</label>
-      </div>
-    </div>
-  </div>
+              <div class="mt-8">
+                <div class="font-semibold text-slate-900">Compliance</div>
+                <div class="mt-3 space-y-2 text-sm">
+                  <label class="flex items-center gap-2"><input id="pep" type="checkbox"> Politically Exposed Person (PEP)</label>
+                  <label class="flex items-center gap-2"><input id="fatca_crs" type="checkbox"> I confirm FATCA/CRS declarations as needed</label>
+                </div>
+              </div>
 
-  <!-- Compliance -->
-  <div class="mt-8">
-    <div class="font-semibold text-slate-900">Compliance</div>
-    <div class="mt-3 space-y-2 text-sm">
-      <label class="flex items-center gap-2"><input id="pep" type="checkbox"> Politically Exposed Person (PEP)</label>
-      <label class="flex items-center gap-2"><input id="fatca_crs" type="checkbox"> I confirm FATCA/CRS declarations as needed</label>
-    </div>
-  </div>
-
-
-  <div class="mt-8">
-    <button id="save-extra" class="btn bg-black text-white">Save additional info</button>
-    <span id="extra-saved" class="hidden text-sm text-emerald-700 ml-2">Saved ✔</span>
-  </div>
-</div>
-
-
-
+              <div class="mt-8">
+                <button id="save-extra" class="btn btn-olive">Save additional info</button>
+                <span id="extra-saved" class="hidden text-sm text-emerald-700 ml-2">Saved ✔</span>
+              </div>
+            </div>
 
             <!-- AGREEMENTS -->
             <div data-panel="agreements" class="hidden card border border-slate-200 rounded-2xl p-6">
@@ -402,6 +399,29 @@
     </main>
   </div>
 
+  <!-- ===== Profile Modal ===== -->
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <!-- backdrop -->
+    <div class="absolute inset-0 bg-black/40"></div>
+    <!-- panel -->
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
+      </div>
+      <div class="p-2">
+        <button id="pm-profile" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </button>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Behavior ===== -->
   <script>
     // sidebar collapse memory
@@ -445,7 +465,6 @@
   import { supabase } from "/js/supabase.js";
 
   const AVATAR_BUCKET = "avatars";
-  const KYC_BUCKET    = "kyc"; // keep PRIVATE
 
   // guard route
   const { data: { session } } = await supabase.auth.getSession();
@@ -479,8 +498,6 @@
   const risk        = document.getElementById("risk_tolerance");
   const pep         = document.getElementById("pep");
   const fatca       = document.getElementById("fatca_crs");
-  const idDocInput  = document.getElementById("id-doc");
-  const addrDocInput= document.getElementById("addr-doc");
 
   const avPrev   = document.getElementById("avatar-preview");
   const avFile   = document.getElementById("avatar-file");
@@ -495,6 +512,64 @@
     const fn=(data?.first_name||"").trim(), ln=(data?.last_name||"").trim();
     const fallback = user?.email?.split("@")[0] || "User";
     hdrName.textContent = (fn||ln) ? `${fn} ${ln}`.trim() : fallback;
+  }
+
+  // ===== KYC helpers =====
+  const kycStateEl  = document.getElementById("kyc-state");
+  const kycBtn      = document.getElementById("btn-kyc-start");
+  const kycErrEl    = document.getElementById("kyc-error");
+
+  // Map your DB value to boolean (works with boolean or text enums)
+  function resolveKycBoolean(row) {
+    const v = row?.kyc_status;
+    if (typeof v === "boolean") return v;
+    if (typeof v === "string") {
+      const t = v.toLowerCase();
+      return ["verified", "approved", "done", "passed", "kyc_done"].includes(t);
+    }
+    return false;
+  }
+
+  function setKycState(isDone) {
+    if (!kycStateEl) return;
+    if (isDone) {
+      kycStateEl.textContent = "KYC done";
+      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
+      if (kycBtn) { kycBtn.disabled = true; kycBtn.classList.add("opacity-60","cursor-not-allowed"); }
+    } else {
+      kycStateEl.textContent = "Complete your KYC";
+      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
+      if (kycBtn) { kycBtn.disabled = false; kycBtn.classList.remove("opacity-60","cursor-not-allowed"); }
+    }
+  }
+
+  // Get a KYC URL:
+  // 1) profiles.kyc_start_url column (optional)
+  // 2) Edge Function /functions/v1/start-kyc (recommended)
+  // 3) Fallback route
+  async function getKycUrl(user) {
+    // 1) DB column (optional)
+    try {
+      const { data: row } = await supabase.from("profiles").select("kyc_start_url").eq("id", user.id).single();
+      if (row?.kyc_start_url) return row.kyc_start_url;
+    } catch(_) {}
+
+    // 2) Edge function (replace with your real function if used)
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/functions/v1/start-kyc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ user_id: user.id })
+      });
+      if (res.ok) {
+        const j = await res.json();
+        if (j?.url) return j.url;
+      }
+    } catch (_) {}
+
+    // 3) Fallback
+    return "/kyc/start";
   }
 
   // uploads
@@ -521,18 +596,6 @@
 
     hdrAvatar.src = avatar_url;
     avRemove.classList.remove("hidden");
-  }
-
-  async function uploadKyc(file, key){
-    const { data:{ user } } = await supabase.auth.getUser();
-    if (!user || !file) return null;
-    if (file.size > 5*1024*1024) throw new Error("File too large (max 5MB)");
-    const ext=(file.name.split(".").pop()||"pdf").toLowerCase();
-    const path=`${user.id}/${key}_${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from(KYC_BUCKET)
-      .upload(path, file, { upsert:true, cacheControl:"3600", contentType:file.type || "application/octet-stream" });
-    if (error) throw error;
-    return path; // private; fetch with signed URL when needed
   }
 
   // hydrate
@@ -576,9 +639,47 @@
     avRemove.classList.toggle("hidden", !data?.avatar_url);
 
     setHeaderName(data, user);
+    setKycState(resolveKycBoolean(data));
   }
 
   // events
+  const hdrProfileBtn = document.getElementById("hdr-profile-btn");
+  const modal = document.getElementById("profile-modal");
+  const pmEmail = document.getElementById("pm-email");
+  const btnProfile = document.getElementById("pm-profile");
+  const btnLogout = document.getElementById("pm-logout");
+
+  function openModal(){ modal.classList.remove("hidden"); }
+  function closeModal(){ modal.classList.add("hidden"); }
+
+  hdrProfileBtn?.addEventListener("click", async (e)=>{
+    e.preventDefault();
+    const { data:{ user } } = await supabase.auth.getUser();
+    pmEmail.textContent = user?.email || "—";
+    openModal();
+  });
+  modal.addEventListener("click", (e)=>{
+    if (e.target === modal || e.target.classList.contains("bg-black/40")) closeModal();
+  });
+  window.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
+
+  btnProfile?.addEventListener("click", ()=>{
+    const nav = document.getElementById('settings-nav');
+    const btn = nav?.querySelector('button[data-tab="basic"]');
+    btn?.click();
+    closeModal();
+  });
+
+  btnLogout?.addEventListener("click", async ()=>{
+    try{
+      await supabase.auth.signOut();
+      location.replace("/auth.html?tab=in");
+    }catch(err){
+      alert("Sorry, logout failed. Please try again.");
+    }
+  });
+
+  // Avatar events
   avFile.addEventListener("change", async () => {
     const f = avFile.files?.[0]; if (!f) return;
     try { await uploadAvatar(f); } catch(e){ alert(e.message || "Avatar upload failed"); }
@@ -592,7 +693,7 @@
     const blank = blankAvatar; avPrev.src = blank; hdrAvatar.src = blank; avRemove.classList.add("hidden");
   });
 
-  // save
+  // Save additional info
   extraSave.addEventListener("click", async ()=>{
     setBusy(extraSave, true); extraSaved.classList.add("hidden");
     try{
@@ -601,10 +702,6 @@
 
       const objectives = Array.from(document.querySelectorAll('input[name="objectives"]:checked'))
         .map(cb=>cb.value).join(", ");
-
-      let id_doc_url=null, address_proof_url=null;
-      if (idDocInput?.files?.[0])   id_doc_url = await uploadKyc(idDocInput.files[0], "id");
-      if (addrDocInput?.files?.[0]) address_proof_url = await uploadKyc(addrDocInput.files[0], "address");
 
       const payload = {
         id: user.id,
@@ -628,8 +725,6 @@
         fatca_crs: fatca.checked,
         updated_at: new Date().toISOString()
       };
-      if (id_doc_url)        payload.id_doc_url = id_doc_url;
-      if (address_proof_url) payload.address_proof_url = address_proof_url;
 
       const { error } = await supabase.from("profiles").upsert(payload).eq("id", user.id);
       if (error) throw error;
@@ -643,6 +738,25 @@
       extraSaved.classList.remove("hidden");
     }catch(e){ alert(e.message || "Save failed"); }
     finally{ setBusy(extraSave, false); }
+  });
+
+  // KYC button
+  const kycBtnEl = document.getElementById("btn-kyc-start");
+  kycBtnEl?.addEventListener("click", async () => {
+    try {
+      kycErrEl?.classList.add("hidden");
+      kycBtnEl.disabled = true; kycBtnEl.textContent = "Starting…";
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const url = await getKycUrl(user);
+      if (!url) throw new Error("No KYC URL");
+      location.href = url;
+    } catch (e) {
+      kycErrEl?.classList.remove("hidden");
+      console.error(e);
+    } finally {
+      kycBtnEl.disabled = false; kycBtnEl.textContent = "Get Started mate";
+    }
   });
 
   await load();
