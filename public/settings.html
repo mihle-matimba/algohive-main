@@ -182,27 +182,35 @@
               <p class="mt-4 text-sm text-slate-500">No linked sub-accounts yet.</p>
             </div>
 
-            <!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
-            <div id="docs" data-panel="docs" class="hidden card border border-slate-200 rounded-2xl p-6">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold text-slate-900">KYC Verification</h2>
-                <span id="kyc-state"
-                      class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900">
-                  Complete your KYC
-                </span>
-              </div>
-              <p class="mt-2 text-sm text-slate-500">
-                We’ll take you to our verification partner. It takes ~3–5 minutes.
-              </p>
+<!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
+<div id="docs" data-panel="docs" class="hidden card border border-slate-200 rounded-2xl p-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-semibold text-slate-900">KYC Verification</h2>
+    <span id="kyc-state"
+          class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900">
+      Complete your KYC
+    </span>
+  </div>
+  <p class="mt-2 text-sm text-slate-500">
+    We’ll take you to our verification partner. It takes ~3–5 minutes.
+  </p>
 
-              <div class="mt-6">
-                <button id="btn-kyc-start" class="btn-olive inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold">
-                  <i class="fa-solid fa-id-card"></i>
-                  Get Started mate
-                </button>
-                <span id="kyc-error" class="hidden ml-3 text-sm text-rose-700">Sorry, couldn’t start KYC. Try again.</span>
-              </div>
-            </div>
+  <!-- Start KYC CTA (auto-hidden when KYC is done) -->
+  <div id="kyc-start-wrap" class="mt-6">
+    <button id="btn-kyc-start" class="btn-olive inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold">
+      <i class="fa-solid fa-id-card"></i>
+      Get Started mate
+    </button>
+    <span id="kyc-error" class="hidden ml-3 text-sm text-rose-700">Sorry, couldn’t start KYC. Try again.</span>
+  </div>
+
+  <!-- Done message (shown when verified) -->
+  <div id="kyc-done-msg" class="hidden mt-6 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 p-4">
+    <div class="font-medium">You’re all set 🎉</div>
+    <div class="text-sm mt-1">KYC done. Thanks! You can continue using AlgoHive.</div>
+  </div>
+</div>
+
 
             <!-- ADDITIONAL INFO -->
             <div id="extra" data-panel="extra" class="hidden card border border-slate-200 rounded-2xl p-6">
@@ -524,17 +532,28 @@
     }
     return false;
   }
-  function setKycState(isDone){
-    const kycStateEl = document.getElementById("kyc-state");
-    if (!kycStateEl) return;
-    if (isDone){
-      kycStateEl.textContent = "KYC done";
-      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
-    } else {
-      kycStateEl.textContent = "Complete your KYC";
-      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
-    }
+function setKycState(isDone){
+  const kycStateEl  = document.getElementById("kyc-state");
+  const startWrap   = document.getElementById("kyc-start-wrap");
+  const doneMsg     = document.getElementById("kyc-done-msg");
+
+  if (!kycStateEl) return;
+
+  if (isDone){
+    kycStateEl.textContent = "KYC done";
+    kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
+    // Hide start button, show done message
+    startWrap?.classList.add("hidden");
+    doneMsg?.classList.remove("hidden");
+  } else {
+    kycStateEl.textContent = "Complete your KYC";
+    kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
+    // Show start button, hide done message
+    startWrap?.classList.remove("hidden");
+    doneMsg?.classList.add("hidden");
   }
+}
+
   async function getKycUrl(user){
     try {
       const { data: row } = await supabase.from("profiles").select("kyc_start_url").eq("id", user.id).single();
