@@ -1,4 +1,220 @@
-<!-- ===== Profile Settings ===== -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Shell (Menu + Header)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <style>
+    :root {
+      --page: #0b1220;
+      --bg: #ffffff;
+      --muted: #64748b;
+      --ink: #0f172a;
+      --olive: #10b981;
+      --brand: #f59e0b;
+      --line: #e2e8f0;
+    }
+
+    html, body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      height: 100%;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 .875rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+
+    .input {
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 .75rem;
+    }
+
+    /* ===== Sidebar + Layout (CSS var grid) ===== */
+    #layout {
+      --sb: 220px;
+      display: grid;
+      grid-template-columns: var(--sb) 1fr;
+      min-height: 100vh;
+    }
+
+    #layout.is-collapsed { --sb: 64px; }
+
+    #ah-sidebar {
+      transition: width .2s ease;
+      width: var(--sb);
+    }
+
+    /* collapsed labels/chevrons */
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+
+    #ah-sidebar[data-collapsed="true"] details>.sub { display: none !important; }
+
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details>summary {
+      justify-content: center;
+      gap: .25rem;
+    }
+
+    #ah-sidebar .footer { transition: all .2s ease; }
+    #ah-sidebar[data-collapsed="true"] .footer {
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse { order: 1; }
+    #ah-sidebar[data-collapsed="true"] .btn-settings { order: 2; }
+
+    .btn-collapse :is(svg, i) {
+      display: inline-block;
+      transition: transform .25s ease;
+    }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) { transform: rotate(180deg); }
+  </style>
+</head>
+
+<body class="min-h-screen overflow-x-hidden">
+
+  <!-- ===== Outer Grid: var(--sb) drives sidebar column ===== -->
+  <div id="layout">
+
+    <!-- ===== Sidebar ===== -->
+    <aside id="ah-sidebar" data-collapsed="false"
+      class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
+          alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">ID: PA3C03RVE4RP</div>
+        </div>
+      </div>
+
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100"
+          href="#" title="Home">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
+        </a>
+
+        <details class="group mt-1">
+          <summary
+            class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Positions"><i
+                class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">Positions</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Orders"><i
+                class="fa-regular fa-clipboard w-4 text-slate-500"></i><span class="label">Orders</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Activity"><i
+                class="fa-solid fa-bars w-4 text-slate-500"></i><span class="label">Activity</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Balances"><i
+                class="fa-solid fa-table w-4 text-slate-500"></i><span class="label">Balances</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funding"><i
+                class="fa-solid fa-hand-holding-dollar w-4 text-slate-500"></i><span class="label">Funding</span></a>
+          </div>
+        </details>
+
+        <details class="group mt-1">
+          <summary
+            class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="OpenStrategies"><i
+                class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds"><i
+                class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
+          </div>
+        </details>
+
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Plans & Features">
+          <i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Community">
+          <i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Support">
+          <i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Legal">
+          <i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span>
+        </a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <button id="ah-settings"
+          class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <button id="ah-collapse"
+          class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Main (Header only, no content) ===== -->
+    <main class="flex-1 min-w-0">
+      <!-- Top Header Bar -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
+          <div class="relative w-full">
+            <input class="input w-full pl-9" placeholder="Search" />
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Profile cluster -->
+        <div class="flex items-center gap-3">
+          <button
+            class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
+            aria-label="Notifications">
+            <i class="fa-regular fa-bell text-slate-500"></i>
+            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
+          </button>
+
+          <img
+            src="https://media.licdn.com/dms/image/v2/D5603AQE0LbldGSWZCw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1703831323139?e=2147483647&v=beta&t=GO4aIrwPAXgnWMhLFAzq44dNh7wZSni1YzsnNzmQbU0"
+            alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+
+          <button class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
+            <span>John Doe</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty area (intentionally left blank) -->
+      <div class="p-6 text-sm text-slate-400"> <!-- remove if you want true blank -->
+        <!-- ===== Profile Settings ===== -->
 <section id="settings" class="px-6 py-8">
   <h1 class="text-2xl font-semibold text-slate-900">Profile Settings</h1>
   <hr class="mt-6 mb-8 border-slate-200"/>
@@ -183,3 +399,28 @@
     loadProfile();
   })();
 </script>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+
+      const saved = localStorage.getItem('ah_collapsed') === 'true';
+      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+
+      btn.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+      });
+    })();
+  </script>
+</body>
+</html>
