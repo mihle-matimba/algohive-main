@@ -36,6 +36,9 @@
     .btn-olive{ background: var(--olive); color: #fff; border: 0; }
     .btn-olive:hover{ filter: brightness(0.92); }
     .btn-olive:disabled{ opacity:.6; cursor:not-allowed; }
+
+    /* Lock cue */
+    .locked { opacity:.5; cursor:not-allowed !important; pointer-events:auto; }
   </style>
 </head>
 
@@ -114,7 +117,7 @@
           </div>
         </div>
 
-        <!-- Profile cluster (hydrated) -->
+        <!-- Profile cluster -->
         <div class="flex items-center gap-3">
           <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
             <i class="fa-regular fa-bell text-slate-500"></i>
@@ -137,7 +140,6 @@
           <!-- Left: tabs -->
           <aside class="col-span-12 md:col-span-3">
             <nav id="settings-nav" class="space-y-1">
-              <!-- turn buttons into hash links -->
               <a href="#basic"      data-tab="basic"      class="w-full block text-left px-4 py-2 rounded-lg text-slate-800 bg-slate-100">Basic Info</a>
               <a href="#manage"     data-tab="manage"     class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Manage Accounts</a>
               <a href="#docs"       data-tab="docs"       class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Account Documents</a>
@@ -276,7 +278,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
                   <label class="block">
                     <span class="text-sm text-slate-600">Employment status</span>
-                    <select id="employment_status" class="input w	full">
+                    <select id="employment_status" class="input w-full">
                       <option value="">Select…</option>
                       <option>Employed</option><option>Self-employed</option><option>Student</option>
                       <option>Unemployed</option><option>Retired</option>
@@ -288,11 +290,11 @@
                   </label>
                   <label class="block">
                     <span class="text-sm text-slate-600">Employer</span>
-                    <input id="employer" class="input w/full" />
+                    <input id="employer" class="input w-full" />
                   </label>
                   <label class="block">
                     <span class="text-sm text-slate-600">Annual income bracket</span>
-                    <select id="income_bracket" class="input w/full">
+                    <select id="income_bracket" class="input w-full">
                       <option value="">Select…</option>
                       <option>&lt; R250k</option><option>R250k–R500k</option><option>R500k–R1m</option>
                       <option>R1m–R2m</option><option>&gt; R2m</option>
@@ -300,7 +302,7 @@
                   </label>
                   <label class="block">
                     <span class="text-sm text-slate-600">Source of funds</span>
-                    <select id="source_of_funds" class="input w/full">
+                    <select id="source_of_funds" class="input w-full">
                       <option value="">Select…</option>
                       <option>Salary</option><option>Business</option><option>Investments</option>
                       <option>Inheritance</option><option>Gift</option><option>Other</option>
@@ -316,7 +318,7 @@
                   </label>
                   <label class="block">
                     <span class="text-sm text-slate-600">Experience level</span>
-                    <select id="experience_level" class="input w/full">
+                    <select id="experience_level" class="input w-full">
                       <option value="">Select…</option>
                       <option>None</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option>
                     </select>
@@ -448,6 +450,12 @@
       const panels = Array.from(document.querySelectorAll('[data-panel]'));
 
       function show(tab){
+        // block other tabs if locked
+        if (window.PROFILE_LOCKED && tab !== 'extra') {
+          if (location.hash !== '#extra') location.hash = '#extra';
+          banner("Please complete your profile first (Additional Info).");
+          return;
+        }
         // highlight nav
         links.forEach(a=>{
           const active = a.dataset.tab === tab;
@@ -457,7 +465,6 @@
         });
         // show panel
         panels.forEach(p=>p.classList.toggle('hidden', p.dataset.panel !== tab));
-        // scroll panel header into view a bit (nice on mobile)
         const el = document.getElementById(tab);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -465,19 +472,10 @@
       function parseHash(){
         const raw = (location.hash || '').trim();
         const id = raw.startsWith('#') ? raw.slice(1) : raw;
-        // only allow known tabs
         const allowed = new Set(links.map(a=>a.dataset.tab));
         return allowed.has(id) ? id : 'basic';
       }
 
-      // clicks: let default anchor set the hash; prevent page jump artifacts
-      nav.addEventListener('click', (e)=>{
-        const a = e.target.closest('a[data-tab]');
-        if (!a) return;
-        // allow hash to change; show() will be called via hashchange below
-      });
-
-      // on load and on hash change
       window.addEventListener('hashchange', ()=> show(parseHash()));
       show(parseHash());
     })();
@@ -487,7 +485,7 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // simple toast
+  // toast
   function banner(msg, tone="warn"){
     let el=document.getElementById("banner");
     if(!el){
@@ -496,60 +494,175 @@
       el.className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
       document.body.appendChild(el);
     }
+    el.className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
     el.classList.remove("bg-amber-100","text-amber-900","bg-rose-100","text-rose-900","bg-emerald-100","text-emerald-900");
     if(tone==="warn"){ el.classList.add("bg-amber-100","text-amber-900"); }
-    if(tone==="err"){  el.classList.add("bg-rose-100","text-rose-900"); }
-    if(tone==="ok"){   el.classList.add("bg-emerald-100","text-emerald-900"); }
+    if(tone==="err"){ el.classList.add("bg-rose-100","text-rose-900"); }
+    if(tone==="ok"){ el.classList.add("bg-emerald-100","text-emerald-900"); }
     el.textContent = msg;
-    setTimeout(()=>el.remove(), 4000);
+    clearTimeout(el._t); el._t = setTimeout(()=>el.remove(), 3500);
+  }
+
+  // global lock flag
+  window.PROFILE_LOCKED = false;
+
+  // visually/behaviorally lock everything except #extra + logout
+  function applyLockUI(lock){
+    window.PROFILE_LOCKED = !!lock;
+    const allLinks = Array.from(document.querySelectorAll('a[href]'));
+    allLinks.forEach(a=>{
+      const href = a.getAttribute('href') || "";
+      const allow =
+        href === "#extra" ||
+        (a.closest('#settings-nav') && a.dataset.tab === "extra") ||
+        a.id === "pm-logout" ||
+        a.id === "pm-profile" ||
+        href.startsWith("#basic"); // allow opening settings shell
+      a.classList.toggle('locked', lock && !allow);
+    });
+
+    // gate clicks
+    document.addEventListener('click', (e)=>{
+      if (!window.PROFILE_LOCKED) return;
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href') || "";
+      const allowed =
+        href === "#extra" ||
+        (a.closest('#settings-nav') && a.dataset.tab === "extra") ||
+        a.id === "pm-logout" ||
+        a.id === "pm-profile";
+      if (!allowed) {
+        e.preventDefault();
+        banner("Please complete your profile first (Additional Info).");
+        if (location.hash !== '#extra') location.hash = '#extra';
+      }
+    }, { capture:true, once:true }); // attach once; lock toggling will re-run when needed
+  }
+
+  // compute profile completeness (tweak as needed)
+  function computeProfileComplete(row){
+    const must = [
+      row?.first_name, row?.last_name,
+      row?.dob, row?.id_number,
+      row?.country_residence
+    ];
+    return must.every(v => (String(v||"").trim().length > 0));
+  }
+
+  function resolveKycBoolean(v){
+    if (typeof v === "boolean") return v;
+    if (typeof v === "string") return ["verified","approved","done","passed","kyc_done"].includes(v.toLowerCase());
+    return false;
   }
 
   async function ensureProfile(userId, email){
-    // try get
     let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
     if (error && error.code !== "PGRST116") throw error;
     if (data) return data;
-
-    // not found -> create skeleton
     const payload = { id: userId, email, updated_at: new Date().toISOString() };
     const up = await supabase.from("profiles").upsert(payload).select("*").single();
     if (up.error) throw up.error;
     return up.data;
   }
 
+  async function getKycUrl(user) {
+    // 1) optional column
+    try {
+      const { data } = await supabase.from("profiles").select("kyc_start_url").eq("id", user.id).single();
+      if (data?.kyc_start_url) return data.kyc_start_url;
+    } catch(_) {}
+
+    // 2) optional edge function
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/functions/v1/start-kyc", {
+        method: "POST",
+        headers: { "Content-Type":"application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ user_id: user.id })
+      });
+      if (res.ok) {
+        const j = await res.json();
+        if (j?.url) return j.url;
+      }
+    } catch(_) {}
+
+    // 3) fallback
+    return "/kyc/start";
+  }
+
+  // ===== Element refs =====
+  const emailEl  = document.getElementById("email");
+  const accEl    = document.getElementById("acc-number");
+  const sideAcc  = document.getElementById("sidebar-acc");
+  const hdrName  = document.getElementById("hdr-name");
+  const hdrAv    = document.getElementById("hdr-avatar");
+  const avPrev   = document.getElementById("avatar-preview");
+  const avFile   = document.getElementById("avatar-file");
+  const avRemove = document.getElementById("remove-avatar");
+  const extraBtn = document.getElementById("save-extra");
+  const extraSaved = document.getElementById("extra-saved");
+  const kycStateEl = document.getElementById("kyc-state");
+  const kycBtn   = document.getElementById("btn-kyc-start");
+  const kycErr   = document.getElementById("kyc-error");
+
+  const field = id => document.getElementById(id);
+
+  function setBusy(btn, on, idle="Save additional info", busy="Saving…"){
+    if (!btn) return;
+    btn.disabled = on;
+    btn.textContent = on ? busy : idle;
+  }
+
+  function setHeaderName(row, user){
+    const fn=(row?.first_name||"").trim(), ln=(row?.last_name||"").trim();
+    const fallback = user?.email?.split("@")[0] || "User";
+    hdrName.textContent = (fn||ln)?`${fn} ${ln}`.trim():fallback;
+  }
+
+  async function uploadAvatar(file){
+    const { data:{ user } } = await supabase.auth.getUser();
+    if (!user || !file) return;
+    if (!file.type.startsWith("image/")) throw new Error("Pick an image");
+    if (file.size > 2*1024*1024) throw new Error("Image too large (max 2MB)");
+    avPrev.src = URL.createObjectURL(file);
+    const ext=(file.name.split(".").pop()||"jpg").toLowerCase();
+    const path=`${user.id}/avatar_${Date.now()}.${ext}`;
+    const { error:upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert:true, cacheControl:"3600", contentType:file.type });
+    if (upErr) throw upErr;
+    const { data:pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    const avatar_url = pub.publicUrl;
+    const { error:dbErr } = await supabase.from("profiles").upsert({ id:user.id, avatar_url, updated_at:new Date().toISOString() }).eq("id", user.id);
+    if (dbErr) throw dbErr;
+    hdrAv.src = avatar_url;
+    avRemove.classList.remove("hidden");
+  }
+
+  // ===== Load + hydrate =====
   async function load(){
     try{
-      // sanity: client exists
-      if (!supabase || !supabase.auth) {
-        banner("Supabase client not found: check /js/supabase.js", "err");
-        return;
-      }
-
-      // session / user
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session} } = await supabase.auth.getSession();
       if (!session) {
         const next = encodeURIComponent(location.pathname + location.search + location.hash);
         location.replace(`/auth.html?tab=in&redirect=${next}`);
         return;
       }
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user from auth.getUser()");
+      if (!user) return;
 
-      // ensure row exists, then hydrate UI
       const row = await ensureProfile(user.id, user.email || null);
 
-      // header bits
-      document.getElementById("email").value = user.email || "";
+      // header
+      if (emailEl) emailEl.value = user.email || "";
       const acct = row?.account_number || "949915944";
-      document.getElementById("acc-number").textContent = acct;
-      document.getElementById("sidebar-acc").textContent = acct;
+      accEl.textContent = acct; sideAcc.textContent = acct;
 
-      // map fields
-      const setVal = (id, v)=>{ const el=document.getElementById(id); if(el) el.value = v ?? ""; };
+      // form fields
+      const setVal = (id, v)=>{ const el=field(id); if(el) el.value = v ?? ""; };
       setVal("first_name", row?.first_name);
       setVal("last_name",  row?.last_name);
       setVal("phone",      row?.phone);
-      setVal("dob",        row?.dob);         // expects YYYY-MM-DD in DB
+      setVal("dob",        row?.dob);
       setVal("id_number",  row?.id_number);
       setVal("nationality",       row?.nationality);
       setVal("country_residence", row?.country_residence);
@@ -561,11 +674,8 @@
       setVal("net_worth_range",   row?.net_worth_range);
       setVal("experience_level",  row?.experience_level);
       setVal("risk_tolerance",    row?.risk_tolerance);
-
-      const pep = document.getElementById("pep");
-      const fat = document.getElementById("fatca_crs");
-      if (pep) pep.checked = !!row?.pep;
-      if (fat) fat.checked = !!row?.fatca_crs;
+      const pep = field("pep"); if (pep) pep.checked = !!row?.pep;
+      const fat = field("fatca_crs"); if (fat) fat.checked = !!row?.fatca_crs;
 
       // objectives
       const set = new Set(String(row?.objectives || "").split(",").map(s=>s.trim()).filter(Boolean));
@@ -574,31 +684,136 @@
       // avatar
       const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
       const avatarUrl = row?.avatar_url || blankAvatar;
-      const avPrev = document.getElementById("avatar-preview");
-      const hdrAvatar = document.getElementById("hdr-avatar");
       if (avPrev) avPrev.src = avatarUrl;
-      if (hdrAvatar) hdrAvatar.src = avatarUrl;
-      const avRemove = document.getElementById("remove-avatar");
+      if (hdrAv)  hdrAv.src  = avatarUrl;
       if (avRemove) avRemove.classList.toggle("hidden", !row?.avatar_url);
 
-      // name
-      const fn=(row?.first_name||"").trim(), ln=(row?.last_name||"").trim();
-      const fallback = user.email?.split("@")[0] || "User";
-      document.getElementById("hdr-name").textContent = (fn||ln) ? `${fn} ${ln}`.trim() : fallback;
+      setHeaderName(row, user);
 
-      // KYC state
-      const kycStateEl = document.getElementById("kyc-state");
-      const v = row?.kyc_status;
-      const kycDone = (typeof v==="boolean") ? v : (typeof v==="string" && ["verified","approved","done","passed","kyc_done"].includes(v.toLowerCase()));
+      // KYC chip
+      const kycDone = resolveKycBoolean(row?.kyc_status);
       if (kycStateEl){
-        if (kycDone){
-          kycStateEl.textContent = "KYC done";
-          kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
-        }else{
-          kycStateEl.textContent = "Complete your KYC";
-          kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
-        }
+        if (kycDone){ kycStateEl.textContent="KYC done"; kycStateEl.className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900"; }
+        else { kycStateEl.textContent="Complete your KYC"; kycStateEl.className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900"; }
       }
+
+      // LOCK
+      const complete = (typeof row?.profile_complete === "boolean")
+        ? row.profile_complete
+        : computeProfileComplete(row);
+      applyLockUI(!complete);
+      if (!complete && location.hash !== "#extra") {
+        location.hash = "#extra";
+        banner("Please complete your profile first (Additional Info).");
+      }
+
+      // Modal wiring
+      const hdrProfileBtn = document.getElementById("hdr-profile-btn");
+      const modal = document.getElementById("profile-modal");
+      const pmEmail = document.getElementById("pm-email");
+      function openModal(){ modal.classList.remove("hidden"); }
+      function closeModal(){ modal.classList.add("hidden"); }
+      hdrProfileBtn?.addEventListener("click", (e)=>{
+        e.preventDefault(); pmEmail.textContent = user?.email || "—"; openModal();
+      });
+      modal.addEventListener("click", (e)=>{
+        if (e.target === modal || e.target.classList.contains("bg-black/40")) closeModal();
+      });
+      window.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
+
+      document.getElementById("pm-logout")?.addEventListener("click", async ()=>{
+        await supabase.auth.signOut();
+        location.replace("/auth.html?tab=in");
+      });
+
+      // Avatar events
+      avFile?.addEventListener("change", async ()=>{
+        const f = avFile.files?.[0]; if (!f) return;
+        try { await uploadAvatar(f); } catch(err){ banner(err.message || "Avatar upload failed", "err"); }
+      });
+      avRemove?.addEventListener("click", async ()=>{
+        const { data:{ user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { error } = await supabase.from("profiles").update({ avatar_url:null, updated_at:new Date().toISOString() }).eq("id", user.id);
+        if (error) return banner(error.message, "err");
+        if (avPrev) avPrev.src = blankAvatar; if (hdrAv) hdrAv.src = blankAvatar; avRemove.classList.add("hidden");
+      });
+
+      // Save additional info  (FIXED)
+      extraBtn?.addEventListener("click", async ()=>{
+        setBusy(extraBtn, true);
+        extraSaved?.classList.add("hidden");
+        try{
+          const objectives = Array.from(document.querySelectorAll('input[name="objectives"]:checked')).map(cb=>cb.value).join(", ");
+
+          const payload = {
+            id: user.id,
+            first_name: field("first_name")?.value.trim() || null,
+            last_name:  field("last_name")?.value.trim()  || null,
+            phone:      field("phone")?.value.trim()      || null,
+            dob:        field("dob")?.value || null,
+            id_number:  field("id_number")?.value.trim()  || null,
+            nationality:       field("nationality")?.value.trim() || null,
+            country_residence: field("country_residence")?.value.trim() || null,
+            employment_status: field("employment_status")?.value || null,
+            occupation:        field("occupation")?.value.trim() || null,
+            employer:          field("employer")?.value.trim() || null,
+            income_bracket:    field("income_bracket")?.value || null,
+            source_of_funds:   field("source_of_funds")?.value || null,
+            net_worth_range:   field("net_worth_range")?.value || null,
+            experience_level:  field("experience_level")?.value || null,
+            risk_tolerance:    field("risk_tolerance")?.value || null,
+            objectives,
+            pep: !!field("pep")?.checked,
+            fatca_crs: !!field("fatca_crs")?.checked,
+            updated_at: new Date().toISOString()
+          };
+
+          // compute + set profile_complete
+          const prospective = { ...payload };
+          const willBeComplete = computeProfileComplete(prospective);
+          payload.profile_complete = willBeComplete;
+
+          const { error } = await supabase.from("profiles").upsert(payload).eq("id", user.id);
+          if (error) throw error;
+
+          // update auth user metadata for name
+          await supabase.auth.updateUser({
+            data: { first_name: payload.first_name || "", last_name: payload.last_name || "", full_name: `${payload.first_name||""} ${payload.last_name||""}`.trim() }
+          }).catch(()=>{});
+
+          setHeaderName(payload, user);
+          extraSaved?.classList.remove("hidden");
+          banner("Saved.", "ok");
+
+          // toggle lock + maybe redirect home
+          applyLockUI(!willBeComplete);
+          if (willBeComplete) {
+            // Optional: send them home
+            setTimeout(()=> { location.replace("/home.html"); }, 600);
+          }
+        }catch(err){
+          banner(err.message || "Save failed", "err");
+        }finally{
+          setBusy(extraBtn, false);
+        }
+      });
+
+      // KYC button
+      kycBtn?.addEventListener("click", async ()=>{
+        try{
+          kycErr?.classList.add("hidden");
+          kycBtn.disabled = true; kycBtn.textContent = "Starting…";
+          const url = await getKycUrl(user);
+          if (!url) throw new Error("No KYC URL");
+          location.href = url;
+        }catch(err){
+          console.error(err);
+          kycErr?.classList.remove("hidden");
+        }finally{
+          kycBtn.disabled = false; kycBtn.textContent = "Get Started mate";
+        }
+      });
 
     }catch(err){
       console.error(err);
@@ -606,10 +821,8 @@
     }
   }
 
-  // call immediately after scripts wire up
   await load();
 </script>
-
 
 </body>
 </html>
