@@ -39,7 +39,6 @@
 
     .no-scrollbar::-webkit-scrollbar{ display:none }
     .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }
-
     .scrollbar-hide::-webkit-scrollbar{ display:none }
     .scrollbar-hide{ -ms-overflow-style:none; scrollbar-width:none }
 
@@ -97,9 +96,9 @@
       </nav>
 
       <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
-        <button id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="settings.html" title="Settings">
+        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="settings.html" title="Settings">
           <i class="fa-solid fa-gear"></i>
-        </button>
+        </a>
         <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
@@ -109,9 +108,6 @@
     <!-- ===== Main ===== -->
     <main class="flex-1 min-w-0">
       <!-- Header -->
-      <!-- (kept your selector block exactly where you had it) -->
-
-
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
         <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
           <div class="relative w-full">
@@ -121,13 +117,6 @@
             </svg>
           </div>
         </div>
-
-              <div class="hidden md:flex items-center gap-2 px-6 pt-4">
-        <label for="acct-select" class="text-xs text-slate-500">Account</label>
-        <select id="acct-select" class="h-9 rounded-lg border border-slate-200 px-3 text-sm min-w-[220px]">
-          <option>Loading…</option>
-        </select>
-      </div>
 
         <!-- Profile (dynamic) -->
         <div class="flex items-center gap-3">
@@ -193,13 +182,23 @@
             </div>
           </div>
 
-          <!-- Strategies preview -->
+          <!-- Accounts (replaces Strategies) -->
           <div class="card p-5 border border-slate-200">
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">Strategies</h3>
-              <a href="#" class="text-sm text-olive-600 hover:underline">View all</a>
+              <h3 class="text-base font-medium text-slate-900">Accounts</h3>
+              <a href="/settings.html#accounts" class="text-sm text-olive-600 hover:underline">Manage</a>
             </div>
-            <ul class="space-y-3" id="strat-list"></ul>
+
+            <div class="space-y-3">
+              <label for="acct-select" class="text-xs text-slate-500">Select account</label>
+              <select id="acct-select" class="h-9 rounded-lg border border-slate-200 px-3 text-sm w-full">
+                <option>Loading…</option>
+              </select>
+
+              <div id="acct-meta" class="text-xs text-slate-500">
+                — 
+              </div>
+            </div>
           </div>
 
           <!-- Asset class allocation -->
@@ -392,11 +391,8 @@
       <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
       <script>
-        // NOTE: I removed the old chart init here to avoid double-initialization.
-        // Keep your holdings / strategies / allocation demo data below:
-
+        // Holdings + Allocation demo (unchanged)
         (()=>{
-          // Holdings slider (unchanged)
           const holdings=[
             { ticker:'AAPL', name:'Apple, Inc', price:1232.00, pct:11.01, bg:'#111827' },
             { ticker:'PYPL', name:'PayPal, Inc', price:965.00, pct:-9.05, bg:'#2563eb' },
@@ -427,22 +423,6 @@
           const CARD_W=284;
           document.getElementById('hold-prev').onclick=()=>track.scrollBy({ left:-CARD_W, behavior:'smooth' });
           document.getElementById('hold-next').onclick=()=>track.scrollBy({ left:CARD_W, behavior:'smooth' });
-
-          // Strategies + Allocation demo (unchanged)
-          const stratData=[
-            { name:'AlgoForge • Trend', min:'R163.15', tcm:'R164.2k', chg:+0.8 },
-            { name:'QuantBee • Mean',  min:'R198.93', tcm:'R2.2m',  chg:+0.4 },
-            { name:'GridOps • Grid',   min:'R164.01', tcm:'R2.1m',  chg:-0.2 },
-          ];
-          document.getElementById('strat-list').innerHTML = stratData.map(s=>`
-            <li class="flex items-center justify-between">
-              <div class="min-w-0">
-                <div class="text-sm text-slate-900 truncate">${s.name}</div>
-                <div class="text-xs text-slate-500">Min: ${s.min} • TCM: ${s.tcm}</div>
-              </div>
-              <span class="text-xs px-2 py-0.5 rounded-full ${s.chg>=0?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${s.chg>=0?'+':''}${s.chg}%</span>
-            </li>
-          `).join('');
 
           const alloc=[ {label:'Stocks',pct:56,color:'#111827'}, {label:'ETFs',pct:22,color:'#2563eb'}, {label:'Crypto',pct:17,color:'#16a34a'}, {label:'Cash',pct:5,color:'#f59e0b'} ];
           const allocWrap=document.getElementById('asset-allocation');
@@ -564,6 +544,21 @@
     const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
     const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
 
+    // make initials avatar (SVG data URL)
+    function avatarDataUrl(nameOrEmail){
+      const name = (nameOrEmail||'').trim();
+      const initial = (name.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
+      const bg = '#111827';
+      const fg = '#ffffff';
+      const svg = encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72">
+          <rect width="100%" height="100%" rx="8" ry="8" fill="${bg}"/>
+          <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="36" fill="${fg}">${initial}</text>
+        </svg>`
+      );
+      return `data:image/svg+xml;utf8,${decodeURIComponent(svg)}`;
+    }
+
     // auth
     const { data:{ session } } = await supabase.auth.getSession();
     if(!session){
@@ -572,10 +567,22 @@
     }
     const { data:{ user } } = await supabase.auth.getUser();
 
+    // hydrate profile UI (name + avatar)
+    const userMeta = user?.user_metadata || {};
+    const fullName = userMeta.full_name || userMeta.name || userMeta.username || '';
+    const email = user?.email || '';
+    const displayName = fullName || email || '—';
+    const avatarUrl = userMeta.avatar_url || avatarDataUrl(fullName || email);
+
+    $('#hdr-name').textContent = displayName;
+    $('#pm-email').textContent = email || '—';
+    const img = $('#hdr-avatar');
+    if (img) img.src = avatarUrl;
+
     // fetch accounts
     const { data: accounts, error } = await supabase
       .from('investment_accounts')
-      .select('id, broker, account_number, currency, status, balance, equity, eq_1d, eq_1m, eq_1y, eq_all, updated_at')
+      .select('id, broker, account_number, currency, status, balance, equity, eq_1d, eq_1m, eq_1y, eq_all, updated_at, name')
       .eq('profile_id', user.id)
       .order('status', { ascending: true })
       .order('updated_at', { ascending: false });
@@ -588,20 +595,40 @@
       $('#pf-value').textContent = '—';
       $('#pf-change').textContent = '—';
       $('#sidebar-acc').textContent = '—';
+      $('#acct-meta').textContent = 'No investment accounts yet.';
       throw new Error('No accounts for user');
     }
 
-    // fill selector (kept in header area)
+    // fill selector (now in right column card)
     const acctSel = $('#acct-select');
+    const acctMeta = $('#acct-meta');
+    function acctLabel(a){
+      // prefer named account if you have one; fallback broker • account_number
+      return (a.name && a.name.trim()) ? a.name : `${a.broker} • ${a.account_number}`;
+    }
+    function setAcctMeta(a){
+      const sym = symFor(a.currency);
+      acctMeta.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span>${a.currency} · ${a.status}</span>
+          <span class="font-medium text-slate-900">${fmtMoney(sym, a.equity ?? a.balance ?? 0)}</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-0.5">Acct # ${a.account_number}</div>
+      `;
+    }
+
     if(acctSel){
-      acctSel.innerHTML = (accounts || []).map(a => {
-        const label = `${a.broker} • ${a.account_number}`;
-        return `<option value="${a.id}">${label}</option>`;
-      }).join('');
+      acctSel.innerHTML = (accounts || []).map(a => `<option value="${a.id}">${acctLabel(a)}</option>`).join('');
       acctSel.value = current.id;
+      setAcctMeta(current);
       acctSel.addEventListener('change', () => {
         const chosen = accounts.find(a=>a.id === acctSel.value);
-        if(chosen){ current = chosen; renderRange(activeRange); $('#sidebar-acc').textContent = current.account_number || '—'; }
+        if(chosen){
+          current = chosen;
+          setAcctMeta(current);
+          renderRange(activeRange);
+          $('#sidebar-acc').textContent = current.account_number || '—';
+        }
       });
     }
 
@@ -673,7 +700,7 @@
       btn.addEventListener('click',()=> renderRange(btn.dataset.range));
     });
 
-    // refresh: small client-side nudge for visual effect
+    // refresh: small client-side nudge
     refreshBtn?.addEventListener('click',()=>{
       refreshBtn.classList.add('spin');
       setTimeout(()=>{
