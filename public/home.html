@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
   <style>
-    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#7e8d52; --brand:#f59e0b; --line:#7e8d52 }
+    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0 }
     html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
     .card{ background:#fff; border:1px solid var(--line); border-radius:12px }
     .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
@@ -37,11 +37,14 @@
 
     /* Perf tiles */
     .ps-tile{ border:1px solid #e5e7eb; border-radius:14px; padding:14px 16px; background:#fff }
-    .ps-label{ color:#7e8d52; font-weight:500; font-size:.85rem }
+    .ps-label{ color:#64748b; font-weight:500; font-size:.85rem }
     .ps-value{ font-weight:600; font-size:1rem; margin-top:2px }
 
     .no-scrollbar::-webkit-scrollbar{ display:none }
     .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }
+
+    .scrollbar-hide::-webkit-scrollbar{ display:none }
+    .scrollbar-hide{ -ms-overflow-style:none; scrollbar-width:none }
 
     canvas{ max-width:100%; height:auto }
     table{ max-width:100% }
@@ -189,9 +192,7 @@
               <h3 class="text-base font-medium text-slate-900">Strategies</h3>
               <a href="#" class="text-sm text-olive-600 hover:underline">View all</a>
             </div>
-            <ul class="space-y-3" id="strat-list">
-              <!-- filled by script -->
-            </ul>
+            <ul class="space-y-3" id="strat-list"></ul>
           </div>
 
           <!-- Asset class allocation -->
@@ -290,7 +291,91 @@
           </div>
         </section>
 
-        <!-- selection helper for Recent Orders table (if you add checkboxes later) -->
+        <!-- Recent Orders (restored) -->
+        <section class="col-span-12 lg:col-span-9 min-w-0">
+          <div class="card rounded-2xl border border-slate-200 p-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-medium text-slate-900">Recent Orders</h3>
+              <a href="#" class="text-sm text-slate-500 hover:text-slate-700">View All</a>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <div class="relative">
+                <input class="h-9 w-64 rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search..." />
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              </div>
+              <button id="cancel-selected"
+                class="h-9 rounded-lg bg-amber-100 text-amber-900 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled>
+                Cancel <span id="sel-count">0</span> selected
+              </button>
+              <button class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
+                <i class="fa-solid fa-table-cells-large mr-2 text-slate-500"></i> Columns
+              </button>
+            </div>
+
+            <div class="mt-3 text-xs text-slate-400" id="clear-selection" hidden>Clear Selection</div>
+
+            <div class="mt-2 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-slate-500">
+                    <th class="py-3 pl-3"><input id="chk-all" type="checkbox" class="h-4 w-4 rounded border-slate-300" /></th>
+                    <th class="py-3 text-left font-normal">Asset</th>
+                    <th class="py-3 text-left font-normal">Order Type</th>
+                    <th class="py-3 text-left font-normal">Side</th>
+                    <th class="py-3 text-left font-normal">Qty</th>
+                    <th class="py-3 text-left font-normal">Filled Qty</th>
+                    <th class="py-3 text-left font-normal">Avg. Fill Price</th>
+                    <th class="py-3 text-left font-normal">Status</th>
+                    <th class="py-3 text-left font-normal">Source</th>
+                    <th class="py-3 text-left font-normal">Submitted At</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
+                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
+                    <td class="py-3">Market</td>
+                    <td class="py-3">sell</td>
+                    <td class="py-3">1.00</td>
+                    <td class="py-3">1.00</td>
+                    <td class="py-3">254.81</td>
+                    <td class="py-3">filled</td>
+                    <td class="py-3">-</td>
+                    <td class="py-3">Sep 26, 2025, 10:34</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
+                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
+                    <td class="py-3">Market</td>
+                    <td class="py-3">buy</td>
+                    <td class="py-3">300.00</td>
+                    <td class="py-3">300.00</td>
+                    <td class="py-3">252.66</td>
+                    <td class="py-3">filled</td>
+                    <td class="py-3">-</td>
+                    <td class="py-3">Sep 25, 2025, 09:02</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
+                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td>
+                    <td class="py-3">Market</td>
+                    <td class="py-3">buy</td>
+                    <td class="py-3">300.00</td>
+                    <td class="py-3">300.00</td>
+                    <td class="py-3">179.33</td>
+                    <td class="py-3">filled</td>
+                    <td class="py-3">-</td>
+                    <td class="py-3">Sep 25, 2025, 08:41</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- helpers -->
         <style>
           .scrollbar-hide::-webkit-scrollbar{ display:none }
           .scrollbar-hide{ -ms-overflow-style:none; scrollbar-width:none }
@@ -323,13 +408,14 @@
           }
 
           const ctx=document.getElementById('pf-chart').getContext('2d');
+          // original olive color
           const gradient=ctx.createLinearGradient(0,0,0,260);
-          gradient.addColorStop(0,'rgba(16,185,129,0.35)');
-          gradient.addColorStop(1,'rgba(16,185,129,0.06)');
+          gradient.addColorStop(0,'rgba(85,107,47,0.35)'); // #556B2F @ 35%
+          gradient.addColorStop(1,'rgba(85,107,47,0.06)'); // #556B2F @ 6%
 
           let chart=new Chart(ctx,{
             type:'line',
-            data:{ labels:series["1D"].map((_,i)=>i), datasets:[{ data:series["1D"], tension:.35, borderWidth:2, borderColor:'#10b981', backgroundColor:gradient, fill:true, pointRadius:0 }]},
+            data:{ labels:series["1D"].map((_,i)=>i), datasets:[{ data:series["1D"], tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }]},
             options:{
               responsive:true, maintainAspectRatio:false,
               plugins:{ legend:{ display:false }, tooltip:{ enabled:true, mode:'index', intersect:false, displayColors:false }},
@@ -400,7 +486,7 @@
           document.getElementById('hold-prev').onclick=()=>track.scrollBy({ left:-CARD_W, behavior:'smooth' });
           document.getElementById('hold-next').onclick=()=>track.scrollBy({ left:CARD_W, behavior:'smooth' });
 
-          // Strategies + Allocation (simple demo data; swap to live later)
+          // Strategies + Allocation demo data
           const stratData=[
             { name:'AlgoForge • Trend', min:'R163.15', tcm:'R164.2k', chg:+0.8 },
             { name:'QuantBee • Mean',  min:'R198.93', tcm:'R2.2m',  chg:+0.4 },
@@ -433,12 +519,13 @@
       </script>
 
       <script>
+        // Six months earnings chart (olive highlight restored)
         (() => {
           const ctx=document.getElementById('six-months-earnings').getContext('2d');
           const allMonths=[{m:'Jan',v:420},{m:'Feb',v:610},{m:'Mar',v:455},{m:'Apr',v:630},{m:'May',v:405},{m:'Jun',v:660},{m:'Jul',v:520},{m:'Aug',v:480},{m:'Sep',v:590},{m:'Oct',v:530},{m:'Nov',v:610},{m:'Dec',v:700}];
           const last6=allMonths.slice(-6);
           const labels=last6.map(x=>x.m), data=last6.map(x=>x.v);
-          const OLIVE='#10b981', MUTED='rgba(2,6,23,.08)', MUTED_BORDER='rgba(2,6,23,.18)';
+          const OLIVE='#556B2F', MUTED='rgba(2,6,23,.08)', MUTED_BORDER='rgba(2,6,23,.18)';
           const fmtUSD=new Intl.NumberFormat('en-US',{ style:'currency', currency:'USD', maximumFractionDigits:0 });
 
           new Chart(ctx,{
@@ -453,6 +540,30 @@
               }
             }
           });
+        })();
+
+        // Recent Orders selection logic
+        (function () {
+          const all = document.getElementById('chk-all');
+          const rows = () => Array.from(document.querySelectorAll('.row-chk'));
+          const sel = document.getElementById('sel-count');
+          const btn = document.getElementById('cancel-selected');
+          const clear = document.getElementById('clear-selection');
+
+          function refresh() {
+            const n = rows().filter(c => c.checked).length;
+            sel.textContent = n; btn.disabled = n === 0; clear.hidden = n === 0;
+            if (all) {
+              const total = rows().length;
+              all.checked = (n > 0 && n === total);
+              all.indeterminate = (n > 0 && n < total);
+            }
+          }
+          all?.addEventListener('change', () => { rows().forEach(c => c.checked = all.checked); refresh(); });
+          document.addEventListener('change', e => { if (e.target.classList?.contains('row-chk')) refresh(); });
+          clear?.addEventListener('click', () => { rows().forEach(c => c.checked = false); if (all){ all.checked=false; all.indeterminate=false; } refresh(); });
+          btn?.addEventListener('click', ()=>{ if (!btn.disabled && confirm('Cancel selected orders?')) { rows().forEach(c=>c.checked=false); if(all){all.checked=false; all.indeterminate=false;} refresh(); }});
+          refresh();
         })();
       </script>
     </main>
