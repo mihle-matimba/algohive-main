@@ -1,399 +1,269 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlgoHive Signup</title>
-
-  <!-- Fonts -->
-  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlgoHive — Sign in</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root{
-      /* Brand */
-      --brand-olive:#6A7B53;
-      --brand-olive-darker:#586946;
-      --brand-olive-glow:rgba(106,123,83,.35);
-      --brand-charcoal:#0c0d0c;
-
-      /* UI */
-      --bg-dark-panel:var(--brand-charcoal);
-      --bg-light-panel:#F7F8F5;
-      --bg-card:#ffffff;
-      --text-light:#ffffff;
-      --text-dark:#222;
-      --text-secondary:#6b7280;
-      --border-color:#e5e7eb;
-      --input-bg:#F0F2EF;
-    }
-
-    *{margin:0;padding:0;box-sizing:border-box}
-    html{scroll-behavior:smooth}
-    body{
-      font-family:'Satoshi',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      color:var(--text-dark);
-      background:var(--bg-light-panel);
-      min-height:100vh;
-    }
-
-    .page-wrapper{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      min-height:100vh;
-    }
-
-    /* ===================== LEFT (gradient on black) ===================== */
-    .info-panel{
-      position:relative;
-      background:var(--bg-dark-panel);
-      color:var(--text-light);
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      padding:3rem;
-      overflow:hidden;
-      isolation:isolate;
-    }
-
-    .info-panel::before{
-      content:"";
-      position:absolute; inset:-20%;
-      background:
-        radial-gradient(80rem 60rem at 15% 15%, rgba(106,123,83,.45), rgba(106,123,83,.18) 40%, transparent 65%),
-        radial-gradient(60rem 40rem at 85% 80%, rgba(137,160,105,.28), transparent 60%),
-        linear-gradient(180deg, rgba(0,0,0,.0), rgba(0,0,0,.25));
-      filter:saturate(110%) blur(0.3px);
-      z-index:-1;
-    }
-    .info-panel::after{
-      content:"";
-      position:absolute; inset:0;
-      background:linear-gradient(120deg, rgba(255,255,255,.06), rgba(255,255,255,0) 25% 75%, rgba(255,255,255,.04));
-      mix-blend-mode:overlay; opacity:.35; pointer-events:none;
-    }
-
-    .glow-grid{
-      position:absolute; inset:0;
-      background:
-        linear-gradient(transparent 31px, rgba(255,255,255,.04) 32px),
-        linear-gradient(90deg, transparent 31px, rgba(255,255,255,.04) 32px);
-      background-size:32px 32px, 32px 32px;
-      mask-image:radial-gradient(1200px 800px at 50% 50%, rgba(0,0,0,1), rgba(0,0,0,0) 85%);
-      opacity:.17; z-index:-1;
-    }
-
-    .info-content{max-width:520px; text-align:center}
-    .logo-img{height:40px;width:auto;margin-bottom:3rem;filter:drop-shadow(0 6px 18px rgba(106,123,83,.25))}
-
-    .info-title{
-      font-family:'Clash Display', sans-serif;
-      font-size:2.9rem; line-height:1.15; font-weight:700;
-      letter-spacing:-.01em; margin-bottom:1rem;
-    }
-    .info-title .highlight{
-      color:#DDE4D3; position:relative;
-    }
-    .info-title .highlight::after{
-      content:""; position:absolute; left:0; right:0; bottom:-8px; height:3px;
-      background:linear-gradient(90deg, rgba(106,123,83,0), rgba(106,123,83,1), rgba(106,123,83,0));
-      filter:drop-shadow(0 2px 8px rgba(106,123,83,.6));
-      border-radius:999px;
-    }
-
-    .info-subtitle{font-size:1.05rem; opacity:.9; margin-top:.5rem}
-
-    .features-grid{
-      display:flex; justify-content:center; gap:2rem; margin-top:2.8rem; flex-wrap:wrap;
-    }
-
-    /* Feature item + hover text */
-    .feature-item{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      width:140px;
-      position:relative;
-    }
-    .feature-icon{
-      width:56px;height:56px;margin-bottom:1rem;border-radius:14px;
-      display:flex;align-items:center;justify-content:center;
-      border:1px solid rgba(255,255,255,.18);
-      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0));
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 8px 30px rgba(106,123,83,.22);
-      color:#EAF2E1;
-    }
-    .feature-icon svg{width:26px;height:26px;stroke-width:1.8}
-    .feature-item p{font-size:.9rem;font-weight:600;line-height:1.35;opacity:.96}
-
-    .hover-text{
-      font-size:0.8rem;
-      color:var(--text-light);
-      opacity:0;
-      transform:translateY(4px);
-      transition:opacity 0.25s ease, transform 0.25s ease;
-      margin-top:0.4rem;
-      text-align:center;
-      pointer-events:none;
-    }
-    .feature-item:hover .hover-text{
-      opacity:0.85;
-      transform:translateY(0);
-    }
-
-    /* ===================== RIGHT (form card) ===================== */
-    .signup-panel{
-      background:var(--bg-light-panel);
-      display:flex;align-items:center;justify-content:center;
-      padding:3.2rem 2rem; position:relative;
-    }
-    .signup-panel::before{
-      content:""; position:absolute; left:0; top:0; bottom:0; width:1px;
-      background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.08), rgba(0,0,0,0));
-      opacity:.6;
-    }
-
-    .signup-card{
-      background:var(--bg-card);
-      padding:2.4rem; border-radius:24px; width:100%; max-width:460px;
-      box-shadow:0 12px 48px rgba(0,0,0,.06);
-    }
-
-    .signup-header .logo-img{height:32px;margin-bottom:1rem;filter:none}
-
-    .signup-card-subtitle{
-      font-size:.8rem;font-weight:700;color:var(--text-secondary);
-      text-transform:uppercase; letter-spacing:.5px; margin-bottom:.25rem;
-    }
-    .signup-card-subtitle .free-text{color:var(--brand-olive)}
-
-    .signup-card-title{
-      font-size:2rem; font-weight:800; margin:0 0 1.75rem;
-    }
-    .signup-card-title .brand-name{color:var(--brand-olive)}
-
-    .form-group{margin-bottom:1.2rem}
-    label{display:block;font-size:.9rem;font-weight:600;margin-bottom:.55rem;color:#222}
-
-    input[type="email"], input[type="password"]{
-      width:100%; padding:1rem; border-radius:12px; border:1px solid transparent;
-      background:var(--input-bg); font-size:1rem; transition:.25s ease;
-    }
-    input::placeholder{color:#98a19a}
-    input:focus{
-      outline:none; border-color:var(--brand-olive);
-      box-shadow:0 0 0 4px var(--brand-olive-glow);
-      background:#F6F8F4;
-    }
-
-    .checkbox-group{
-      display:flex; gap:.75rem; align-items:flex-start; margin:1.2rem 0 .6rem;
-    }
-    .checkbox-group label{margin:0;font-size:.82rem;color:var(--text-secondary);line-height:1.5}
-    .checkbox-group a{color:var(--brand-olive-darker);font-weight:600;text-decoration:none}
-    .checkbox-group a:hover{text-decoration:underline}
-    .checkbox-group input[type="checkbox"]{
-      appearance:none; width:16px;height:16px;border:2px solid #d1d5db;border-radius:4px;cursor:pointer;position:relative;top:2px
-    }
-    .checkbox-group input[type="checkbox"]:checked{background:var(--brand-olive);border-color:var(--brand-olive-darker)}
-    .checkbox-group input[type="checkbox"]:checked::after{
-      content:""; position:absolute; top:1px; left:4px; width:4px; height:8px;
-      border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
-    }
-
-    .switch-auth{
-      font-size:.85rem; color:var(--text-secondary); margin: .6rem 0 1.6rem; text-align:left;
-    }
-    .switch-auth a{color:var(--brand-olive); font-weight:700; text-decoration:none}
-    .switch-auth a:hover{text-decoration:underline}
-
-    .btn{
-      display:flex; align-items:center; justify-content:center; gap:.5rem;
-      width:100%; padding:1rem; border-radius:12px; font-weight:800; font-size:1rem;
-      border:1px solid transparent; cursor:pointer; transition:.2s ease;
-      text-decoration:none;
-    }
-    .btn-primary{background:var(--brand-olive); color:#fff}
-    .btn-primary:hover{
-      background:var(--brand-olive-darker);
-      transform:translateY(-1px);
-      box-shadow:0 6px 22px var(--brand-olive-glow);
-    }
-
-    /* ==== Fade / swap forms ==== */
-    .form-views{position:relative; min-height: 260px;}
-    .form-view{
-      position:absolute; inset:0;
-      opacity:0; transform:translateY(6px);
-      transition:opacity .70s ease, transform .70s ease;
-      pointer-events:none;
-    }
-    .form-view.active{
-      opacity:1; transform:translateY(0);
-      pointer-events:auto; position:relative;
-    }
-
-    .form-view{
-  position:absolute; inset:0;
-  opacity:0; transform:translateY(6px);
-  transition:opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
-  pointer-events:none;
-}
-.form-view.active{
-  opacity:1; transform:translateY(0);
-  pointer-events:auto; position:relative;
-}
-
-
-    @media (max-width: 960px){
-      .page-wrapper{grid-template-columns:1fr}
-      .info-panel{display:none}
-      .signup-panel{padding:2rem 1rem}
-      .signup-card{border-radius:20px}
-    }
+    :root { --olive:#7e8d52; --olive-700:#576138; --ink:#0B1215; }
+    body { background:#f6f7f6 }
   </style>
 </head>
-<body>
-  <div class="page-wrapper">
-    <!-- LEFT: Gradient-on-black hero -->
-    <aside class="info-panel">
-      <span class="glow-grid" aria-hidden="true"></span>
+<body class="min-h-screen">
+  <!-- Wrapper: two-column split like Alpaca -->
+  <div class="grid min-h-screen lg:grid-cols-2">
+    <!-- LEFT: Auth area -->
+    <section class="bg-white/60 backdrop-blur-sm">
+      <div class="mx-auto w-full max-w-md px-6 py-10 lg:py-16 flex flex-col justify-center min-h-screen">
+        <!-- Brand -->
+        <div class="flex items-center gap-2 mb-6">
+          <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-7 w-auto">
+          <h1 class="text-lg font-extrabold text-[var(--ink)]">AlgoHive</h1>
+        </div>
 
-      <div class="info-content">
-        <img src="https://static.wixstatic.com/media/ac771e_b97ba82e60324f349a07e3437d8053ff~mv2.png" alt="AlgoHive Logo" class="logo-img">
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-4">
+          <button id="tab-in" type="button" class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
+          <button id="tab-up" type="button" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
+        </div>
 
-        <h1 class="info-title">
-          Where <span class="highlight">Smart</span> Capital Gathers
-        </h1>
-        <p class="info-subtitle">
-          Welcome to the Hive of Vetted, Quality and Performance-driven Investment Strategies.
-        </p>
+        <!-- Messages -->
+        <div id="msg" class="hidden mb-3 rounded-lg border text-sm px-3 py-2"></div>
 
-        <div class="features-grid">
-          <div class="feature-item">
-            <div class="feature-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M7 4.5l5-2.5 5 2.5v5l-5 2.5-5-2.5v-5Z" />
-                <path d="M2 9l5 2.5v5L2 19v-10Z" />
-                <path d="M22 9l-5 2.5v5l5 2.5V9Z" />
-              </svg>
+        <!-- Sign in -->
+        <form id="login-form" class="space-y-3">
+          <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
+          <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
+          <button type="submit" class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
+          <button id="forgot" type="button" class="w-full text-sm text-[var(--olive-700)] underline">Forgot password?</button>
+        </form>
+
+        <!-- Inline forgot form -->
+        <div id="forgot-wrap" class="hidden mt-3">
+          <form id="forgot-form" class="space-y-2">
+            <input name="email" type="email" placeholder="Your email" class="w-full border rounded px-3 py-2" required />
+            <div class="flex gap-2">
+              <button type="submit" class="flex-1 rounded px-3 py-2 bg-[var(--olive)] text-white">Send reset link</button>
+              <button type="button" id="forgot-cancel" class="rounded px-3 py-2 border">Cancel</button>
             </div>
-            <p>OpenStrategies</p>
-            <span class="hover-text">Your marketplace to mirror investment strategies.</span>
-          </div>
+          </form>
+        </div>
 
-          <div class="feature-item">
-            <div class="feature-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path d="M3 17l6-6 4 4 7-7" />
-                <path d="M3 21h18" />
-              </svg>
-            </div>
-            <p>V.A.S.T Fund</p> 
-            <span class="hover-text">We track and mirror OpenStrategies on your behalf.</span>
+        <!-- Sign up -->
+        <form id="signup-form" class="space-y-3 hidden mt-2">
+          <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
+          <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
+
+          <!-- Legal acceptance -->
+          <label class="flex items-start gap-2 text-xs text-slate-700">
+            <input id="agree" type="checkbox" class="mt-1 accent-[var(--olive)]" />
+            <span>
+              I agree to the
+              <a href="/terms.html" class="underline text-[var(--olive-700)]">Terms & Conditions</a>,
+              <a href="/privacy.html" class="underline text-[var(--olive-700)]">Privacy Policy</a>,
+              <a href="/risk.html" class="underline text-[var(--olive-700)]">Risk Disclosure</a>, and
+              <a href="/investment-disclaimer.html" class="underline text-[var(--olive-700)]">Investment Disclaimer</a>.
+            </span>
+          </label>
+
+          <button id="signup-btn" type="submit" class="w-full rounded px-3 py-2 bg-[var(--olive)] text-white disabled:opacity-50" disabled>
+            Create account
+          </button>
+          <p class="text-[11px] text-slate-500">We’ll email a confirmation link to activate your account.</p>
+        </form>
+
+        <!-- FSP notice -->
+        <div class="mt-6 rounded-xl border border-black/10 bg-black/[0.03] p-3">
+          <p class="text-[11px] leading-5 text-slate-600">
+            AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past performance is not indicative of future results.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Marketing panel (yellow like Alpaca) -->
+    <aside class="bg-[#f9d335] text-[#202020]">
+      <div class="max-w-2xl mx-auto px-8 lg:px-14 py-14 lg:py-20 min-h-screen flex flex-col">
+        <h2 class="text-xl font-bold mb-6">Easy to Use, Developer‑First API</h2>
+        <p class="text-slate-900/90 leading-6 mb-10">Build, backtest and deploy your strategy across thousands of stocks, ETFs, options, and crypto with Trading API.</p>
+
+        <div class="space-y-8">
+          <div>
+            <h3 class="font-semibold text-lg">Commission‑Free Trading for Retail Investors</h3>
+            <p class="text-sm leading-6 mt-2">Trade stocks, ETFs, and options with zero commissions using our powerful API and Web Dashboard.</p>
           </div>
+          <div>
+            <h3 class="font-semibold text-lg">Advanced Algorithmic Trading for Institutional Investors</h3>
+            <p class="text-sm leading-6 mt-2">Elevate your trading with low‑latency execution, dedicated support, and advanced order types.</p>
+          </div>
+          <div>
+            <h3 class="font-semibold text-lg">Real‑time Market Data</h3>
+            <p class="text-sm leading-6 mt-2">Real‑time and historical market data for both paper and live trading. Trade smarter with a complete view of the market.</p>
+          </div>
+        </div>
+
+        <div class="mt-auto pt-10 text-sm">
+          <p>Want to build a trading app on top of our APIs? <a class="underline font-medium" href="#">Learn about Broker API</a></p>
         </div>
       </div>
     </aside>
-
-    <!-- RIGHT: Forms -->
-    <main class="signup-panel">
-      <div class="signup-card" aria-live="polite">
-        <header class="signup-header">
-          <img src="https://static.wixstatic.com/media/ac771e_c4ecdfc4f8b2449da37a99f03590d482~mv2.png" alt="AlgoHive Logo" class="logo-img">
-          <p class="signup-card-subtitle">
-            Quality Returns at your <span class="free-text">fingertips.</span>
-          </p>
-          <h2 class="signup-card-title" id="formTitle">Join <span class="brand-name">AlgoHive</span> — Sign up now</h2>
-        </header>
-
-        <div class="form-views">
-          <!-- SIGN UP -->
-          <form id="signupForm" class="form-view active" action="#" method="POST" novalidate>
-            <div class="form-group">
-              <label for="email">Email*</label>
-              <input type="email" id="email" name="email" placeholder="email@domain.com" required>
-            </div>
-
-            <div class="checkbox-group">
-              <input type="checkbox" id="disclosures" name="disclosures" required>
-              <label for="disclosures">
-                By checking this box you accept AlgoHive’s latest
-                <a href="#">Terms and conditions</a>.
-              </label>
-            </div>
-
-            <!-- switch text (signup -> login) -->
-            <p class="switch-auth">
-              Already a member of the Hive? <a href="#" id="toLogin">Login</a>
-            </p>
-
-            <button type="submit" class="btn btn-primary">
-              <span>Get Started</span><span aria-hidden="true">→</span>
-            </button>
-          </form>
-
-          <!-- LOGIN -->
-          <form id="loginForm" class="form-view" action="#" method="POST" novalidate>
-            <div class="form-group">
-              <label for="loginEmail">Email*</label>
-              <input type="email" id="loginEmail" name="email" placeholder="email@domain.com" required>
-            </div>
-            <div class="form-group">
-              <label for="loginPassword">Password*</label>
-              <input type="password" id="loginPassword" name="password" placeholder="••••••••" required>
-            </div>
-
-            <!-- switch text (login -> signup) -->
-            <p class="switch-auth">
-              New to the Hive? <a href="#" id="toSignup">Create an account</a>
-            </p>
-
-            <button type="submit" class="btn btn-primary">
-              <span>Login</span><span aria-hidden="true">→</span>
-            </button>
-          </form>
-        </div>
-
-        <!-- Disclaimer inside card -->
-        <p style="text-align:center; font-size:0.8rem; color:var(--text-secondary); margin-top:1rem;">
-          AlgoHive is a registered Financial Services Provider (FSP 55118). Crypto investments carry risk, including potential loss of capital. Past performance is not guaranteed. Invest responsibly.
-        </p>
-      </div>
-    </main>
   </div>
 
-  <script>
-    (function(){
-      const formTitle = document.getElementById('formTitle');
-      const signupForm = document.getElementById('signupForm');
-      const loginForm  = document.getElementById('loginForm');
-      const toLogin    = document.getElementById('toLogin');
-      const toSignup   = document.getElementById('toSignup');
+  <!-- Auth Logic -->
+  <script type="module">
+    import { signIn, signUp } from "/js/auth.js";
+    import { supabase } from "/js/supabase.js";
 
-      function show(view){
-        if(view === 'login'){
-          signupForm.classList.remove('active');
-          loginForm.classList.add('active');
-          formTitle.innerHTML = 'Welcome back to <span class="brand-name">AlgoHive</span> — Login';
-        }else{
-          loginForm.classList.remove('active');
-          signupForm.classList.add('active');
-          formTitle.innerHTML = 'Join <span class="brand-name">AlgoHive</span> — Sign up now';
-        }
+    async function isProfileComplete(uid) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name,last_name")
+        .eq("id", uid)
+        .single();
+      return !error && data && (data.first_name || "").trim() && (data.last_name || "").trim();
+    }
+
+    async function routePostAuth(preferred = "/dashboard.html") {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return; // signup with email-confirmation on = no session yet
+      const complete = await isProfileComplete(session.user.id);
+      const dest = complete ? preferred : `/profile.html?onboarding=1&next=${encodeURIComponent(preferred)}`;
+      location.replace(dest);
+    }
+
+    const qs = new URLSearchParams(location.search);
+    const redirectTo = qs.get("redirect") || "/dashboard.html";
+
+    // elems
+    const tabIn = document.getElementById("tab-in");
+    const tabUp = document.getElementById("tab-up");
+    const fIn = document.getElementById("login-form");
+    const fUp = document.getElementById("signup-form");
+    const msg = document.getElementById("msg");
+    const forgot = document.getElementById("forgot");
+    const forgotWrap = document.getElementById("forgot-wrap");
+    const forgotForm = document.getElementById("forgot-form");
+    const forgotCancel = document.getElementById("forgot-cancel");
+    const agree = document.getElementById("agree");
+    const signupBtn = document.getElementById("signup-btn");
+
+    // ---- UI helpers ----
+    function showMsg(text, type = "info") { // "success" | "error" | "info"
+      msg.classList.remove("hidden", "bg-rose-50", "text-rose-700", "border-rose-200", "bg-emerald-50", "text-emerald-700", "border-emerald-200");
+      if (type === "success") { msg.classList.add("bg-emerald-50", "text-emerald-700", "border-emerald-200"); }
+      if (type === "error") { msg.classList.add("bg-rose-50", "text-rose-700", "border-rose-200"); }
+      msg.textContent = text;
+    }
+    function clearMsg() { msg.classList.add("hidden"); msg.textContent = ""; }
+    function setLoading(btn, on, idle, busy) { btn.disabled = on; btn.textContent = on ? busy : idle; }
+
+    function show(tab) {
+      clearMsg();
+      const up = tab === "up";
+      fUp.classList.toggle("hidden", !up);
+      fIn.classList.toggle("hidden", up);
+
+      // tab styles
+      tabUp.classList.toggle("bg-black", up);
+      tabUp.classList.toggle("text-white", up);
+      tabUp.classList.toggle("bg-gray-100", !up);
+      tabIn.classList.toggle("bg-black", !up);
+      tabIn.classList.toggle("text-white", !up);
+      tabIn.classList.toggle("bg-gray-100", up);
+
+      // forgot visible only on Sign in
+      forgot.classList.toggle("hidden", up);
+      forgotWrap.classList.add("hidden");
+    }
+
+    // tabs
+    tabIn.addEventListener("click", () => show("in"));
+    tabUp.addEventListener("click", () => show("up"));
+
+    // enable/disable signup by checkbox
+    const toggleSignupBtn = () => signupBtn && (signupBtn.disabled = !agree.checked);
+    agree && agree.addEventListener("change", toggleSignupBtn);
+    toggleSignupBtn();
+
+    // ---- Sign in ----
+    const inBtn = fIn.querySelector('button[type="submit"]');
+    fIn.addEventListener("submit", async (e) => {
+      e.preventDefault(); clearMsg();
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        setLoading(inBtn, true, "Sign in", "Signing in…");
+        await signIn(email, password);
+        showMsg("Signed in. Redirecting…", "success");
+        await routePostAuth(redirectTo);
+      } catch (err) {
+        showMsg(err.message || "Sign in failed.", "error");
+      } finally {
+        setLoading(inBtn, false, "Sign in");
       }
+    });
 
-      toLogin.addEventListener('click', (e)=>{ e.preventDefault(); show('login'); });
-      toSignup.addEventListener('click', (e)=>{ e.preventDefault(); show('signup'); });
+    // ---- Sign up ----
+    fUp.addEventListener("submit", async (e) => {
+      e.preventDefault(); clearMsg();
+      if (!agree.checked) { showMsg("Please accept the Terms, Privacy, Risk and Investment Disclaimer.", "error"); return; }
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        setLoading(signupBtn, true, "Create account", "Creating account…");
+        const { data } = await signUp(email, password); // { user, session }
+        const needsConfirm = !data?.session;
+        if (needsConfirm) {
+          showMsg("Account created. Please confirm your email, then sign in.", "success");
+          signupBtn.disabled = true;
+          signupBtn.textContent = "Check your email to confirm";
+        } else {
+          showMsg("Account created. Redirecting…", "success");
+          location.href = redirectTo;
+        }
+      } catch (err) {
+        const m = (err?.message || "").toLowerCase();
+        if (/already (registered|exists)/.test(m)) {
+          showMsg("An account with this email already exists. Please sign in or reset your password.", "error");
+          show("in");
+        } else {
+          showMsg(err.message || "Sign up failed.", "error");
+        }
+      } finally {
+        setLoading(signupBtn, false, "Create account");
+      }
+    });
 
-      // Optional: keep focus nice for a11y on swap
-      loginForm.addEventListener('transitionend', (e)=>{
-       // if(loginForm.classList.contains('active')) document.getElementById('loginEmail').focus();
-      });
-      signupForm.addEventListener('transitionend', (e)=>{
-        if(signupForm.classList.contains('active')) document.getElementById('email').focus();
-      });
-    })();
+    // ---- Forgot password (inline) ----
+    forgot.addEventListener("click", () => {
+      show("in");
+      const emailIn = fIn.elements.email.value.trim();
+      if (emailIn) forgotForm.elements.email.value = emailIn;
+      forgotWrap.classList.remove("hidden");
+    });
+    forgotCancel.addEventListener("click", () => forgotWrap.classList.add("hidden"));
+
+    forgotForm.addEventListener("submit", async (e) => {
+      e.preventDefault(); clearMsg();
+      const email = e.target.email.value.trim();
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      try {
+        setLoading(submitBtn, true, "Send reset link", "Sending…");
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/reset.html` });
+        if (error) throw error;
+        showMsg("If an account exists for that email, we’ve sent a reset link.", "success");
+        forgotWrap.classList.add("hidden");
+      } catch (err) {
+        showMsg(err.message || "Could not send reset link.", "error");
+      } finally {
+        setLoading(submitBtn, false, "Send reset link");
+      }
+    });
+
+    // ---- On load ----
+    if (qs.get("tab") === "up") show("up"); else show("in");
+    if (qs.get("confirmed") === "1") showMsg("Email confirmed — you can sign in now.", "success");
   </script>
 </body>
 </html>
