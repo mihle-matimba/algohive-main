@@ -299,9 +299,25 @@
 
             <!-- MANAGE ACCOUNTS -->
             <div id="manage" data-panel="manage" class="hidden card border border-slate-200 rounded-2xl p-6">
-              <h2 class="text-xl font-semibold text-slate-900">Manage Accounts</h2>
-              <p class="mt-4 text-sm text-slate-500">No linked sub-accounts yet.</p>
+              <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-slate-900">Manage Accounts</h2>
+                <div class="flex gap-2">
+                  <button id="btn-refresh-accounts" class="btn hover:bg-slate-50">Refresh</button>
+                  <button id="btn-add-account" class="btn btn-olive">Add Account</button>
+                </div>
+              </div>
+
+              <!-- states -->
+              <div id="accounts-loading" class="mt-6 text-sm text-slate-500">Loading accounts…</div>
+              <div id="accounts-empty" class="mt-6 hidden rounded-xl border border-slate-200 p-6">
+                <div class="font-medium text-slate-900 mb-1">No accounts yet</div>
+                <div class="text-sm text-slate-500">Click “Add Account” to connect one.</div>
+              </div>
+
+              <!-- list -->
+              <div id="accounts-wrap" class="mt-6 space-y-8"></div>
             </div>
+            Ï
 
             <!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
             <div id="docs" data-panel="docs" class="hidden card border border-slate-200 rounded-2xl p-6">
@@ -1028,6 +1044,159 @@
         setBusy(extraSave, false);
       }
     });
+    // ============ Manage Accounts ============
+
+    // formatters
+    const fmtMoney = (amt, ccy = 'ZAR') => {
+      try { return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: ccy }).format(Number(amt || 0)); }
+      catch { return `${ccy} ${Number(amt || 0).toFixed(2)}`; }
+    };
+    const maskAcct = (s = '') => s?.length > 4 ? '•••• ' + s.slice(-4) : s || '—';
+    const pill = (status) => {
+      const s = String(status || '').toUpperCase();
+      const base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium';
+      if (s === 'ACTIVE') return `${base} bg-emerald-100 text-emerald-900`;
+      if (s === 'PENDING') return `${base} bg-amber-100 text-amber-900`;
+      if (['SUSPENDED', 'ERROR', 'DISCONNECTED'].includes(s)) return `${base} bg-rose-100 text-rose-900`;
+      return `${base} bg-slate-100 text-slate-700`;
+    };
+    const deriveEndpoint = (row) => {
+      // prefer DB meta.api_endpoint if you store it
+      const metaEp = row?.meta?.api_endpoint;
+      if (metaEp) return metaEp;
+
+      // simple broker heuristics
+      const b = String(row?.broker || '').toLowerCase();
+      if (b.includes('alpaca')) {
+        const isPaper = row?.meta?.paper === true || row?.account_number?.startsWith('PA');
+        return isPaper ? 'https://paper-api.alpaca.markets/v2' : 'https://api.alpaca.markets/v2';
+      }
+      if (b.includes('ibkr')) return '—'; // typically via gateway
+      if (b.includes('mt5') || b.includes('mt4')) return row?.meta?.server || '—';
+      return '—';
+    };
+
+    function renderAccountCard(row) {
+      const wrap = document.createElement('div');
+      wrap.className = 'grid grid-cols-1 md:grid-cols-2 gap-6';
+
+      // left card
+      const left = document.createElement('div');
+      left.className = 'rounded-xl border border-slate-200 p-5';
+      left.innerHTML = `
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-sm text-slate-500">${row.broker ? row.broker : 'Account'}</div>
+        <div class="mt-1 font-semibold text-slate-900">${maskAcct(row.account_number)}</div>
+        <div class="mt-2 flex items-center gap-2">
+          <span class="${pill(row.status)}">${String(row.status || '').toUpperCase()}</span>
+          <span class="text-xs text-slate-400">Updated ${new Date(row.updated_at).toLocaleString()}</span>
+        </div>
+      </div>
+      <button class="btn text-rose-700 hover:bg-rose-50 border-rose-200" data-action="delete" data-id="${row.id}">
+        Delete Account
+      </button>
+    </div>
+
+    <div class="mt-5 grid grid-cols-2 gap-4">
+      <div>
+        <div class="text-xs text-slate-500 mb-1">Balance</div>
+        <div class="text-[15px] font-semibold">${fmtMoney(row.balance, row.currency || 'ZAR')}</div>
+      </div>
+      <div>
+        <div class="text-xs text-slate-500 mb-1">Equity</div>
+        <div class="text-[15px] font-semibold">${fmtMoney(row.equity, row.currency || 'ZAR')}</div>
+      </div>
+    </div>
+  `;
+
+      // right small panel
+      const right = document.createElement('div');
+      right.className = 'rounded-xl border border-slate-200 p-5';
+      right.innerHTML = `
+    <div class="font-medium text-slate-900 mb-3">API Keys</div>
+    <label class="text-xs text-slate-500">Endpoint</label>
+    <input class="input w-full mt-1" value="${deriveEndpoint(row)}" disabled />
+    <button class="btn w-full mt-4" data-action="keys" data-id="${row.id}">
+      Generate New Keys
+    </button>
+  `;
+
+      wrap.appendChild(left);
+      wrap.appendChild(right);
+      return wrap;
+    }
+
+    async function loadAccounts() {
+      const loading = document.getElementById('accounts-loading');
+      const empty = document.getElementById('accounts-empty');
+      const list = document.getElementById('accounts-wrap');
+
+      loading?.classList.remove('hidden');
+      empty?.classList.add('hidden');
+      list.innerHTML = '';
+
+      try {
+        const { data, error } = await supabase
+          .from('investment_accounts')
+          .select('id, profile_id, broker, account_number, currency, status, balance, equity, updated_at, meta')
+          .eq('profile_id', user.id)
+          .order('status', { ascending: true })
+          .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          empty?.classList.remove('hidden');
+          return;
+        }
+
+        data.forEach(row => list.appendChild(renderAccountCard(row)));
+
+      } catch (e) {
+        console.error(e);
+        banner(e.message || 'Could not load accounts', 'err');
+      } finally {
+        loading?.classList.add('hidden');
+      }
+    }
+
+    // actions (delete / generate)
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+
+      if (action === 'delete') {
+        if (!confirm('Delete this account? This cannot be undone.')) return;
+        const { error } = await supabase.from('investment_accounts').delete().eq('id', id);
+        if (error) return banner(error.message, 'err');
+        banner('Account deleted', 'ok');
+        loadAccounts();
+      }
+
+      if (action === 'keys') {
+        // TODO: call your edge function to mint new API keys for this account
+        // e.g., POST /functions/v1/gen-keys { account_id: id }
+        banner('Key generation not wired yet — placeholder', 'warn');
+      }
+    });
+
+    document.getElementById('btn-refresh-accounts')?.addEventListener('click', loadAccounts);
+    document.getElementById('btn-add-account')?.addEventListener('click', () => {
+      // route to your connect flow
+      location.href = '/connect.html';
+    });
+
+    // load when the Manage tab is shown
+    function maybeLoadAccountsOnTab() {
+      const current = (location.hash || '#basic').toLowerCase().replace('#', '');
+      if (current === 'manage') loadAccounts();
+    }
+    window.addEventListener('hashchange', maybeLoadAccountsOnTab);
+    maybeLoadAccountsOnTab();
+
 
   </script>
 
