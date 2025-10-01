@@ -652,93 +652,8 @@
   </script>
 
 
-  <!-- ===== Supabase + Gating (module) ===== -->
- <script type="module">
+<script type="module">
   import { supabase } from "/js/supabase.js";
-
-   // ===== FIX: Save Additional Info handler (paste inside your <script type="module">) =====
-
-// tiny helper for button busy state
-function setBusy(btn, on, label = "Save additional info") {
-  if (!btn) return;
-  btn.disabled = on;
-  btn.textContent = on ? "Saving…" : label;
-}
-
-const extraSaveBtn   = document.getElementById("save-extra");
-const extraSavedTick = document.getElementById("extra-saved");
-
-extraSaveBtn?.addEventListener("click", async () => {
-  setBusy(extraSaveBtn, true);
-  extraSavedTick?.classList.add("hidden");
-
-  try {
-    const payload = {
-      id: user.id,
-      // --- basic fields ---
-      first_name: (document.getElementById("first_name")?.value || "").trim(),
-      last_name: (document.getElementById("last_name")?.value || "").trim(),
-      phone: (document.getElementById("phone")?.value || "").trim(),
-      dob: document.getElementById("dob")?.value || null,
-      id_number: (document.getElementById("id_number")?.value || "").trim() || null,
-      nationality: (document.getElementById("nationality")?.value || "").trim() || null,
-      country_residence: (document.getElementById("country_residence")?.value || "").trim() || null,
-
-      // --- employment/suitability ---
-      employment_status: document.getElementById("employment_status")?.value || null,
-      occupation: (document.getElementById("occupation")?.value || "").trim() || null,
-      employer: (document.getElementById("employer")?.value || "").trim() || null,
-      income_bracket: document.getElementById("income_bracket")?.value || null,
-      source_of_funds: document.getElementById("source_of_funds")?.value || null,
-      net_worth_range: document.getElementById("net_worth_range")?.value || null,
-      experience_level: document.getElementById("experience_level")?.value || null,
-      risk_tolerance: document.getElementById("risk_tolerance")?.value || null,
-
-      // --- objectives (CSV) ---
-      objectives: Array.from(document.querySelectorAll('input[name="objectives"]:checked'))
-        .map(cb => cb.value).join(", "),
-
-      // --- compliance ---
-      pep: !!document.getElementById("pep")?.checked,
-      fatca_crs: !!document.getElementById("fatca_crs")?.checked,
-
-      updated_at: new Date().toISOString()
-    };
-
-    const { data: saved, error } = await supabase
-      .from("profiles")
-      .upsert(payload, { onConflict: "id" })
-      .select("*")
-      .single();
-
-    if (error) throw error;
-
-    // reflect name on header
-    const fn = (saved.first_name || "").trim();
-    const ln = (saved.last_name || "").trim();
-    document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email || "User").split("@")[0];
-
-    // show tick + banner
-    extraSavedTick?.classList.remove("hidden");
-    banner("Additional info saved ✅", "ok");
-
-    // (optional) re-run gating logic if you rely on it
-    try {
-      const REQUIRED_FIELDS = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
-      const complete = REQUIRED_FIELDS.every(k => String(saved?.[k] ?? "").trim().length > 0);
-      if (!complete) banner("Still missing some required fields.", "warn");
-    } catch {}
-
-    // you can dispatch a custom event for anything else listening
-    document.dispatchEvent(new Event("ah:profile-saved"));
-
-  } catch (e) {
-    console.error(e);
-    banner(e.message || "Save failed", "err");
-  } finally {
-    setBusy(extraSaveBtn, false);
-  }
-});
 
   // ---------- toast banner ----------
   function banner(msg, tone = "warn") {
@@ -771,7 +686,7 @@ extraSaveBtn?.addEventListener("click", async () => {
     return up.data;
   }
 
-  // ---------- KYC ----------
+  // ---------- KYC helpers ----------
   function resolveKycBoolean(row){
     const v = row?.kyc_status;
     if (typeof v === "boolean") return v;
@@ -805,12 +720,14 @@ extraSaveBtn?.addEventListener("click", async () => {
   // ---------- hydrate ----------
   const row = await ensureProfile(user.id, user.email || null);
 
+  // email + account no
   const emailInput = document.getElementById("email");
   if (emailInput) emailInput.value = user.email || "";
   const acct = row?.account_number || "949915944";
   document.getElementById("acc-number").textContent = acct;
   document.getElementById("sidebar-acc").textContent = acct;
 
+  // map fields
   const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
   setVal("first_name", row?.first_name);
   setVal("last_name", row?.last_name);
@@ -828,14 +745,32 @@ extraSaveBtn?.addEventListener("click", async () => {
   setVal("experience_level", row?.experience_level);
   setVal("risk_tolerance", row?.risk_tolerance);
 
+  // ===== load Investment objectives (CSV -> checkboxes) =====
+  (function hydrateObjectives(){
+    const csv = (row?.objectives || "").trim();
+    const set = new Set(csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : []);
+    document.querySelectorAll('input[name="objectives"]').forEach(cb => { cb.checked = set.has(cb.value); });
+  })();
+
+  // ===== load Compliance switches =====
+  const pepEl = document.getElementById("pep");
+  const fatEl = document.getElementById("fatca_crs");
+  if (pepEl) pepEl.checked = !!row?.pep;
+  if (fatEl) fatEl.checked = !!row?.fatca_crs;
+
   // avatar + name
-  const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
-  const avatarUrl = row?.avatar_url || blankAvatar;
+  const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
   const avPrev = document.getElementById("avatar-preview");
   const hdrAvatar = document.getElementById("hdr-avatar");
-  if (avPrev) avPrev.src = avatarUrl;
-  if (hdrAvatar) hdrAvatar.src = avatarUrl;
   const avRemove = document.getElementById("remove-avatar");
+  const startAvatarUrl = row?.avatar_url || BLANK_AVATAR;
+
+  function setAvatarSrc(url) {
+    const finalUrl = url ? (url + (url.includes("?") ? "&" : "?") + "v=" + Date.now()) : BLANK_AVATAR;
+    if (avPrev) avPrev.src = finalUrl;
+    if (hdrAvatar) hdrAvatar.src = finalUrl;
+  }
+  setAvatarSrc(startAvatarUrl);
   avRemove?.classList.toggle("hidden", !row?.avatar_url);
 
   const fn = (row?.first_name || "").trim(), ln = (row?.last_name || "").trim();
@@ -888,7 +823,7 @@ extraSaveBtn?.addEventListener("click", async () => {
   const _origSetKycState = setKycState;
   setKycState = (isDone) => { _origSetKycState(isDone); kycDone = !!isDone; refreshGates(); };
 
-  // ---------- profile modal (rename var to avoid collision) ----------
+  // ---------- profile modal ----------
   const profileModal = document.getElementById("profile-modal");
   const hdrProfileBtn = document.getElementById("hdr-profile-btn");
   const pmEmail = document.getElementById("pm-email");
@@ -899,6 +834,150 @@ extraSaveBtn?.addEventListener("click", async () => {
   profileModal.addEventListener("click", (e) => { if (e.target === profileModal || e.target.classList.contains("bg-black/40")) closeProfileModal(); });
   window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeProfileModal(); });
   btnLogout?.addEventListener("click", async () => { try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); } catch { banner("Sorry, logout failed.","err"); } });
+
+  // ---------- Save Additional Info (objectives + compliance persisted) ----------
+  function setBusy(btn, on, label = "Save additional info") {
+    if (!btn) return;
+    btn.disabled = on;
+    btn.textContent = on ? "Saving…" : label;
+  }
+  const extraSaveBtn   = document.getElementById("save-extra");
+  const extraSavedTick = document.getElementById("extra-saved");
+
+  extraSaveBtn?.addEventListener("click", async () => {
+    setBusy(extraSaveBtn, true);
+    extraSavedTick?.classList.add("hidden");
+
+    try {
+      const payload = {
+        id: user.id,
+        // basic
+        first_name: (document.getElementById("first_name")?.value || "").trim(),
+        last_name: (document.getElementById("last_name")?.value || "").trim(),
+        phone: (document.getElementById("phone")?.value || "").trim(),
+        dob: document.getElementById("dob")?.value || null,
+        id_number: (document.getElementById("id_number")?.value || "").trim() || null,
+        nationality: (document.getElementById("nationality")?.value || "").trim() || null,
+        country_residence: (document.getElementById("country_residence")?.value || "").trim() || null,
+
+        // employment/suitability
+        employment_status: document.getElementById("employment_status")?.value || null,
+        occupation: (document.getElementById("occupation")?.value || "").trim() || null,
+        employer: (document.getElementById("employer")?.value || "").trim() || null,
+        income_bracket: document.getElementById("income_bracket")?.value || null,
+        source_of_funds: document.getElementById("source_of_funds")?.value || null,
+        net_worth_range: document.getElementById("net_worth_range")?.value || null,
+        experience_level: document.getElementById("experience_level")?.value || null,
+        risk_tolerance: document.getElementById("risk_tolerance")?.value || null,
+
+        // objectives (CSV)
+        objectives: Array.from(document.querySelectorAll('input[name="objectives"]:checked')).map(cb => cb.value).join(", "),
+
+        // compliance
+        pep: !!document.getElementById("pep")?.checked,
+        fatca_crs: !!document.getElementById("fatca_crs")?.checked,
+
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: saved, error } = await supabase
+        .from("profiles")
+        .upsert(payload, { onConflict: "id" })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      // reflect header name
+      const fn = (saved.first_name || "").trim();
+      const ln = (saved.last_name || "").trim();
+      document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email || "User").split("@")[0];
+
+      // confirm UI and gating
+      extraSavedTick?.classList.remove("hidden");
+      banner("Additional info saved ✅", "ok");
+
+      profileComplete = computeProfileComplete(saved);
+      if (typeof saved.kyc_status !== "undefined") {
+        kycDone = resolveKycBoolean(saved);
+        setKycState(kycDone);
+      }
+      refreshGates();
+
+      // fire event
+      document.dispatchEvent(new Event("ah:profile-saved"));
+
+    } catch (e) {
+      console.error(e);
+      banner(e.message || "Save failed", "err");
+    } finally {
+      setBusy(extraSaveBtn, false);
+    }
+  });
+
+  // ---------- Avatar upload / remove ----------
+  const AVATAR_BUCKET = "avatars";
+  const avInput  = document.getElementById("avatar-file");
+
+  async function uploadAvatar(file) {
+    if (!file) throw new Error("Pick an image");
+    if (!file.type.startsWith("image/")) throw new Error("Pick a valid image");
+    if (file.size > 2 * 1024 * 1024) throw new Error("Image too large (max 2MB)");
+
+    // optimistic preview
+    if (avPrev) avPrev.src = URL.createObjectURL(file);
+
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${user.id}/avatar_${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase
+      .storage.from(AVATAR_BUCKET)
+      .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type });
+    if (upErr) throw upErr;
+
+    const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    const avatar_url = pub?.publicUrl;
+    if (!avatar_url) throw new Error("Could not get public URL");
+
+    const { error: dbErr } = await supabase
+      .from("profiles")
+      .upsert({ id: user.id, avatar_url, updated_at: new Date().toISOString() }, { onConflict: "id" });
+    if (dbErr) throw dbErr;
+
+    setAvatarSrc(avatar_url);
+    avRemove?.classList.remove("hidden");
+    banner("Avatar updated ✅", "ok");
+  }
+
+  avInput?.addEventListener("change", async () => {
+    const f = avInput.files?.[0];
+    if (!f) return;
+    try {
+      await uploadAvatar(f);
+    } catch (e) {
+      console.error(e);
+      banner(e.message || "Avatar upload failed", "err");
+      // restore previous
+      setAvatarSrc(row?.avatar_url || BLANK_AVATAR);
+    } finally {
+      avInput.value = "";
+    }
+  });
+
+  avRemove?.addEventListener("click", async () => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({ id: user.id, avatar_url: null, updated_at: new Date().toISOString() }, { onConflict: "id" });
+      if (error) throw error;
+      setAvatarSrc(BLANK_AVATAR);
+      avRemove.classList.add("hidden");
+      banner("Avatar removed", "ok");
+    } catch (e) {
+      console.error(e);
+      banner(e.message || "Could not remove avatar", "err");
+    }
+  });
 
   // ---------- Manage Accounts ----------
   const fmtMoney = (amt, ccy='ZAR') => { try { return new Intl.NumberFormat('en-ZA',{style:'currency',currency:ccy}).format(Number(amt||0)); } catch { return `${ccy} ${Number(amt||0).toFixed(2)}`; } };
@@ -991,112 +1070,103 @@ extraSaveBtn?.addEventListener("click", async () => {
   window.addEventListener('hashchange', maybeLoadAccountsOnTab);
   maybeLoadAccountsOnTab();
 
-// ---------- Add Account modal (broker locked, auto 10-digit number) ----------
-const BROKER_LOCKED = "AlgoHive Markets";
+  // ---------- Add Account modal (broker locked, auto 10-digit number) ----------
+  const BROKER_LOCKED = "AlgoHive Markets";
 
-const openAdd = async () => {
-  const m = document.getElementById('add-account-modal');
-  if (!m) return;
+  const openAdd = async () => {
+    const m = document.getElementById('add-account-modal');
+    if (!m) return;
 
-  // set locked broker
-  const brokerEl = document.getElementById('aac-broker');
-  if (brokerEl) brokerEl.value = BROKER_LOCKED;
+    const brokerEl = document.getElementById('aac-broker');
+    if (brokerEl) brokerEl.value = BROKER_LOCKED;
 
-  // generate and display a unique 10-digit number
-  const numEl = document.getElementById('aac-number');
-  if (numEl) {
-    numEl.value = "generating…";
-    const acct = await ensureUniqueAccountNumber();
-    numEl.value = acct;
-    numEl.dataset.generated = acct; // stash for save
-  }
-
-  m.classList.remove('hidden');
-};
-const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
-
-document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
-document.getElementById('aac-close')?.addEventListener('click', closeAdd);
-document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
-
-// 10-digit generator (first digit 1–9 to avoid leading zero)
-function genAccountNumber() {
-  const first = String(Math.floor(Math.random() * 9) + 1);
-  let rest = "";
-  for (let i = 0; i < 9; i++) rest += Math.floor(Math.random() * 10);
-  return first + rest;
-}
-
-// check if this account number is already used for this broker (global uniqueness for the broker)
-async function existsForBroker(account_number) {
-  const { count, error } = await supabase
-    .from('investment_accounts')
-    .select('id', { count: 'exact', head: true })
-    .eq('broker', BROKER_LOCKED)
-    .eq('account_number', account_number);
-  if (error) throw error;
-  return (count || 0) > 0;
-}
-
-// loop a few times to guarantee uniqueness before we show it
-async function ensureUniqueAccountNumber(maxAttempts = 10) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const cand = genAccountNumber();
-    const taken = await existsForBroker(cand);
-    if (!taken) return cand;
-  }
-  throw new Error("Could not generate unique account number. Please try again.");
-}
-
-// Save
-document.getElementById('aac-save')?.addEventListener('click', async () => {
-  const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
-  const numberEl = document.getElementById('aac-number');
-  const account_number = numberEl?.dataset.generated || numberEl?.value;
-
-  if (!account_number || !/^\d{10}$/.test(account_number)) {
-    return banner('Account number generation failed. Please close and try again.', 'err');
-  }
-
-  const btn = document.getElementById('aac-save');
-  try {
-    btn.disabled = true;
-
-    const payload = {
-      profile_id: user.id,
-      broker: BROKER_LOCKED,
-      account_number,
-      currency,
-      status: 'ACTIVE',
-      balance: 0,
-      equity: 0,
-      meta: {}
-    };
-
-    const { error } = await supabase.from('investment_accounts').insert(payload);
-    if (error) {
-      // unique violation (profile_id, broker, account_number) — regenerate and retry advice
-      if (error.code === '23505') {
-        banner('That auto-generated account number was just taken. Please try again.', 'warn');
-      } else {
-        banner(error.message || 'Add failed', 'err');
-      }
-      return;
+    const numEl = document.getElementById('aac-number');
+    if (numEl) {
+      numEl.value = "generating…";
+      const acct = await ensureUniqueAccountNumber();
+      numEl.value = acct;
+      numEl.dataset.generated = acct;
     }
 
-    banner('Account added', 'ok');
-    closeAdd();
-    loadAccounts();
+    m.classList.remove('hidden');
+  };
+  const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
 
-  } catch (e) {
-    console.error(e);
-    banner(e.message || 'Add failed', 'err');
-  } finally {
-    btn.disabled = false;
+  document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
+  document.getElementById('aac-close')?.addEventListener('click', closeAdd);
+  document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
+
+  function genAccountNumber() {
+    const first = String(Math.floor(Math.random() * 9) + 1);
+    let rest = "";
+    for (let i = 0; i < 9; i++) rest += Math.floor(Math.random() * 10);
+    return first + rest;
   }
-});
+  async function existsForBroker(account_number) {
+    const { count, error } = await supabase
+      .from('investment_accounts')
+      .select('id', { count: 'exact', head: true })
+      .eq('broker', BROKER_LOCKED)
+      .eq('account_number', account_number);
+    if (error) throw error;
+    return (count || 0) > 0;
+  }
+  async function ensureUniqueAccountNumber(maxAttempts = 10) {
+    for (let i = 0; i < maxAttempts; i++) {
+      const cand = genAccountNumber();
+      const taken = await existsForBroker(cand);
+      if (!taken) return cand;
+    }
+    throw new Error("Could not generate unique account number. Please try again.");
+  }
 
+  document.getElementById('aac-save')?.addEventListener('click', async () => {
+    const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
+    const numberEl = document.getElementById('aac-number');
+    const account_number = numberEl?.dataset.generated || numberEl?.value;
+
+    if (!account_number || !/^\d{10}$/.test(account_number)) {
+      return banner('Account number generation failed. Please close and try again.', 'err');
+    }
+
+    const btn = document.getElementById('aac-save');
+    try {
+      btn.disabled = true;
+
+      const payload = {
+        profile_id: user.id,
+        broker: BROKER_LOCKED,
+        account_number,
+        currency,
+        status: 'ACTIVE',
+        balance: 0,
+        equity: 0,
+        meta: {}
+      };
+
+      const { error } = await supabase.from('investment_accounts').insert(payload);
+      if (error) {
+        if (error.code === '23505') {
+          banner('That auto-generated account number was just taken. Please try again.', 'warn');
+        } else {
+          banner(error.message || 'Add failed', 'err');
+        }
+        return;
+      }
+
+      banner('Account added', 'ok');
+      closeAdd();
+      loadAccounts();
+
+    } catch (e) {
+      console.error(e);
+      banner(e.message || 'Add failed', 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
 </script>
+
 
 <!-- Add Account Modal -->
 <div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
