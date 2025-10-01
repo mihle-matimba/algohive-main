@@ -533,256 +533,303 @@
   </script>
 
   <!-- ===== App (module) ===== -->
-  <script type="module">
-    import { supabase } from "/js/supabase.js";
+<script type="module">
+  import { supabase } from "/js/supabase.js";
 
-    // ---------- small utils ----------
-    const $ = (q, el=document)=>el.querySelector(q);
-    const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
-    const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
-    const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-    const toNums = (x)=>{
-      if (Array.isArray(x)) return x.map(Number).filter(Number.isFinite);
-      if (typeof x === 'string' && x.trim()) {
-        try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(Number).filter(Number.isFinite):[]; }
-        catch { return []; }
-      }
-      return [];
-    };
-    const initialsAvatar = (text)=>{
-      const s = (text||'').trim();
-      const initial = (s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
-      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
-        <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
-        <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
-              font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
-      </svg>`;
-      return `data:image/svg+xml;utf8,${svg}`;
-    };
+  // ---------- tiny utils ----------
+  const $ = (q, el=document)=>el.querySelector(q);
+  const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
+  const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
+  const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const toNums = (x)=>{
+    if (Array.isArray(x)) return x.map(Number).filter(Number.isFinite);
+    if (typeof x === 'string' && x.trim()) {
+      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(Number).filter(Number.isFinite):[]; }
+      catch { return []; }
+    }
+    return [];
+  };
+  const toStrs = (x)=>{
+    if (Array.isArray(x)) return x.map(v => String(v));
+    if (typeof x === 'string' && x.trim()) {
+      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(v=>String(v)):[]; }
+      catch { return []; }
+    }
+    return [];
+  };
+  const initialsAvatar = (text)=>{
+    const s = (text||'').trim();
+    const initial = (s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+      <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
+      <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
+            font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
+    </svg>`;
+    return `data:image/svg+xml;utf8,${svg}`;
+  };
 
-    // ---------- Chart globals + guards ----------
-    let activeRange = '1D';
-    let chart = null;
-    let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
-    let current = null; // active account
+  // ---------- chart globals ----------
+  let activeRange = '1D';
+  let chart = null;
+  let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
+  let current = null; // active account
 
-    (async () => {
-      // ---------- auth ----------
-      const { data:{ session } } = await supabase.auth.getSession();
-      if(!session){
-        const next = encodeURIComponent(location.pathname + location.search + location.hash);
-        location.replace(`/auth.html?tab=in&redirect=${next}`);
-        return;
-      }
-      const { data:{ user } } = await supabase.auth.getUser();
+  (async () => {
+    // ---------- auth ----------
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session){
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+      return;
+    }
+    const { data:{ user } } = await supabase.auth.getUser();
 
-      // ---------- profile (name + avatar, robust fallbacks) ----------
-      let profile = null;
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, first_name, last_name, avatar_url')
-          .eq('id', user.id)
-          .single();
-        if (error) throw error;
-        profile = data || null;
-      } catch {
-        profile = {
-          full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
-          first_name: user?.user_metadata?.first_name || '',
-          last_name:  user?.user_metadata?.last_name  || '',
-          avatar_url: user?.user_metadata?.avatar_url || ''
-        };
-      }
-
-      const bestName =
-        [profile?.full_name,
-         [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
-         user?.user_metadata?.full_name,
-         user?.user_metadata?.name].find(s => s && String(s).trim()) || user?.email || '—';
-
-      const avatarUrl = profile?.avatar_url || initialsAvatar(bestName || user?.email);
-      $('#hdr-name').textContent = bestName;
-      $('#pm-email').textContent = user?.email || '—';
-      const hdrImg = $('#hdr-avatar');
-      if (hdrImg){
-        hdrImg.src = avatarUrl;
-        hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
-      }
-
-      // ---------- accounts ----------
-      const acctSel  = $('#acct-select');
-      const acctMeta = $('#acct-meta');
-      const acctEmpty= $('#acct-empty');
-      const badge    = $('#sidebar-acc');
-
-      let accounts = [];
-      try {
-        const { data, error } = await supabase
-          .from('investment_accounts')
-          // no "name" column; include optional nickname/label
-          .select('id, broker, account_number, currency, status, balance, equity, eq_1d, eq_1m, eq_1y, eq_all, updated_at, account_nickname, label')
-          .eq('profile_id', user.id)
-          .order('status', { ascending: true })
-          .order('updated_at', { ascending: false });
-        if (error) throw error;
-        accounts = data || [];
-      } catch (e) {
-        console.error('Accounts load failed:', e);
-        if (acctSel){ acctSel.innerHTML = `<option>Failed to load</option>`; acctSel.disabled = true; }
-        if (acctMeta){ acctMeta.textContent = `Failed to load accounts`; }
-        safeBootCharts();
-        return;
-      }
-
-      if (!accounts.length){
-        if (acctSel){ acctSel.innerHTML = `<option>—</option>`; acctSel.disabled = true; }
-        acctMeta.textContent = '—';
-        acctEmpty.classList.remove('hidden');
-        if (badge) badge.textContent = '—';
-        safeBootCharts();
-        return;
-      }
-
-      current = accounts.find(a=>a.status==='ACTIVE') || accounts[0];
-      if (badge) badge.textContent = current.account_number || '—';
-
-      const labelFor = (a) =>
-        (a?.account_nickname && a.account_nickname.trim()) ||
-        (a?.label && a.label.trim()) ||
-        `${a?.broker || 'Account'} • ${a?.account_number || ''}`.trim();
-
-      const showAcctMeta = (a)=>{
-        const sym = symFor(a.currency);
-        acctMeta.innerHTML = `
-          <div class="flex items-center justify-between">
-            <span>${a.currency || 'USD'} · ${a.status || '—'}</span>
-            <span class="font-medium text-slate-900">${fmtMoney(sym, a.equity ?? a.balance ?? 0)}</span>
-          </div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Acct # ${a.account_number || '—'}</div>
-        `;
+    // ---------- profile (name + avatar) ----------
+    let profile = null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, first_name, last_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      profile = data || null;
+    } catch {
+      profile = {
+        full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
+        first_name: user?.user_metadata?.first_name || '',
+        last_name:  user?.user_metadata?.last_name  || '',
+        avatar_url: user?.user_metadata?.avatar_url || ''
       };
+    }
 
-      acctSel.disabled = false;
-      acctSel.innerHTML = accounts.map(a=>`<option value="${String(a.id)}">${labelFor(a)}</option>`).join('');
-      acctSel.value = String(current.id);
+    const bestName =
+      [profile?.full_name,
+       [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+       user?.user_metadata?.full_name,
+       user?.user_metadata?.name].find(s => s && String(s).trim()) || user?.email || '—';
+
+    const avatarUrl = profile?.avatar_url || initialsAvatar(bestName || user?.email);
+    $('#hdr-name').textContent = bestName;
+    $('#pm-email').textContent = user?.email || '—';
+    const hdrImg = $('#hdr-avatar');
+    if (hdrImg){
+      hdrImg.src = avatarUrl;
+      hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
+    }
+
+    // ---------- accounts load ----------
+    const acctSel  = $('#acct-select');
+    const acctMeta = $('#acct-meta');
+    const acctEmpty= $('#acct-empty');
+    const badge    = $('#sidebar-acc');
+
+    let accounts = [];
+    try {
+      const { data, error } = await supabase
+        .from('investment_accounts')
+        .select(`
+          id, broker, account_number, currency, status, balance, equity, updated_at,
+          eq_1d, eq_1m, eq_1y, eq_all,
+          label_1d, label_1m, label_1y, label_all,
+          account_nickname, label
+        `)
+        .eq('profile_id', user.id)
+        .order('status', { ascending: true })
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      accounts = data || [];
+    } catch (e) {
+      console.error('Accounts load failed:', e);
+      if (acctSel){ acctSel.innerHTML = `<option>Failed to load</option>`; acctSel.disabled = true; }
+      if (acctMeta){ acctMeta.textContent = `Failed to load accounts`; }
+      safeBootCharts();
+      return;
+    }
+
+    if (!accounts.length){
+      if (acctSel){ acctSel.innerHTML = `<option>—</option>`; acctSel.disabled = true; }
+      acctMeta.textContent = '—';
+      acctEmpty.classList.remove('hidden');
+      if (badge) badge.textContent = '—';
+      safeBootCharts();
+      return;
+    }
+
+    current = accounts.find(a=>a.status==='ACTIVE') || accounts[0];
+    if (badge) badge.textContent = current.account_number || '—';
+
+    const labelFor = (a) =>
+      (a?.account_nickname && a.account_nickname.trim()) ||
+      (a?.label && a.label.trim()) ||
+      `${a?.broker || 'Account'} • ${a?.account_number || ''}`.trim();
+
+    const showAcctMeta = (a)=>{
+      const sym = symFor(a.currency);
+      acctMeta.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span>${a.currency || 'USD'} · ${a.status || '—'}</span>
+          <span class="font-medium text-slate-900">${fmtMoney(sym, a.equity ?? a.balance ?? 0)}</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-0.5">Acct # ${a.account_number || '—'}</div>
+      `;
+    };
+
+    acctSel.disabled = false;
+    acctSel.innerHTML = accounts.map(a=>`<option value="${String(a.id)}">${labelFor(a)}</option>`).join('');
+    acctSel.value = String(current.id);
+    showAcctMeta(current);
+
+    acctSel.addEventListener('change', ()=>{
+      const chosen = accounts.find(a => String(a.id) === String(acctSel.value));
+      if (!chosen) return;
+      current = chosen;
       showAcctMeta(current);
+      if (badge) badge.textContent = current.account_number || '—';
+      renderRange(activeRange);
+    });
 
-      acctSel.addEventListener('change', ()=>{
-        const chosen = accounts.find(a => String(a.id) === String(acctSel.value));
-        if (!chosen) return;
-        current = chosen;
-        showAcctMeta(current);
-        if (badge) badge.textContent = current.account_number || '—';
-        renderRange(activeRange);
-      });
+    // ---------- charts boot ----------
+    initChartAndUI(current || { currency: 'USD' });
+    renderRange('1D');
+  })();
 
-      // ---------- charts boot ----------
-      initChartAndUI(current || { currency: 'USD' });
-      renderRange('1D');
-    })();
+  // ---------- chart helpers ----------
+  function initChartAndUI(seed){
+    elUpdated = $('#pf-updated');
+    elVal     = $('#pf-value');
+    elChg     = $('#pf-change');
+    refreshBtn= $('#pf-refresh');
 
-    // ---------- chart helpers ----------
-    function initChartAndUI(seed){
-      elUpdated = $('#pf-updated');
-      elVal     = $('#pf-value');
-      elChg     = $('#pf-change');
-      refreshBtn= $('#pf-refresh');
+    const ctxEl = document.getElementById('pf-chart');
+    if(!ctxEl) return;
 
-      const ctxEl = document.getElementById('pf-chart');
-      if(!ctxEl) return;
+    const ctx = ctxEl.getContext('2d');
+    const gradient = ctx.createLinearGradient(0,0,0,260);
+    gradient.addColorStop(0,'rgba(85,107,47,0.35)');
+    gradient.addColorStop(1,'rgba(85,107,47,0.06)');
 
-      const ctx = ctxEl.getContext('2d');
-      const gradient = ctx.createLinearGradient(0,0,0,260);
-      gradient.addColorStop(0,'rgba(85,107,47,0.35)');
-      gradient.addColorStop(1,'rgba(85,107,47,0.06)');
-
-      chart = new window.Chart(ctx,{
-        type:'line',
-        data:{ labels:[], datasets:[{ data:[], tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ display:false }, tooltip:{ enabled:true, mode:'index', intersect:false, displayColors:false }},
-          scales:{
-            x:{ display:false, grid:{ display:false }},
-            y:{ display:true, ticks:{ color:'#94a3b8', autoSkip:true, maxTicksLimit:3,
-              callback:(v)=>`${symFor((seed?.currency)||'USD')}${Number(v).toFixed(2)}` }, grid:{ display:false }}
-          }
+    chart = new window.Chart(ctx,{
+      type:'line',
+      data:{ labels:[], datasets:[{ data:[], tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false }, tooltip:{ enabled:true, mode:'index', intersect:false, displayColors:false }},
+        scales:{
+          x:{ display:false, grid:{ display:false }},
+          y:{ display:true, ticks:{ color:'#94a3b8', autoSkip:true, maxTicksLimit:3,
+            callback:(v)=>`${symFor((seed?.currency)||'USD')}${Number(v).toFixed(2)}` }, grid:{ display:false }}
         }
-      });
+      }
+    });
 
-      document.querySelectorAll('#portfolio-card .tab').forEach(btn=>{
-        btn.addEventListener('click',()=> renderRange(btn.dataset.range));
-      });
+    document.querySelectorAll('#portfolio-card .tab').forEach(btn=>{
+      btn.addEventListener('click',()=> renderRange(btn.dataset.range));
+    });
 
-      refreshBtn?.addEventListener('click',()=>{
-        refreshBtn.classList.add('spin');
-        setTimeout(()=>{
-          refreshBtn.classList.remove('spin');
-          const arr = getSeries(activeRange).map(n => Number(n) + (Math.random()-.5)*0.08);
-          setSeries(activeRange, arr);
-          renderRange(activeRange);
-        },600);
-      });
+    // optional "refresh": jitter current series a touch
+    refreshBtn?.addEventListener('click',()=>{
+      refreshBtn.classList.add('spin');
+      setTimeout(()=>{
+        refreshBtn.classList.remove('spin');
+        const arr = getSeries(activeRange).map(n => Number(n) + (Math.random()-.5)*0.08);
+        setSeries(activeRange, arr);
+        renderRange(activeRange);
+      },600);
+    });
+  }
+
+  function safeBootCharts(seed){
+    initChartAndUI(seed || { currency:'USD' });
+    renderRange('1D');
+  }
+
+  function setTimestamp(lastLabelIso){
+    if (elUpdated){
+      if (lastLabelIso) {
+        // Show last data point’s timestamp if we have labels
+        const dt = new Date(lastLabelIso);
+        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
+        elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
+      } else if (current?.updated_at){
+        const dt = new Date(current.updated_at);
+        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
+        elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
+      } else {
+        const now = new Date();
+        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
+        elUpdated.textContent = `${now.toLocaleString('en-ZA',opts)} SAST`;
+      }
     }
+  }
 
-    function safeBootCharts(seed){
-      initChartAndUI(seed || { currency:'USD' });
-      renderRange('1D');
-    }
+  // Pull numeric arrays for the selected range
+  function getSeries(range){
+    if (!current) return [];
+    if(range==='1D')  return toNums(current.eq_1d);
+    if(range==='1M')  return toNums(current.eq_1m);
+    if(range==='1Y')  return toNums(current.eq_1y);
+    if(range==='ALL') return toNums(current.eq_all);
+    return [];
+  }
+  // Pull label arrays (timestamps/dates) for the selected range
+  function getLabels(range){
+    if (!current) return [];
+    if(range==='1D')  return toStrs(current.label_1d);
+    if(range==='1M')  return toStrs(current.label_1m);
+    if(range==='1Y')  return toStrs(current.label_1y);
+    if(range==='ALL') return toStrs(current.label_all);
+    return [];
+  }
+  function setSeries(range, arr){
+    if (!current) return;
+    if(range==='1D')  current.eq_1d = arr;
+    if(range==='1M')  current.eq_1m = arr;
+    if(range==='1Y')  current.eq_1y = arr;
+    if(range==='ALL') current.eq_all = arr;
+  }
 
-    function setTimestamp(){
-      const now = new Date();
-      const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-      if (elUpdated) elUpdated.textContent = `${now.toLocaleString('en-ZA',opts)} SAST`;
+  function updateHeader(arr){
+    const a0 = arr[0] ?? 0, aN = arr[arr.length-1] ?? 0;
+    const changePct = pct(aN, a0);
+    const sym = symFor(current?.currency || 'USD');
+    if (elVal) elVal.textContent = fmtMoney(sym, current?.equity ?? current?.balance ?? 0);
+    if (elChg){
+      elChg.textContent = `${changePct>=0?'+':''}${changePct.toFixed(2)}%`;
+      elChg.style.color = changePct>=0 ? '#16a34a' : '#ef4444';
     }
+  }
 
-    function getSeries(range){
-      if (!current) return [];
-      if(range==='1D')  return toNums(current.eq_1d);
-      if(range==='1M')  return toNums(current.eq_1m);
-      if(range==='1Y')  return toNums(current.eq_1y);
-      if(range==='ALL') return toNums(current.eq_all);
-      return [];
-    }
-    function setSeries(range, arr){
-      if (!current) return;
-      if(range==='1D')  current.eq_1d = arr;
-      if(range==='1M')  current.eq_1m = arr;
-      if(range==='1Y')  current.eq_1y = arr;
-      if(range==='ALL') current.eq_all = arr;
-    }
+  function renderRange(range='1D'){
+    activeRange = range;
+    document.querySelectorAll('#portfolio-card .tab')
+      .forEach(t=>t.classList.toggle('tab-active', t.dataset.range===range));
 
-    function updateHeader(arr){
-      const a0 = arr[0] ?? 0, aN = arr[arr.length-1] ?? 0;
-      const changePct = pct(aN, a0);
-      const sym = symFor(current?.currency || 'USD');
-      if (elVal) elVal.textContent = fmtMoney(sym, current?.equity ?? current?.balance ?? 0);
-      if (elChg){
-        elChg.textContent = `${changePct>=0?'+':''}${changePct.toFixed(2)}%`;
-        elChg.style.color = changePct>=0 ? '#16a34a' : '#ef4444';
+    if(!chart) return;
+
+    // series + labels from DB; if empty, create a tiny synthetic line
+    let data = getSeries(range);
+    let labels = getLabels(range);
+
+    if (!data.length){
+      const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
+      data = Array.from({length: 30}, (_,i)=> base + i*0.02 + (Math.random()-.5)*0.4);
+      labels = data.map((_,i)=> String(i));
+    } else {
+      // Ensure labels length matches data length; if not, rebuild simple indices
+      if (!labels.length || labels.length !== data.length) {
+        labels = data.map((_,i)=> String(i));
       }
     }
 
-    function renderRange(range='1D'){
-      activeRange = range;
-      document.querySelectorAll('#portfolio-card .tab')
-        .forEach(t=>t.classList.toggle('tab-active', t.dataset.range===range));
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.update();
 
-      if(!chart) return;
+    updateHeader(data);
+    setTimestamp(labels[labels.length-1]);
+  }
+</script>
 
-      let data = getSeries(range);
-      if (!data.length){
-        const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
-        data = Array.from({length: 30}, ()=> base + (Math.random()-.5)*0.5);
-      }
-
-      chart.data.labels = data.map((_,i)=>i);
-      chart.data.datasets[0].data = data;
-      chart.update();
-      updateHeader(data);
-      setTimestamp();
-    }
-  </script>
 </body>
 </html>
