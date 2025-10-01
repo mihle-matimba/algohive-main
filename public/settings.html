@@ -653,622 +653,305 @@
 
 
   <!-- ===== Supabase + Gating (module) ===== -->
-  <script type="module">
-    import { supabase } from "/js/supabase.js";
+ <script type="module">
+  import { supabase } from "/js/supabase.js";
 
-    // ---------- toast banner ----------
-    function banner(msg, tone = "warn") {
-      let el = document.getElementById("banner");
-      if (!el) {
-        el = document.createElement("div");
-        el.id = "banner";
-        el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-        document.body.appendChild(el);
-      }
+  // ---------- toast banner ----------
+  function banner(msg, tone = "warn") {
+    let el = document.getElementById("banner");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "banner";
       el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-      if (tone === "warn") { el.classList.add("bg-amber-100", "text-amber-900"); }
-      if (tone === "err") { el.classList.add("bg-rose-100", "text-rose-900"); }
-      if (tone === "ok") { el.classList.add("bg-emerald-100", "text-emerald-900"); }
-      el.textContent = msg;
-      clearTimeout(el._t);
-      el._t = setTimeout(() => el.remove(), 4000);
+      document.body.appendChild(el);
     }
+    el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+    if (tone === "warn") el.classList.add("bg-amber-100","text-amber-900");
+    if (tone === "err")  el.classList.add("bg-rose-100","text-rose-900");
+    if (tone === "ok")   el.classList.add("bg-emerald-100","text-emerald-900");
+    el.textContent = msg;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.remove(), 4000);
+  }
 
-    // ---------- profile helpers ----------
-    const REQUIRED_FIELDS = ["first_name", "last_name", "phone", "dob", "id_number", "nationality", "country_residence"];
-    function computeProfileComplete(row) {
-      return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0);
+  // ---------- profile helpers ----------
+  const REQUIRED_FIELDS = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
+  function computeProfileComplete(row){ return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
+
+  async function ensureProfile(userId, email) {
+    let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (data) return data;
+    const up = await supabase.from("profiles").upsert({ id:userId, email, updated_at:new Date().toISOString() }, { onConflict:"id" }).select("*").single();
+    if (up.error) throw up.error;
+    return up.data;
+  }
+
+  // ---------- KYC ----------
+  function resolveKycBoolean(row){
+    const v = row?.kyc_status;
+    if (typeof v === "boolean") return v;
+    if (typeof v === "string") return ["verified","approved","done","passed","kyc_done"].includes(v.toLowerCase());
+    return false;
+  }
+  function setKycState(isDone){
+    const kycStateEl = document.getElementById("kyc-state");
+    const startWrap = document.getElementById("kyc-start-wrap");
+    const doneMsg = document.getElementById("kyc-done-msg");
+    if (!kycStateEl) return;
+    if (isDone){
+      kycStateEl.textContent = "KYC done";
+      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
+      startWrap?.classList.add("hidden"); doneMsg?.classList.remove("hidden");
+    } else {
+      kycStateEl.textContent = "Complete your KYC";
+      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
+      startWrap?.classList.remove("hidden"); doneMsg?.classList.add("hidden");
     }
+  }
 
-    async function ensureProfile(userId, email) {
-      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-      if (error && error.code !== "PGRST116") throw error;
-      if (data) return data;
-      const payload = { id: userId, email, updated_at: new Date().toISOString() };
-      const up = await supabase.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
-      if (up.error) throw up.error;
-      return up.data;
-    }
+  // ---------- auth guard ----------
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    const next = encodeURIComponent(location.pathname + location.search + location.hash);
+    location.replace(`/auth.html?tab=in&redirect=${next}`);
+  }
+  const { data: { user } } = await supabase.auth.getUser();
 
-    // ---------- KYC helpers ----------
-    function resolveKycBoolean(row) {
-      const v = row?.kyc_status;
-      if (typeof v === "boolean") return v;
-      if (typeof v === "string") {
-        const t = v.toLowerCase();
-        return ["verified", "approved", "done", "passed", "kyc_done"].includes(t);
-      }
-      return false;
-    }
-    function setKycState(isDone) {
-      const kycStateEl = document.getElementById("kyc-state");
-      const startWrap = document.getElementById("kyc-start-wrap");
-      const doneMsg = document.getElementById("kyc-done-msg");
+  // ---------- hydrate ----------
+  const row = await ensureProfile(user.id, user.email || null);
 
-      if (!kycStateEl) return;
+  const emailInput = document.getElementById("email");
+  if (emailInput) emailInput.value = user.email || "";
+  const acct = row?.account_number || "949915944";
+  document.getElementById("acc-number").textContent = acct;
+  document.getElementById("sidebar-acc").textContent = acct;
 
-      if (isDone) {
-        kycStateEl.textContent = "KYC done";
-        kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
-        // Hide start button, show done message
-        startWrap?.classList.add("hidden");
-        doneMsg?.classList.remove("hidden");
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
+  setVal("first_name", row?.first_name);
+  setVal("last_name", row?.last_name);
+  setVal("phone", row?.phone);
+  setVal("dob", row?.dob);
+  setVal("id_number", row?.id_number);
+  setVal("nationality", row?.nationality);
+  setVal("country_residence", row?.country_residence);
+  setVal("employment_status", row?.employment_status);
+  setVal("occupation", row?.occupation);
+  setVal("employer", row?.employer);
+  setVal("income_bracket", row?.income_bracket);
+  setVal("source_of_funds", row?.source_of_funds);
+  setVal("net_worth_range", row?.net_worth_range);
+  setVal("experience_level", row?.experience_level);
+  setVal("risk_tolerance", row?.risk_tolerance);
+
+  // avatar + name
+  const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+  const avatarUrl = row?.avatar_url || blankAvatar;
+  const avPrev = document.getElementById("avatar-preview");
+  const hdrAvatar = document.getElementById("hdr-avatar");
+  if (avPrev) avPrev.src = avatarUrl;
+  if (hdrAvatar) hdrAvatar.src = avatarUrl;
+  const avRemove = document.getElementById("remove-avatar");
+  avRemove?.classList.toggle("hidden", !row?.avatar_url);
+
+  const fn = (row?.first_name || "").trim(), ln = (row?.last_name || "").trim();
+  const fallback = user.email?.split("@")[0] || "User";
+  document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
+
+  // KYC + gating
+  let kycDone = resolveKycBoolean(row);
+  setKycState(kycDone);
+  let profileComplete = computeProfileComplete(row);
+  const allowedTabsWhenGated = new Set(["extra","docs"]);
+  function isGated(){ return !(profileComplete && kycDone); }
+  function gateReason(){
+    if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+    if (!profileComplete) return "Please finish Additional Info first.";
+    if (!kycDone) return "Please complete KYC first.";
+    return "";
+  }
+  function lockMainNav(){
+    const mainNav = document.getElementById("main-nav");
+    if (!mainNav) return;
+    function preventNav(e){ e.preventDefault(); banner(gateReason(),"warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }
+    mainNav.querySelectorAll('a[href]').forEach(a => {
+      const href = (a.getAttribute("href") || "").trim();
+      const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
+      if (isGated() && !isSettings){
+        a.classList.add("link-disabled"); a.setAttribute("aria-disabled","true");
+        a.title = "Locked until profile + KYC are complete";
+        a.addEventListener("click", preventNav, { passive:false });
       } else {
-        kycStateEl.textContent = "Complete your KYC";
-        kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
-        // Show start button, hide done message
-        startWrap?.classList.remove("hidden");
-        doneMsg?.classList.add("hidden");
-      }
-    }
-
-    async function getKycUrl(user) {
-      try {
-        const { data: row } = await supabase.from("profiles").select("kyc_start_url").eq("id", user.id).single();
-        if (row?.kyc_start_url) return row.kyc_start_url;
-      } catch (_) { }
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch("/functions/v1/start-kyc", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
-          body: JSON.stringify({ user_id: user.id })
-        });
-        if (res.ok) { const j = await res.json(); if (j?.url) return j.url; }
-      } catch (_) { }
-      return "/kyc/start";
-    }
-
-    // ---------- auth guard ----------
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const next = encodeURIComponent(location.pathname + location.search + location.hash);
-      location.replace(`/auth.html?tab=in&redirect=${next}`);
-    }
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // ---------- hydrate ----------
-    const row = await ensureProfile(user.id, user.email || null);
-
-    // email + account no
-    const emailInput = document.getElementById("email");
-    if (emailInput) emailInput.value = user.email || "";
-    const acct = row?.account_number || "949915944";
-    document.getElementById("acc-number").textContent = acct;
-    document.getElementById("sidebar-acc").textContent = acct;
-
-    // map fields
-    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
-    setVal("first_name", row?.first_name);
-    setVal("last_name", row?.last_name);
-    setVal("phone", row?.phone);
-    setVal("dob", row?.dob);
-    setVal("id_number", row?.id_number);
-    setVal("nationality", row?.nationality);
-    setVal("country_residence", row?.country_residence);
-    setVal("employment_status", row?.employment_status);
-    setVal("occupation", row?.occupation);
-    setVal("employer", row?.employer);
-    setVal("income_bracket", row?.income_bracket);
-    setVal("source_of_funds", row?.source_of_funds);
-    setVal("net_worth_range", row?.net_worth_range);
-    setVal("experience_level", row?.experience_level);
-    setVal("risk_tolerance", row?.risk_tolerance);
-
-    const pep = document.getElementById("pep");
-    const fat = document.getElementById("fatca_crs");
-    if (pep) pep.checked = !!row?.pep;
-    if (fat) fat.checked = !!row?.fatca_crs;
-
-    // objectives
-    const objSet = new Set(String(row?.objectives || "").split(",").map(s => s.trim()).filter(Boolean));
-    document.querySelectorAll('input[name="objectives"]').forEach(cb => cb.checked = objSet.has(cb.value));
-
-    // avatar
-    const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
-    const avatarUrl = row?.avatar_url || blankAvatar;
-    const avPrev = document.getElementById("avatar-preview");
-    const hdrAvatar = document.getElementById("hdr-avatar");
-    if (avPrev) avPrev.src = avatarUrl;
-    if (hdrAvatar) hdrAvatar.src = avatarUrl;
-    const avRemove = document.getElementById("remove-avatar");
-    if (avRemove) avRemove.classList.toggle("hidden", !row?.avatar_url);
-
-    // name
-    const fn = (row?.first_name || "").trim(), ln = (row?.last_name || "").trim();
-    const fallback = user.email?.split("@")[0] || "User";
-    document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
-
-    // KYC state
-    let kycDone = resolveKycBoolean(row);
-    setKycState(kycDone);
-
-    // ---------- gating (profile + kyc) ----------
-    let profileComplete = computeProfileComplete(row);
-    const allowedTabsWhenGated = new Set(["extra", "docs"]); // allowed while gated
-
-    function isGated() { return !(profileComplete && kycDone); }
-    function gateReason() {
-      if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
-      if (!profileComplete) return "Please finish Additional Info first.";
-      if (!kycDone) return "Please complete KYC first.";
-      return "";
-    }
-
-    // Disable sidebar items outside Settings when gated
-    function lockMainNav() {
-      const mainNav = document.getElementById("main-nav");
-      if (!mainNav) return;
-
-      function preventNav(e) {
-        e.preventDefault();
-        banner(gateReason(), "warn");
-        location.hash = !profileComplete ? "#extra" : "#kyc"; // #kyc alias handled by router
-      }
-
-      // 1) links
-      mainNav.querySelectorAll('a[href]').forEach(a => {
-        const href = (a.getAttribute("href") || "").trim();
-        const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
-        if (isGated() && !isSettings) {
-          a.classList.add("link-disabled");
-          a.setAttribute("aria-disabled", "true");
-          a.title = "Locked until profile + KYC are complete";
-          a.addEventListener("click", preventNav, { passive: false });
-        } else {
-          a.classList.remove("link-disabled");
-          a.removeAttribute("aria-disabled");
-          a.removeAttribute("title");
-          a.removeEventListener("click", preventNav);
-        }
-      });
-
-      // 2) summaries: allow toggle but nudge
-      mainNav.querySelectorAll('details > summary').forEach(sum => {
-        function onSumClick() {
-          if (!isGated()) return;
-          setTimeout(() => { banner(gateReason(), "warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }, 0);
-        }
-        sum.removeEventListener("click", onSumClick);
-        sum.addEventListener("click", onSumClick);
-      });
-    }
-
-    // Block switching to disallowed settings tabs while gated
-    const settingsNav = document.getElementById("settings-nav");
-    settingsNav.addEventListener("click", (e) => {
-      const a = e.target.closest("a[data-tab]");
-      if (!a) return;
-      const tab = a.dataset.tab;
-      if (isGated() && !allowedTabsWhenGated.has(tab)) {
-        e.preventDefault();
-        banner(gateReason(), "warn");
-        location.hash = !profileComplete ? "#extra" : "#kyc";
+        a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
       }
     });
-
-    // Router enforcement if someone lands deep-linked
-    function enforceSettingsGuard() {
-      if (!isGated()) return;
-      const hash = (location.hash || "#basic").toLowerCase();
-      const wanted = hash.replace(/^#/, "");
-      if (!allowedTabsWhenGated.has(wanted)) {
-        const target = !profileComplete ? "#extra" : "#kyc";
-        if (hash !== target) {
-          banner(gateReason(), "warn");
-          location.hash = target;
-        }
-      }
+    mainNav.querySelectorAll('details > summary').forEach(sum => {
+      function onSumClick(){ if (isGated()) setTimeout(() => { banner(gateReason(),"warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }, 0); }
+      sum.addEventListener("click", onSumClick);
+    });
+  }
+  function enforceSettingsGuard(){
+    if (!isGated()) return;
+    const hash = (location.hash || "#basic").toLowerCase();
+    const wanted = hash.replace(/^#/, "");
+    if (!allowedTabsWhenGated.has(wanted)){
+      const target = !profileComplete ? "#extra" : "#kyc";
+      if (hash !== target){ banner(gateReason(),"warn"); location.hash = target; }
     }
+  }
+  function refreshGates(){ lockMainNav(); enforceSettingsGuard(); }
+  lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
+  const _origSetKycState = setKycState;
+  setKycState = (isDone) => { _origSetKycState(isDone); kycDone = !!isDone; refreshGates(); };
 
-    function refreshGates() {
-      lockMainNav();
-      enforceSettingsGuard();
-    }
+  // ---------- profile modal (rename var to avoid collision) ----------
+  const profileModal = document.getElementById("profile-modal");
+  const hdrProfileBtn = document.getElementById("hdr-profile-btn");
+  const pmEmail = document.getElementById("pm-email");
+  const btnLogout = document.getElementById("pm-logout");
+  function openProfileModal(){ profileModal.classList.remove("hidden"); }
+  function closeProfileModal(){ profileModal.classList.add("hidden"); }
+  hdrProfileBtn?.addEventListener("click", (e) => { e.preventDefault(); pmEmail.textContent = user?.email || "—"; openProfileModal(); });
+  profileModal.addEventListener("click", (e) => { if (e.target === profileModal || e.target.classList.contains("bg-black/40")) closeProfileModal(); });
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeProfileModal(); });
+  btnLogout?.addEventListener("click", async () => { try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); } catch { banner("Sorry, logout failed.","err"); } });
 
-    // initial apply
-    lockMainNav();
-    enforceSettingsGuard();
-    window.addEventListener("hashchange", enforceSettingsGuard);
+  // ---------- Manage Accounts ----------
+  const fmtMoney = (amt, ccy='ZAR') => { try { return new Intl.NumberFormat('en-ZA',{style:'currency',currency:ccy}).format(Number(amt||0)); } catch { return `${ccy} ${Number(amt||0).toFixed(2)}`; } };
+  const maskAcct = (s='') => s?.length > 4 ? '•••• ' + s.slice(-4) : s || '—';
+  const pill = (status) => {
+    const s = String(status || '').toUpperCase();
+    const base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium';
+    if (s === 'ACTIVE') return `${base} bg-emerald-100 text-emerald-900`;
+    if (s === 'PENDING') return `${base} bg-amber-100 text-amber-900`;
+    if (['SUSPENDED','ERROR','DISCONNECTED'].includes(s)) return `${base} bg-rose-100 text-rose-900`;
+    return `${base} bg-slate-100 text-slate-700`;
+  };
 
-    // Keep kycDone mirror in sync + refresh gates
-    const _origSetKycState = setKycState;
-    setKycState = function (isDone) {
-      _origSetKycState(isDone);
-      kycDone = !!isDone;
-      refreshGates();
-    };
-
-    // ---------- profile modal ----------
-    const hdrProfileBtn = document.getElementById("hdr-profile-btn");
-    const modal = document.getElementById("profile-modal");
-    const pmEmail = document.getElementById("pm-email");
-    const btnLogout = document.getElementById("pm-logout");
-    function openModal() { modal.classList.remove("hidden"); }
-    function closeModal() { modal.classList.add("hidden"); }
-    hdrProfileBtn?.addEventListener("click", (e) => { e.preventDefault(); pmEmail.textContent = user?.email || "—"; openModal(); });
-    modal.addEventListener("click", (e) => { if (e.target === modal || e.target.classList.contains("bg-black/40")) closeModal(); });
-    window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
-    btnLogout?.addEventListener("click", async () => {
-      try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); }
-      catch { banner("Sorry, logout failed.", "err"); }
-    });
-
-    // ---------- avatar upload ----------
-    async function uploadAvatar(file) {
-      const AVATAR_BUCKET = "avatars";
-      if (!file) return;
-      if (!file.type.startsWith("image/")) throw new Error("Pick an image");
-      if (file.size > 2 * 1024 * 1024) throw new Error("Image too large (max 2MB)");
-      avPrev.src = URL.createObjectURL(file);
-
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `${user.id}/avatar_${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from(AVATAR_BUCKET)
-        .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type });
-      if (upErr) throw upErr;
-
-      const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-      const avatar_url = pub.publicUrl;
-
-      const { error: dbErr } = await supabase.from("profiles")
-        .upsert({ id: user.id, avatar_url, updated_at: new Date().toISOString() }, { onConflict: "id" });
-      if (dbErr) throw dbErr;
-
-      hdrAvatar.src = avatar_url;
-      avRemove.classList.remove("hidden");
-    }
-    const avFile = document.getElementById("avatar-file");
-    avFile?.addEventListener("change", async () => { const f = avFile.files?.[0]; if (!f) return; try { await uploadAvatar(f); } catch (e) { banner(e.message || "Avatar upload failed", "err"); } });
-    avRemove?.addEventListener("click", async () => {
-      const { error } = await supabase.from("profiles")
-        .upsert({ id: user.id, avatar_url: null, updated_at: new Date().toISOString() }, { onConflict: "id" });
-      if (error) return banner(error.message, "err");
-      const blank = blankAvatar; avPrev.src = blank; hdrAvatar.src = blank; avRemove.classList.add("hidden");
-    });
-
-    // ---------- KYC start ----------
-    const kycBtnEl = document.getElementById("btn-kyc-start");
-    const kycErrEl = document.getElementById("kyc-error");
-    kycBtnEl?.addEventListener("click", async () => {
-      try {
-        kycErrEl?.classList.add("hidden");
-        kycBtnEl.disabled = true; kycBtnEl.textContent = "Starting…";
-        const url = await getKycUrl(user);
-        if (!url) throw new Error("No KYC URL");
-        location.href = url;
-      } catch (e) {
-        kycErrEl?.classList.remove("hidden");
-        console.error(e);
-      } finally {
-        kycBtnEl.disabled = false; kycBtnEl.textContent = "Get Started mate";
-      }
-    });
-
-    // ---------- Save Additional Info ----------
-    const extraSave = document.getElementById("save-extra");
-    const extraSaved = document.getElementById("extra-saved");
-    function setBusy(btn, on, label = "Save additional info") { btn.disabled = on; btn.textContent = on ? "Saving…" : label }
-
-    extraSave.addEventListener("click", async () => {
-      setBusy(extraSave, true);
-      extraSaved.classList.add("hidden");
-      try {
-        const payload = {
-          id: user.id,
-          first_name: (document.getElementById("first_name").value || "").trim(),
-          last_name: (document.getElementById("last_name").value || "").trim(),
-          phone: (document.getElementById("phone").value || "").trim(),
-          dob: document.getElementById("dob").value || null,
-          id_number: (document.getElementById("id_number").value || "").trim() || null,
-          nationality: (document.getElementById("nationality").value || "").trim() || null,
-          country_residence: (document.getElementById("country_residence").value || "").trim() || null,
-          employment_status: document.getElementById("employment_status").value || null,
-          occupation: (document.getElementById("occupation").value || "").trim() || null,
-          employer: (document.getElementById("employer").value || "").trim() || null,
-          income_bracket: document.getElementById("income_bracket").value || null,
-          source_of_funds: document.getElementById("source_of_funds").value || null,
-          net_worth_range: document.getElementById("net_worth_range").value || null,
-          experience_level: document.getElementById("experience_level").value || null,
-          risk_tolerance: document.getElementById("risk_tolerance").value || null,
-          objectives: Array.from(document.querySelectorAll('input[name="objectives"]:checked')).map(cb => cb.value).join(", "),
-          pep: document.getElementById("pep").checked,
-          fatca_crs: document.getElementById("fatca_crs").checked,
-          updated_at: new Date().toISOString()
-        };
-
-        const { data: saved, error } = await supabase
-          .from("profiles")
-          .upsert(payload, { onConflict: "id" })
-          .select("*")
-          .single();
-
-        if (error) throw error;
-
-        // recompute states
-        profileComplete = computeProfileComplete(saved);
-        if (typeof saved.kyc_status !== "undefined") {
-          kycDone = resolveKycBoolean(saved);
-          setKycState(kycDone);
-        }
-
-        // header name
-        const fn = (saved.first_name || "").trim(), ln = (saved.last_name || "").trim();
-        const fallback = (user.email || "").split("@")[0] || "User";
-        document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
-
-        // visual feedback
-        extraSaved.classList.remove("hidden");
-
-        // gates
-        refreshGates();
-
-        // route nudge
-        if (!kycDone) {
-          banner("Saved. Next: please complete KYC.", "warn");
-          location.hash = "#kyc"; // alias -> router shows #docs
-        } else if (!profileComplete) {
-          banner("Saved. Still a few required fields missing.", "warn");
-          location.hash = "#extra";
-        } else {
-          banner("Profile completed — nice! 🎉", "ok");
-        }
-
-        // custom event for any external listeners
-        document.dispatchEvent(new Event("ah:profile-saved"));
-
-      } catch (e) {
-        console.error(e);
-        banner(e.message || "Save failed", "err");
-      } finally {
-        setBusy(extraSave, false);
-      }
-    });
-    // ============ Manage Accounts ============
-
-    // formatters
-    const fmtMoney = (amt, ccy = 'ZAR') => {
-      try { return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: ccy }).format(Number(amt || 0)); }
-      catch { return `${ccy} ${Number(amt || 0).toFixed(2)}`; }
-    };
-    const maskAcct = (s = '') => s?.length > 4 ? '•••• ' + s.slice(-4) : s || '—';
-    const pill = (status) => {
-      const s = String(status || '').toUpperCase();
-      const base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium';
-      if (s === 'ACTIVE') return `${base} bg-emerald-100 text-emerald-900`;
-      if (s === 'PENDING') return `${base} bg-amber-100 text-amber-900`;
-      if (['SUSPENDED', 'ERROR', 'DISCONNECTED'].includes(s)) return `${base} bg-rose-100 text-rose-900`;
-      return `${base} bg-slate-100 text-slate-700`;
-    };
-    const deriveEndpoint = (row) => {
-      // prefer DB meta.api_endpoint if you store it
-      const metaEp = row?.meta?.api_endpoint;
-      if (metaEp) return metaEp;
-
-      // simple broker heuristics
-      const b = String(row?.broker || '').toLowerCase();
-      if (b.includes('alpaca')) {
-        const isPaper = row?.meta?.paper === true || row?.account_number?.startsWith('PA');
-        return isPaper ? 'https://paper-api.alpaca.markets/v2' : 'https://api.alpaca.markets/v2';
-      }
-      if (b.includes('ibkr')) return '—'; // typically via gateway
-      if (b.includes('mt5') || b.includes('mt4')) return row?.meta?.server || '—';
-      return '—';
-    };
-
-    function renderAccountCard(row) {
-      const card = document.createElement('div');
-      card.className = 'rounded-xl border border-slate-200 p-5';
-
-      card.innerHTML = `
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <div class="text-sm text-slate-500">${row.broker || 'Account'}</div>
-        <div class="mt-1 font-semibold text-slate-900">${maskAcct(row.account_number)}</div>
-        <div class="mt-2 flex items-center gap-2">
-          <span class="${pill(row.status)}">${String(row.status || '').toUpperCase()}</span>
-          <span class="text-xs text-slate-400">Updated ${new Date(row.updated_at).toLocaleString()}</span>
+  function renderAccountCard(row){
+    const card = document.createElement('div');
+    card.className = 'rounded-xl border border-slate-200 p-5';
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-sm text-slate-500">${row.broker || 'Account'}</div>
+          <div class="mt-1 font-semibold text-slate-900">${maskAcct(row.account_number)}</div>
+          <div class="mt-2 flex items-center gap-2">
+            <span class="${pill(row.status)}">${String(row.status || '').toUpperCase()}</span>
+            <span class="text-xs text-slate-400">Updated ${new Date(row.updated_at).toLocaleString()}</span>
+          </div>
         </div>
+        <button class="btn text-rose-700 hover:bg-rose-50 border-rose-200" data-action="delete" data-id="${row.id}">
+          Delete Account
+        </button>
       </div>
-      <button class="btn text-rose-700 hover:bg-rose-50 border-rose-200" data-action="delete" data-id="${row.id}">
-        Delete Account
-      </button>
-    </div>
+      <div class="mt-5 grid grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs text-slate-500 mb-1">Balance</div>
+          <div class="text-[15px] font-semibold">${fmtMoney(row.balance, row.currency || 'ZAR')}</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1">Equity</div>
+          <div class="text-[15px] font-semibold">${fmtMoney(row.equity, row.currency || 'ZAR')}</div>
+        </div>
+      </div>`;
+    return card;
+  }
 
-    <div class="mt-5 grid grid-cols-2 gap-4">
-      <div>
-        <div class="text-xs text-slate-500 mb-1">Balance</div>
-        <div class="text-[15px] font-semibold">${fmtMoney(row.balance, row.currency || 'ZAR')}</div>
-      </div>
-      <div>
-        <div class="text-xs text-slate-500 mb-1">Equity</div>
-        <div class="text-[15px] font-semibold">${fmtMoney(row.equity, row.currency || 'ZAR')}</div>
-      </div>
-    </div>
-  `;
-    }
+  async function loadAccounts(){
+    const loading = document.getElementById('accounts-loading');
+    const empty = document.getElementById('accounts-empty');
+    const list = document.getElementById('accounts-wrap');
 
+    loading?.classList.remove('hidden');
+    empty?.classList.add('hidden');
+    list.innerHTML = '';
 
-    // right small panel
-    const right = document.createElement('div');
-    right.className = 'rounded-xl border border-slate-200 p-5';
-    right.innerHTML = `
-    <div class="font-medium text-slate-900 mb-3">API Keys</div>
-    <label class="text-xs text-slate-500">Endpoint</label>
-    <input class="input w-full mt-1" value="${deriveEndpoint(row)}" disabled />
-    <button class="btn w-full mt-4" data-action="keys" data-id="${row.id}">
-      Generate New Keys
-    </button>
-  `;
-
-    wrap.appendChild(left);
-    wrap.appendChild(right);
-    return wrap;
-    }
-
-    async function loadAccounts() {
-      const loading = document.getElementById('accounts-loading');
-      const empty = document.getElementById('accounts-empty');
-      const list = document.getElementById('accounts-wrap');
-
-      loading?.classList.remove('hidden');
-      empty?.classList.add('hidden');
-      list.innerHTML = '';
-
-      try {
-        const { data, error } = await supabase
-          .from('investment_accounts')
-          .select('id, profile_id, broker, account_number, currency, status, balance, equity, updated_at, meta')
-          .eq('profile_id', user.id)
-          .order('status', { ascending: true })
-          .order('updated_at', { ascending: false });
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-          empty?.classList.remove('hidden');
-          return;
-        }
-
-        data.forEach(row => list.appendChild(renderAccountCard(row)));
-
-      } catch (e) {
-        console.error(e);
-        banner(e.message || 'Could not load accounts', 'err');
-      } finally {
-        loading?.classList.add('hidden');
-      }
-    }
-
-    // actions (delete / generate)
-    document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('button[data-action]');
-      if (!btn) return;
-      const id = btn.getAttribute('data-id');
-      const action = btn.getAttribute('data-action');
-
-      if (action === 'delete') {
-        if (!confirm('Delete this account? This cannot be undone.')) return;
-        const { error } = await supabase.from('investment_accounts').delete().eq('id', id);
-        if (error) return banner(error.message, 'err');
-        banner('Account deleted', 'ok');
-        loadAccounts();
-      }
-
-      if (action === 'keys') {
-        // TODO: call your edge function to mint new API keys for this account
-        // e.g., POST /functions/v1/gen-keys { account_id: id }
-        banner('Key generation not wired yet — placeholder', 'warn');
-      }
-    });
-
-    document.getElementById('btn-refresh-accounts')?.addEventListener('click', loadAccounts);
-
-
-    // load when the Manage tab is shown
-    function maybeLoadAccountsOnTab() {
-      const current = (location.hash || '#basic').toLowerCase().replace('#', '');
-      if (current === 'manage') loadAccounts();
-    }
-    window.addEventListener('hashchange', maybeLoadAccountsOnTab);
-    maybeLoadAccountsOnTab();
-    // modal open/close
-    const modal = document.getElementById('add-account-modal');
-    const openAdd = () => modal.classList.remove('hidden');
-    const closeAdd = () => modal.classList.add('hidden');
-
-    document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
-    document.getElementById('aac-close')?.addEventListener('click', closeAdd);
-    document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
-
-    // helper: 10-digit check
-    const isTenDigits = (s) => /^\d{10}$/.test(String(s || '').trim());
-
-    // helper: check uniqueness for this user+broker+account_number
-    async function accountExists(profileId, broker, account_number) {
+    try {
       const { data, error } = await supabase
         .from('investment_accounts')
-        .select('id', { count: 'exact', head: true })
-        .eq('profile_id', profileId)
-        .eq('broker', broker)
-        .eq('account_number', account_number);
+        .select('id, profile_id, broker, account_number, currency, status, balance, equity, updated_at, meta')
+        .eq('profile_id', user.id)
+        .order('status', { ascending: true })
+        .order('updated_at', { ascending: false });
+
       if (error) throw error;
-      return (data === null) ? false : (error?.code ? false : (error ? false : !!(error))); // head mode: rely on count
+
+      if (!data || data.length === 0){ empty?.classList.remove('hidden'); return; }
+      data.forEach(row => list.appendChild(renderAccountCard(row)));
+    } catch (e) {
+      console.error(e);
+      banner(e.message || 'Could not load accounts', 'err');
+    } finally {
+      loading?.classList.add('hidden');
     }
+  }
 
-    // Add Account save
-    document.getElementById('aac-save')?.addEventListener('click', async () => {
-      const broker = (document.getElementById('aac-broker').value || '').trim();
-      const account_number = (document.getElementById('aac-number').value || '').trim();
-      const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
+  // delete action
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action="delete"]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    if (!confirm('Delete this account? This cannot be undone.')) return;
+    const { error } = await supabase.from('investment_accounts').delete().eq('id', id);
+    if (error) return banner(error.message, 'err');
+    banner('Account deleted', 'ok');
+    loadAccounts();
+  });
 
-      // basic validation
-      if (!broker) return banner('Broker is required', 'warn');
-      if (!isTenDigits(account_number)) return banner('Account number must be exactly 10 digits', 'warn');
+  // Load when Manage tab is visible
+  function maybeLoadAccountsOnTab(){
+    const current = (location.hash || '#basic').toLowerCase().replace('#','');
+    if (current === 'manage') loadAccounts();
+  }
+  window.addEventListener('hashchange', maybeLoadAccountsOnTab);
+  maybeLoadAccountsOnTab();
 
-      // uniqueness (matches uniq_owner_broker_acct)
-      try {
-        // quick HEAD check via select head: if any row exists, Supabase throws count? We’ll just try insert and catch 23505 too.
-        document.getElementById('aac-save').disabled = true;
+  // ---------- Add Account modal (lazy queries, no var name collisions) ----------
+  const openAdd = () => document.getElementById('add-account-modal')?.classList.remove('hidden');
+  const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
 
-        // insert with status ACTIVE and zero balances
-        const payload = {
-          profile_id: user.id,
-          broker,
-          account_number,
-          currency,
-          status: 'ACTIVE',
-          balance: 0,
-          equity: 0,
-          meta: {} // no nickname
-        };
+  document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
+  document.getElementById('aac-close')?.addEventListener('click', closeAdd);
+  document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
 
-        const { error } = await supabase.from('investment_accounts').insert(payload);
-        if (error) {
-          // handle unique violation nicely
-          if (error.code === '23505') {
-            banner('That account already exists for this broker.', 'warn');
-          } else {
-            banner(error.message || 'Add failed', 'err');
-          }
-          document.getElementById('aac-save').disabled = false;
-          return;
-        }
+  const isTenDigits = (s) => /^\d{10}$/.test(String(s||'').trim());
 
-        banner('Account added', 'ok');
-        closeAdd();
-        loadAccounts();
+  document.getElementById('aac-save')?.addEventListener('click', async () => {
+    const broker = (document.getElementById('aac-broker').value || '').trim();
+    const account_number = (document.getElementById('aac-number').value || '').trim();
+    const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
 
-      } catch (e) {
-        console.error(e);
-        banner(e.message || 'Add failed', 'err');
-      } finally {
-        document.getElementById('aac-save').disabled = false;
+    if (!broker) return banner('Broker is required','warn');
+    if (!isTenDigits(account_number)) return banner('Account number must be exactly 10 digits','warn');
+
+    try {
+      const btn = document.getElementById('aac-save');
+      btn.disabled = true;
+
+      const payload = { profile_id:user.id, broker, account_number, currency, status:'ACTIVE', balance:0, equity:0, meta:{} };
+      const { error } = await supabase.from('investment_accounts').insert(payload);
+
+      if (error) {
+        if (error.code === '23505') banner('That account already exists for this broker.','warn');
+        else banner(error.message || 'Add failed','err');
+        btn.disabled = false;
+        return;
       }
-    });
 
+      banner('Account added','ok');
+      closeAdd();
+      loadAccounts();
+    } catch (e) {
+      console.error(e);
+      banner(e.message || 'Add failed','err');
+    } finally {
+      const btn = document.getElementById('aac-save');
+      if (btn) btn.disabled = false;
+    }
+  });
+</script>
 
-  </script>
   <!-- Add Account Modal -->
   <div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
