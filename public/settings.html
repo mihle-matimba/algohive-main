@@ -652,349 +652,354 @@
   </script>
 
 
-<script type="module">
-  import { supabase } from "/js/supabase.js";
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
 
-  // ---------- toast banner ----------
-  function banner(msg, tone = "warn") {
-    let el = document.getElementById("banner");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "banner";
+    // ---------- toast banner ----------
+    function banner(msg, tone = "warn") {
+      let el = document.getElementById("banner");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "banner";
+        el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+        document.body.appendChild(el);
+      }
       el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-      document.body.appendChild(el);
+      if (tone === "warn") el.classList.add("bg-amber-100", "text-amber-900");
+      if (tone === "err") el.classList.add("bg-rose-100", "text-rose-900");
+      if (tone === "ok") el.classList.add("bg-emerald-100", "text-emerald-900");
+      el.textContent = msg;
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.remove(), 4000);
     }
-    el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-    if (tone === "warn") el.classList.add("bg-amber-100","text-amber-900");
-    if (tone === "err")  el.classList.add("bg-rose-100","text-rose-900");
-    if (tone === "ok")   el.classList.add("bg-emerald-100","text-emerald-900");
-    el.textContent = msg;
-    clearTimeout(el._t);
-    el._t = setTimeout(() => el.remove(), 4000);
-  }
 
-  // ---------- profile helpers ----------
-  const REQUIRED_FIELDS = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
-  function computeProfileComplete(row){ return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
+    // ---------- profile helpers ----------
+    const REQUIRED_FIELDS = ["first_name", "last_name", "phone", "dob", "id_number", "nationality", "country_residence"];
+    function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
 
-  async function ensureProfile(userId, email) {
-    let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    if (error && error.code !== "PGRST116") throw error;
-    if (data) return data;
-    const up = await supabase.from("profiles").upsert({ id:userId, email, updated_at:new Date().toISOString() }, { onConflict:"id" }).select("*").single();
-    if (up.error) throw up.error;
-    return up.data;
-  }
-
-  // ---------- KYC helpers ----------
-  function resolveKycBoolean(row){
-    const v = row?.kyc_status;
-    if (typeof v === "boolean") return v;
-    if (typeof v === "string") return ["verified","approved","done","passed","kyc_done"].includes(v.toLowerCase());
-    return false;
-  }
-  function setKycState(isDone){
-    const kycStateEl = document.getElementById("kyc-state");
-    const startWrap = document.getElementById("kyc-start-wrap");
-    const doneMsg = document.getElementById("kyc-done-msg");
-    if (!kycStateEl) return;
-    if (isDone){
-      kycStateEl.textContent = "KYC done";
-      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
-      startWrap?.classList.add("hidden"); doneMsg?.classList.remove("hidden");
-    } else {
-      kycStateEl.textContent = "Complete your KYC";
-      kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
-      startWrap?.classList.remove("hidden"); doneMsg?.classList.add("hidden");
+    async function ensureProfile(userId, email) {
+      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      if (data) return data;
+      const up = await supabase.from("profiles").upsert({ id: userId, email, updated_at: new Date().toISOString() }, { onConflict: "id" }).select("*").single();
+      if (up.error) throw up.error;
+      return up.data;
     }
-  }
 
-  // ---------- auth guard ----------
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    const next = encodeURIComponent(location.pathname + location.search + location.hash);
-    location.replace(`/auth.html?tab=in&redirect=${next}`);
-  }
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // ---------- hydrate ----------
-  const row = await ensureProfile(user.id, user.email || null);
-
-  // email + account no
-  const emailInput = document.getElementById("email");
-  if (emailInput) emailInput.value = user.email || "";
-  const acct = row?.account_number || "949915944";
-  document.getElementById("acc-number").textContent = acct;
-  document.getElementById("sidebar-acc").textContent = acct;
-
-  // map fields
-  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
-  setVal("first_name", row?.first_name);
-  setVal("last_name", row?.last_name);
-  setVal("phone", row?.phone);
-  setVal("dob", row?.dob);
-  setVal("id_number", row?.id_number);
-  setVal("nationality", row?.nationality);
-  setVal("country_residence", row?.country_residence);
-  setVal("employment_status", row?.employment_status);
-  setVal("occupation", row?.occupation);
-  setVal("employer", row?.employer);
-  setVal("income_bracket", row?.income_bracket);
-  setVal("source_of_funds", row?.source_of_funds);
-  setVal("net_worth_range", row?.net_worth_range);
-  setVal("experience_level", row?.experience_level);
-  setVal("risk_tolerance", row?.risk_tolerance);
-
-  // ===== load Investment objectives (CSV -> checkboxes) =====
-  (function hydrateObjectives(){
-    const csv = (row?.objectives || "").trim();
-    const set = new Set(csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : []);
-    document.querySelectorAll('input[name="objectives"]').forEach(cb => { cb.checked = set.has(cb.value); });
-  })();
-
-  // ===== load Compliance switches =====
-  const pepEl = document.getElementById("pep");
-  const fatEl = document.getElementById("fatca_crs");
-  if (pepEl) pepEl.checked = !!row?.pep;
-  if (fatEl) fatEl.checked = !!row?.fatca_crs;
-
-  // avatar + name
-  const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
-  const avPrev = document.getElementById("avatar-preview");
-  const hdrAvatar = document.getElementById("hdr-avatar");
-  const avRemove = document.getElementById("remove-avatar");
-  const startAvatarUrl = row?.avatar_url || BLANK_AVATAR;
-
-  function setAvatarSrc(url) {
-    const finalUrl = url ? (url + (url.includes("?") ? "&" : "?") + "v=" + Date.now()) : BLANK_AVATAR;
-    if (avPrev) avPrev.src = finalUrl;
-    if (hdrAvatar) hdrAvatar.src = finalUrl;
-  }
-  setAvatarSrc(startAvatarUrl);
-  avRemove?.classList.toggle("hidden", !row?.avatar_url);
-
-  const fn = (row?.first_name || "").trim(), ln = (row?.last_name || "").trim();
-  const fallback = user.email?.split("@")[0] || "User";
-  document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
-
-  // KYC + gating
-  let kycDone = resolveKycBoolean(row);
-  setKycState(kycDone);
-  let profileComplete = computeProfileComplete(row);
-  const allowedTabsWhenGated = new Set(["extra","docs"]);
-  function isGated(){ return !(profileComplete && kycDone); }
-  function gateReason(){
-    if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
-    if (!profileComplete) return "Please finish Additional Info first.";
-    if (!kycDone) return "Please complete KYC first.";
-    return "";
-  }
-  function lockMainNav(){
-    const mainNav = document.getElementById("main-nav");
-    if (!mainNav) return;
-    function preventNav(e){ e.preventDefault(); banner(gateReason(),"warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }
-    mainNav.querySelectorAll('a[href]').forEach(a => {
-      const href = (a.getAttribute("href") || "").trim();
-      const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
-      if (isGated() && !isSettings){
-        a.classList.add("link-disabled"); a.setAttribute("aria-disabled","true");
-        a.title = "Locked until profile + KYC are complete";
-        a.addEventListener("click", preventNav, { passive:false });
+    // ---------- KYC helpers ----------
+    function resolveKycBoolean(row) {
+      const v = row?.kyc_status;
+      if (typeof v === "boolean") return v;
+      if (typeof v === "string") return ["verified", "approved", "done", "passed", "kyc_done"].includes(v.toLowerCase());
+      return false;
+    }
+    function setKycState(isDone) {
+      const kycStateEl = document.getElementById("kyc-state");
+      const startWrap = document.getElementById("kyc-start-wrap");
+      const doneMsg = document.getElementById("kyc-done-msg");
+      if (!kycStateEl) return;
+      if (isDone) {
+        kycStateEl.textContent = "KYC done";
+        kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-900";
+        startWrap?.classList.add("hidden"); doneMsg?.classList.remove("hidden");
       } else {
-        a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
+        kycStateEl.textContent = "Complete your KYC";
+        kycStateEl.className = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-900";
+        startWrap?.classList.remove("hidden"); doneMsg?.classList.add("hidden");
+      }
+    }
+
+    // ---------- auth guard ----------
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // ---------- hydrate ----------
+    const row = await ensureProfile(user.id, user.email || null);
+
+    // email + account no
+    const emailInput = document.getElementById("email");
+    if (emailInput) emailInput.value = user.email || "";
+    const acct = row?.account_number || "949915944";
+    document.getElementById("acc-number").textContent = acct;
+    document.getElementById("sidebar-acc").textContent = acct;
+
+    // map fields
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
+    setVal("first_name", row?.first_name);
+    setVal("last_name", row?.last_name);
+    setVal("phone", row?.phone);
+    setVal("dob", row?.dob);
+    setVal("id_number", row?.id_number);
+    setVal("nationality", row?.nationality);
+    setVal("country_residence", row?.country_residence);
+    setVal("employment_status", row?.employment_status);
+    setVal("occupation", row?.occupation);
+    setVal("employer", row?.employer);
+    setVal("income_bracket", row?.income_bracket);
+    setVal("source_of_funds", row?.source_of_funds);
+    setVal("net_worth_range", row?.net_worth_range);
+    setVal("experience_level", row?.experience_level);
+    setVal("risk_tolerance", row?.risk_tolerance);
+
+    // ===== load Investment objectives (CSV -> checkboxes) =====
+    (function hydrateObjectives() {
+      const csv = (row?.objectives || "").trim();
+      const set = new Set(csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : []);
+      document.querySelectorAll('input[name="objectives"]').forEach(cb => { cb.checked = set.has(cb.value); });
+    })();
+
+    // ===== load Compliance switches =====
+    const pepEl = document.getElementById("pep");
+    const fatEl = document.getElementById("fatca_crs");
+    if (pepEl) pepEl.checked = !!row?.pep;
+    if (fatEl) fatEl.checked = !!row?.fatca_crs;
+
+    // avatar + name
+    const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+    const avPrev = document.getElementById("avatar-preview");
+    const hdrAvatar = document.getElementById("hdr-avatar");
+    const avRemove = document.getElementById("remove-avatar");
+    const startAvatarUrl = row?.avatar_url || BLANK_AVATAR;
+
+    function setAvatarSrc(url) {
+      const finalUrl = url ? (url + (url.includes("?") ? "&" : "?") + "v=" + Date.now()) : BLANK_AVATAR;
+      if (avPrev) avPrev.src = finalUrl;
+      if (hdrAvatar) hdrAvatar.src = finalUrl;
+    }
+    setAvatarSrc(startAvatarUrl);
+    avRemove?.classList.toggle("hidden", !row?.avatar_url);
+
+    const fn = (row?.first_name || "").trim(), ln = (row?.last_name || "").trim();
+    const fallback = user.email?.split("@")[0] || "User";
+    document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
+
+    // KYC + gating
+    let kycDone = resolveKycBoolean(row);
+    setKycState(kycDone);
+    let profileComplete = computeProfileComplete(row);
+    const allowedTabsWhenGated = new Set(["extra", "docs"]);
+    function isGated() { return !(profileComplete && kycDone); }
+    function gateReason() {
+      if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+      if (!profileComplete) return "Please finish Additional Info first.";
+      if (!kycDone) return "Please complete KYC first.";
+      return "";
+    }
+    function lockMainNav() {
+      const mainNav = document.getElementById("main-nav");
+      if (!mainNav) return;
+      function preventNav(e) { e.preventDefault(); banner(gateReason(), "warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }
+      mainNav.querySelectorAll('a[href]').forEach(a => {
+        const href = (a.getAttribute("href") || "").trim();
+        const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
+        if (isGated() && !isSettings) {
+          a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
+          a.title = "Locked until profile + KYC are complete";
+          a.addEventListener("click", preventNav, { passive: false });
+        } else {
+          a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
+        }
+      });
+      mainNav.querySelectorAll('details > summary').forEach(sum => {
+        function onSumClick() { if (isGated()) setTimeout(() => { banner(gateReason(), "warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }, 0); }
+        sum.addEventListener("click", onSumClick);
+      });
+    }
+    function enforceSettingsGuard() {
+      if (!isGated()) return;
+      const hash = (location.hash || "#basic").toLowerCase();
+      const wanted = hash.replace(/^#/, "");
+      if (!allowedTabsWhenGated.has(wanted)) {
+        const target = !profileComplete ? "#extra" : "#kyc";
+        if (hash !== target) { banner(gateReason(), "warn"); location.hash = target; }
+      }
+    }
+    function refreshGates() { lockMainNav(); enforceSettingsGuard(); }
+    lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
+    const _origSetKycState = setKycState;
+    setKycState = (isDone) => { _origSetKycState(isDone); kycDone = !!isDone; refreshGates(); };
+
+    // ---------- profile modal ----------
+    const profileModal = document.getElementById("profile-modal");
+    const hdrProfileBtn = document.getElementById("hdr-profile-btn");
+    const pmEmail = document.getElementById("pm-email");
+    const btnLogout = document.getElementById("pm-logout");
+    function openProfileModal() { profileModal.classList.remove("hidden"); }
+    function closeProfileModal() { profileModal.classList.add("hidden"); }
+    hdrProfileBtn?.addEventListener("click", (e) => { e.preventDefault(); pmEmail.textContent = user?.email || "—"; openProfileModal(); });
+    profileModal.addEventListener("click", (e) => { if (e.target === profileModal || e.target.classList.contains("bg-black/40")) closeProfileModal(); });
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeProfileModal(); });
+    btnLogout?.addEventListener("click", async () => { try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); } catch { banner("Sorry, logout failed.", "err"); } });
+
+    // ---------- Save Additional Info (objectives + compliance persisted) ----------
+    function setBusy(btn, on, label = "Save additional info") {
+      if (!btn) return;
+      btn.disabled = on;
+      btn.textContent = on ? "Saving…" : label;
+    }
+    const extraSaveBtn = document.getElementById("save-extra");
+    const extraSavedTick = document.getElementById("extra-saved");
+
+    extraSaveBtn?.addEventListener("click", async () => {
+      setBusy(extraSaveBtn, true);
+      extraSavedTick?.classList.add("hidden");
+
+      try {
+        const payload = {
+          id: user.id,
+          // basic
+          first_name: (document.getElementById("first_name")?.value || "").trim(),
+          last_name: (document.getElementById("last_name")?.value || "").trim(),
+          phone: (document.getElementById("phone")?.value || "").trim(),
+          dob: document.getElementById("dob")?.value || null,
+          id_number: (document.getElementById("id_number")?.value || "").trim() || null,
+          nationality: (document.getElementById("nationality")?.value || "").trim() || null,
+          country_residence: (document.getElementById("country_residence")?.value || "").trim() || null,
+
+          // employment/suitability
+          employment_status: document.getElementById("employment_status")?.value || null,
+          occupation: (document.getElementById("occupation")?.value || "").trim() || null,
+          employer: (document.getElementById("employer")?.value || "").trim() || null,
+          income_bracket: document.getElementById("income_bracket")?.value || null,
+          source_of_funds: document.getElementById("source_of_funds")?.value || null,
+          net_worth_range: document.getElementById("net_worth_range")?.value || null,
+          experience_level: document.getElementById("experience_level")?.value || null,
+          risk_tolerance: document.getElementById("risk_tolerance")?.value || null,
+
+          // objectives (CSV)
+          objectives: Array.from(document.querySelectorAll('input[name="objectives"]:checked')).map(cb => cb.value).join(", "),
+
+          // compliance
+          pep: !!document.getElementById("pep")?.checked,
+          fatca_crs: !!document.getElementById("fatca_crs")?.checked,
+
+          updated_at: new Date().toISOString()
+        };
+
+        const { data: saved, error } = await supabase
+          .from("profiles")
+          .upsert(payload, { onConflict: "id" })
+          .select("*")
+          .single();
+
+        if (error) throw error;
+
+        // reflect header name
+        const fn = (saved.first_name || "").trim();
+        const ln = (saved.last_name || "").trim();
+        document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email || "User").split("@")[0];
+
+        // confirm UI and gating
+        extraSavedTick?.classList.remove("hidden");
+        banner("Additional info saved ✅", "ok");
+
+        profileComplete = computeProfileComplete(saved);
+        if (typeof saved.kyc_status !== "undefined") {
+          kycDone = resolveKycBoolean(saved);
+          setKycState(kycDone);
+        }
+        refreshGates();
+        if (profileComplete && !kycDone) {
+          location.hash = "#docs";
+          banner("Great! Next step: please complete your KYC ✅", "ok");
+        }
+
+
+        // fire event
+        document.dispatchEvent(new Event("ah:profile-saved"));
+
+      } catch (e) {
+        console.error(e);
+        banner(e.message || "Save failed", "err");
+      } finally {
+        setBusy(extraSaveBtn, false);
       }
     });
-    mainNav.querySelectorAll('details > summary').forEach(sum => {
-      function onSumClick(){ if (isGated()) setTimeout(() => { banner(gateReason(),"warn"); location.hash = !profileComplete ? "#extra" : "#kyc"; }, 0); }
-      sum.addEventListener("click", onSumClick);
-    });
-  }
-  function enforceSettingsGuard(){
-    if (!isGated()) return;
-    const hash = (location.hash || "#basic").toLowerCase();
-    const wanted = hash.replace(/^#/, "");
-    if (!allowedTabsWhenGated.has(wanted)){
-      const target = !profileComplete ? "#extra" : "#kyc";
-      if (hash !== target){ banner(gateReason(),"warn"); location.hash = target; }
-    }
-  }
-  function refreshGates(){ lockMainNav(); enforceSettingsGuard(); }
-  lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
-  const _origSetKycState = setKycState;
-  setKycState = (isDone) => { _origSetKycState(isDone); kycDone = !!isDone; refreshGates(); };
 
-  // ---------- profile modal ----------
-  const profileModal = document.getElementById("profile-modal");
-  const hdrProfileBtn = document.getElementById("hdr-profile-btn");
-  const pmEmail = document.getElementById("pm-email");
-  const btnLogout = document.getElementById("pm-logout");
-  function openProfileModal(){ profileModal.classList.remove("hidden"); }
-  function closeProfileModal(){ profileModal.classList.add("hidden"); }
-  hdrProfileBtn?.addEventListener("click", (e) => { e.preventDefault(); pmEmail.textContent = user?.email || "—"; openProfileModal(); });
-  profileModal.addEventListener("click", (e) => { if (e.target === profileModal || e.target.classList.contains("bg-black/40")) closeProfileModal(); });
-  window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeProfileModal(); });
-  btnLogout?.addEventListener("click", async () => { try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); } catch { banner("Sorry, logout failed.","err"); } });
+    // ---------- Avatar upload / remove ----------
+    const AVATAR_BUCKET = "avatars";
+    const avInput = document.getElementById("avatar-file");
 
-  // ---------- Save Additional Info (objectives + compliance persisted) ----------
-  function setBusy(btn, on, label = "Save additional info") {
-    if (!btn) return;
-    btn.disabled = on;
-    btn.textContent = on ? "Saving…" : label;
-  }
-  const extraSaveBtn   = document.getElementById("save-extra");
-  const extraSavedTick = document.getElementById("extra-saved");
+    async function uploadAvatar(file) {
+      if (!file) throw new Error("Pick an image");
+      if (!file.type.startsWith("image/")) throw new Error("Pick a valid image");
+      if (file.size > 2 * 1024 * 1024) throw new Error("Image too large (max 2MB)");
 
-  extraSaveBtn?.addEventListener("click", async () => {
-    setBusy(extraSaveBtn, true);
-    extraSavedTick?.classList.add("hidden");
+      // optimistic preview
+      if (avPrev) avPrev.src = URL.createObjectURL(file);
 
-    try {
-      const payload = {
-        id: user.id,
-        // basic
-        first_name: (document.getElementById("first_name")?.value || "").trim(),
-        last_name: (document.getElementById("last_name")?.value || "").trim(),
-        phone: (document.getElementById("phone")?.value || "").trim(),
-        dob: document.getElementById("dob")?.value || null,
-        id_number: (document.getElementById("id_number")?.value || "").trim() || null,
-        nationality: (document.getElementById("nationality")?.value || "").trim() || null,
-        country_residence: (document.getElementById("country_residence")?.value || "").trim() || null,
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${user.id}/avatar_${Date.now()}.${ext}`;
 
-        // employment/suitability
-        employment_status: document.getElementById("employment_status")?.value || null,
-        occupation: (document.getElementById("occupation")?.value || "").trim() || null,
-        employer: (document.getElementById("employer")?.value || "").trim() || null,
-        income_bracket: document.getElementById("income_bracket")?.value || null,
-        source_of_funds: document.getElementById("source_of_funds")?.value || null,
-        net_worth_range: document.getElementById("net_worth_range")?.value || null,
-        experience_level: document.getElementById("experience_level")?.value || null,
-        risk_tolerance: document.getElementById("risk_tolerance")?.value || null,
+      const { error: upErr } = await supabase
+        .storage.from(AVATAR_BUCKET)
+        .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type });
+      if (upErr) throw upErr;
 
-        // objectives (CSV)
-        objectives: Array.from(document.querySelectorAll('input[name="objectives"]:checked')).map(cb => cb.value).join(", "),
+      const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+      const avatar_url = pub?.publicUrl;
+      if (!avatar_url) throw new Error("Could not get public URL");
 
-        // compliance
-        pep: !!document.getElementById("pep")?.checked,
-        fatca_crs: !!document.getElementById("fatca_crs")?.checked,
-
-        updated_at: new Date().toISOString()
-      };
-
-      const { data: saved, error } = await supabase
+      const { error: dbErr } = await supabase
         .from("profiles")
-        .upsert(payload, { onConflict: "id" })
-        .select("*")
-        .single();
+        .upsert({ id: user.id, avatar_url, updated_at: new Date().toISOString() }, { onConflict: "id" });
+      if (dbErr) throw dbErr;
 
-      if (error) throw error;
+      setAvatarSrc(avatar_url);
+      avRemove?.classList.remove("hidden");
+      banner("Avatar updated ✅", "ok");
+    }
 
-      // reflect header name
-      const fn = (saved.first_name || "").trim();
-      const ln = (saved.last_name || "").trim();
-      document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email || "User").split("@")[0];
-
-      // confirm UI and gating
-      extraSavedTick?.classList.remove("hidden");
-      banner("Additional info saved ✅", "ok");
-
-      profileComplete = computeProfileComplete(saved);
-      if (typeof saved.kyc_status !== "undefined") {
-        kycDone = resolveKycBoolean(saved);
-        setKycState(kycDone);
+    avInput?.addEventListener("change", async () => {
+      const f = avInput.files?.[0];
+      if (!f) return;
+      try {
+        await uploadAvatar(f);
+      } catch (e) {
+        console.error(e);
+        banner(e.message || "Avatar upload failed", "err");
+        // restore previous
+        setAvatarSrc(row?.avatar_url || BLANK_AVATAR);
+      } finally {
+        avInput.value = "";
       }
-      refreshGates();
+    });
 
-      // fire event
-      document.dispatchEvent(new Event("ah:profile-saved"));
+    avRemove?.addEventListener("click", async () => {
+      try {
+        const { error } = await supabase
+          .from("profiles")
+          .upsert({ id: user.id, avatar_url: null, updated_at: new Date().toISOString() }, { onConflict: "id" });
+        if (error) throw error;
+        setAvatarSrc(BLANK_AVATAR);
+        avRemove.classList.add("hidden");
+        banner("Avatar removed", "ok");
+      } catch (e) {
+        console.error(e);
+        banner(e.message || "Could not remove avatar", "err");
+      }
+    });
 
-    } catch (e) {
-      console.error(e);
-      banner(e.message || "Save failed", "err");
-    } finally {
-      setBusy(extraSaveBtn, false);
-    }
-  });
+    // ---------- Manage Accounts ----------
+    const fmtMoney = (amt, ccy = 'ZAR') => { try { return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: ccy }).format(Number(amt || 0)); } catch { return `${ccy} ${Number(amt || 0).toFixed(2)}`; } };
+    const maskAcct = (s = '') => s?.length > 4 ? '•••• ' + s.slice(-4) : s || '—';
+    const pill = (status) => {
+      const s = String(status || '').toUpperCase();
+      const base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium';
+      if (s === 'ACTIVE') return `${base} bg-emerald-100 text-emerald-900`;
+      if (s === 'PENDING') return `${base} bg-amber-100 text-amber-900`;
+      if (['SUSPENDED', 'ERROR', 'DISCONNECTED'].includes(s)) return `${base} bg-rose-100 text-rose-900`;
+      return `${base} bg-slate-100 text-slate-700`;
+    };
 
-  // ---------- Avatar upload / remove ----------
-  const AVATAR_BUCKET = "avatars";
-  const avInput  = document.getElementById("avatar-file");
-
-  async function uploadAvatar(file) {
-    if (!file) throw new Error("Pick an image");
-    if (!file.type.startsWith("image/")) throw new Error("Pick a valid image");
-    if (file.size > 2 * 1024 * 1024) throw new Error("Image too large (max 2MB)");
-
-    // optimistic preview
-    if (avPrev) avPrev.src = URL.createObjectURL(file);
-
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const path = `${user.id}/avatar_${Date.now()}.${ext}`;
-
-    const { error: upErr } = await supabase
-      .storage.from(AVATAR_BUCKET)
-      .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type });
-    if (upErr) throw upErr;
-
-    const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-    const avatar_url = pub?.publicUrl;
-    if (!avatar_url) throw new Error("Could not get public URL");
-
-    const { error: dbErr } = await supabase
-      .from("profiles")
-      .upsert({ id: user.id, avatar_url, updated_at: new Date().toISOString() }, { onConflict: "id" });
-    if (dbErr) throw dbErr;
-
-    setAvatarSrc(avatar_url);
-    avRemove?.classList.remove("hidden");
-    banner("Avatar updated ✅", "ok");
-  }
-
-  avInput?.addEventListener("change", async () => {
-    const f = avInput.files?.[0];
-    if (!f) return;
-    try {
-      await uploadAvatar(f);
-    } catch (e) {
-      console.error(e);
-      banner(e.message || "Avatar upload failed", "err");
-      // restore previous
-      setAvatarSrc(row?.avatar_url || BLANK_AVATAR);
-    } finally {
-      avInput.value = "";
-    }
-  });
-
-  avRemove?.addEventListener("click", async () => {
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({ id: user.id, avatar_url: null, updated_at: new Date().toISOString() }, { onConflict: "id" });
-      if (error) throw error;
-      setAvatarSrc(BLANK_AVATAR);
-      avRemove.classList.add("hidden");
-      banner("Avatar removed", "ok");
-    } catch (e) {
-      console.error(e);
-      banner(e.message || "Could not remove avatar", "err");
-    }
-  });
-
-  // ---------- Manage Accounts ----------
-  const fmtMoney = (amt, ccy='ZAR') => { try { return new Intl.NumberFormat('en-ZA',{style:'currency',currency:ccy}).format(Number(amt||0)); } catch { return `${ccy} ${Number(amt||0).toFixed(2)}`; } };
-  const maskAcct = (s='') => s?.length > 4 ? '•••• ' + s.slice(-4) : s || '—';
-  const pill = (status) => {
-    const s = String(status || '').toUpperCase();
-    const base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium';
-    if (s === 'ACTIVE') return `${base} bg-emerald-100 text-emerald-900`;
-    if (s === 'PENDING') return `${base} bg-amber-100 text-amber-900`;
-    if (['SUSPENDED','ERROR','DISCONNECTED'].includes(s)) return `${base} bg-rose-100 text-rose-900`;
-    return `${base} bg-slate-100 text-slate-700`;
-  };
-
-  function renderAccountCard(row){
-    const card = document.createElement('div');
-    card.className = 'rounded-xl border border-slate-200 p-5';
-    card.innerHTML = `
+    function renderAccountCard(row) {
+      const card = document.createElement('div');
+      card.className = 'rounded-xl border border-slate-200 p-5';
+      card.innerHTML = `
       <div class="flex items-start justify-between gap-4">
         <div>
           <div class="text-sm text-slate-500">${row.broker || 'Account'}</div>
@@ -1018,190 +1023,190 @@
           <div class="text-[15px] font-semibold">${fmtMoney(row.equity, row.currency || 'ZAR')}</div>
         </div>
       </div>`;
-    return card;
-  }
-
-  async function loadAccounts(){
-    const loading = document.getElementById('accounts-loading');
-    const empty = document.getElementById('accounts-empty');
-    const list = document.getElementById('accounts-wrap');
-
-    loading?.classList.remove('hidden');
-    empty?.classList.add('hidden');
-    list.innerHTML = '';
-
-    try {
-      const { data, error } = await supabase
-        .from('investment_accounts')
-        .select('id, profile_id, broker, account_number, currency, status, balance, equity, updated_at, meta')
-        .eq('profile_id', user.id)
-        .order('status', { ascending: true })
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-
-      if (!data || data.length === 0){ empty?.classList.remove('hidden'); return; }
-      data.forEach(row => list.appendChild(renderAccountCard(row)));
-    } catch (e) {
-      console.error(e);
-      banner(e.message || 'Could not load accounts', 'err');
-    } finally {
-      loading?.classList.add('hidden');
-    }
-  }
-
-  // delete action
-  document.addEventListener('click', async (e) => {
-    const btn = e.target.closest('button[data-action="delete"]');
-    if (!btn) return;
-    const id = btn.getAttribute('data-id');
-    if (!confirm('Delete this account? This cannot be undone.')) return;
-    const { error } = await supabase.from('investment_accounts').delete().eq('id', id);
-    if (error) return banner(error.message, 'err');
-    banner('Account deleted', 'ok');
-    loadAccounts();
-  });
-
-  // Load when Manage tab is visible
-  function maybeLoadAccountsOnTab(){
-    const current = (location.hash || '#basic').toLowerCase().replace('#','');
-    if (current === 'manage') loadAccounts();
-  }
-  window.addEventListener('hashchange', maybeLoadAccountsOnTab);
-  maybeLoadAccountsOnTab();
-
-  // ---------- Add Account modal (broker locked, auto 10-digit number) ----------
-  const BROKER_LOCKED = "AlgoHive Markets";
-
-  const openAdd = async () => {
-    const m = document.getElementById('add-account-modal');
-    if (!m) return;
-
-    const brokerEl = document.getElementById('aac-broker');
-    if (brokerEl) brokerEl.value = BROKER_LOCKED;
-
-    const numEl = document.getElementById('aac-number');
-    if (numEl) {
-      numEl.value = "generating…";
-      const acct = await ensureUniqueAccountNumber();
-      numEl.value = acct;
-      numEl.dataset.generated = acct;
+      return card;
     }
 
-    m.classList.remove('hidden');
-  };
-  const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
+    async function loadAccounts() {
+      const loading = document.getElementById('accounts-loading');
+      const empty = document.getElementById('accounts-empty');
+      const list = document.getElementById('accounts-wrap');
 
-  document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
-  document.getElementById('aac-close')?.addEventListener('click', closeAdd);
-  document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
+      loading?.classList.remove('hidden');
+      empty?.classList.add('hidden');
+      list.innerHTML = '';
 
-  function genAccountNumber() {
-    const first = String(Math.floor(Math.random() * 9) + 1);
-    let rest = "";
-    for (let i = 0; i < 9; i++) rest += Math.floor(Math.random() * 10);
-    return first + rest;
-  }
-  async function existsForBroker(account_number) {
-    const { count, error } = await supabase
-      .from('investment_accounts')
-      .select('id', { count: 'exact', head: true })
-      .eq('broker', BROKER_LOCKED)
-      .eq('account_number', account_number);
-    if (error) throw error;
-    return (count || 0) > 0;
-  }
-  async function ensureUniqueAccountNumber(maxAttempts = 10) {
-    for (let i = 0; i < maxAttempts; i++) {
-      const cand = genAccountNumber();
-      const taken = await existsForBroker(cand);
-      if (!taken) return cand;
-    }
-    throw new Error("Could not generate unique account number. Please try again.");
-  }
+      try {
+        const { data, error } = await supabase
+          .from('investment_accounts')
+          .select('id, profile_id, broker, account_number, currency, status, balance, equity, updated_at, meta')
+          .eq('profile_id', user.id)
+          .order('status', { ascending: true })
+          .order('updated_at', { ascending: false });
 
-  document.getElementById('aac-save')?.addEventListener('click', async () => {
-    const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
-    const numberEl = document.getElementById('aac-number');
-    const account_number = numberEl?.dataset.generated || numberEl?.value;
+        if (error) throw error;
 
-    if (!account_number || !/^\d{10}$/.test(account_number)) {
-      return banner('Account number generation failed. Please close and try again.', 'err');
+        if (!data || data.length === 0) { empty?.classList.remove('hidden'); return; }
+        data.forEach(row => list.appendChild(renderAccountCard(row)));
+      } catch (e) {
+        console.error(e);
+        banner(e.message || 'Could not load accounts', 'err');
+      } finally {
+        loading?.classList.add('hidden');
+      }
     }
 
-    const btn = document.getElementById('aac-save');
-    try {
-      btn.disabled = true;
+    // delete action
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action="delete"]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-id');
+      if (!confirm('Delete this account? This cannot be undone.')) return;
+      const { error } = await supabase.from('investment_accounts').delete().eq('id', id);
+      if (error) return banner(error.message, 'err');
+      banner('Account deleted', 'ok');
+      loadAccounts();
+    });
 
-      const payload = {
-        profile_id: user.id,
-        broker: BROKER_LOCKED,
-        account_number,
-        currency,
-        status: 'ACTIVE',
-        balance: 0,
-        equity: 0,
-        meta: {}
-      };
+    // Load when Manage tab is visible
+    function maybeLoadAccountsOnTab() {
+      const current = (location.hash || '#basic').toLowerCase().replace('#', '');
+      if (current === 'manage') loadAccounts();
+    }
+    window.addEventListener('hashchange', maybeLoadAccountsOnTab);
+    maybeLoadAccountsOnTab();
 
-      const { error } = await supabase.from('investment_accounts').insert(payload);
-      if (error) {
-        if (error.code === '23505') {
-          banner('That auto-generated account number was just taken. Please try again.', 'warn');
-        } else {
-          banner(error.message || 'Add failed', 'err');
-        }
-        return;
+    // ---------- Add Account modal (broker locked, auto 10-digit number) ----------
+    const BROKER_LOCKED = "AlgoHive Markets";
+
+    const openAdd = async () => {
+      const m = document.getElementById('add-account-modal');
+      if (!m) return;
+
+      const brokerEl = document.getElementById('aac-broker');
+      if (brokerEl) brokerEl.value = BROKER_LOCKED;
+
+      const numEl = document.getElementById('aac-number');
+      if (numEl) {
+        numEl.value = "generating…";
+        const acct = await ensureUniqueAccountNumber();
+        numEl.value = acct;
+        numEl.dataset.generated = acct;
       }
 
-      banner('Account added', 'ok');
-      closeAdd();
-      loadAccounts();
+      m.classList.remove('hidden');
+    };
+    const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
 
-    } catch (e) {
-      console.error(e);
-      banner(e.message || 'Add failed', 'err');
-    } finally {
-      btn.disabled = false;
+    document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
+    document.getElementById('aac-close')?.addEventListener('click', closeAdd);
+    document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
+
+    function genAccountNumber() {
+      const first = String(Math.floor(Math.random() * 9) + 1);
+      let rest = "";
+      for (let i = 0; i < 9; i++) rest += Math.floor(Math.random() * 10);
+      return first + rest;
     }
-  });
-</script>
+    async function existsForBroker(account_number) {
+      const { count, error } = await supabase
+        .from('investment_accounts')
+        .select('id', { count: 'exact', head: true })
+        .eq('broker', BROKER_LOCKED)
+        .eq('account_number', account_number);
+      if (error) throw error;
+      return (count || 0) > 0;
+    }
+    async function ensureUniqueAccountNumber(maxAttempts = 10) {
+      for (let i = 0; i < maxAttempts; i++) {
+        const cand = genAccountNumber();
+        const taken = await existsForBroker(cand);
+        if (!taken) return cand;
+      }
+      throw new Error("Could not generate unique account number. Please try again.");
+    }
+
+    document.getElementById('aac-save')?.addEventListener('click', async () => {
+      const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
+      const numberEl = document.getElementById('aac-number');
+      const account_number = numberEl?.dataset.generated || numberEl?.value;
+
+      if (!account_number || !/^\d{10}$/.test(account_number)) {
+        return banner('Account number generation failed. Please close and try again.', 'err');
+      }
+
+      const btn = document.getElementById('aac-save');
+      try {
+        btn.disabled = true;
+
+        const payload = {
+          profile_id: user.id,
+          broker: BROKER_LOCKED,
+          account_number,
+          currency,
+          status: 'ACTIVE',
+          balance: 0,
+          equity: 0,
+          meta: {}
+        };
+
+        const { error } = await supabase.from('investment_accounts').insert(payload);
+        if (error) {
+          if (error.code === '23505') {
+            banner('That auto-generated account number was just taken. Please try again.', 'warn');
+          } else {
+            banner(error.message || 'Add failed', 'err');
+          }
+          return;
+        }
+
+        banner('Account added', 'ok');
+        closeAdd();
+        loadAccounts();
+
+      } catch (e) {
+        console.error(e);
+        banner(e.message || 'Add failed', 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
 
 
-<!-- Add Account Modal -->
-<div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
-  <div class="absolute inset-0 bg-black/40"></div>
-  <div
-    class="absolute left-1/2 top-24 -translate-x-1/2 w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
-    <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-slate-900">Add Account</h3>
-      <button id="aac-close" class="btn h-9 w-9 p-0">✕</button>
-    </div>
+  <!-- Add Account Modal -->
+  <div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div
+      class="absolute left-1/2 top-24 -translate-x-1/2 w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-slate-900">Add Account</h3>
+        <button id="aac-close" class="btn h-9 w-9 p-0">✕</button>
+      </div>
 
-    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <label class="block">
-        <span class="text-sm text-slate-600">Broker</span>
-        <input id="aac-broker" class="input w-full" value="AlgoHive Markets" disabled />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Account number</span>
-        <input id="aac-number" class="input w-full" value="generating…" disabled />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Currency</span>
-        <select id="aac-currency" class="input w-full">
-          <option value="ZAR">ZAR</option>
-          <option value="USD">USD</option>
-        </select>
-      </label>
-    </div>
+      <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-sm text-slate-600">Broker</span>
+          <input id="aac-broker" class="input w-full" value="AlgoHive Markets" disabled />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Account number</span>
+          <input id="aac-number" class="input w-full" value="generating…" disabled />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Currency</span>
+          <select id="aac-currency" class="input w-full">
+            <option value="ZAR">ZAR</option>
+            <option value="USD">USD</option>
+          </select>
+        </label>
+      </div>
 
-    <div class="mt-6 flex justify-end gap-2">
-      <button id="aac-cancel" class="btn">Cancel</button>
-      <button id="aac-save" class="btn btn-olive">Save</button>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="aac-cancel" class="btn">Cancel</button>
+        <button id="aac-save" class="btn btn-olive">Save</button>
+      </div>
     </div>
   </div>
-</div>
 
 
 
