@@ -907,83 +907,148 @@
   window.addEventListener('hashchange', maybeLoadAccountsOnTab);
   maybeLoadAccountsOnTab();
 
-  // ---------- Add Account modal (lazy queries, no var name collisions) ----------
-  const openAdd = () => document.getElementById('add-account-modal')?.classList.remove('hidden');
-  const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
+// ---------- Add Account modal (broker locked, auto 10-digit number) ----------
+const BROKER_LOCKED = "AlgoHive Markets";
 
-  document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
-  document.getElementById('aac-close')?.addEventListener('click', closeAdd);
-  document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
+const openAdd = async () => {
+  const m = document.getElementById('add-account-modal');
+  if (!m) return;
 
-  const isTenDigits = (s) => /^\d{10}$/.test(String(s||'').trim());
+  // set locked broker
+  const brokerEl = document.getElementById('aac-broker');
+  if (brokerEl) brokerEl.value = BROKER_LOCKED;
 
-  document.getElementById('aac-save')?.addEventListener('click', async () => {
-    const broker = (document.getElementById('aac-broker').value || '').trim();
-    const account_number = (document.getElementById('aac-number').value || '').trim();
-    const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
+  // generate and display a unique 10-digit number
+  const numEl = document.getElementById('aac-number');
+  if (numEl) {
+    numEl.value = "generating…";
+    const acct = await ensureUniqueAccountNumber();
+    numEl.value = acct;
+    numEl.dataset.generated = acct; // stash for save
+  }
 
-    if (!broker) return banner('Broker is required','warn');
-    if (!isTenDigits(account_number)) return banner('Account number must be exactly 10 digits','warn');
+  m.classList.remove('hidden');
+};
+const closeAdd = () => document.getElementById('add-account-modal')?.classList.add('hidden');
 
-    try {
-      const btn = document.getElementById('aac-save');
-      btn.disabled = true;
+document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
+document.getElementById('aac-close')?.addEventListener('click', closeAdd);
+document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
 
-      const payload = { profile_id:user.id, broker, account_number, currency, status:'ACTIVE', balance:0, equity:0, meta:{} };
-      const { error } = await supabase.from('investment_accounts').insert(payload);
+// 10-digit generator (first digit 1–9 to avoid leading zero)
+function genAccountNumber() {
+  const first = String(Math.floor(Math.random() * 9) + 1);
+  let rest = "";
+  for (let i = 0; i < 9; i++) rest += Math.floor(Math.random() * 10);
+  return first + rest;
+}
 
-      if (error) {
-        if (error.code === '23505') banner('That account already exists for this broker.','warn');
-        else banner(error.message || 'Add failed','err');
-        btn.disabled = false;
-        return;
+// check if this account number is already used for this broker (global uniqueness for the broker)
+async function existsForBroker(account_number) {
+  const { count, error } = await supabase
+    .from('investment_accounts')
+    .select('id', { count: 'exact', head: true })
+    .eq('broker', BROKER_LOCKED)
+    .eq('account_number', account_number);
+  if (error) throw error;
+  return (count || 0) > 0;
+}
+
+// loop a few times to guarantee uniqueness before we show it
+async function ensureUniqueAccountNumber(maxAttempts = 10) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const cand = genAccountNumber();
+    const taken = await existsForBroker(cand);
+    if (!taken) return cand;
+  }
+  throw new Error("Could not generate unique account number. Please try again.");
+}
+
+// Save
+document.getElementById('aac-save')?.addEventListener('click', async () => {
+  const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
+  const numberEl = document.getElementById('aac-number');
+  const account_number = numberEl?.dataset.generated || numberEl?.value;
+
+  if (!account_number || !/^\d{10}$/.test(account_number)) {
+    return banner('Account number generation failed. Please close and try again.', 'err');
+  }
+
+  const btn = document.getElementById('aac-save');
+  try {
+    btn.disabled = true;
+
+    const payload = {
+      profile_id: user.id,
+      broker: BROKER_LOCKED,
+      account_number,
+      currency,
+      status: 'ACTIVE',
+      balance: 0,
+      equity: 0,
+      meta: {}
+    };
+
+    const { error } = await supabase.from('investment_accounts').insert(payload);
+    if (error) {
+      // unique violation (profile_id, broker, account_number) — regenerate and retry advice
+      if (error.code === '23505') {
+        banner('That auto-generated account number was just taken. Please try again.', 'warn');
+      } else {
+        banner(error.message || 'Add failed', 'err');
       }
-
-      banner('Account added','ok');
-      closeAdd();
-      loadAccounts();
-    } catch (e) {
-      console.error(e);
-      banner(e.message || 'Add failed','err');
-    } finally {
-      const btn = document.getElementById('aac-save');
-      if (btn) btn.disabled = false;
+      return;
     }
-  });
+
+    banner('Account added', 'ok');
+    closeAdd();
+    loadAccounts();
+
+  } catch (e) {
+    console.error(e);
+    banner(e.message || 'Add failed', 'err');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 </script>
 
-  <!-- Add Account Modal -->
-  <div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
-    <div class="absolute inset-0 bg-black/40"></div>
-    <div
-      class="absolute left-1/2 top-24 -translate-x-1/2 w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-slate-900">Add Account</h3>
-        <button id="aac-close" class="btn h-9 w-9 p-0">✕</button>
-      </div>
+<!-- Add Account Modal -->
+<div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
+  <div class="absolute inset-0 bg-black/40"></div>
+  <div
+    class="absolute left-1/2 top-24 -translate-x-1/2 w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-900">Add Account</h3>
+      <button id="aac-close" class="btn h-9 w-9 p-0">✕</button>
+    </div>
 
-      <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label class="block">
-          <span class="text-sm text-slate-600">Broker *</span>
-          <input id="aac-broker" class="input w-full" placeholder="Alpaca / IBKR / MT5…" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-slate-600">Account number * (10 digits)</span>
-          <input id="aac-number" class="input w-full" placeholder="e.g. 9484826290" inputmode="numeric"
-            pattern="\\d{10}" maxlength="10" />
-        </label>
-        <label class="block">
-          <span class="text-sm text-slate-600">Currency</span>
-          <input id="aac-currency" class="input w-full" value="ZAR" />
-        </label>
-      </div>
+    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="block">
+        <span class="text-sm text-slate-600">Broker</span>
+        <input id="aac-broker" class="input w-full" value="AlgoHive Markets" disabled />
+      </label>
+      <label class="block">
+        <span class="text-sm text-slate-600">Account number</span>
+        <input id="aac-number" class="input w-full" value="generating…" disabled />
+      </label>
+      <label class="block">
+        <span class="text-sm text-slate-600">Currency</span>
+        <select id="aac-currency" class="input w-full">
+          <option value="ZAR">ZAR</option>
+          <option value="USD">USD</option>
+        </select>
+      </label>
+    </div>
 
-      <div class="mt-6 flex justify-end gap-2">
-        <button id="aac-cancel" class="btn">Cancel</button>
-        <button id="aac-save" class="btn btn-olive">Save</button>
-      </div>
+    <div class="mt-6 flex justify-end gap-2">
+      <button id="aac-cancel" class="btn">Cancel</button>
+      <button id="aac-save" class="btn btn-olive">Save</button>
     </div>
   </div>
+</div>
+
 
 
 </body>
