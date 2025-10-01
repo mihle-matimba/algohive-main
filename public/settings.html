@@ -656,6 +656,90 @@
  <script type="module">
   import { supabase } from "/js/supabase.js";
 
+   // ===== FIX: Save Additional Info handler (paste inside your <script type="module">) =====
+
+// tiny helper for button busy state
+function setBusy(btn, on, label = "Save additional info") {
+  if (!btn) return;
+  btn.disabled = on;
+  btn.textContent = on ? "Saving…" : label;
+}
+
+const extraSaveBtn   = document.getElementById("save-extra");
+const extraSavedTick = document.getElementById("extra-saved");
+
+extraSaveBtn?.addEventListener("click", async () => {
+  setBusy(extraSaveBtn, true);
+  extraSavedTick?.classList.add("hidden");
+
+  try {
+    const payload = {
+      id: user.id,
+      // --- basic fields ---
+      first_name: (document.getElementById("first_name")?.value || "").trim(),
+      last_name: (document.getElementById("last_name")?.value || "").trim(),
+      phone: (document.getElementById("phone")?.value || "").trim(),
+      dob: document.getElementById("dob")?.value || null,
+      id_number: (document.getElementById("id_number")?.value || "").trim() || null,
+      nationality: (document.getElementById("nationality")?.value || "").trim() || null,
+      country_residence: (document.getElementById("country_residence")?.value || "").trim() || null,
+
+      // --- employment/suitability ---
+      employment_status: document.getElementById("employment_status")?.value || null,
+      occupation: (document.getElementById("occupation")?.value || "").trim() || null,
+      employer: (document.getElementById("employer")?.value || "").trim() || null,
+      income_bracket: document.getElementById("income_bracket")?.value || null,
+      source_of_funds: document.getElementById("source_of_funds")?.value || null,
+      net_worth_range: document.getElementById("net_worth_range")?.value || null,
+      experience_level: document.getElementById("experience_level")?.value || null,
+      risk_tolerance: document.getElementById("risk_tolerance")?.value || null,
+
+      // --- objectives (CSV) ---
+      objectives: Array.from(document.querySelectorAll('input[name="objectives"]:checked'))
+        .map(cb => cb.value).join(", "),
+
+      // --- compliance ---
+      pep: !!document.getElementById("pep")?.checked,
+      fatca_crs: !!document.getElementById("fatca_crs")?.checked,
+
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: saved, error } = await supabase
+      .from("profiles")
+      .upsert(payload, { onConflict: "id" })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    // reflect name on header
+    const fn = (saved.first_name || "").trim();
+    const ln = (saved.last_name || "").trim();
+    document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email || "User").split("@")[0];
+
+    // show tick + banner
+    extraSavedTick?.classList.remove("hidden");
+    banner("Additional info saved ✅", "ok");
+
+    // (optional) re-run gating logic if you rely on it
+    try {
+      const REQUIRED_FIELDS = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
+      const complete = REQUIRED_FIELDS.every(k => String(saved?.[k] ?? "").trim().length > 0);
+      if (!complete) banner("Still missing some required fields.", "warn");
+    } catch {}
+
+    // you can dispatch a custom event for anything else listening
+    document.dispatchEvent(new Event("ah:profile-saved"));
+
+  } catch (e) {
+    console.error(e);
+    banner(e.message || "Save failed", "err");
+  } finally {
+    setBusy(extraSaveBtn, false);
+  }
+});
+
   // ---------- toast banner ----------
   function banner(msg, tone = "warn") {
     let el = document.getElementById("banner");
