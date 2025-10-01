@@ -317,7 +317,7 @@
               <!-- list -->
               <div id="accounts-wrap" class="mt-6 space-y-8"></div>
             </div>
-            
+
 
             <!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
             <div id="docs" data-panel="docs" class="hidden card border border-slate-200 rounded-2xl p-6">
@@ -1077,16 +1077,13 @@
     };
 
     function renderAccountCard(row) {
-      const wrap = document.createElement('div');
-      wrap.className = 'grid grid-cols-1 md:grid-cols-2 gap-6';
+      const card = document.createElement('div');
+      card.className = 'rounded-xl border border-slate-200 p-5';
 
-      // left card
-      const left = document.createElement('div');
-      left.className = 'rounded-xl border border-slate-200 p-5';
-      left.innerHTML = `
+      card.innerHTML = `
     <div class="flex items-start justify-between gap-4">
       <div>
-        <div class="text-sm text-slate-500">${row.broker ? row.broker : 'Account'}</div>
+        <div class="text-sm text-slate-500">${row.broker || 'Account'}</div>
         <div class="mt-1 font-semibold text-slate-900">${maskAcct(row.account_number)}</div>
         <div class="mt-2 flex items-center gap-2">
           <span class="${pill(row.status)}">${String(row.status || '').toUpperCase()}</span>
@@ -1109,11 +1106,14 @@
       </div>
     </div>
   `;
+      return card;
+    }
 
-      // right small panel
-      const right = document.createElement('div');
-      right.className = 'rounded-xl border border-slate-200 p-5';
-      right.innerHTML = `
+
+    // right small panel
+    const right = document.createElement('div');
+    right.className = 'rounded-xl border border-slate-200 p-5';
+    right.innerHTML = `
     <div class="font-medium text-slate-900 mb-3">API Keys</div>
     <label class="text-xs text-slate-500">Endpoint</label>
     <input class="input w-full mt-1" value="${deriveEndpoint(row)}" disabled />
@@ -1122,9 +1122,9 @@
     </button>
   `;
 
-      wrap.appendChild(left);
-      wrap.appendChild(right);
-      return wrap;
+    wrap.appendChild(left);
+    wrap.appendChild(right);
+    return wrap;
     }
 
     async function loadAccounts() {
@@ -1184,10 +1184,7 @@
     });
 
     document.getElementById('btn-refresh-accounts')?.addEventListener('click', loadAccounts);
-    document.getElementById('btn-add-account')?.addEventListener('click', () => {
-      // route to your connect flow
-      location.href = '/connect.html';
-    });
+
 
     // load when the Manage tab is shown
     function maybeLoadAccountsOnTab() {
@@ -1196,114 +1193,115 @@
     }
     window.addEventListener('hashchange', maybeLoadAccountsOnTab);
     maybeLoadAccountsOnTab();
-// modal open/close
-const modal = document.getElementById('add-account-modal');
-const openAdd = () => modal.classList.remove('hidden');
-const closeAdd = () => modal.classList.add('hidden');
+    // modal open/close
+    const modal = document.getElementById('add-account-modal');
+    const openAdd = () => modal.classList.remove('hidden');
+    const closeAdd = () => modal.classList.add('hidden');
 
-document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
-document.getElementById('aac-close')?.addEventListener('click', closeAdd);
-document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
+    document.getElementById('btn-add-account')?.addEventListener('click', openAdd);
+    document.getElementById('aac-close')?.addEventListener('click', closeAdd);
+    document.getElementById('aac-cancel')?.addEventListener('click', closeAdd);
 
-// helper: 10-digit check
-const isTenDigits = (s) => /^\d{10}$/.test(String(s||'').trim());
+    // helper: 10-digit check
+    const isTenDigits = (s) => /^\d{10}$/.test(String(s || '').trim());
 
-// helper: check uniqueness for this user+broker+account_number
-async function accountExists(profileId, broker, account_number) {
-  const { data, error } = await supabase
-    .from('investment_accounts')
-    .select('id', { count: 'exact', head: true })
-    .eq('profile_id', profileId)
-    .eq('broker', broker)
-    .eq('account_number', account_number);
-  if (error) throw error;
-  return (data === null) ? false : (error?.code ? false : (error ? false : !!(error))); // head mode: rely on count
-}
-
-// Add Account save
-document.getElementById('aac-save')?.addEventListener('click', async () => {
-  const broker = (document.getElementById('aac-broker').value || '').trim();
-  const account_number = (document.getElementById('aac-number').value || '').trim();
-  const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
-
-  // basic validation
-  if (!broker) return banner('Broker is required', 'warn');
-  if (!isTenDigits(account_number)) return banner('Account number must be exactly 10 digits', 'warn');
-
-  // uniqueness (matches uniq_owner_broker_acct)
-  try {
-    // quick HEAD check via select head: if any row exists, Supabase throws count? We’ll just try insert and catch 23505 too.
-    document.getElementById('aac-save').disabled = true;
-
-    // insert with status ACTIVE and zero balances
-    const payload = {
-      profile_id: user.id,
-      broker,
-      account_number,
-      currency,
-      status: 'ACTIVE',
-      balance: 0,
-      equity: 0,
-      meta: {} // no nickname
-    };
-
-    const { error } = await supabase.from('investment_accounts').insert(payload);
-    if (error) {
-      // handle unique violation nicely
-      if (error.code === '23505') {
-        banner('That account already exists for this broker.', 'warn');
-      } else {
-        banner(error.message || 'Add failed', 'err');
-      }
-      document.getElementById('aac-save').disabled = false;
-      return;
+    // helper: check uniqueness for this user+broker+account_number
+    async function accountExists(profileId, broker, account_number) {
+      const { data, error } = await supabase
+        .from('investment_accounts')
+        .select('id', { count: 'exact', head: true })
+        .eq('profile_id', profileId)
+        .eq('broker', broker)
+        .eq('account_number', account_number);
+      if (error) throw error;
+      return (data === null) ? false : (error?.code ? false : (error ? false : !!(error))); // head mode: rely on count
     }
 
-    banner('Account added', 'ok');
-    closeAdd();
-    loadAccounts();
+    // Add Account save
+    document.getElementById('aac-save')?.addEventListener('click', async () => {
+      const broker = (document.getElementById('aac-broker').value || '').trim();
+      const account_number = (document.getElementById('aac-number').value || '').trim();
+      const currency = (document.getElementById('aac-currency').value || 'ZAR').trim().toUpperCase();
 
-  } catch (e) {
-    console.error(e);
-    banner(e.message || 'Add failed', 'err');
-  } finally {
-    document.getElementById('aac-save').disabled = false;
-  }
-});
+      // basic validation
+      if (!broker) return banner('Broker is required', 'warn');
+      if (!isTenDigits(account_number)) return banner('Account number must be exactly 10 digits', 'warn');
+
+      // uniqueness (matches uniq_owner_broker_acct)
+      try {
+        // quick HEAD check via select head: if any row exists, Supabase throws count? We’ll just try insert and catch 23505 too.
+        document.getElementById('aac-save').disabled = true;
+
+        // insert with status ACTIVE and zero balances
+        const payload = {
+          profile_id: user.id,
+          broker,
+          account_number,
+          currency,
+          status: 'ACTIVE',
+          balance: 0,
+          equity: 0,
+          meta: {} // no nickname
+        };
+
+        const { error } = await supabase.from('investment_accounts').insert(payload);
+        if (error) {
+          // handle unique violation nicely
+          if (error.code === '23505') {
+            banner('That account already exists for this broker.', 'warn');
+          } else {
+            banner(error.message || 'Add failed', 'err');
+          }
+          document.getElementById('aac-save').disabled = false;
+          return;
+        }
+
+        banner('Account added', 'ok');
+        closeAdd();
+        loadAccounts();
+
+      } catch (e) {
+        console.error(e);
+        banner(e.message || 'Add failed', 'err');
+      } finally {
+        document.getElementById('aac-save').disabled = false;
+      }
+    });
 
 
   </script>
-<!-- Add Account Modal -->
-<div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
-  <div class="absolute inset-0 bg-black/40"></div>
-  <div class="absolute left-1/2 top-24 -translate-x-1/2 w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
-    <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-slate-900">Add Account</h3>
-      <button id="aac-close" class="btn h-9 w-9 p-0">✕</button>
-    </div>
+  <!-- Add Account Modal -->
+  <div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div
+      class="absolute left-1/2 top-24 -translate-x-1/2 w-[520px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-slate-900">Add Account</h3>
+        <button id="aac-close" class="btn h-9 w-9 p-0">✕</button>
+      </div>
 
-    <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <label class="block">
-        <span class="text-sm text-slate-600">Broker *</span>
-        <input id="aac-broker" class="input w-full" placeholder="Alpaca / IBKR / MT5…" />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Account number * (10 digits)</span>
-        <input id="aac-number" class="input w-full" placeholder="e.g. 9484826290"
-               inputmode="numeric" pattern="\\d{10}" maxlength="10" />
-      </label>
-      <label class="block">
-        <span class="text-sm text-slate-600">Currency</span>
-        <input id="aac-currency" class="input w-full" value="ZAR" />
-      </label>
-    </div>
+      <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-sm text-slate-600">Broker *</span>
+          <input id="aac-broker" class="input w-full" placeholder="Alpaca / IBKR / MT5…" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Account number * (10 digits)</span>
+          <input id="aac-number" class="input w-full" placeholder="e.g. 9484826290" inputmode="numeric"
+            pattern="\\d{10}" maxlength="10" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Currency</span>
+          <input id="aac-currency" class="input w-full" value="ZAR" />
+        </label>
+      </div>
 
-    <div class="mt-6 flex justify-end gap-2">
-      <button id="aac-cancel" class="btn">Cancel</button>
-      <button id="aac-save" class="btn btn-olive">Save</button>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="aac-cancel" class="btn">Cancel</button>
+        <button id="aac-save" class="btn btn-olive">Save</button>
+      </div>
     </div>
   </div>
-</div>
 
 
 </body>
