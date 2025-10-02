@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AlgoHive – Strategies</title>
+
+  <!-- Tailwind + Fonts + Icons (fine for dev) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <style>
+    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0 }
+    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
+    .card{ background:#fff; border:1px solid var(--line); border-radius:12px }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
+    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem }
+    .badge{ font-size:.75rem; padding:.125rem .5rem; border-radius:999px }
+
+    /* Layout / Sidebar */
+    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
+    #layout.is-collapsed{ --sb:64px }
+    #ah-sidebar{ transition: width .2s ease; width:var(--sb) }
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
+    #ah-sidebar details .sub{ transition: height .2s ease }
+    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
+    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
+    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0 }
+    #ah-sidebar .footer{ transition:all .2s ease }
+    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+  </style>
+</head>
+
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <!-- ===== Sidebar ===== -->
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain"/>
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
+        </div>
+      </div>
+
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100" href="#" title="Home">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
+        </a>
+
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Positions"><i class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">Positions</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Orders"><i class="fa-regular fa-clipboard w-4 text-slate-500"></i><span class="label">Orders</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Activity"><i class="fa-solid fa-bars w-4 text-slate-500"></i><span class="label">Activity</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Balances"><i class="fa-solid fa-table w-4 text-slate-500"></i><span class="label">Balances</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funding"><i class="fa-solid fa-hand-holding-dollar w-4 text-slate-500"></i><span class="label">Funding</span></a>
+          </div>
+        </details>
+
+        <details class="group mt-1" open>
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100" href="#" title="Strategies"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">Strategies</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds"><i class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
+          </div>
+        </details>
+
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="pricing.html" title="Plans & Features"><i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Community"><i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Support"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Legal"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="settings.html" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Main ===== -->
+    <main class="flex-1 min-w-0">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
+          <div class="relative w-full">
+            <input id="search" class="input w-full pl-9" placeholder="Search strategies…"/>
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Profile (dynamic) -->
+        <div class="flex items-center gap-3">
+          <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
+            <i class="fa-regular fa-bell text-slate-500"></i>
+            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
+          </button>
+
+          <img id="hdr-avatar"
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
+               alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
+
+          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
+            <span id="hdr-name">—</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== Strategies Content ===== -->
+      <section class="px-6 py-6 min-w-0">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-slate-900">Strategies</h2>
+          <div class="flex items-center gap-2">
+            <select id="statusFilter" class="h-10 border border-slate-200 rounded-lg px-3 text-sm">
+              <option value="">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PAUSED">Paused</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+        <!-- Empty state -->
+        <div id="empty" class="hidden text-center py-16 text-slate-500">
+          <div class="mx-auto w-12 h-12 rounded-2xl bg-slate-100 mb-4"></div>
+          <div class="text-sm">No strategies match your filters.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== Profile Modal ===== -->
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
+      </div>
+      <div class="p-2">
+        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Font Awesome runtime -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
+
+  <!-- Sidebar collapse memory -->
+  <script>
+    (function(){
+      const layout=document.getElementById('layout');
+      const aside=document.getElementById('ah-sidebar');
+      const btn=document.getElementById('ah-collapse');
+      const saved=localStorage.getItem('ah_collapsed')==='true';
+      if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed'); }
+      btn.addEventListener('click',()=>{
+        const isCollapsed=aside.getAttribute('data-collapsed')==='true';
+        if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
+      });
+    })();
+  </script>
+
+  <!-- ===== App (module) ===== -->
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+
+    // ---------- helpers ----------
+    const $ = (q, el=document)=>el.querySelector(q);
+    const initialsAvatar = (text)=>{
+      const s = (text||'').trim();
+      const initial = (s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+        <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
+        <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
+              font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
+      </svg>`;
+      return `data:image/svg+xml;utf8,${svg}`;
+    };
+    const bpsToPct = bps => (bps ? (bps/100).toFixed(2) + '%' : '0.00%');
+    const statusColor = s => ({
+      ACTIVE: 'bg-emerald-100 text-emerald-700',
+      PAUSED: 'bg-amber-100 text-amber-700',
+      CLOSED: 'bg-rose-100 text-rose-700'
+    }[s] || 'bg-slate-100 text-slate-700');
+    const moneyFmt = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy || 'USD', maximumFractionDigits: 2 });
+
+    const elGrid   = $('#grid');
+    const elEmpty  = $('#empty');
+    const elSearch = $('#search');
+    const elStatus = $('#statusFilter');
+
+    const state = { strategies: [], prices: new Map(), filtered: [] };
+
+    // ---------- auth + header profile ----------
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session){
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+      throw new Error('No session');
+    }
+    const { data:{ user } } = await supabase.auth.getUser();
+
+    let profile = null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, first_name, last_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      profile = data || null;
+    } catch { profile = null; }
+
+    const bestName =
+      [profile?.full_name,
+       [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+       user?.user_metadata?.full_name,
+       user?.user_metadata?.name].find(s => s && String(s).trim()) || user?.email || '—';
+    const avatarUrl = (profile?.avatar_url) || initialsAvatar(bestName || user?.email);
+    $('#hdr-name').textContent = bestName;
+    $('#pm-email').textContent = user?.email || '—';
+    const hdrImg = $('#hdr-avatar'); if (hdrImg){ hdrImg.src = avatarUrl; hdrImg.onerror=()=>{ hdrImg.src=initialsAvatar(bestName||user?.email);} }
+
+    // ---------- strategies load ----------
+    async function loadData(){
+      // strategies
+      const { data: strategies, error: sErr } = await supabase
+        .from('strategies')
+        .select('id, code, name, base_currency, status, mgmt_fee_bps, perf_fee_bps, meta')
+        .order('code', { ascending: true });
+      if (sErr) { console.error(sErr); elGrid.innerHTML = `<div class="text-sm text-rose-600">Failed to load strategies.</div>`; return; }
+      state.strategies = strategies || [];
+
+      // latest unit price per strategy (view)
+      const { data: prices, error: pErr } = await supabase
+        .from('v_strategy_latest_price')
+        .select('strategy_id, unit_price');
+      if (!pErr) (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
+
+      state.filtered = state.strategies.slice();
+      render();
+    }
+
+    function applyFilters(){
+      const q = elSearch.value.trim().toLowerCase();
+      const status = elStatus.value;
+      state.filtered = state.strategies.filter(s => {
+        const matchText = !q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q);
+        const matchStatus = !status || s.status === status;
+        return matchText && matchStatus;
+      });
+      render();
+    }
+
+    function render(){
+      elGrid.innerHTML = '';
+      if (!state.filtered.length){
+        elEmpty.classList.remove('hidden');
+        return;
+      }
+      elEmpty.classList.add('hidden');
+
+      state.filtered.forEach(s => {
+        const price = state.prices.get(s.id);
+        const mgmt  = bpsToPct(s.mgmt_fee_bps);
+        const perf  = bpsToPct(s.perf_fee_bps);
+        const meta  = s.meta || {};
+        const style = meta.style || meta.strategy || '—';
+        const risk  = meta.risk || '—';
+        const fmt   = moneyFmt(s.base_currency);
+
+        const a = document.createElement('a');
+        a.href = `strategy.html?id=${s.id}`;
+        a.className = 'card p-5 hover:shadow-sm transition';
+
+        a.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-500">${s.code}</div>
+              <h3 class="text-base font-semibold text-slate-900 mt-1">${s.name}</h3>
+            </div>
+            <span class="badge ${statusColor(s.status)}">${s.status}</span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Base currency</div>
+              <div class="text-sm font-medium">${s.base_currency}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Latest unit price</div>
+              <div class="text-sm font-medium">${price != null ? fmt.format(price) : '—'}</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Mgmt fee</div>
+              <div class="text-sm font-medium">${mgmt} / yr</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Perf fee</div>
+              <div class="text-sm font-medium">${perf}</div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-xs text-slate-600">
+            <span class="inline-block mr-3"><span class="text-slate-500">Style:</span> ${style}</span>
+            <span class="inline-block"><span class="text-slate-500">Risk:</span> ${risk}</span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between">
+            <button class="text-sm px-3 py-1.5 border border-slate-200 rounded-lg">View</button>
+            <button class="text-sm px-3 py-1.5 bg-amber-500 text-white rounded-lg">Subscribe</button>
+          </div>
+        `;
+        elGrid.appendChild(a);
+      });
+    }
+
+    elSearch.addEventListener('input', applyFilters);
+    elStatus.addEventListener('change', applyFilters);
+
+    // badge (account id preview, optional)
+    const { data: acct } = await supabase.from('investment_accounts').select('account_number').eq('profile_id', user.id).limit(1).maybeSingle();
+    const badge = document.getElementById('sidebar-acc'); if (badge) badge.textContent = acct?.account_number || '—';
+
+    // profile modal toggles (basic)
+    const pm = document.getElementById('profile-modal');
+    document.getElementById('hdr-profile-btn')?.addEventListener('click', ()=> pm.classList.toggle('hidden'));
+    pm?.addEventListener('click', (e)=>{ if (e.target === pm) pm.classList.add('hidden'); });
+
+    // load data
+    loadData();
+  </script>
+</body>
+</html>
