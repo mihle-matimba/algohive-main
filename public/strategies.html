@@ -215,12 +215,12 @@
     })();
   </script>
 
-  <!-- ===== App (module) ===== -->
- <script type="module">
+<script type="module">
   import { supabase } from "/js/supabase.js";
 
   // ---------- helpers ----------
   const $ = (q, el=document)=>el.querySelector(q);
+  const $$ = (q, el=document)=>Array.from(el.querySelectorAll(q));
   const OLIVE = '#556B2F';
   const bpsToPct = bps => (bps ? (bps/100).toFixed(2) + '%' : '0.00%');
   const statusBadge = s => ({
@@ -230,12 +230,12 @@
   }[s] || `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">● ${s||'—'}</span>`);
   const moneyFmt = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy || 'USD', maximumFractionDigits: 2 });
 
-  // sparkline (canvas, no Chart lib)
+  // sparkline (no Chart lib)
   function drawSpark(canvas, series){
     if (!canvas || !series?.length) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth  || 120;
+    const W = canvas.clientWidth  || 140;
     const H = canvas.clientHeight || 32;
     canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
     ctx.clearRect(0,0,W,H);
@@ -257,71 +257,46 @@
     ctx.lineWidth = 2; ctx.strokeStyle = OLIVE; ctx.stroke();
 
     const lastX = padX + (series.length-1)*step;
-    const lastY = padY + (H - padY*2) * (1 - (series[series.length-1]-min)/rng);
     ctx.lineTo(lastX, H - padY); ctx.lineTo(padX, H - padY); ctx.closePath();
     ctx.fillStyle = grad; ctx.fill();
   }
 
-  // ---------- mount UI shell into #grid ----------
-  const root = $('#grid');
-  if (!root) throw new Error('Missing #grid container');
-  root.innerHTML = `
-    <div class="card border border-slate-200 overflow-hidden">
-      <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
-        <div class="relative flex-1 max-w-[420px]">
-          <input id="st-search" class="input w-full pl-9" placeholder="Search strategies…"/>
-          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </div>
-        <select id="st-status" class="h-10 border border-slate-200 rounded-lg px-3 text-sm">
-          <option value="">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="PAUSED">Paused</option>
-          <option value="CLOSED">Closed</option>
-        </select>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-slate-600">
-            <tr>
-              <th class="text-left font-medium py-3 pl-4 pr-3">Strategy</th>
-              <th class="text-left font-medium py-3 px-3">Status</th>
-              <th class="text-left font-medium py-3 px-3">Account</th>
-              <th class="text-left font-medium py-3 px-3">Latest Unit Price</th>
-              <th class="text-left font-medium py-3 px-3">Fees</th>
-              <th class="text-left font-medium py-3 px-3">Equity Curve</th>
-              <th class="text-right font-medium py-3 pr-4 pl-3">Action</th>
-            </tr>
-          </thead>
-          <tbody id="st-body" class="divide-y divide-slate-100">
-            <tr><td colspan="7" class="py-6 text-center text-slate-500">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div id="st-empty" class="hidden text-center py-12 text-slate-500">No strategies match your filters.</div>
-  `;
+  // ---------- DOM refs (use existing markup) ----------
+  const elBody   = $('#strategies-body');
+  const elEmpty  = $('#empty');
 
-  const elBody   = $('#st-body');
-  const elSearch = $('#st-search');
-  const elStatus = $('#st-status');
-  const state = { rows: [], prices: new Map(), series: new Map(), filtered: [] };
+  // you have two #search inputs; pick the one inside the Strategies section
+  const section = $('section:has(h2)');
+  const elSearch = section ? section.querySelector('#search') : $('#search');
+
+  const elStatus = $('#statusFilter');
+
+  if (!elBody) {
+    console.error('Missing #strategies-body');
+    throw new Error('Missing #strategies-body');
+  }
 
   // ---------- load data ----------
-  // strategies
+  const state = { rows: [], prices: new Map(), series: new Map(), filtered: [] };
+
+  // 1) strategies
   const { data: strategies, error: sErr } = await supabase
     .from('strategies')
     .select('id, code, name, base_currency, status, mgmt_fee_bps, perf_fee_bps, meta')
     .order('code', { ascending: true });
-  if (sErr) { elBody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-rose-600">Failed to load strategies.</td></tr>`; throw sErr; }
+  if (sErr) {
+    elBody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-rose-600">Failed to load strategies.</td></tr>`;
+    throw sErr;
+  }
   state.rows = strategies || [];
 
-  // latest prices
-  const { data: prices } = await supabase
+  // 2) latest prices
+  const { data: prices, error: pErr } = await supabase
     .from('v_strategy_latest_price')
     .select('strategy_id, unit_price');
-  (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
+  if (!pErr) (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
 
-  // equity curves (~45d)
+  // 3) equity curves (~45d)
   if (state.rows.length){
     const ids = state.rows.map(r=>r.id);
     const since = new Date(); since.setDate(since.getDate()-45);
@@ -350,10 +325,9 @@
   }
 
   // ---------- render ----------
-  const empty = $('#st-empty');
   function applyFilters(){
-    const q = (elSearch.value||'').trim().toLowerCase();
-    const st = elStatus.value;
+    const q = (elSearch?.value||'').trim().toLowerCase();
+    const st = (elStatus?.value)||'';
     state.filtered = state.rows.filter(r=>{
       const t = `${r.name} ${r.code}`.toLowerCase();
       const okText = !q || t.includes(q);
@@ -366,17 +340,17 @@
   function paint(){
     if (!state.filtered.length){
       elBody.innerHTML = '';
-      empty.classList.remove('hidden');
+      elEmpty?.classList.remove('hidden');
       return;
     }
-    empty.classList.add('hidden');
+    elEmpty?.classList.add('hidden');
 
+    // match your column order: Strategy | Equity Curve | Base CCY | Unit Price | Mgmt Fee | Perf Fee | Status | Action
     elBody.innerHTML = state.filtered.map(r=>{
       const price = state.prices.get(r.id);
       const fmt   = moneyFmt(r.base_currency);
-      const style = r.meta?.style || r.meta?.strategy || '—';
-      const acct  = `${r.base_currency} · ${style}`;
-      const fees  = `${bpsToPct(r.mgmt_fee_bps)} mgmt / ${bpsToPct(r.perf_fee_bps)} perf`;
+      const mgmt  = bpsToPct(r.mgmt_fee_bps);
+      const perf  = bpsToPct(r.perf_fee_bps);
 
       return `
         <tr class="hover:bg-slate-50 align-middle">
@@ -384,19 +358,16 @@
             <div class="font-medium text-slate-900">${r.name}</div>
             <div class="text-xs text-slate-500">Code: ${r.code}</div>
           </td>
-          <td class="py-3 px-3">${statusBadge(r.status)}</td>
-          <td class="py-3 px-3">
-            <div class="text-slate-800">${acct}</div>
-          </td>
-          <td class="py-3 px-3">${price!=null ? `<span class="text-slate-900">${fmt.format(price)}</span>` : '—'}</td>
-          <td class="py-3 px-3">
-            <div class="text-slate-800">${fees}</div>
-          </td>
           <td class="py-2 px-3">
-            <div class="h-8 w-[140px] bg-slate-50 border border-slate-200 rounded-md overflow-hidden">
+            <div class="h-8 w-[160px] bg-slate-50 border border-slate-200 rounded-md overflow-hidden">
               <canvas data-id="${r.id}" class="w-full h-8 block"></canvas>
             </div>
           </td>
+          <td class="py-3 px-3">${r.base_currency}</td>
+          <td class="py-3 px-3">${price!=null ? `<span class="text-slate-900">${fmt.format(price)}</span>` : '—'}</td>
+          <td class="py-3 px-3">${mgmt}</td>
+          <td class="py-3 px-3">${perf}</td>
+          <td class="py-3 px-3">${statusBadge(r.status)}</td>
           <td class="py-3 pr-4 pl-3 text-right">
             <a href="allocate.html?strategy=${r.id}"
                class="inline-flex items-center justify-center h-9 px-3 rounded-md text-white"
@@ -407,7 +378,7 @@
     }).join('');
 
     // draw sparklines
-    elBody.querySelectorAll('canvas[data-id]').forEach(cv=>{
+    $$('#strategies-body canvas[data-id]').forEach(cv=>{
       const id = cv.getAttribute('data-id');
       const series = state.series.get(id);
       if (series?.length) drawSpark(cv, series);
@@ -415,12 +386,13 @@
     });
   }
 
-  elSearch.addEventListener('input', applyFilters);
-  elStatus.addEventListener('change', applyFilters);
+  elSearch?.addEventListener('input', applyFilters);
+  elStatus?.addEventListener('change', applyFilters);
 
   state.filtered = state.rows.slice();
   paint();
 </script>
+
 
 </body>
 </html>
