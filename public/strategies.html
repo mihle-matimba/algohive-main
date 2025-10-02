@@ -218,65 +218,108 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // ---------- helpers ----------
+  // ===== tiny helpers
   const $ = (q, el=document)=>el.querySelector(q);
   const $$ = (q, el=document)=>Array.from(el.querySelectorAll(q));
   const OLIVE = '#556B2F';
   const bpsToPct = bps => (bps ? (bps/100).toFixed(2) + '%' : '0.00%');
   const statusBadge = s => ({
-    ACTIVE:  '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700">● Active</span>',
-    PAUSED:  '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">● Paused</span>',
-    CLOSED:  '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-rose-100 text-rose-700">● Closed</span>',
+    ACTIVE:'<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700">● Active</span>',
+    PAUSED:'<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">● Paused</span>',
+    CLOSED:'<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-rose-100 text-rose-700">● Closed</span>',
   }[s] || `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">● ${s||'—'}</span>`);
-  const moneyFmt = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy || 'USD', maximumFractionDigits: 2 });
+  const moneyFmt = (ccy)=> new Intl.NumberFormat(undefined,{style:'currency',currency:ccy||'USD',maximumFractionDigits:2});
+  const initialsAvatar = (text)=>{
+    const s=(text||'').trim(), initial=(s.match(/[A-Za-z]/)?.[0]||'?').toUpperCase();
+    const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/><text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle' font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text></svg>`;
+    return `data:image/svg+xml;utf8,${svg}`;
+  };
 
-  // sparkline (no Chart lib)
+  // ===== nav link fixes
+  const homeLink = document.querySelector('nav a[title="Home"]');
+  if (homeLink) homeLink.href = 'home.html';
+  const plansLink = Array.from(document.querySelectorAll('nav a'))
+    .find(a=>a.textContent?.trim().startsWith('Plans'));
+  if (plansLink) plansLink.href = 'pricing.html';
+
+  // ===== profile header + modal
+  const { data:{ session } } = await supabase.auth.getSession();
+  const { data:{ user } } = await supabase.auth.getUser();
+
+  let profile = null;
+  if (session?.user) {
+    try {
+      const { data } = await supabase.from('profiles')
+        .select('full_name, first_name, last_name, avatar_url')
+        .eq('id', session.user.id).single();
+      profile = data || null;
+    } catch {}
+  }
+
+  const bestName = [
+    profile?.full_name,
+    [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+    user?.user_metadata?.full_name,
+    user?.user_metadata?.name
+  ].find(v=>v && String(v).trim()) || user?.email || '—';
+
+  $('#hdr-name').textContent = bestName;
+  $('#pm-email').textContent = user?.email || '—';
+  const hdrImg = $('#hdr-avatar');
+  const avatarUrl = profile?.avatar_url || initialsAvatar(bestName || user?.email);
+  if (hdrImg) {
+    hdrImg.src = avatarUrl;
+    hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
+  }
+
+  const pm = $('#profile-modal');
+  const btnProfile = $('#hdr-profile-btn');
+  btnProfile?.addEventListener('click', ()=> pm?.classList.toggle('hidden'));
+  pm?.addEventListener('click', (e)=>{ if (e.target === pm) pm.classList.add('hidden'); });
+  document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') pm?.classList.add('hidden'); });
+  $('#pm-profile')?.addEventListener('click', ()=> pm?.classList.add('hidden'));
+  $('#pm-logout')?.addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    location.replace('/auth.html?tab=in');
+  });
+
+  // Optional: sidebar badge (first account number)
+  try {
+    const { data: acct } = await supabase.from('investment_accounts')
+      .select('account_number').eq('profile_id', session?.user?.id || '').limit(1).maybeSingle();
+    const badge = $('#sidebar-acc'); if (badge) badge.textContent = acct?.account_number || '—';
+  } catch {}
+
+  // ===== strategies table
+  const elBody   = $('#strategies-body');
+  const elEmpty  = $('#empty');
+  const section  = $('section:has(h2)');
+  const elSearch = section ? section.querySelector('#search') : $('#search');
+  const elStatus = $('#statusFilter');
+
+  if (!elBody) throw new Error('Missing #strategies-body');
+
+  // sparkline (no lib)
   function drawSpark(canvas, series){
     if (!canvas || !series?.length) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth  || 140;
+    const W = canvas.clientWidth  || 160;
     const H = canvas.clientHeight || 32;
     canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
     ctx.clearRect(0,0,W,H);
-
     const min = Math.min(...series), max = Math.max(...series);
     const padX = 4, padY = 3, rng = (max - min) || 1;
     const step = (W - padX*2) / Math.max(1,(series.length - 1));
-
     const grad = ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,'rgba(85,107,47,0.18)');
-    grad.addColorStop(1,'rgba(85,107,47,0.02)');
-
+    grad.addColorStop(0,'rgba(85,107,47,0.18)'); grad.addColorStop(1,'rgba(85,107,47,0.02)');
     ctx.beginPath();
-    series.forEach((v,i)=>{
-      const x = padX + i*step;
-      const y = padY + (H - padY*2) * (1 - (v - min)/rng);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.lineWidth = 2; ctx.strokeStyle = OLIVE; ctx.stroke();
-
+    series.forEach((v,i)=>{ const x=padX+i*step; const y=padY+(H-padY*2)*(1-(v-min)/rng); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.lineWidth=2; ctx.strokeStyle=OLIVE; ctx.stroke();
     const lastX = padX + (series.length-1)*step;
-    ctx.lineTo(lastX, H - padY); ctx.lineTo(padX, H - padY); ctx.closePath();
-    ctx.fillStyle = grad; ctx.fill();
+    ctx.lineTo(lastX, H-padY); ctx.lineTo(padX, H-padY); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
   }
 
-  // ---------- DOM refs (use existing markup) ----------
-  const elBody   = $('#strategies-body');
-  const elEmpty  = $('#empty');
-
-  // you have two #search inputs; pick the one inside the Strategies section
-  const section = $('section:has(h2)');
-  const elSearch = section ? section.querySelector('#search') : $('#search');
-
-  const elStatus = $('#statusFilter');
-
-  if (!elBody) {
-    console.error('Missing #strategies-body');
-    throw new Error('Missing #strategies-body');
-  }
-
-  // ---------- load data ----------
   const state = { rows: [], prices: new Map(), series: new Map(), filtered: [] };
 
   // 1) strategies
@@ -290,11 +333,11 @@
   }
   state.rows = strategies || [];
 
-  // 2) latest prices
-  const { data: prices, error: pErr } = await supabase
+  // 2) latest unit prices
+  const { data: prices } = await supabase
     .from('v_strategy_latest_price')
     .select('strategy_id, unit_price');
-  if (!pErr) (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
+  (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
 
   // 3) equity curves (~45d)
   if (state.rows.length){
@@ -307,13 +350,12 @@
       .gte('d', since.toISOString().slice(0,10));
     if (series){
       const grouped = new Map();
-      series.sort((a,b)=> a.strategy_id.localeCompare(b.strategy_id) || (new Date(a.d) - new Date(b.d)))
+      series.sort((a,b)=> a.strategy_id.localeCompare(b.strategy_id) || (new Date(a.d)-new Date(b.d)))
         .forEach(r=>{
           if(!grouped.has(r.strategy_id)) grouped.set(r.strategy_id, []);
           grouped.get(r.strategy_id).push(Number(r.unit_price));
         });
       grouped.forEach((arr,id)=>{
-        // downsample to ~40 points
         const target=40;
         if (arr.length>target){
           const step = arr.length/target, slim=[];
@@ -324,7 +366,6 @@
     }
   }
 
-  // ---------- render ----------
   function applyFilters(){
     const q = (elSearch?.value||'').trim().toLowerCase();
     const st = (elStatus?.value)||'';
@@ -345,13 +386,10 @@
     }
     elEmpty?.classList.add('hidden');
 
-    // match your column order: Strategy | Equity Curve | Base CCY | Unit Price | Mgmt Fee | Perf Fee | Status | Action
+    // columns: Strategy | Equity Curve | Base CCY | Unit Price | Mgmt Fee | Perf Fee | Status | Action
     elBody.innerHTML = state.filtered.map(r=>{
       const price = state.prices.get(r.id);
       const fmt   = moneyFmt(r.base_currency);
-      const mgmt  = bpsToPct(r.mgmt_fee_bps);
-      const perf  = bpsToPct(r.perf_fee_bps);
-
       return `
         <tr class="hover:bg-slate-50 align-middle">
           <td class="py-3 pl-4 pr-3">
@@ -365,13 +403,13 @@
           </td>
           <td class="py-3 px-3">${r.base_currency}</td>
           <td class="py-3 px-3">${price!=null ? `<span class="text-slate-900">${fmt.format(price)}</span>` : '—'}</td>
-          <td class="py-3 px-3">${mgmt}</td>
-          <td class="py-3 px-3">${perf}</td>
+          <td class="py-3 px-3">${bpsToPct(r.mgmt_fee_bps)}</td>
+          <td class="py-3 px-3">${bpsToPct(r.perf_fee_bps)}</td>
           <td class="py-3 px-3">${statusBadge(r.status)}</td>
           <td class="py-3 pr-4 pl-3 text-right">
-            <a href="allocate.html?strategy=${r.id}"
-               class="inline-flex items-center justify-center h-9 px-3 rounded-md text-white"
-               style="background:${OLIVE}">Allocate</a>
+            <a href="strategy.html?id=${r.id}"
+               class="inline-flex items-center justify-center h-9 px-3 rounded-md border"
+               style="border-color:${OLIVE}; color:${OLIVE}">View</a>
           </td>
         </tr>
       `;
@@ -381,8 +419,8 @@
     $$('#strategies-body canvas[data-id]').forEach(cv=>{
       const id = cv.getAttribute('data-id');
       const series = state.series.get(id);
-      if (series?.length) drawSpark(cv, series);
-      else drawSpark(cv, Array.from({length:18}, (_,i)=> 1 + i*0.002 + (Math.random()-.5)*0.01));
+      drawSpark(cv, series?.length ? series
+        : Array.from({length:18}, (_,i)=> 1 + i*0.002 + (Math.random()-.5)*0.01));
     });
   }
 
