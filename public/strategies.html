@@ -31,6 +31,12 @@
     #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
     #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
   </style>
+  <style>
+  .badge{ font-size:.75rem; padding:.125rem .5rem; border-radius:999px }
+  .spark-wrap{ height:48px; }
+  .spark{ width:180px; height:40px; display:block }
+</style>
+
 </head>
 
 <body class="min-h-screen overflow-x-hidden">
@@ -122,12 +128,12 @@
         </div>
       </div>
 
-      <!-- ===== Strategies Content ===== -->
-<!-- ===== Strategies Content ===== -->
+<!-- ===== Strategies Content (TABLE) ===== -->
 <section class="px-6 py-6 min-w-0">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-slate-900">Strategies</h2>
     <div class="flex items-center gap-2">
+      <input id="search" class="input w-64" placeholder="Search strategies…" />
       <select id="statusFilter" class="h-10 border border-slate-200 rounded-lg px-3 text-sm">
         <option value="">All statuses</option>
         <option value="ACTIVE">Active</option>
@@ -137,14 +143,32 @@
     </div>
   </div>
 
-  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  <div class="card overflow-hidden border border-slate-200">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr class="text-slate-500">
+          <th class="py-3 pl-4 text-left font-medium">Strategy</th>
+          <th class="py-3 px-3 text-left font-medium">Equity Curve</th>
+          <th class="py-3 px-3 text-left font-medium">Base CCY</th>
+          <th class="py-3 px-3 text-left font-medium">Unit Price</th>
+          <th class="py-3 px-3 text-left font-medium">Mgmt Fee</th>
+          <th class="py-3 px-3 text-left font-medium">Perf Fee</th>
+          <th class="py-3 px-3 text-left font-medium">Status</th>
+          <th class="py-3 pr-4 text-right font-medium"> </th>
+        </tr>
+      </thead>
+      <tbody id="strategies-body" class="divide-y divide-slate-100">
+        <!-- rows injected -->
+      </tbody>
+    </table>
+  </div>
 
-  <!-- Empty state -->
   <div id="empty" class="hidden text-center py-16 text-slate-500">
     <div class="mx-auto w-12 h-12 rounded-2xl bg-slate-100 mb-4"></div>
     <div class="text-sm">No strategies match your filters.</div>
   </div>
 </section>
+
     </main>
   </div>
 
@@ -192,252 +216,211 @@
   </script>
 
   <!-- ===== App (module) ===== -->
-  <script type="module">
+ <script type="module">
   import { supabase } from "/js/supabase.js";
 
   // ---------- helpers ----------
   const $ = (q, el=document)=>el.querySelector(q);
-  const bpsToPct = bps => (bps ? (bps/100).toFixed(2) + '%' : '0.00%');
-  const statusColor = s => ({
-    ACTIVE: 'bg-emerald-100 text-emerald-700',
-    PAUSED: 'bg-amber-100 text-amber-700',
-    CLOSED: 'bg-rose-100 text-rose-700'
-  }[s] || 'bg-slate-100 text-slate-700');
-  const moneyFmt = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy || 'USD', maximumFractionDigits: 2 });
   const OLIVE = '#556B2F';
+  const bpsToPct = bps => (bps ? (bps/100).toFixed(2) + '%' : '0.00%');
+  const statusBadge = s => ({
+    ACTIVE:  '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700">● Active</span>',
+    PAUSED:  '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">● Paused</span>',
+    CLOSED:  '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-rose-100 text-rose-700">● Closed</span>',
+  }[s] || `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">● ${s||'—'}</span>`);
+  const moneyFmt = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy || 'USD', maximumFractionDigits: 2 });
 
-  // tiny sparkline drawer (no Chart.js)
+  // sparkline (canvas, no Chart lib)
   function drawSpark(canvas, series){
     if (!canvas || !series?.length) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth || 260, H = canvas.clientHeight || 56;
+    const W = canvas.clientWidth  || 120;
+    const H = canvas.clientHeight || 32;
     canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
-
     ctx.clearRect(0,0,W,H);
 
-    const min = Math.min(...series);
-    const max = Math.max(...series);
-    const pad = 6;
-    const rng = (max - min) || 1;
-    const step = (W - pad*2) / (series.length - 1);
+    const min = Math.min(...series), max = Math.max(...series);
+    const padX = 4, padY = 3, rng = (max - min) || 1;
+    const step = (W - padX*2) / Math.max(1,(series.length - 1));
 
-    // gradient fill
     const grad = ctx.createLinearGradient(0,0,0,H);
     grad.addColorStop(0,'rgba(85,107,47,0.18)');
     grad.addColorStop(1,'rgba(85,107,47,0.02)');
 
-    // path
     ctx.beginPath();
     series.forEach((v,i)=>{
-      const x = pad + i*step;
-      const y = pad + (H - pad*2) * (1 - (v - min)/rng);
+      const x = padX + i*step;
+      const y = padY + (H - padY*2) * (1 - (v - min)/rng);
       if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     });
-    // stroke
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = OLIVE;
-    ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = OLIVE; ctx.stroke();
 
-    // fill under
-    const lastX = pad + (series.length - 1)*step;
-    const lastY = pad + (H - pad*2) * (1 - (series[series.length-1] - min)/rng);
-    ctx.lineTo(lastX, H - pad);
-    ctx.lineTo(pad, H - pad);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
+    const lastX = padX + (series.length-1)*step;
+    const lastY = padY + (H - padY*2) * (1 - (series[series.length-1]-min)/rng);
+    ctx.lineTo(lastX, H - padY); ctx.lineTo(padX, H - padY); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
   }
 
-  // ---------- auth + header profile (unchanged) ----------
-  const { data:{ session } } = await supabase.auth.getSession();
-  if(!session){
-    const next = encodeURIComponent(location.pathname + location.search + location.hash);
-    location.replace(`/auth.html?tab=in&redirect=${next}`);
-    throw new Error('No session');
-  }
-  const { data:{ user } } = await supabase.auth.getUser();
-  const initialsAvatar = (text)=>{
-    const s=(text||'').trim(), initial=(s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
-      <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
-      <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
-            font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
-    </svg>`;
-    return `data:image/svg+xml;utf8,${svg}`;
-  };
-  let profile=null;
-  try{
-    const { data } = await supabase.from('profiles')
-      .select('full_name, first_name, last_name, avatar_url').eq('id', user.id).single();
-    profile=data||null;
-  }catch{}
-  const bestName = [profile?.full_name,[profile?.first_name,profile?.last_name].filter(Boolean).join(' '),user?.user_metadata?.full_name,user?.user_metadata?.name].find(Boolean) || user?.email || '—';
-  const avatarUrl = profile?.avatar_url || initialsAvatar(bestName||user?.email);
-  $('#hdr-name').textContent = bestName;
-  $('#pm-email').textContent = user?.email || '—';
-  const hdrImg = $('#hdr-avatar'); if (hdrImg){ hdrImg.src = avatarUrl; hdrImg.onerror=()=>{ hdrImg.src=initialsAvatar(bestName||user?.email); } }
+  // ---------- mount UI shell into #grid ----------
+  const root = $('#grid');
+  if (!root) throw new Error('Missing #grid container');
+  root.innerHTML = `
+    <div class="card border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+        <div class="relative flex-1 max-w-[420px]">
+          <input id="st-search" class="input w-full pl-9" placeholder="Search strategies…"/>
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+        <select id="st-status" class="h-10 border border-slate-200 rounded-lg px-3 text-sm">
+          <option value="">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="PAUSED">Paused</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="text-left font-medium py-3 pl-4 pr-3">Strategy</th>
+              <th class="text-left font-medium py-3 px-3">Status</th>
+              <th class="text-left font-medium py-3 px-3">Account</th>
+              <th class="text-left font-medium py-3 px-3">Latest Unit Price</th>
+              <th class="text-left font-medium py-3 px-3">Fees</th>
+              <th class="text-left font-medium py-3 px-3">Equity Curve</th>
+              <th class="text-right font-medium py-3 pr-4 pl-3">Action</th>
+            </tr>
+          </thead>
+          <tbody id="st-body" class="divide-y divide-slate-100">
+            <tr><td colspan="7" class="py-6 text-center text-slate-500">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="st-empty" class="hidden text-center py-12 text-slate-500">No strategies match your filters.</div>
+  `;
 
-  // badge (optional)
-  const { data: acct } = await supabase.from('investment_accounts')
-    .select('account_number').eq('profile_id', user.id).limit(1).maybeSingle();
-  const badge = document.getElementById('sidebar-acc'); if (badge) badge.textContent = acct?.account_number || '—';
+  const elBody   = $('#st-body');
+  const elSearch = $('#st-search');
+  const elStatus = $('#st-status');
+  const state = { rows: [], prices: new Map(), series: new Map(), filtered: [] };
 
-  // ---------- strategies + prices + series ----------
-  const elGrid   = $('#grid');
-  const elEmpty  = $('#empty');
-  const elSearch = $('#search');
-  const elStatus = $('#statusFilter');
-  const state = { strategies: [], prices: new Map(), series: new Map(), filtered: [] };
+  // ---------- load data ----------
+  // strategies
+  const { data: strategies, error: sErr } = await supabase
+    .from('strategies')
+    .select('id, code, name, base_currency, status, mgmt_fee_bps, perf_fee_bps, meta')
+    .order('code', { ascending: true });
+  if (sErr) { elBody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-rose-600">Failed to load strategies.</td></tr>`; throw sErr; }
+  state.rows = strategies || [];
 
-  async function loadData(){
-    // 1) strategies
-    const { data: strategies, error: sErr } = await supabase
-      .from('strategies')
-      .select('id, code, name, base_currency, status, mgmt_fee_bps, perf_fee_bps, meta')
-      .order('code', { ascending: true });
-    if (sErr) { console.error(sErr); elGrid.innerHTML = `<div class="text-sm text-rose-600">Failed to load strategies.</div>`; return; }
-    state.strategies = strategies || [];
+  // latest prices
+  const { data: prices } = await supabase
+    .from('v_strategy_latest_price')
+    .select('strategy_id, unit_price');
+  (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
 
-    // 2) latest prices
-    const { data: prices } = await supabase
-      .from('v_strategy_latest_price')
-      .select('strategy_id, unit_price');
-    (prices||[]).forEach(r => state.prices.set(r.strategy_id, r.unit_price));
-
-    // 3) equity curves (last ~45 days) for *all* strategies at once
-    const ids = state.strategies.map(s=>s.id);
-    if (ids.length){
-      const since = new Date(); since.setDate(since.getDate()-45);
-      const { data: rows, error: rErr } = await supabase
-        .from('v_strategy_unit_price_series')
-        .select('strategy_id, d, unit_price')
-        .in('strategy_id', ids)
-        .gte('d', since.toISOString().slice(0,10)); // YYYY-MM-DD
-      if (!rErr && rows){
-        // group by strategy_id and keep ordered by date
-        const byId = new Map();
-        rows.sort((a,b)=> a.strategy_id.localeCompare(b.strategy_id) || (new Date(a.d)-new Date(b.d)))
-          .forEach(r=>{
-            if(!byId.has(r.strategy_id)) byId.set(r.strategy_id, []);
-            byId.get(r.strategy_id).push(Number(r.unit_price));
-          });
-        byId.forEach((arr, id)=>{
-          // downsample to ~30 points to keep it light
-          const target=30;
-          if (arr.length>target){
-            const step = arr.length/target;
-            const slim = [];
-            for(let i=0;i<target;i++) slim.push(arr[Math.floor(i*step)]);
-            state.series.set(id, slim);
-          } else {
-            state.series.set(id, arr);
-          }
+  // equity curves (~45d)
+  if (state.rows.length){
+    const ids = state.rows.map(r=>r.id);
+    const since = new Date(); since.setDate(since.getDate()-45);
+    const { data: series } = await supabase
+      .from('v_strategy_unit_price_series')
+      .select('strategy_id, d, unit_price')
+      .in('strategy_id', ids)
+      .gte('d', since.toISOString().slice(0,10));
+    if (series){
+      const grouped = new Map();
+      series.sort((a,b)=> a.strategy_id.localeCompare(b.strategy_id) || (new Date(a.d) - new Date(b.d)))
+        .forEach(r=>{
+          if(!grouped.has(r.strategy_id)) grouped.set(r.strategy_id, []);
+          grouped.get(r.strategy_id).push(Number(r.unit_price));
         });
-      }
+      grouped.forEach((arr,id)=>{
+        // downsample to ~40 points
+        const target=40;
+        if (arr.length>target){
+          const step = arr.length/target, slim=[];
+          for(let i=0;i<target;i++) slim.push(arr[Math.floor(i*step)]);
+          state.series.set(id, slim);
+        } else state.series.set(id, arr);
+      });
     }
-
-    state.filtered = state.strategies.slice();
-    render();
   }
 
+  // ---------- render ----------
+  const empty = $('#st-empty');
   function applyFilters(){
-    const q = elSearch.value.trim().toLowerCase();
-    const status = elStatus.value;
-    state.filtered = state.strategies.filter(s => {
-      const matchText = !q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q);
-      const matchStatus = !status || s.status === status;
-      return matchText && matchStatus;
+    const q = (elSearch.value||'').trim().toLowerCase();
+    const st = elStatus.value;
+    state.filtered = state.rows.filter(r=>{
+      const t = `${r.name} ${r.code}`.toLowerCase();
+      const okText = !q || t.includes(q);
+      const okSt = !st || r.status === st;
+      return okText && okSt;
     });
-    render();
+    paint();
   }
 
-  function render(){
-    elGrid.innerHTML = '';
+  function paint(){
     if (!state.filtered.length){
-      elEmpty.classList.remove('hidden');
+      elBody.innerHTML = '';
+      empty.classList.remove('hidden');
       return;
     }
-    elEmpty.classList.add('hidden');
+    empty.classList.add('hidden');
 
-    state.filtered.forEach(s => {
-      const price = state.prices.get(s.id);
-      const mgmt  = bpsToPct(s.mgmt_fee_bps);
-      const perf  = bpsToPct(s.perf_fee_bps);
-      const meta  = s.meta || {};
-      const style = meta.style || meta.strategy || '—';
-      const risk  = meta.risk || '—';
-      const fmt   = moneyFmt(s.base_currency);
-      const series= state.series.get(s.id) || [];
+    elBody.innerHTML = state.filtered.map(r=>{
+      const price = state.prices.get(r.id);
+      const fmt   = moneyFmt(r.base_currency);
+      const style = r.meta?.style || r.meta?.strategy || '—';
+      const acct  = `${r.base_currency} · ${style}`;
+      const fees  = `${bpsToPct(r.mgmt_fee_bps)} mgmt / ${bpsToPct(r.perf_fee_bps)} perf`;
 
-      const wrap = document.createElement('div');
-      wrap.className = 'card p-5 hover:shadow-sm transition';
-
-      wrap.innerHTML = `
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="text-xs uppercase tracking-wide text-slate-500">${s.code}</div>
-            <h3 class="text-base font-semibold text-slate-900 mt-1">${s.name}</h3>
-          </div>
-          <span class="badge ${statusColor(s.status)}">${s.status}</span>
-        </div>
-
-        <!-- sparkline -->
-        <div class="mt-4">
-          <div class="text-xs text-slate-500 mb-1">Equity curve (~45 days)</div>
-          <div class="h-[64px] w-full rounded-lg bg-slate-50 border border-slate-200 p-2">
-            <canvas data-id="${s.id}" class="w-full h-[56px] block"></canvas>
-          </div>
-        </div>
-
-        <div class="mt-4 grid grid-cols-2 gap-4">
-          <div>
-            <div class="text-xs text-slate-500 mb-1">Base currency</div>
-            <div class="text-sm font-medium">${s.base_currency}</div>
-          </div>
-          <div>
-            <div class="text-xs text-slate-500 mb-1">Latest unit price</div>
-            <div class="text-sm font-medium">${price != null ? fmt.format(price) : '—'}</div>
-          </div>
-          <div>
-            <div class="text-xs text-slate-500 mb-1">Mgmt fee</div>
-            <div class="text-sm font-medium">${mgmt} / yr</div>
-          </div>
-          <div>
-            <div class="text-xs text-slate-500 mb-1">Perf fee</div>
-            <div class="text-sm font-medium">${perf}</div>
-          </div>
-        </div>
-
-        <div class="mt-4 text-xs text-slate-600">
-          <span class="inline-block mr-3"><span class="text-slate-500">Style:</span> ${style}</span>
-          <span class="inline-block"><span class="text-slate-500">Risk:</span> ${risk}</span>
-        </div>
-
-        <div class="mt-5 flex items-center justify-between">
-          <a href="strategy.html?id=${s.id}" class="text-sm px-3 py-1.5 border border-slate-200 rounded-lg">View</a>
-          <a href="allocate.html?strategy=${s.id}"
-             class="text-sm px-3 py-1.5 rounded-lg text-white"
-             style="background:${OLIVE}">Allocate</a>
-        </div>
+      return `
+        <tr class="hover:bg-slate-50 align-middle">
+          <td class="py-3 pl-4 pr-3">
+            <div class="font-medium text-slate-900">${r.name}</div>
+            <div class="text-xs text-slate-500">Code: ${r.code}</div>
+          </td>
+          <td class="py-3 px-3">${statusBadge(r.status)}</td>
+          <td class="py-3 px-3">
+            <div class="text-slate-800">${acct}</div>
+          </td>
+          <td class="py-3 px-3">${price!=null ? `<span class="text-slate-900">${fmt.format(price)}</span>` : '—'}</td>
+          <td class="py-3 px-3">
+            <div class="text-slate-800">${fees}</div>
+          </td>
+          <td class="py-2 px-3">
+            <div class="h-8 w-[140px] bg-slate-50 border border-slate-200 rounded-md overflow-hidden">
+              <canvas data-id="${r.id}" class="w-full h-8 block"></canvas>
+            </div>
+          </td>
+          <td class="py-3 pr-4 pl-3 text-right">
+            <a href="allocate.html?strategy=${r.id}"
+               class="inline-flex items-center justify-center h-9 px-3 rounded-md text-white"
+               style="background:${OLIVE}">Allocate</a>
+          </td>
+        </tr>
       `;
-      elGrid.appendChild(wrap);
+    }).join('');
 
-      // draw spark
-      const canvas = wrap.querySelector('canvas');
-      if (series.length) drawSpark(canvas, series);
-      else {
-        // fallback tiny synthetic line if no valuations yet
-        const synth = Array.from({length: 20}, (_,i)=> 1 + i*0.002 + (Math.random()-.5)*0.01);
-        drawSpark(canvas, synth);
-      }
+    // draw sparklines
+    elBody.querySelectorAll('canvas[data-id]').forEach(cv=>{
+      const id = cv.getAttribute('data-id');
+      const series = state.series.get(id);
+      if (series?.length) drawSpark(cv, series);
+      else drawSpark(cv, Array.from({length:18}, (_,i)=> 1 + i*0.002 + (Math.random()-.5)*0.01));
     });
   }
 
   elSearch.addEventListener('input', applyFilters);
   elStatus.addEventListener('change', applyFilters);
 
-  loadData();
+  state.filtered = state.rows.slice();
+  paint();
 </script>
+
 </body>
 </html>
