@@ -2,833 +2,324 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlgoHive – Dashboard (Dynamic)</title>
-
-  <!-- Tailwind + Fonts + Icons (fine for dev) -->
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MTC — Home</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0 }
-    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
-    .card{ background:#fff; border:1px solid var(--line); border-radius:12px }
-    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
-    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem }
-    .tab{ height:36px; border-radius:8px; padding:0 .75rem }
-    .tab-active{ background:#111827; color:#fff }
+    :root{ --hunter:#456243; --bg:#0f0f0f; --fg:#ffffff; --muted:#b6b6b6; --border:rgba(255,255,255,.18); }
+    body{ background:#111; color:#fff; font-family:Poppins,system-ui; }
 
-    /* Layout / Sidebar */
-    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
-    #layout.is-collapsed{ --sb:64px }
-    #ah-sidebar{ transition: width .2s ease; width:var(--sb) }
-    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
-    #ah-sidebar details .sub{ transition: height .2s ease }
-    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
-    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
-    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0 }
-    #ah-sidebar .footer{ transition:all .2s ease }
-    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
-    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+    /* ===== HEADER ===== */
+    .main-header{ position:fixed; inset:0 0 auto 0; z-index:60; background:rgba(17,17,17,.72); border-bottom:1px solid var(--border); backdrop-filter:saturate(1.2) blur(10px); }
+    .header-inner{ max-width:1280px; margin:0 auto; padding:.75rem 1rem; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:1rem; }
+    .logo-link{ display:flex; align-items:center; min-width:120px; }
+    .header-logo{ height:34px; width:auto; display:block; }
 
-    /* Perf tiles */
-    .ps-tile{ border:1px solid #e5e7eb; border-radius:14px; padding:14px 16px; background:#fff }
-    .ps-label{ color:#64748b; font-weight:500; font-size:.85rem }
-    .ps-value{ font-weight:600; font-size:1rem; margin-top:2px }
+    /* center nav on desktop */
+    .header-nav{ display:none; justify-content:center; gap:.8rem; }
+    @media (min-width:1024px){ .header-nav{ display:flex; } }
 
-    .no-scrollbar::-webkit-scrollbar{ display:none }
-    .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none }
-    .scrollbar-hide::-webkit-scrollbar{ display:none }
-    .scrollbar-hide{ -ms-overflow-style:none; scrollbar-width:none }
+    .nav-pill{ display:inline-flex; align-items:center; gap:.5rem; padding:.55rem 1rem; border-radius:999px; font-weight:800; text-transform:lowercase; color:#e5e7eb; border:1.5px solid transparent; transition:.2s; }
+    .nav-pill:hover{ color:#fff; background:rgba(255,255,255,.08); }
+    .nav-pill.active{ color:#fff; border-color:var(--hunter); box-shadow:0 0 0 2px rgba(69,98,67,.25) inset; }
 
-    canvas{ max-width:100%; height:auto }
-    table{ max-width:100% }
+    .header-actions{ display:flex; align-items:center; gap:.75rem; justify-self:end; }
+    .header-actions .fa-search{ color:var(--muted); }
+    .nav-pill-auth{ border:2px solid #fff; color:#fff; padding:.5rem 1rem; border-radius:999px; font-weight:800; text-decoration:none; }
+    .nav-pill-auth:hover{ background:rgba(255,255,255,.12); }
 
-    /* refresh spin */
-    @keyframes ah-spin { to { transform: rotate(360deg); } }
-    .spin i { animation: ah-spin 0.8s linear infinite; }
+    .burger-btn{ width:42px; height:42px; display:grid; place-items:center; border:1px solid var(--border); border-radius:10px; background:transparent; color:#fff; }
+    .burger-lines{ position:relative; width:18px; height:2px; background:#fff; }
+    .burger-lines::before,.burger-lines::after{ content:""; position:absolute; left:0; width:18px; height:2px; background:#fff; }
+    .burger-lines::before{ top:-6px } .burger-lines::after{ top:6px }
+    @media (min-width:1024px){ .burger-btn{ display:none; } }
+
+    /* ===== MOBILE OVERLAY MENU ===== */
+    .mobile-overlay{ position:fixed; inset:0; z-index:70; display:none; background:rgba(10,10,10,.65); backdrop-filter:blur(16px) saturate(1.1); }
+    .mobile-overlay.show{ display:block; }
+    .mobile-sheet{ position:absolute; inset:0; padding:80px 16px 24px; overflow:auto; }
+    .mobile-head{ position:fixed; top:8px; left:0; right:0; z-index:71; display:flex; align-items:center; justify-content:flex-end; gap:.5rem; padding:.5rem 12px; }
+    .close-btn{ width:42px; height:42px; border-radius:10px; border:1px solid var(--border); background:rgba(255,255,255,.08); color:#fff; font-size:22px; }
+    .mobile-menu{ display:grid; gap:.6rem; margin-top:8px; }
+    .mobile-item{ display:flex; align-items:center; justify-content:space-between; padding:1rem 1rem; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid var(--border); color:#fff; text-decoration:none; font-weight:800; }
+    .mobile-auth{ margin-top:10px; display:block; text-align:center; font-weight:800; border:2px solid #fff; border-radius:999px; padding:.8rem 1.2rem; text-decoration:none; color:#fff; }
+    .body-lock{ overflow:hidden; }
+
+    /* ===== HERO ===== */
+    .hero{ position:relative; padding-top:calc(64px + 2rem); }
+    .hero-bg{ position:absolute; inset:0; background:url('https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?q=80&w=1600') center/cover no-repeat; filter:brightness(.6); }
+    .hero-mask{ position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.35),rgba(0,0,0,.9)); }
+    .hero-inner{ position:relative; z-index:1; max-width:1280px; margin:0 auto; padding:10vh 1rem 8vh; }
+    .hero-title{ font-weight:800; font-size:clamp(1.6rem,4.5vw,3rem); line-height:1.12; margin-bottom:.5rem; }
+    .hero-sub{ max-width:760px; color:#e5e7eb; opacity:.95; font-size:clamp(.95rem,1.6vw,1.1rem); }
+    .hero-actions{ display:flex; gap:.75rem; margin-top:1rem; }
+    .cta{ display:inline-flex; align-items:center; padding:.7rem 1rem; border-radius:999px; font-weight:800; text-decoration:none; }
+    .cta-primary{ background:#fff; color:#000; }
+    .cta-ghost{ color:#fff; border:1px solid var(--border); background:rgba(255,255,255,.06); }
+    .me-2{ margin-right:.5rem; }
+
+    /* ===== ROWS / CARDS (portrait 2:3 like Shows page) ===== */
+    .rows{ max-width:1280px; margin:0 auto; padding:1.25rem 1rem 2.5rem; }
+    .row{ margin-top:2rem; }
+    .row-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+    .row-title{ font-size:1.25rem; font-weight:800; letter-spacing:.2px; }
+    .scroller{ position:relative; }
+    .navbtn{ position:absolute; top:50%; transform:translateY(-50%); height:40px; width:40px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:rgba(17,17,17,.6); display:flex; align-items:center; justify-content:center; }
+    .navbtn.left{ left:-10px } .navbtn.right{ right:-10px }
+
+    .rail{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(180px,1fr);
+      gap:.7rem; overflow-x:auto; scroll-behavior:smooth; padding-bottom:.25rem;
+    }
+    @media (min-width:640px){ .rail{ grid-auto-columns:minmax(210px,1fr); } }
+    @media (min-width:1024px){ .rail{ grid-auto-columns:minmax(230px,1fr); } }
+
+    .show-card{ position:relative; border-radius:12px; overflow:hidden; background:rgba(255,255,255,.06); aspect-ratio:2/3; cursor:pointer; transition:transform .25s ease; }
+    .show-card:hover{ transform:translateY(-3px); }
+    .show-card img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .card-overlay{ position:absolute; inset:0; background:linear-gradient(to top,rgba(0,0,0,.85),transparent 55%); display:flex; align-items:flex-end; opacity:0; transition:opacity .25s; }
+    .show-card:hover .card-overlay{ opacity:1; }
+    .card-title{ color:#fff; font-weight:700; font-size:.95rem; padding:0 0.75rem 0.75rem; }
+
+    /* ===== FOOTER ===== */
+    .site-footer{ background:#456243; color:#f8fafc; margin-top:2rem; border-top:1px solid rgba(255,255,255,.18); }
+    .site-footer .inner{ max-width:1280px; margin:0 auto; padding:2.5rem 1rem; }
+    .footer-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2rem; align-items:flex-start; }
+    .footer-logo{ height:38px; filter:brightness(0) invert(1); display:block; margin-bottom:1rem; }
+    .site-footer a{ color:#e8eef2; text-decoration:none; display:block; margin:.35rem 0; }
+    .site-footer a:hover{ color:#ffffff; text-decoration:underline; }
+    .footer-heading{ font-weight:800; margin-bottom:.6rem; }
+    .footer-bottom{ border-top:1px solid rgba(255,255,255,.35); margin-top:1.25rem; padding-top:1rem; text-align:center; font-size:.9rem; color:#e8eef2; }
+    .footer-social{ display:flex; gap:.75rem; font-size:1.2rem; }
+    .footer-social a{ display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid rgba(255,255,255,.35); border-radius:999px; }
+    .footer-social a:hover{ background:rgba(255,255,255,.12); }
   </style>
 </head>
+<body>
 
-<body class="min-h-screen overflow-x-hidden">
-  <div id="layout">
-    <!-- ===== Sidebar ===== -->
-    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
-      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
-        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain"/>
-        <div class="min-w-0">
-          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
-          <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
-        </div>
-      </div>
+<!-- ===== HEADER ===== -->
+<header class="main-header">
+  <div class="header-inner">
+    <a href="homepage.html" class="logo-link" aria-label="MTC Home">
+      <img src="https://static.wixstatic.com/media/ac771e_aabe2d9b2d0c4638ba01d78c442e213e~mv2.png" alt="MTC Logo" class="header-logo">
+    </a>
 
-      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100" href="#" title="Home">
-          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
-        </a>
+    <nav class="header-nav">
+      <a href="homepage.html" class="nav-pill active" aria-current="page">home</a>
+      <a href="shows.html" class="nav-pill">shows</a>
+      <a href="live.html" class="nav-pill">live</a>
+      <a href="mymtc.html" class="nav-pill">my mtc</a>
+    </nav>
 
-        <details class="group mt-1">
-          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span></span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Positions"><i class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">Positions</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Orders"><i class="fa-regular fa-clipboard w-4 text-slate-500"></i><span class="label">Orders</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Activity"><i class="fa-solid fa-bars w-4 text-slate-500"></i><span class="label">Activity</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Balances"><i class="fa-solid fa-table w-4 text-slate-500"></i><span class="label">Balances</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funding"><i class="fa-solid fa-hand-holding-dollar w-4 text-slate-500"></i><span class="label">Funding</span></a>
-          </div>
-        </details>
-
-        <details class="group mt-1">
-          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span></span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="strategies.html" title="OpenStrategies"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds"><i class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
-          </div>
-        </details>
-
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="pricing.html" title="Plans & Features"><i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Community"><i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Support"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Legal"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
-      </nav>
-
-      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
-        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="settings.html" title="Settings">
-          <i class="fa-solid fa-gear"></i>
-        </a>
-        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-      </div>
-    </aside>
-
-    <!-- ===== Main ===== -->
-    <main class="flex-1 min-w-0">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
-          <div class="relative w-full">
-            <input class="input w-full pl-9" placeholder="Search"/>
-            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Profile (dynamic) -->
-        <div class="flex items-center gap-3">
-          <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
-            <i class="fa-regular fa-bell text-slate-500"></i>
-            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
-          </button>
-
-          <img id="hdr-avatar"
-               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
-               alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
-
-          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
-            <span id="hdr-name">—</span>
-            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- GRID -->
-      <div class="px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
-        <!-- Portfolio -->
-        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-9 min-w-0">
-          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-            <div>
-              <h3 class="font-normal text-slate-800">Your portfolio</h3>
-              <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button data-range="1D" class="tab tab-active text-[13px]">1D</button>
-              <button data-range="1M" class="tab text-[13px]">1M</button>
-              <button data-range="1Y" class="tab text-[13px]">1Y</button>
-              <button data-range="ALL" class="tab text-[13px]">All</button>
-              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
-            </div>
-          </div>
-          <div class="px-5 pt-4">
-            <div class="flex items-baseline gap-3">
-              <div class="text-2xl font-bold" id="pf-value">—</div>
-              <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
-            </div>
-          </div>
-          <div class="px-2 pb-4 pt-2">
-            <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
-            <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
-              <span>10 AM</span><span>11 AM</span><span>2 PM</span><span>4 PM</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Right column -->
-        <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-          <!-- 6 months earnings -->
-          <div class="card p-5 border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">6 months earnings</h3>
-              <a href="#" class="text-sm text-olive-600 hover:underline">View all</a>
-            </div>
-            <div class="h-[180px]">
-              <canvas id="six-months-earnings" class="max-w-full"></canvas>
-            </div>
-          </div>
-
-          <!-- Accounts -->
-          <div class="card p-5 border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">Accounts</h3>
-              <a href="/settings.html#manage" class="text-sm text-olive-600 hover:underline">Manage</a>
-            </div>
-            <label class="block text-xs text-slate-500 mb-1.5" for="acct-select">Select account</label>
-            <select id="acct-select" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm">
-              <option>Loading…</option>
-            </select>
-            <div id="acct-meta" class="text-xs text-slate-500 mt-3">—</div>
-            <div id="acct-empty" class="text-xs text-slate-400 mt-2 hidden">No investment accounts yet.</div>
-          </div>
-
-          <!-- Asset class allocation -->
-          <div class="card p-5 border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">Asset class allocation</h3>
-              <span class="text-xs text-slate-500">Total = 100%</span>
-            </div>
-            <div class="space-y-4" id="asset-allocation"></div>
-          </div>
-        </aside>
-
-        <!-- Performance Summary -->
-        <section class="col-span-12 lg:col-span-9 min-w-0">
-          <div class="card p-6 rounded-2xl border border-slate-200">
-            <h3 class="text-lg font-medium text-slate-900 mb-5">Performance Summary</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              <div class="ps-tile"><div class="ps-label">Best Day</div><div id="ps-best" class="ps-value text-slate-800">+4.25%</div></div>
-              <div class="ps-tile"><div class="ps-label">Worst Day</div><div id="ps-worst" class="ps-value text-slate-800">-2.67%</div></div>
-              <div class="ps-tile"><div class="ps-label">Avg Daily Return</div><div id="ps-avg" class="ps-value text-slate-800">+0.12%</div></div>
-              <div class="ps-tile"><div class="ps-label">Positive Days</div><div id="ps-pos" class="ps-value text-slate-800">61%</div></div>
-              <div class="ps-tile"><div class="ps-label">Trading Days</div><div id="ps-days" class="ps-value text-slate-800">245</div></div>
-              <div class="ps-tile"><div class="ps-label">CAGR (sim.)</div><div id="ps-cagr" class="ps-value text-slate-800">+7.8%</div></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Current holdings -->
-        <section class="col-span-12 lg:col-span-9 min-w-0">
-          <div class="card p-6 rounded-2xl border border-slate-200">
-            <div class="flex items-center justify-between mb-5">
-              <h3 class="text-lg font-medium text-slate-900">Current holdings</h3>
-              <div class="flex gap-2">
-                <button id="hold-prev" class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Previous">
-                  <i class="fa-solid fa-chevron-left text-slate-500"></i>
-                </button>
-                <button id="hold-next" class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Next">
-                  <i class="fa-solid fa-chevron-right text-slate-500"></i>
-                </button>
-              </div>
-            </div>
-            <div id="hold-track" class="flex gap-4 overflow-x-auto no-scrollbar snap-x"></div>
-          </div>
-        </section>
-
-        <!-- Top Positions -->
-        <section class="col-span-12 lg:col-span-9 min-w-0">
-          <div class="card rounded-2xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-medium text-slate-900">Top Positions</h3>
-              <a href="#" class="text-sm text-slate-500 hover:text-slate-700">View All</a>
-            </div>
-            <div class="mt-4 flex flex-wrap items-center gap-3">
-              <label class="text-sm text-slate-500">Asset Class</label>
-              <select class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <option>All</option><option>Stocks</option><option>Crypto</option><option>ETFs</option>
-              </select>
-              <label class="ml-2 text-sm text-slate-500">Side</label>
-              <select class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <option>All</option><option>Buy</option><option>Sell</option>
-              </select>
-            </div>
-
-            <div class="mt-4 overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-slate-500">
-                    <th class="py-3 text-left font-normal">Asset</th>
-                    <th class="py-3 text-left font-normal">Price</th>
-                    <th class="py-3 text-left font-normal">Qty</th>
-                    <th class="py-3 text-left font-normal">Market Value</th>
-                    <th class="py-3 text-left font-normal">Total P/L ($)</th>
-                    <th class="py-3 text-center font-normal"> </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
-                    <td class="py-3">$255.46</td>
-                    <td class="py-3">399</td>
-                    <td class="py-3">$101,928.54</td>
-                    <td class="py-3 text-green-600">+$1,121.19</td>
-                    <td class="py-3 text-center"></td>
-                  </tr>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td>
-                    <td class="py-3">$178.19</td>
-                    <td class="py-3">301</td>
-                    <td class="py-3">$53,635.19</td>
-                    <td class="py-3 text-red-600">-$343.50</td>
-                    <td class="py-3 text-center"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- Recent Orders -->
-        <section class="col-span-12 lg:col-span-9 min-w-0">
-          <div class="card rounded-2xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-medium text-slate-900">Recent Orders</h3>
-              <a href="#" class="text-sm text-slate-500 hover:text-slate-700">View All</a>
-            </div>
-
-            <div class="mt-4 flex flex-wrap items-center gap-3">
-              <div class="relative">
-                <input class="h-9 w-64 rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search..." />
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              </div>
-              <button id="cancel-selected"
-                class="h-9 rounded-lg bg-amber-100 text-amber-900 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled>
-                Cancel <span id="sel-count">0</span> selected
-              </button>
-              <button class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <i class="fa-solid fa-table-cells-large mr-2 text-slate-500"></i> Columns
-              </button>
-            </div>
-
-            <div class="mt-3 text-xs text-slate-400" id="clear-selection" hidden>Clear Selection</div>
-
-            <div class="mt-2 overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-slate-500">
-                    <th class="py-3 pl-3"><input id="chk-all" type="checkbox" class="h-4 w-4 rounded border-slate-300" /></th>
-                    <th class="py-3 text-left font-normal">Asset</th>
-                    <th class="py-3 text-left font-normal">Order Type</th>
-                    <th class="py-3 text-left font-normal">Side</th>
-                    <th class="py-3 text-left font-normal">Qty</th>
-                    <th class="py-3 text-left font-normal">Filled Qty</th>
-                    <th class="py-3 text-left font-normal">Avg. Fill Price</th>
-                    <th class="py-3 text-left font-normal">Status</th>
-                    <th class="py-3 text-left font-normal">Source</th>
-                    <th class="py-3 text-left font-normal">Submitted At</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
-                    <td class="py-3">Market</td>
-                    <td class="py-3">sell</td>
-                    <td class="py-3">1.00</td>
-                    <td class="py-3">1.00</td>
-                    <td class="py-3">254.81</td>
-                    <td class="py-3">filled</td>
-                    <td class="py-3">-</td>
-                    <td class="py-3">Sep 26, 2025, 10:34</td>
-                  </tr>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
-                    <td class="py-3">Market</td>
-                    <td class="py-3">buy</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">252.66</td>
-                    <td class="py-3">filled</td>
-                    <td class="py-3">-</td>
-                    <td class="py-3">Sep 25, 2025, 09:02</td>
-                  </tr>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td>
-                    <td class="py-3">Market</td>
-                    <td class="py-3">buy</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">179.33</td>
-                    <td class="py-3">filled</td>
-                    <td class="py-3">-</td>
-                    <td class="py-3">Sep 25, 2025, 08:41</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- helpers -->
-        <style>
-          .scrollbar-hide::-webkit-scrollbar{ display:none }
-          .scrollbar-hide{ -ms-overflow-style:none; scrollbar-width:none }
-        </style>
-      </div>
-
-      <!-- Charts -->
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-      <script>
-        // Holdings + Allocation demo
-        (()=>{
-          const holdings=[
-            { ticker:'AAPL', name:'Apple, Inc', price:1232.00, pct:11.01, bg:'#111827' },
-            { ticker:'PYPL', name:'PayPal, Inc', price:965.00, pct:-9.05, bg:'#2563eb' },
-            { ticker:'TSLA', name:'Tesla, Inc', price:1232.00, pct:11.01, bg:'#dc2626' },
-            { ticker:'AMZN', name:'Amazon.com', price:2567.99, pct:11.01, bg:'#d97706' },
-            { ticker:'NVDA', name:'NVIDIA Corp', price:876.12, pct:2.44, bg:'#16a34a' },
-            { ticker:'MSFT', name:'Microsoft', price:412.33, pct:-1.32, bg:'#0ea5e9' },
-          ];
-          const track=document.getElementById('hold-track');
-          const fmt=v=>`$${v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-          const chip=p=>`<span class="px-2.5 py-1 rounded-full text-xs font-normal ${p>=0?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${p>=0?'↑':'↓'} ${Math.abs(p).toFixed(2)}%</span>`;
-          const logo=(t,bg)=>`<div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-normal" style="background:${bg}">${t[0]}</div>`;
-          track.innerHTML=holdings.map(h=>`
-            <article class="min-w-[280px] max-w-[280px] snap-start bg-white border border-slate-200 rounded-2xl p-5 flex justify-between items-center">
-              <div class="flex items-center gap-3">
-                ${logo(h.ticker,h.bg)}
-                <div>
-                  <div class="text-sm font-normal text-slate-900">${h.ticker}</div>
-                  <div class="text-xs text-slate-500">${h.name}</div>
-                </div>
-              </div>
-              <div class="text-right">
-                <div class="text-lg font-normal text-slate-900">${fmt(h.price)}</div>
-                <div class="mt-2">${chip(h.pct)}</div>
-              </div>
-            </article>
-          `).join('');
-          const CARD_W=284;
-          document.getElementById('hold-prev').onclick=()=>track.scrollBy({ left:-CARD_W, behavior:'smooth' });
-          document.getElementById('hold-next').onclick=()=>track.scrollBy({ left:CARD_W, behavior:'smooth' });
-
-          const alloc=[ {label:'Stocks',pct:56,color:'#111827'}, {label:'ETFs',pct:22,color:'#2563eb'}, {label:'Crypto',pct:17,color:'#16a34a'}, {label:'Cash',pct:5,color:'#f59e0b'} ];
-          const allocWrap=document.getElementById('asset-allocation');
-          const row=i=>`
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-sm text-slate-700">${i.label}</span>
-                <span class="text-sm font-medium text-slate-900">${i.pct}%</span>
-              </div>
-              <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div>
-              </div>
-            </div>`;
-          allocWrap.innerHTML=alloc.map(row).join('');
-        })();
-      </script>
-
-      <script>
-        // Six months earnings chart
-        (() => {
-          const ctx=document.getElementById('six-months-earnings').getContext('2d');
-          const allMonths=[{m:'Jul',v:480},{m:'Aug',v:440},{m:'Sep',v:590},{m:'Oct',v:530},{m:'Nov',v:610},{m:'Dec',v:700}];
-          const labels=allMonths.map(x=>x.m), data=allMonths.map(x=>x.v);
-          const OLIVE='#556B2F', MUTED='rgba(2,6,23,.08)', MUTED_BORDER='rgba(2,6,23,.18)';
-          const fmtUSD=new Intl.NumberFormat('en-US',{ style:'currency', currency:'USD', maximumFractionDigits:0 });
-
-          new Chart(ctx,{
-            type:'bar',
-            data:{ labels, datasets:[{ data, backgroundColor:data.map((_,i)=>i===data.length-1?OLIVE:MUTED), borderColor:data.map((_,i)=>i===data.length-1?OLIVE:MUTED_BORDER), borderWidth:1, borderRadius:6, barThickness:16, hoverBackgroundColor:data.map((_,i)=>i===data.length-1?OLIVE:MUTED) }]},
-            options:{
-              responsive:true, maintainAspectRatio:false,
-              plugins:{ legend:{ display:false }, tooltip:{ displayColors:false, callbacks:{ label:(c)=>fmtUSD.format(c.raw) } } },
-              scales:{
-                x:{ grid:{ display:false }, ticks:{ color:'#94a3b8', font:{ size:11, weight:'400' }, maxRotation:0, minRotation:0, autoSkip:false } },
-                y:{ beginAtZero:true, grid:{ color:'rgba(148,163,184,.18)', borderDash:[4,4] }, ticks:{ color:'#94a3b8', font:{ size:11, weight:'400' }, maxTicksLimit:6, callback:v=>fmtUSD.format(v) } }
-              }
-            }
-          });
-        })();
-
-        // Recent Orders selection logic
-        (function () {
-          const all = document.getElementById('chk-all');
-          const rows = () => Array.from(document.querySelectorAll('.row-chk'));
-          const sel = document.getElementById('sel-count');
-          const btn = document.getElementById('cancel-selected');
-          const clear = document.getElementById('clear-selection');
-
-          function refresh() {
-            const n = rows().filter(c => c.checked).length;
-            sel.textContent = n; btn.disabled = n === 0; clear.hidden = n === 0;
-            if (all) {
-              const total = rows().length;
-              all.checked = (n > 0 && n === total);
-              all.indeterminate = (n > 0 && n < total);
-            }
-          }
-          all?.addEventListener('change', () => { rows().forEach(c => c.checked = all.checked); refresh(); });
-          document.addEventListener('change', e => { if (e.target.classList?.contains('row-chk')) refresh(); });
-          clear?.addEventListener('click', () => { rows().forEach(c => c.checked = false); if (all){ all.checked=false; all.indeterminate=false; } refresh(); });
-          btn?.addEventListener('click', ()=>{ if (!btn.disabled && confirm('Cancel selected orders?')) { rows().forEach(c=>c.checked=false); if(all){all.checked=false; all.indeterminate=false;} refresh(); }});
-          refresh();
-        })();
-      </script>
-    </main>
-  </div>
-
-  <!-- ===== Profile Modal ===== -->
-  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
-    <div class="absolute inset-0 bg-black/40"></div>
-    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
-      <div class="px-4 py-3 border-b border-slate-200">
-        <div class="text-sm font-semibold text-slate-900">Account</div>
-        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
-      </div>
-      <div class="p-2">
-        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
-          <i class="fa-regular fa-user text-slate-500 w-4"></i>
-          <span>Profile settings</span>
-        </a>
-        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
-          <i class="fa-solid fa-right-from-bracket w-4"></i>
-          <span>Log out</span>
-        </button>
-      </div>
+    <div class="header-actions">
+      <i class="fa-solid fa-search hidden lg:inline"></i>
+      <a href="auth.html" class="nav-pill-auth">sign up / in</a>
+      <button id="burger" class="burger-btn" aria-label="Open menu" aria-expanded="false">
+        <span class="burger-lines"></span>
+      </button>
     </div>
   </div>
+</header>
 
-  <!-- Font Awesome runtime -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
+<!-- ===== MOBILE OVERLAY MENU ===== -->
+<div id="mobileOverlay" class="mobile-overlay" aria-hidden="true">
+  <div class="mobile-head">
+    <button id="closeMenu" class="close-btn" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mobile-sheet">
+    <nav class="mobile-menu">
+      <a href="homepage.html" class="mobile-item"><span>home</span><i class="fa-solid fa-chevron-right"></i></a>
+      <a href="shows.html" class="mobile-item"><span>shows</span><i class="fa-solid fa-chevron-right"></i></a>
+      <a href="live.html" class="mobile-item"><span>live</span><i class="fa-solid fa-chevron-right"></i></a>
+      <a href="mymtc.html" class="mobile-item"><span>my mtc</span><i class="fa-solid fa-chevron-right"></i></a>
+      <a href="auth.html" class="mobile-auth">sign up / in</a>
+    </nav>
+  </div>
+</div>
 
-  <!-- Sidebar collapse memory -->
-  <script>
-    (function(){
-      const layout=document.getElementById('layout');
-      const aside=document.getElementById('ah-sidebar');
-      const btn=document.getElementById('ah-collapse');
-      const saved=localStorage.getItem('ah_collapsed')==='true';
-      if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed'); }
-      btn.addEventListener('click',()=>{
-        const isCollapsed=aside.getAttribute('data-collapsed')==='true';
-        if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
-        aside.setAttribute('data-collapsed', String(!isCollapsed));
-        layout.classList.toggle('is-collapsed', !isCollapsed);
-        localStorage.setItem('ah_collapsed', String(!isCollapsed));
-        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
-      });
-    })();
-  </script>
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-bg" id="hero-bg"></div>
+  <div class="hero-mask"></div>
+  <div class="hero-inner">
+    <h1 class="hero-title" id="hero-title">Featured documentary</h1>
+    <p class="hero-sub" id="hero-sub">Stories of faith, resilience, history, and community—curated for you.</p>
+    <div class="hero-actions">
+      <a class="cta cta-primary" id="hero-play" href="#"><i class="fa-solid fa-play me-2"></i>Play</a>
+      <a class="cta cta-ghost" id="hero-more" href="#"><i class="fa-regular fa-circle-question me-2"></i>More Info</a>
+    </div>
+  </div>
+</section>
 
-  <!-- ===== App (module) ===== -->
-<script type="module">
-  import { supabase } from "/js/supabase.js";
+<!-- ===== CONTENT ROWS ===== -->
+<main class="rows" id="rows"></main>
 
-  // ---------- tiny utils ----------
-  const $ = (q, el=document)=>el.querySelector(q);
-  const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
-  const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
-  const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  const toNums = (x)=>{
-    if (Array.isArray(x)) return x.map(Number).filter(Number.isFinite);
-    if (typeof x === 'string' && x.trim()) {
-      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(Number).filter(Number.isFinite):[]; }
-      catch { return []; }
-    }
-    return [];
-  };
-  const toStrs = (x)=>{
-    if (Array.isArray(x)) return x.map(v => String(v));
-    if (typeof x === 'string' && x.trim()) {
-      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(v=>String(v)):[]; }
-      catch { return []; }
-    }
-    return [];
-  };
-  const initialsAvatar = (text)=>{
-    const s = (text||'').trim();
-    const initial = (s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
-      <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
-      <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
-            font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
-    </svg>`;
-    return `data:image/svg+xml;utf8,${svg}`;
-  };
-
-  // ---------- chart globals ----------
-  let activeRange = '1D';
-  let chart = null;
-  let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
-  let current = null; // active account
-
-  (async () => {
-    // ---------- auth ----------
-    const { data:{ session } } = await supabase.auth.getSession();
-    if(!session){
-      const next = encodeURIComponent(location.pathname + location.search + location.hash);
-      location.replace(`/auth.html?tab=in&redirect=${next}`);
-      return;
-    }
-    const { data:{ user } } = await supabase.auth.getUser();
-
-    // ---------- profile (name + avatar) ----------
-    let profile = null;
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, first_name, last_name, avatar_url')
-        .eq('id', user.id)
-        .single();
-      if (error) throw error;
-      profile = data || null;
-    } catch {
-      profile = {
-        full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
-        first_name: user?.user_metadata?.first_name || '',
-        last_name:  user?.user_metadata?.last_name  || '',
-        avatar_url: user?.user_metadata?.avatar_url || ''
-      };
-    }
-
-    const bestName =
-      [profile?.full_name,
-       [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
-       user?.user_metadata?.full_name,
-       user?.user_metadata?.name].find(s => s && String(s).trim()) || user?.email || '—';
-
-    const avatarUrl = profile?.avatar_url || initialsAvatar(bestName || user?.email);
-    $('#hdr-name').textContent = bestName;
-    $('#pm-email').textContent = user?.email || '—';
-    const hdrImg = $('#hdr-avatar');
-    if (hdrImg){
-      hdrImg.src = avatarUrl;
-      hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
-    }
-
-    // ---------- accounts load ----------
-    const acctSel  = $('#acct-select');
-    const acctMeta = $('#acct-meta');
-    const acctEmpty= $('#acct-empty');
-    const badge    = $('#sidebar-acc');
-
-    let accounts = [];
-    try {
-      const { data, error } = await supabase
-        .from('investment_accounts')
-        .select(`
-          id, broker, account_number, currency, status, balance, equity, updated_at,
-          eq_1d, eq_1m, eq_1y, eq_all,
-          label_1d, label_1m, label_1y, label_all,
-          account_nickname, label
-        `)
-        .eq('profile_id', user.id)
-        .order('status', { ascending: true })
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      accounts = data || [];
-    } catch (e) {
-      console.error('Accounts load failed:', e);
-      if (acctSel){ acctSel.innerHTML = `<option>Failed to load</option>`; acctSel.disabled = true; }
-      if (acctMeta){ acctMeta.textContent = `Failed to load accounts`; }
-      safeBootCharts();
-      return;
-    }
-
-    if (!accounts.length){
-      if (acctSel){ acctSel.innerHTML = `<option>—</option>`; acctSel.disabled = true; }
-      acctMeta.textContent = '—';
-      acctEmpty.classList.remove('hidden');
-      if (badge) badge.textContent = '—';
-      safeBootCharts();
-      return;
-    }
-
-    current = accounts.find(a=>a.status==='ACTIVE') || accounts[0];
-    if (badge) badge.textContent = current.account_number || '—';
-
-    const labelFor = (a) =>
-      (a?.account_nickname && a.account_nickname.trim()) ||
-      (a?.label && a.label.trim()) ||
-      `${a?.broker || 'Account'} • ${a?.account_number || ''}`.trim();
-
-    const showAcctMeta = (a)=>{
-      const sym = symFor(a.currency);
-      acctMeta.innerHTML = `
-        <div class="flex items-center justify-between">
-          <span>${a.currency || 'USD'} · ${a.status || '—'}</span>
-          <span class="font-medium text-slate-900">${fmtMoney(sym, a.equity ?? a.balance ?? 0)}</span>
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="inner">
+    <div class="footer-grid">
+      <div>
+        <img src="https://static.wixstatic.com/media/ac771e_aabe2d9b2d0c4638ba01d78c442e213e~mv2.png" alt="MTC" class="footer-logo">
+        <p>The mission of MTC is to create purposeful, engaging viewing and listening
+           experiences that entertain, inspire, uplift, and improve families and communities.</p>
+      </div>
+      <div>
+        <div class="footer-heading">Content</div>
+        <a href="shows.html">Shows</a>
+        <a href="live.html">Live</a>
+        <a href="mymtc.html">My MTC</a>
+      </div>
+      <div>
+        <div class="footer-heading">About</div>
+        <a href="about.html">About MTC</a>
+        <a href="#">Contact Us</a>
+        <a href="#">Careers</a>
+        <a href="#">Help</a>
+      </div>
+      <div>
+        <div class="footer-heading">Connect</div>
+        <div class="footer-social">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Twitter / X"><i class="fab fa-twitter"></i></a>
+          <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
         </div>
-        <div class="text-[11px] text-slate-400 mt-0.5">Acct # ${a.account_number || '—'}</div>
-      `;
-    };
+      </div>
+    </div>
+    <div class="footer-bottom">© 2025 Mountain Top Communications. All Rights Reserved.</div>
+  </div>
+</footer>
 
-    acctSel.disabled = false;
-    acctSel.innerHTML = accounts.map(a=>`<option value="${String(a.id)}">${labelFor(a)}</option>`).join('');
-    acctSel.value = String(current.id);
-    showAcctMeta(current);
+<!-- helpers -->
+<script src="/js/supabase.js"></script>
+<script src="/js/auth.js"></script>
 
-    acctSel.addEventListener('change', ()=>{
-      const chosen = accounts.find(a => String(a.id) === String(acctSel.value));
-      if (!chosen) return;
-      current = chosen;
-      showAcctMeta(current);
-      if (badge) badge.textContent = current.account_number || '—';
-      renderRange(activeRange);
-    });
+<script>
+  // ===== mobile menu
+  const burger = document.getElementById('burger');
+  const overlay = document.getElementById('mobileOverlay');
+  const closer  = document.getElementById('closeMenu');
+  function openMenu(){ overlay.classList.add('show'); burger.setAttribute('aria-expanded','true'); document.body.classList.add('body-lock'); }
+  function closeMenu(){ overlay.classList.remove('show'); burger.setAttribute('aria-expanded','false'); document.body.classList.remove('body-lock'); }
+  burger?.addEventListener('click', openMenu);
+  closer?.addEventListener('click', closeMenu);
+  overlay?.addEventListener('click', (e)=>{ if(e.target === overlay) closeMenu(); });
 
-    // ---------- charts boot ----------
-    initChartAndUI(current || { currency: 'USD' });
-    renderRange('1D');
-  })();
+  // ===== data helpers
+  const FALLBACK_IMG = 'https://images.unsplash.com/photo-1529101091764-c3526daf38fe?q=80&w=800&auto=format&fit=crop';
 
-  // ---------- chart helpers ----------
-  function initChartAndUI(seed){
-    elUpdated = $('#pf-updated');
-    elVal     = $('#pf-value');
-    elChg     = $('#pf-change');
-    refreshBtn= $('#pf-refresh');
-
-    const ctxEl = document.getElementById('pf-chart');
-    if(!ctxEl) return;
-
-    const ctx = ctxEl.getContext('2d');
-    const gradient = ctx.createLinearGradient(0,0,0,260);
-    gradient.addColorStop(0,'rgba(85,107,47,0.35)');
-    gradient.addColorStop(1,'rgba(85,107,47,0.06)');
-
-    chart = new window.Chart(ctx,{
-      type:'line',
-      data:{ labels:[], datasets:[{ data:[], tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }]},
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ display:false }, tooltip:{ enabled:true, mode:'index', intersect:false, displayColors:false }},
-        scales:{
-          x:{ display:false, grid:{ display:false }},
-          y:{ display:true, ticks:{ color:'#94a3b8', autoSkip:true, maxTicksLimit:3,
-            callback:(v)=>`${symFor((seed?.currency)||'USD')}${Number(v).toFixed(2)}` }, grid:{ display:false }}
-        }
-      }
-    });
-
-    document.querySelectorAll('#portfolio-card .tab').forEach(btn=>{
-      btn.addEventListener('click',()=> renderRange(btn.dataset.range));
-    });
-
-    // optional "refresh": jitter current series a touch
-    refreshBtn?.addEventListener('click',()=>{
-      refreshBtn.classList.add('spin');
-      setTimeout(()=>{
-        refreshBtn.classList.remove('spin');
-        const arr = getSeries(activeRange).map(n => Number(n) + (Math.random()-.5)*0.08);
-        setSeries(activeRange, arr);
-        renderRange(activeRange);
-      },600);
-    });
-  }
-
-  function safeBootCharts(seed){
-    initChartAndUI(seed || { currency:'USD' });
-    renderRange('1D');
-  }
-
-  function setTimestamp(lastLabelIso){
-    if (elUpdated){
-      if (lastLabelIso) {
-        // Show last data point’s timestamp if we have labels
-        const dt = new Date(lastLabelIso);
-        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-        elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
-      } else if (current?.updated_at){
-        const dt = new Date(current.updated_at);
-        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-        elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
-      } else {
-        const now = new Date();
-        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-        elUpdated.textContent = `${now.toLocaleString('en-ZA',opts)} SAST`;
-      }
+  async function fetchMedia(){
+    try{
+      if (!window.supabase) return { data: [], error: 'Supabase client not found' };
+      // maps name -> title for UI
+      const { data, error } = await supabase
+        .from('media_content')
+        .select('id, name as title, slug, description, poster_url, image_url, video_url, tags, age_rating, genre, type, show_id, created_at')
+        .order('created_at', { ascending:false })
+        .limit(250);
+      return { data: data || [], error };
+    }catch(err){
+      return { data: [], error: err.message || err };
     }
   }
 
-  // Pull numeric arrays for the selected range
-  function getSeries(range){
-    if (!current) return [];
-    if(range==='1D')  return toNums(current.eq_1d);
-    if(range==='1M')  return toNums(current.eq_1m);
-    if(range==='1Y')  return toNums(current.eq_1y);
-    if(range==='ALL') return toNums(current.eq_all);
-    return [];
-  }
-  // Pull label arrays (timestamps/dates) for the selected range
-  function getLabels(range){
-    if (!current) return [];
-    if(range==='1D')  return toStrs(current.label_1d);
-    if(range==='1M')  return toStrs(current.label_1m);
-    if(range==='1Y')  return toStrs(current.label_1y);
-    if(range==='ALL') return toStrs(current.label_all);
-    return [];
-  }
-  function setSeries(range, arr){
-    if (!current) return;
-    if(range==='1D')  current.eq_1d = arr;
-    if(range==='1M')  current.eq_1m = arr;
-    if(range==='1Y')  current.eq_1y = arr;
-    if(range==='ALL') current.eq_all = arr;
+  // portrait card like Shows page
+  function buildPortraitCard(item){
+    const img = item.poster_url || item.image_url || FALLBACK_IMG;
+    const div = document.createElement('div');
+    div.className = 'show-card';
+    div.innerHTML = `
+      <img src="${img}" alt="${item.title}">
+      <div class="card-overlay"><div class="card-title">${item.title}</div></div>
+    `;
+    div.querySelector('img').addEventListener('error', e => e.currentTarget.src = FALLBACK_IMG);
+    div.addEventListener('click', ()=> location.href = \`engine.html?slug=\${encodeURIComponent(item.slug)}\`);
+    return div;
   }
 
-  function updateHeader(arr){
-    const a0 = arr[0] ?? 0, aN = arr[arr.length-1] ?? 0;
-    const changePct = pct(aN, a0);
-    const sym = symFor(current?.currency || 'USD');
-    if (elVal) elVal.textContent = fmtMoney(sym, current?.equity ?? current?.balance ?? 0);
-    if (elChg){
-      elChg.textContent = `${changePct>=0?'+':''}${changePct.toFixed(2)}%`;
-      elChg.style.color = changePct>=0 ? '#16a34a' : '#ef4444';
+  function buildRow(title, items){
+    if (!items?.length) return null;
+    const row = document.createElement('section');
+    row.className = 'row';
+    row.innerHTML = `
+      <div class="row-head">
+        <h2 class="row-title">${title}</h2>
+        <div class="text-sm text-white/70">
+          <a href="shows.html?group=${encodeURIComponent(title)}" class="hover:underline">See all</a>
+        </div>
+      </div>
+      <div class="scroller">
+        <button class="navbtn left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="rail"></div>
+        <button class="navbtn right" aria-label="Scroll right"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    `;
+    const rail = row.querySelector('.rail');
+    items.forEach(it => rail.appendChild(buildPortraitCard(it)));
+
+    const left = row.querySelector('.left'), right = row.querySelector('.right');
+    const cardW = ()=> (rail.querySelector('.show-card')?.getBoundingClientRect().width || 220) + 12;
+    left.addEventListener('click', ()=> rail.scrollBy({ left: -3*cardW(), behavior:'smooth' }));
+    right.addEventListener('click',()=> rail.scrollBy({ left:  3*cardW(), behavior:'smooth' }));
+    return row;
+  }
+
+  function setHeroFrom(items){
+    const pick = items.find(x=> x.poster_url || x.image_url) || items[0];
+    if (!pick) return;
+    const bg   = document.getElementById('hero-bg');
+    const ttl  = document.getElementById('hero-title');
+    const sub  = document.getElementById('hero-sub');
+    const play = document.getElementById('hero-play');
+    const more = document.getElementById('hero-more');
+
+    const img = pick.poster_url || pick.image_url || FALLBACK_IMG;
+    bg.style.backgroundImage = \`url('\${img}')\`;
+    ttl.textContent = pick.title || 'Featured';
+    sub.textContent = pick.description || '';
+    play.href = \`engine.html?slug=\${encodeURIComponent(pick.slug)}\`;
+    more.href = \`engine.html?slug=\${encodeURIComponent(pick.slug)}&tab=about\`;
+  }
+
+  async function initHome(){
+    const rowsEl = document.getElementById('rows');
+    let { data, error } = await fetchMedia();
+
+    // minimal fallback if DB empty
+    if (error || !data.length){
+      data = [
+        // documentaries
+        { title:"Pathway to Education: Breaking Ground in Ghana", slug:"pathway-to-education-ghana", description:"Impact of BYU–Pathway in Ghana.", poster_url:"https://brightspotcdn.byu.edu/dims4/default/b7dc590/2147483647/strip/true/crop/1707x1280+0+0/resize/800x600!/quality/90/?url=https%3A%2F%2Fbrigham-young-brightspot-us-east-2.s3.us-east-2.amazonaws.com%2F59%2F6a%2F20e0eafb3c13ffff0feb72f7ab2d%2Fthumbnail-img-5790-1707x1280.jpg", type:"documentary", genre:"Non-Fiction" },
+        { title:"Rising from the ashes: Maui wildfire aftermath", slug:"maui-wildfire", description:"Students document Lahaina’s rebuilding.", poster_url:"https://brightspotcdn.byu.edu/dims4/default/0506f70/2147483647/strip/true/crop/960x720+160+0/resize/800x600!/quality/90/?url=https%3A%2F%2Fi.ytimg.com%2Fvi%2FnzByi1k-aF8%2Fmaxresdefault.jpg", type:"documentary", genre:"Non-Fiction" },
+        // show episodes
+        { title:"A Poor Wayfaring Man of Grief — Introduction", slug:"poor-wayfaring-intro", description:"Intro to the project.", type:"show", show_id:"poor-wayfaring", poster_url:null },
+        { title:"A Poor Wayfaring Man of Grief — Verse 1", slug:"poor-wayfaring-verse-1", description:"Verse 1.", type:"show", show_id:"poor-wayfaring", poster_url:null },
+        { title:"A Poor Wayfaring Man of Grief — Verse 2", slug:"poor-wayfaring-verse-2", description:"Verse 2.", type:"show", show_id:"poor-wayfaring", poster_url:null },
+        { title:"A Poor Wayfaring Man of Grief — Verse 4", slug:"poor-wayfaring-verse-4", description:"Verse 4.", type:"show", show_id:"poor-wayfaring", poster_url:null },
+        { title:"A Poor Wayfaring Man of Grief — Verse 5", slug:"poor-wayfaring-verse-5", description:"Verse 5.", type:"show", show_id:"poor-wayfaring", poster_url:null },
+      ];
     }
+
+    // hero cover from one of the cards
+    setHeroFrom(data);
+
+    // Row: Shows (episodes)
+    const shows = data.filter(x => x.type === 'show');
+    const showsRow = buildRow('Shows', shows);
+    if (showsRow) rowsEl.appendChild(showsRow);
+
+    // Row: Non-Fiction (you asked to group all documentaries here)
+    const docs = data.filter(x => x.type === 'documentary');
+    const nonFictionRow = buildRow('Non-Fiction', docs);
+    if (nonFictionRow) rowsEl.appendChild(nonFictionRow);
   }
 
-  function renderRange(range='1D'){
-    activeRange = range;
-    document.querySelectorAll('#portfolio-card .tab')
-      .forEach(t=>t.classList.toggle('tab-active', t.dataset.range===range));
-
-    if(!chart) return;
-
-    // series + labels from DB; if empty, create a tiny synthetic line
-    let data = getSeries(range);
-    let labels = getLabels(range);
-
-    if (!data.length){
-      const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
-      data = Array.from({length: 30}, (_,i)=> base + i*0.02 + (Math.random()-.5)*0.4);
-      labels = data.map((_,i)=> String(i));
-    } else {
-      // Ensure labels length matches data length; if not, rebuild simple indices
-      if (!labels.length || labels.length !== data.length) {
-        labels = data.map((_,i)=> String(i));
-      }
-    }
-
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = data;
-    chart.update();
-
-    updateHeader(data);
-    setTimestamp(labels[labels.length-1]);
-  }
+  initHome();
 </script>
 
 </body>
