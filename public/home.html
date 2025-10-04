@@ -536,8 +536,8 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // -------- flags / tiny utils --------
-  const FORCE_FLAT_EQUITY = true; // flat equity curve
+  // ---------- utils / flags ----------
+  const FORCE_FLAT_EQUITY = true; // keep the curve flat
   const $ = (q, el=document)=>el.querySelector(q);
   const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
   const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
@@ -556,13 +556,24 @@
     return `data:image/svg+xml;utf8,${svg}`;
   };
 
-  // -------- state --------
+  // ---------- state ----------
   let activeRange = '1D';
   let chart = null;
   let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
-  let current = null; // active "position" derived from unit ledger
+  let current = null;
 
-  // Avoid reload loops — only redirect on real sign-out
+  // elements for the “Strategies” card
+  const stratSel   = $('#strat-select');
+  const stratMeta  = $('#strat-meta');
+  const stratEmpty = $('#strat-empty');
+  const badge      = $('#sidebar-acc');
+
+  // in-memory maps
+  let ledgers = [];
+  const metaByStrategy = new Map();   // from strategy_fact_sheets
+  const priceByStrategy = new Map();  // from v_strategy_latest_price
+
+  // ---------- auth guard (no reload loop) ----------
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -611,19 +622,7 @@
       hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
     }
 
-    // profile dropdown + logout
-    const pm = document.getElementById('profile-modal');
-    const btn = document.getElementById('hdr-profile-btn');
-    const logoutBtn = document.getElementById('pm-logout');
-    btn?.addEventListener('click', () => pm?.classList.toggle('hidden'));
-    pm?.addEventListener('click', (e) => { if (e.target === pm) pm.classList.add('hidden'); });
-    logoutBtn?.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      const next = encodeURIComponent(location.pathname + location.search + location.hash);
-      location.replace(`/auth.html?tab=in&redirect=${next}`);
-    });
-
-    // --- strategies from unit ledgers ---
+    // --- strategies via your schema ---
     await bootStrategies(user);
 
     // --- charts ---
@@ -631,33 +630,62 @@
     renderRange('1D');
   })();
 
-  // ===== Strategies (unit ledgers) =====
-  const stratSel   = $('#strat-select');
-  const stratMeta  = $('#strat-meta');
-  const stratEmpty = $('#strat-empty');
-  const badge      = $('#sidebar-acc');
-
-  let ledgers = [];
-  const strategiesById = new Map();
-
-  function computeEquity(units, nav){ return Number(units||0) * Number(nav||0) || 0; }
-
-  function labelStrategy(row){
-    const s = strategiesById.get(row.strategy_id) || {};
-    const name = s.name || s.symbol || 'Strategy';
-    return s.symbol ? `${name} • ${s.symbol}` : name;
+  // ======= DB LOADERS (match your tables/views) =======
+  async function loadUnitLedgers(profileId){
+    // Your table is singular: unit_ledger
+    const { data, error } = await supabase
+      .from('unit_ledger')
+      .select('id, strategy_id, units, currency, updated_at, profile_id')
+      .eq('profile_id', profileId)
+      .order('updated_at', { ascending:false });
+    if (error) throw error;
+    return data || [];
   }
 
-  function showStratMeta(row){
-    const s = strategiesById.get(row.strategy_id) || {};
-    const cur = (s.currency || row.currency || 'USD');
+  async function hydrateStrategyMeta(ids){
+    if (!ids.length) return;
+    // Pull name/symbol/currency from strategy_fact_sheets
+    const { data, error } = await supabase
+      .from('strategy_fact_sheets')
+      .select('id, name, symbol, currency')
+      .in('id', ids);
+    if (error) throw error;
+    data?.forEach(row => metaByStrategy.set(row.id, row));
+  }
+
+  async function hydrateLatestPrices(ids){
+    if (!ids.length) return;
+    // Latest NAV/price from v_strategy_latest_price (unrestricted)
+    const { data, error } = await supabase
+      .from('v_strategy_latest_price')
+      .select('strategy_id, price, nav, updated_at')
+      .in('strategy_id', ids);
+    if (error) throw error;
+    data?.forEach(row => {
+      const nav = Number(row.nav ?? row.price ?? 0);
+      priceByStrategy.set(row.strategy_id, { nav, updated_at: row.updated_at });
+    });
+  }
+
+  // ======= Strategies boot =======
+  function computeEquity(units, nav){ return Number(units||0) * Number(nav||0) || 0; }
+
+  function labelStrategyFromMeta(strategy_id){
+    const m = metaByStrategy.get(strategy_id) || {};
+    if (m.symbol && m.name) return `${m.name} • ${m.symbol}`;
+    return m.name || m.symbol || `Strategy ${String(strategy_id).slice(0,6)}…`;
+  }
+
+  function showStratMeta(ledgerRow){
+    const m = metaByStrategy.get(ledgerRow.strategy_id) || {};
+    const p = priceByStrategy.get(ledgerRow.strategy_id) || {};
+    const cur = (m.currency || ledgerRow.currency || 'USD');
     const sym = symFor(cur);
-    const units = Number(row.units || 0);
-    const nav   = Number(row.last_unit_nav ?? row.last_nav ?? 0);
+    const units = Number(ledgerRow.units || 0);
+    const nav   = Number(p.nav || 0);
     const eq    = computeEquity(units, nav);
-    const when  = new Date(row.updated_at || Date.now()).toLocaleString(
-      'en-ZA',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}
-    );
+    const when  = new Date(p.updated_at || ledgerRow.updated_at || Date.now())
+                    .toLocaleString('en-ZA',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 
     stratMeta.innerHTML = `
       <div class="flex items-center justify-between">
@@ -668,33 +696,6 @@
     `;
   }
 
-  async function loadLedgersForProfile(profileId){
-    // try plural then singular
-    let r = await supabase
-      .from('unit_ledgers')
-      .select('id, strategy_id, units, last_unit_nav, last_nav, currency, updated_at, profile_id')
-      .eq('profile_id', profileId)
-      .order('updated_at', { ascending:false });
-    if (r.error && String(r.error.code) === '42P01') {
-      r = await supabase
-        .from('unit_ledger')
-        .select('id, strategy_id, units, last_unit_nav, last_nav, currency, updated_at, profile_id')
-        .eq('profile_id', profileId)
-        .order('updated_at', { ascending:false });
-    }
-    if (r.error) throw r.error;
-    return r.data || [];
-  }
-
-  async function hydrateStrategies(ids){
-    if (!ids.length) return;
-    const { data, error } = await supabase
-      .from('strategies')
-      .select('id, name, symbol, currency')
-      .in('id', ids);
-    if (!error && Array.isArray(data)) data.forEach(s => strategiesById.set(s.id, s));
-  }
-
   async function bootStrategies(user){
     stratSel.disabled = true;
     stratSel.innerHTML = `<option>Loading…</option>`;
@@ -702,14 +703,15 @@
     stratEmpty.classList.add('hidden');
 
     try {
-      ledgers = await loadLedgersForProfile(user.id);
+      ledgers = await loadUnitLedgers(user.id);
       const ids = Array.from(new Set(ledgers.map(l => l.strategy_id).filter(Boolean)));
-      await hydrateStrategies(ids);
+      await hydrateStrategyMeta(ids);
+      await hydrateLatestPrices(ids);
     } catch (e) {
-      console.error('Ledgers load failed:', e);
+      console.error('Ledgers/meta/price load failed:', e);
       stratSel.innerHTML = `<option>Failed to load</option>`;
-      stratMeta.textContent = 'Failed to load strategies';
-      current = { currency:'USD', equity:0, balance:0 }; // keep page stable
+      stratMeta.innerHTML = `<span class="text-rose-700">Failed to load strategies: ${e?.message || e}</span>`;
+      current = { currency:'USD', equity:0, balance:0 };
       return;
     }
 
@@ -717,54 +719,63 @@
       stratSel.innerHTML = `<option>—</option>`;
       stratSel.disabled = true;
       stratMeta.textContent = '—';
-      stratEmpty.classList.remove('hidden');         // empty state
+      stratEmpty.classList.remove('hidden');       // “Invest in a strategy”
       current = { currency:'USD', equity:0, balance:0, updated_at: new Date().toISOString() };
       if (badge) { badge.textContent = '—'; badge.title=''; }
       return;
     }
 
-    // pick most recent
+    // pick most recent ledger
     current = ledgers[0];
-    const s0 = strategiesById.get(current.strategy_id) || {};
-    current.currency = s0.currency || current.currency || 'USD';
-    const nav = Number(current.last_unit_nav ?? current.last_nav ?? 0);
+
+    // enrich current with meta + nav
+    const m0 = metaByStrategy.get(current.strategy_id) || {};
+    const p0 = priceByStrategy.get(current.strategy_id) || {};
+    current.currency = m0.currency || current.currency || 'USD';
+    const nav = Number(p0.nav || 0);
     current.equity  = computeEquity(current.units, nav);
     current.balance = current.equity;
+    current.updated_at = p0.updated_at || current.updated_at;
 
-    // fill dropdown
+    // dropdown
     stratSel.disabled = false;
-    stratSel.innerHTML = ledgers.map(l => `<option value="${String(l.id)}">${labelStrategy(l)}</option>`).join('');
+    stratSel.innerHTML = ledgers.map(l => `<option value="${String(l.id)}">${labelStrategyFromMeta(l.strategy_id)}</option>`).join('');
     stratSel.value = String(current.id);
     showStratMeta(current);
 
-    // sidebar badge = symbol/name
+    // sidebar badge
     if (badge){
-      const val = s0.symbol || (s0.name ? s0.name.slice(0,8)+'…' : String(current.strategy_id).slice(0,8)+'…');
-      badge.textContent = val || '—';
-      badge.title = s0.name || s0.symbol || '';
+      const label = labelStrategyFromMeta(current.strategy_id);
+      badge.textContent = (metaByStrategy.get(current.strategy_id)?.symbol) ||
+                          (label.length > 9 ? label.slice(0,8)+'…' : label) || '—';
+      badge.title = label;
     }
 
     stratSel.addEventListener('change', ()=>{
       const sel = ledgers.find(l => String(l.id) === String(stratSel.value));
       if (!sel) return;
       current = sel;
-      const s = strategiesById.get(current.strategy_id) || {};
-      current.currency = s.currency || current.currency || 'USD';
-      const n = Number(current.last_unit_nav ?? current.last_nav ?? 0);
-      current.equity  = computeEquity(current.units, n);
+
+      const m = metaByStrategy.get(current.strategy_id) || {};
+      const p = priceByStrategy.get(current.strategy_id) || {};
+      current.currency = m.currency || current.currency || 'USD';
+      const nav = Number(p.nav || 0);
+      current.equity  = computeEquity(current.units, nav);
       current.balance = current.equity;
+      current.updated_at = p.updated_at || current.updated_at;
+
       showStratMeta(current);
 
       if (badge){
-        const val = s.symbol || (s.name ? s.name.slice(0,8)+'…' : String(current.strategy_id).slice(0,8)+'…');
-        badge.textContent = val || '—';
-        badge.title = s.name || s.symbol || '';
+        const label = labelStrategyFromMeta(current.strategy_id);
+        badge.textContent = (m.symbol) || (label.length > 9 ? label.slice(0,8)+'…' : label) || '—';
+        badge.title = label;
       }
       renderRange(activeRange);
     });
   }
 
-  // ===== Charts =====
+  // ============ Chart bits ============
   function initChartAndUI(seed){
     elUpdated = $('#pf-updated');
     elVal     = $('#pf-value');
@@ -821,7 +832,6 @@
     }
   }
 
-  // If you later store series on the ledger/strategy, these helpers can read them.
   function getSeries(range){ return toNums(current?.[`eq_${range.toLowerCase()}`] || []); }
   function getLabels(range){ return toStrs(current?.[`label_${range.toLowerCase()}`] || []); }
 
@@ -834,8 +844,7 @@
     let rawData = getSeries(range);
     let labels  = getLabels(range);
 
-    // Base = actual equity (0 stays 0). No fake 1k.
-    const base = Number(current?.equity ?? current?.balance ?? 0);
+    const base = Number(current?.equity ?? current?.balance ?? 0) || 0;
     const N    = rawData.length || 30;
 
     const data = FORCE_FLAT_EQUITY
@@ -854,10 +863,5 @@
     setTimestamp(labels[labels.length-1]);
   }
 </script>
-
-
-
-
-
 </body>
 </html>
