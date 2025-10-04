@@ -535,8 +535,9 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // ----------------- config / tiny utils -----------------
-  const MASK_BADGE = true; // set false to show full account_number
+  // ----------------- flags / tiny utils -----------------
+  const MASK_BADGE = true;          // hide full account number in sidebar
+  const FORCE_FLAT_EQUITY = true;   // <- keep the equity curve flat
 
   const $ = (q, el=document)=>el.querySelector(q);
   const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
@@ -571,19 +572,18 @@
     return `data:image/svg+xml;utf8,${svg}`;
   };
 
-  // ----------------- chart globals -----------------
+  // ----------------- chart / state -----------------
   let activeRange = '1D';
   let chart = null;
   let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
   let current = null; // active account
 
-  // ✅ Fix: only react to real sign-out (prevents reload loops)
+  // ✅ Prevent reload loops: only react to real sign-out
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
       location.replace(`/auth.html?tab=in&redirect=${next}`);
     }
-    // Ignore INITIAL_SESSION / TOKEN_REFRESHED / USER_UPDATED etc. to avoid loops
   });
 
   (async () => {
@@ -630,6 +630,18 @@
       hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
     }
 
+    // Profile dropdown + logout
+    const pm = document.getElementById('profile-modal');
+    const btn = document.getElementById('hdr-profile-btn');
+    const logoutBtn = document.getElementById('pm-logout');
+    btn?.addEventListener('click', () => pm?.classList.toggle('hidden'));
+    pm?.addEventListener('click', (e) => { if (e.target === pm) pm.classList.add('hidden'); });
+    logoutBtn?.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    });
+
     // ---------- accounts load ----------
     const acctSel  = $('#acct-select');
     const acctMeta = $('#acct-meta');
@@ -652,7 +664,6 @@
 
       let { data, error } = await sel;
       if (error && String(error.code) === '42703') {
-        // undefined column -> retry with a safer projection
         ({ data, error } = await supabase
           .from('investment_accounts')
           .select(`
@@ -762,13 +773,11 @@
       btn.addEventListener('click',()=> renderRange(btn.dataset.range));
     });
 
-    // optional "refresh": tiny jitter to show activity
+    // optional "refresh" button just redraws flat series too
     refreshBtn?.addEventListener('click',()=>{
       refreshBtn.classList.add('spin');
       setTimeout(()=>{
         refreshBtn.classList.remove('spin');
-        const arr = getSeries(activeRange).map(n => Number(n) + (Math.random()-.5)*0.08);
-        setSeries(activeRange, arr);
         renderRange(activeRange);
       },600);
     });
@@ -797,29 +806,29 @@
     }
   }
 
-  // series getters/setters
+  // --- series helpers (kept, but we force flat later) ---
   function getSeries(range){
     if (!current) return [];
-    if(range==='1D')  return toNums(current.eq_1d);
-    if(range==='1M')  return toNums(current.eq_1m);
-    if(range==='1Y')  return toNums(current.eq_1y);
-    if(range==='ALL') return toNums(current.eq_all);
+    if (range==='1D')  return toNums(current.eq_1d);
+    if (range==='1M')  return toNums(current.eq_1m);
+    if (range==='1Y')  return toNums(current.eq_1y);
+    if (range==='ALL') return toNums(current.eq_all);
     return [];
   }
   function getLabels(range){
     if (!current) return [];
-    if(range==='1D')  return toStrs(current.label_1d);
-    if(range==='1M')  return toStrs(current.label_1m);
-    if(range==='1Y')  return toStrs(current.label_1y);
-    if(range==='ALL') return toStrs(current.label_all);
+    if (range==='1D')  return toStrs(current.label_1d);
+    if (range==='1M')  return toStrs(current.label_1m);
+    if (range==='1Y')  return toStrs(current.label_1y);
+    if (range==='ALL') return toStrs(current.label_all);
     return [];
   }
   function setSeries(range, arr){
     if (!current) return;
-    if(range==='1D')  current.eq_1d = arr;
-    if(range==='1M')  current.eq_1m = arr;
-    ifrange==='1Y')  current.eq_1y = arr;
-    if(range==='ALL') current.eq_all = arr;
+    if (range==='1D')  current.eq_1d = arr;
+    if (range==='1M')  current.eq_1m = arr;
+    if (range==='1Y')  current.eq_1y = arr;   // fixed typo
+    if (range==='ALL') current.eq_all = arr;
   }
 
   function updateHeader(arr){
@@ -840,18 +849,17 @@
 
     if(!chart) return;
 
-    let data = getSeries(range);
-    let labels = getLabels(range);
+    // pull whatever exists (for labels), but we’re forcing a flat line anyway
+    let rawData = getSeries(range);
+    let labels  = getLabels(range);
 
-    // fallback synthetic line if no data
-    if (!data.length){
-      const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
-      data = Array.from({length: 30}, (_,i)=> base + i*0.02 + (Math.random()-.5)*0.4);
-      labels = data.map((_,i)=> String(i));
-    } else {
-      if (!labels.length || labels.length !== data.length) {
-        labels = data.map((_,i)=> String(i));
-      }
+    const base = Number(current?.equity ?? current?.balance ?? 0) || 1000;
+    const N    = (rawData.length || 30);
+
+    // FORCE flat series
+    const data = FORCE_FLAT_EQUITY ? Array.from({length:N}, ()=> base) : (rawData.length ? rawData : Array.from({length:N},(_,i)=> base));
+    if (!labels.length || labels.length !== data.length) {
+      labels = Array.from({length:data.length}, (_,i)=> String(i+1));
     }
 
     chart.data.labels = labels;
@@ -862,6 +870,7 @@
     setTimestamp(labels[labels.length-1]);
   }
 </script>
+
 
 
 
