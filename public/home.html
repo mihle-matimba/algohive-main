@@ -532,7 +532,6 @@
     })();
   </script>
 
-  <!-- ===== App (module) ===== -->
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
@@ -578,8 +577,14 @@
   let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
   let current = null; // active account
 
-  // Reload if auth state changes (login/logout)
-  supabase.auth.onAuthStateChange(() => location.reload());
+  // ✅ Fix: only react to real sign-out (prevents reload loops)
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    }
+    // Ignore INITIAL_SESSION / TOKEN_REFRESHED / USER_UPDATED etc. to avoid loops
+  });
 
   (async () => {
     // ---------- auth ----------
@@ -813,7 +818,7 @@
     if (!current) return;
     if(range==='1D')  current.eq_1d = arr;
     if(range==='1M')  current.eq_1m = arr;
-    if(range==='1Y')  current.eq_1y = arr;
+    ifrange==='1Y')  current.eq_1y = arr;
     if(range==='ALL') current.eq_all = arr;
   }
 
@@ -857,6 +862,7 @@
     setTimestamp(labels[labels.length-1]);
   }
 </script>
+
 
 
 </body>
