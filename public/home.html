@@ -186,19 +186,20 @@
             </div>
           </div>
 
-          <!-- Accounts -->
-          <div class="card p-5 border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">Accounts</h3>
-              <a href="/settings.html#manage" class="text-sm text-olive-600 hover:underline">Manage</a>
-            </div>
-            <label class="block text-xs text-slate-500 mb-1.5" for="acct-select">Select account</label>
-            <select id="acct-select" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm">
-              <option>Loading…</option>
-            </select>
-            <div id="acct-meta" class="text-xs text-slate-500 mt-3">—</div>
-            <div id="acct-empty" class="text-xs text-slate-400 mt-2 hidden">No investment accounts yet.</div>
-          </div>
+<!-- Strategies -->
+<div class="card p-5 border border-slate-200">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-base font-medium text-slate-900">Strategies</h3>
+    <a href="/strategies.html" class="text-sm text-olive-600 hover:underline">Browse</a>
+  </div>
+  <label class="block text-xs text-slate-500 mb-1.5" for="strat-select">Select strategy</label>
+  <select id="strat-select" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm">
+    <option>Loading…</option>
+  </select>
+  <div id="strat-meta" class="text-xs text-slate-500 mt-3">—</div>
+  <div id="strat-empty" class="text-xs text-slate-400 mt-2 hidden">Invest in a strategy</div>
+</div>
+
 
           <!-- Asset class allocation -->
           <div class="card p-5 border border-slate-200">
@@ -535,32 +536,15 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // ----------------- flags / tiny utils -----------------
-  const MASK_BADGE = true;          // hide full account number in sidebar
-  const FORCE_FLAT_EQUITY = true;   // <- keep the equity curve flat
-
+  // -------- flags / tiny utils --------
+  const FORCE_FLAT_EQUITY = true; // flat equity curve
   const $ = (q, el=document)=>el.querySelector(q);
   const pct = (a,b)=> (b==null || b===0) ? 0 : ((a-b)/b*100);
   const symFor = (ccy)=> (ccy === 'USD' ? '$' : 'R');
   const fmtMoney = (sym, v) => `${sym} ${Number(v||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  const mask = s => s ? `••• ${String(s).slice(-4)}` : '—';
+  const toNums = (x)=> Array.isArray(x) ? x.map(Number).filter(Number.isFinite) : [];
+  const toStrs = (x)=> Array.isArray(x) ? x.map(String) : [];
 
-  const toNums = (x)=>{
-    if (Array.isArray(x)) return x.map(Number).filter(Number.isFinite);
-    if (typeof x === 'string' && x.trim()) {
-      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(Number).filter(Number.isFinite):[]; }
-      catch { return []; }
-    }
-    return [];
-  };
-  const toStrs = (x)=>{
-    if (Array.isArray(x)) return x.map(v => String(v));
-    if (typeof x === 'string' && x.trim()) {
-      try { const arr = JSON.parse(x); return Array.isArray(arr)?arr.map(v=>String(v)):[]; }
-      catch { return []; }
-    }
-    return [];
-  };
   const initialsAvatar = (text)=>{
     const s = (text||'').trim();
     const initial = (s.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
@@ -572,13 +556,13 @@
     return `data:image/svg+xml;utf8,${svg}`;
   };
 
-  // ----------------- chart / state -----------------
+  // -------- state --------
   let activeRange = '1D';
   let chart = null;
   let elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
-  let current = null; // active account
+  let current = null; // active "position" derived from unit ledger
 
-  // ✅ Prevent reload loops: only react to real sign-out
+  // Avoid reload loops — only redirect on real sign-out
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -587,7 +571,7 @@
   });
 
   (async () => {
-    // ---------- auth ----------
+    // --- auth ---
     const { data:{ session } } = await supabase.auth.getSession();
     if(!session){
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -596,7 +580,7 @@
     }
     const { data:{ user } } = await supabase.auth.getUser();
 
-    // ---------- profile (name + avatar) ----------
+    // --- profile header ---
     let profile = null;
     try {
       const { data, error } = await supabase
@@ -614,23 +598,20 @@
         avatar_url: user?.user_metadata?.avatar_url || ''
       };
     }
-
     const bestName =
       [profile?.full_name,
        [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
        user?.user_metadata?.full_name,
        user?.user_metadata?.name].find(s => s && String(s).trim()) || user?.email || '—';
-
-    const avatarUrl = profile?.avatar_url || initialsAvatar(bestName || user?.email);
     $('#hdr-name').textContent = bestName;
     $('#pm-email').textContent = user?.email || '—';
     const hdrImg = $('#hdr-avatar');
     if (hdrImg){
-      hdrImg.src = avatarUrl;
+      hdrImg.src = profile?.avatar_url || initialsAvatar(bestName || user?.email);
       hdrImg.onerror = () => { hdrImg.src = initialsAvatar(bestName || user?.email); };
     }
 
-    // Profile dropdown + logout
+    // profile dropdown + logout
     const pm = document.getElementById('profile-modal');
     const btn = document.getElementById('hdr-profile-btn');
     const logoutBtn = document.getElementById('pm-logout');
@@ -642,105 +623,148 @@
       location.replace(`/auth.html?tab=in&redirect=${next}`);
     });
 
-    // ---------- accounts load ----------
-    const acctSel  = $('#acct-select');
-    const acctMeta = $('#acct-meta');
-    const acctEmpty= $('#acct-empty');
-    const badge    = $('#sidebar-acc');
+    // --- strategies from unit ledgers ---
+    await bootStrategies(user);
 
-    let accounts = [];
-    try {
-      // Try full select (includes label_*). If a column is missing, retry with a minimal select.
-      let sel = supabase
-        .from('investment_accounts')
-        .select(`
-          id, broker, account_number, currency, status, balance, equity, updated_at,
-          eq_1d, eq_1m, eq_1y, eq_all,
-          label_1d, label_1m, label_1y, label_all
-        `)
-        .eq('profile_id', user.id)
-        .order('status', { ascending: true })
-        .order('updated_at', { ascending: false });
-
-      let { data, error } = await sel;
-      if (error && String(error.code) === '42703') {
-        ({ data, error } = await supabase
-          .from('investment_accounts')
-          .select(`
-            id, broker, account_number, currency, status, balance, equity, updated_at,
-            eq_1d, eq_1m, eq_1y, eq_all
-          `)
-          .eq('profile_id', user.id)
-          .order('status', { ascending: true })
-          .order('updated_at', { ascending: false })
-        );
-      }
-      if (error) throw error;
-      accounts = data || [];
-    } catch (e) {
-      console.error('Accounts load failed:', e);
-      if (acctSel){ acctSel.innerHTML = `<option>Failed to load</option>`; acctSel.disabled = true; }
-      if (acctMeta){ acctMeta.textContent = `Failed to load accounts`; }
-      safeBootCharts();
-      return;
-    }
-
-    if (!accounts.length){
-      if (acctSel){ acctSel.innerHTML = `<option>—</option>`; acctSel.disabled = true; }
-      acctMeta.textContent = '—';
-      acctEmpty.classList.remove('hidden');
-      if (badge) badge.textContent = '—';
-      safeBootCharts();
-      return;
-    }
-
-    current = accounts.find(a=>a.status==='ACTIVE') || accounts[0];
-    if (badge){
-      const val = current.account_number || String(current.id).slice(0,8)+'…';
-      badge.textContent = MASK_BADGE ? mask(val) : val;
-      badge.title = current.account_number || current.id || '';
-    }
-
-    const labelFor = (a) =>
-      (a?.account_nickname && a.account_nickname.trim()) ||
-      (a?.label && a.label.trim()) ||
-      `${a?.broker || 'Account'} • ${a?.account_number || ''}`.trim();
-
-    const showAcctMeta = (a)=>{
-      const sym = symFor(a.currency);
-      acctMeta.innerHTML = `
-        <div class="flex items-center justify-between">
-          <span>${a.currency || 'USD'} · ${a.status || '—'}</span>
-          <span class="font-medium text-slate-900">${fmtMoney(sym, a.equity ?? a.balance ?? 0)}</span>
-        </div>
-        <div class="text-[11px] text-slate-400 mt-0.5">Acct # ${a.account_number || '—'}</div>
-      `;
-    };
-
-    acctSel.disabled = false;
-    acctSel.innerHTML = accounts.map(a=>`<option value="${String(a.id)}">${labelFor(a)}</option>`).join('');
-    acctSel.value = String(current.id);
-    showAcctMeta(current);
-
-    acctSel.addEventListener('change', ()=>{
-      const chosen = accounts.find(a => String(a.id) === String(acctSel.value));
-      if (!chosen) return;
-      current = chosen;
-      showAcctMeta(current);
-      if (badge){
-        const val = current.account_number || String(current.id).slice(0,8)+'…';
-        badge.textContent = MASK_BADGE ? mask(val) : val;
-        badge.title = current.account_number || current.id || '';
-      }
-      renderRange(activeRange);
-    });
-
-    // ---------- charts boot ----------
-    initChartAndUI(current || { currency: 'USD' });
+    // --- charts ---
+    initChartAndUI({ currency: current?.currency || 'USD' });
     renderRange('1D');
   })();
 
-  // ----------------- chart helpers -----------------
+  // ===== Strategies (unit ledgers) =====
+  const stratSel   = $('#strat-select');
+  const stratMeta  = $('#strat-meta');
+  const stratEmpty = $('#strat-empty');
+  const badge      = $('#sidebar-acc');
+
+  let ledgers = [];
+  const strategiesById = new Map();
+
+  function computeEquity(units, nav){ return Number(units||0) * Number(nav||0) || 0; }
+
+  function labelStrategy(row){
+    const s = strategiesById.get(row.strategy_id) || {};
+    const name = s.name || s.symbol || 'Strategy';
+    return s.symbol ? `${name} • ${s.symbol}` : name;
+  }
+
+  function showStratMeta(row){
+    const s = strategiesById.get(row.strategy_id) || {};
+    const cur = (s.currency || row.currency || 'USD');
+    const sym = symFor(cur);
+    const units = Number(row.units || 0);
+    const nav   = Number(row.last_unit_nav ?? row.last_nav ?? 0);
+    const eq    = computeEquity(units, nav);
+    const when  = new Date(row.updated_at || Date.now()).toLocaleString(
+      'en-ZA',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}
+    );
+
+    stratMeta.innerHTML = `
+      <div class="flex items-center justify-between">
+        <span>${cur} · Units ${units.toLocaleString('en-ZA')}</span>
+        <span class="font-medium text-slate-900">${fmtMoney(sym, eq)}</span>
+      </div>
+      <div class="text-[11px] text-slate-400 mt-0.5">Last NAV ${fmtMoney(sym, nav)} · ${when}</div>
+    `;
+  }
+
+  async function loadLedgersForProfile(profileId){
+    // try plural then singular
+    let r = await supabase
+      .from('unit_ledgers')
+      .select('id, strategy_id, units, last_unit_nav, last_nav, currency, updated_at, profile_id')
+      .eq('profile_id', profileId)
+      .order('updated_at', { ascending:false });
+    if (r.error && String(r.error.code) === '42P01') {
+      r = await supabase
+        .from('unit_ledger')
+        .select('id, strategy_id, units, last_unit_nav, last_nav, currency, updated_at, profile_id')
+        .eq('profile_id', profileId)
+        .order('updated_at', { ascending:false });
+    }
+    if (r.error) throw r.error;
+    return r.data || [];
+  }
+
+  async function hydrateStrategies(ids){
+    if (!ids.length) return;
+    const { data, error } = await supabase
+      .from('strategies')
+      .select('id, name, symbol, currency')
+      .in('id', ids);
+    if (!error && Array.isArray(data)) data.forEach(s => strategiesById.set(s.id, s));
+  }
+
+  async function bootStrategies(user){
+    stratSel.disabled = true;
+    stratSel.innerHTML = `<option>Loading…</option>`;
+    stratMeta.textContent = '—';
+    stratEmpty.classList.add('hidden');
+
+    try {
+      ledgers = await loadLedgersForProfile(user.id);
+      const ids = Array.from(new Set(ledgers.map(l => l.strategy_id).filter(Boolean)));
+      await hydrateStrategies(ids);
+    } catch (e) {
+      console.error('Ledgers load failed:', e);
+      stratSel.innerHTML = `<option>Failed to load</option>`;
+      stratMeta.textContent = 'Failed to load strategies';
+      current = { currency:'USD', equity:0, balance:0 }; // keep page stable
+      return;
+    }
+
+    if (!ledgers.length){
+      stratSel.innerHTML = `<option>—</option>`;
+      stratSel.disabled = true;
+      stratMeta.textContent = '—';
+      stratEmpty.classList.remove('hidden');         // empty state
+      current = { currency:'USD', equity:0, balance:0, updated_at: new Date().toISOString() };
+      if (badge) { badge.textContent = '—'; badge.title=''; }
+      return;
+    }
+
+    // pick most recent
+    current = ledgers[0];
+    const s0 = strategiesById.get(current.strategy_id) || {};
+    current.currency = s0.currency || current.currency || 'USD';
+    const nav = Number(current.last_unit_nav ?? current.last_nav ?? 0);
+    current.equity  = computeEquity(current.units, nav);
+    current.balance = current.equity;
+
+    // fill dropdown
+    stratSel.disabled = false;
+    stratSel.innerHTML = ledgers.map(l => `<option value="${String(l.id)}">${labelStrategy(l)}</option>`).join('');
+    stratSel.value = String(current.id);
+    showStratMeta(current);
+
+    // sidebar badge = symbol/name
+    if (badge){
+      const val = s0.symbol || (s0.name ? s0.name.slice(0,8)+'…' : String(current.strategy_id).slice(0,8)+'…');
+      badge.textContent = val || '—';
+      badge.title = s0.name || s0.symbol || '';
+    }
+
+    stratSel.addEventListener('change', ()=>{
+      const sel = ledgers.find(l => String(l.id) === String(stratSel.value));
+      if (!sel) return;
+      current = sel;
+      const s = strategiesById.get(current.strategy_id) || {};
+      current.currency = s.currency || current.currency || 'USD';
+      const n = Number(current.last_unit_nav ?? current.last_nav ?? 0);
+      current.equity  = computeEquity(current.units, n);
+      current.balance = current.equity;
+      showStratMeta(current);
+
+      if (badge){
+        const val = s.symbol || (s.name ? s.name.slice(0,8)+'…' : String(current.strategy_id).slice(0,8)+'…');
+        badge.textContent = val || '—';
+        badge.title = s.name || s.symbol || '';
+      }
+      renderRange(activeRange);
+    });
+  }
+
+  // ===== Charts =====
   function initChartAndUI(seed){
     elUpdated = $('#pf-updated');
     elVal     = $('#pf-value');
@@ -769,66 +793,21 @@
       }
     });
 
-    document.querySelectorAll('#portfolio-card .tab').forEach(btn=>{
-      btn.addEventListener('click',()=> renderRange(btn.dataset.range));
-    });
+    document.querySelectorAll('#portfolio-card .tab')
+      .forEach(btn=>btn.addEventListener('click',()=> renderRange(btn.dataset.range)));
 
-    // optional "refresh" button just redraws flat series too
     refreshBtn?.addEventListener('click',()=>{
       refreshBtn.classList.add('spin');
-      setTimeout(()=>{
-        refreshBtn.classList.remove('spin');
-        renderRange(activeRange);
-      },600);
+      setTimeout(()=>{ refreshBtn.classList.remove('spin'); renderRange(activeRange); },600);
     });
-  }
-
-  function safeBootCharts(seed){
-    initChartAndUI(seed || { currency:'USD' });
-    renderRange('1D');
   }
 
   function setTimestamp(lastLabelIso){
-    if (elUpdated){
-      if (lastLabelIso) {
-        const dt = new Date(lastLabelIso);
-        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-        elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
-      } else if (current?.updated_at){
-        const dt = new Date(current.updated_at);
-        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-        elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
-      } else {
-        const now = new Date();
-        const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-        elUpdated.textContent = `${now.toLocaleString('en-ZA',opts)} SAST`;
-      }
-    }
-  }
-
-  // --- series helpers (kept, but we force flat later) ---
-  function getSeries(range){
-    if (!current) return [];
-    if (range==='1D')  return toNums(current.eq_1d);
-    if (range==='1M')  return toNums(current.eq_1m);
-    if (range==='1Y')  return toNums(current.eq_1y);
-    if (range==='ALL') return toNums(current.eq_all);
-    return [];
-  }
-  function getLabels(range){
-    if (!current) return [];
-    if (range==='1D')  return toStrs(current.label_1d);
-    if (range==='1M')  return toStrs(current.label_1m);
-    if (range==='1Y')  return toStrs(current.label_1y);
-    if (range==='ALL') return toStrs(current.label_all);
-    return [];
-  }
-  function setSeries(range, arr){
-    if (!current) return;
-    if (range==='1D')  current.eq_1d = arr;
-    if (range==='1M')  current.eq_1m = arr;
-    if (range==='1Y')  current.eq_1y = arr;   // fixed typo
-    if (range==='ALL') current.eq_all = arr;
+    if (!elUpdated) return;
+    const dt = lastLabelIso ? new Date(lastLabelIso)
+             : (current?.updated_at ? new Date(current.updated_at) : new Date());
+    const opts={ month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' };
+    elUpdated.textContent = `${dt.toLocaleString('en-ZA',opts)} SAST`;
   }
 
   function updateHeader(arr){
@@ -842,22 +821,27 @@
     }
   }
 
+  // If you later store series on the ledger/strategy, these helpers can read them.
+  function getSeries(range){ return toNums(current?.[`eq_${range.toLowerCase()}`] || []); }
+  function getLabels(range){ return toStrs(current?.[`label_${range.toLowerCase()}`] || []); }
+
   function renderRange(range='1D'){
     activeRange = range;
     document.querySelectorAll('#portfolio-card .tab')
       .forEach(t=>t.classList.toggle('tab-active', t.dataset.range===range));
-
     if(!chart) return;
 
-    // pull whatever exists (for labels), but we’re forcing a flat line anyway
     let rawData = getSeries(range);
     let labels  = getLabels(range);
 
-    const base = Number(current?.equity ?? current?.balance ?? 0) || 0;
-    const N    = (rawData.length || 30);
+    // Base = actual equity (0 stays 0). No fake 1k.
+    const base = Number(current?.equity ?? current?.balance ?? 0);
+    const N    = rawData.length || 30;
 
-    // FORCE flat series
-    const data = FORCE_FLAT_EQUITY ? Array.from({length:N}, ()=> base) : (rawData.length ? rawData : Array.from({length:N},(_,i)=> base));
+    const data = FORCE_FLAT_EQUITY
+      ? Array.from({length:N}, ()=> base)
+      : (rawData.length ? rawData : Array.from({length:N}, ()=> base));
+
     if (!labels.length || labels.length !== data.length) {
       labels = Array.from({length:data.length}, (_,i)=> String(i+1));
     }
@@ -870,6 +854,7 @@
     setTimestamp(labels[labels.length-1]);
   }
 </script>
+
 
 
 
