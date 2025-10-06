@@ -3,171 +3,344 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlgoHive — Strategy</title>
+  <title>AlgoHive – Strategy</title>
 
-  <!-- Tailwind + Fonts -->
+  <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
   <style>
     :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0 }
     html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
-    .card{ background:#fff; border:1px solid var(--line); border-radius:16px }
-    .chip{ font-size:.75rem; padding:.25rem .5rem; border:1px solid var(--line); border-radius:999px }
-    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:42px; padding:0 1rem; border-radius:12px; font-weight:600 }
-    .btn-olive{ background:var(--olive); color:#fff }
-    .btn-ghost{ border:1px solid var(--line); background:#fff; color:#0f172a }
-    .metric .k{ font-size:1.25rem; font-weight:700; }
-    .metric .l{ font-size:.70rem; color:#64748b }
+    .card{ background:#fff; border:1px solid var(--line); border-radius:12px }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
+    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem }
+    .tab{ height:36px; border-radius:8px; padding:0 .75rem }
+    .tab-active{ background:#111827; color:#fff }
+    .chip{ font-size:.75rem; padding:.25rem .6rem; border:1px solid var(--line); border-radius:999px }
     .badge{ font-size:.75rem; padding:.125rem .5rem; border-radius:999px }
     .status-ACTIVE{ background:#d1fae5; color:#065f46 }
     .status-PAUSED{ background:#fef3c7; color:#92400e }
     .status-CLOSED{ background:#fee2e2; color:#991b1b }
-    .table td, .table th{ padding:.6rem .8rem; }
+    .metric .k{ font-size:1.25rem; font-weight:700; }
+    .metric .l{ font-size:.72rem; color:#64748b }
+    /* Layout / Sidebar */
+    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
+    #layout.is-collapsed{ --sb:64px }
+    #ah-sidebar{ transition: width .2s ease; width:var(--sb) }
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
+    #ah-sidebar details .sub{ transition: height .2s ease }
+    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
+    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
+    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0 }
+    #ah-sidebar .footer{ transition:all .2s ease }
+    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+    canvas{ max-width:100%; height:auto }
   </style>
 </head>
 
-<body class="min-h-screen">
-  <!-- Top bar -->
-  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <a href="home.html" class="flex items-center gap-2">
-        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" class="w-9 h-9" alt="AH"/>
-        <span class="font-extrabold tracking-tight">AlgoHive</span>
-      </a>
-      <nav class="hidden md:flex items-center gap-1">
-        <a href="home.html" class="chip">Home</a>
-        <a href="pricing.html" class="chip">Plans</a>
-        <a href="#" class="chip">Support</a>
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <!-- ===== Sidebar (unchanged) ===== -->
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain"/>
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
+        </div>
+      </div>
+
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100" href="home.html" title="Home">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
+        </a>
+
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Positions"><i class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">Positions</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Orders"><i class="fa-regular fa-clipboard w-4 text-slate-500"></i><span class="label">Orders</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Activity"><i class="fa-solid fa-bars w-4 text-slate-500"></i><span class="label">Activity</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Balances"><i class="fa-solid fa-table w-4 text-slate-500"></i><span class="label">Balances</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funding"><i class="fa-solid fa-hand-holding-dollar w-4 text-slate-500"></i><span class="label">Funding</span></a>
+          </div>
+        </details>
+
+        <details class="group mt-1" open>
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100" href="strategies.html" title="OpenStrategies"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds"><i class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
+          </div>
+        </details>
+
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="pricing.html" title="Plans & Features"><i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Community"><i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Support"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Legal"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
       </nav>
-      <div class="flex items-center gap-3">
-        <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/></svg>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <button id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Settings">
+          <i class="fa-solid fa-gear"></i>
         </button>
-        <a href="settings.html" class="chip">Settings</a>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Main ===== -->
+    <main class="flex-1 min-w-0">
+      <!-- Header (unchanged) -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
+          <div class="relative w-full">
+            <input class="input w-full pl-9" placeholder="Search"/>
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Profile (dynamic) -->
+        <div class="flex items-center gap-3">
+          <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
+            <i class="fa-regular fa-bell text-slate-500"></i>
+            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
+          </button>
+
+          <img id="hdr-avatar"
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
+               alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
+
+          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
+            <span id="hdr-name">—</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== Strategy Performance Body ===== -->
+      <section class="px-6 py-6 space-y-6">
+        <!-- Top hero row -->
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-2">
+              <span id="st-status" class="badge">—</span>
+              <span id="st-code" class="chip">—</span>
+              <span id="st-ccy" class="chip">—</span>
+            </div>
+            <h1 id="st-name" class="text-2xl md:text-3xl font-extrabold tracking-tight">Strategy</h1>
+            <p id="st-sub" class="text-slate-500 mt-1 line-clamp-2">—</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a id="allocate-btn" class="btn" style="background:var(--olive); color:#fff" href="#" target="_self">Allocate</a>
+            <a href="strategies.html" class="btn">Back</a>
+          </div>
+        </div>
+
+        <!-- Chart + Metrics -->
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="card md:col-span-2 p-3">
+            <div class="flex items-center justify-between px-2">
+              <div class="text-sm font-semibold">Equity Curve</div>
+              <div class="flex items-center gap-2">
+                <button data-range="1M" class="chip range-chip">1M</button>
+                <button data-range="3M" class="chip range-chip">3M</button>
+                <button data-range="6M" class="chip range-chip">6M</button>
+                <button data-range="YTD" class="chip range-chip">YTD</button>
+                <button data-range="ALL" class="chip range-chip" style="border-color:#94a3b8">ALL</button>
+              </div>
+            </div>
+            <div class="mt-2 rounded-xl border border-slate-200 overflow-hidden">
+              <canvas id="eqChart" class="w-full block" style="height:320px"></canvas>
+            </div>
+            <div id="chart-note" class="text-xs text-slate-500 px-2 pt-2">Prices shown as unit price (NAV per unit).</div>
+          </div>
+
+          <div class="card p-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="metric"><div class="l">Unit Price</div><div id="m-price" class="k">—</div></div>
+              <div class="metric"><div class="l">YTD</div><div id="m-ytd" class="k">—</div></div>
+              <div class="metric"><div class="l">1M</div><div id="m-1m" class="k">—</div></div>
+              <div class="metric"><div class="l">All-time</div><div id="m-all" class="k">—</div></div>
+              <div class="metric"><div class="l">Max DD</div><div id="m-dd" class="k">—</div></div>
+              <div class="metric"><div class="l">Sharpe (naïve)</div><div id="m-sharpe" class="k">—</div></div>
+            </div>
+            <div class="mt-4 border-t border-slate-200 pt-3">
+              <div class="text-sm font-semibold mb-2">Fees</div>
+              <div class="flex flex-wrap gap-2 text-sm">
+                <span id="m-mgmt" class="chip">Mgmt: —</span>
+                <span id="m-perf" class="chip">Perf: —</span>
+                <span id="m-model" class="chip">Model: Standard</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- About + Facts -->
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="card p-4 md:col-span-2">
+            <div class="text-sm font-semibold mb-2">About</div>
+            <p id="st-about" class="text-sm text-slate-600 leading-6">—</p>
+          </div>
+          <div class="card p-4">
+            <div class="text-sm font-semibold mb-3">Fast facts</div>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-center justify-between"><span>Base Currency</span><span id="f-ccy" class="font-semibold">—</span></li>
+              <li class="flex items-center justify-between"><span>Code</span><span id="f-code" class="font-semibold">—</span></li>
+              <li class="flex items-center justify-between"><span>Status</span><span id="f-status" class="font-semibold">—</span></li>
+              <li class="flex items-center justify-between"><span>Inception</span><span id="f-incp" class="font-semibold">—</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Recent Prices -->
+        <div class="card overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <div class="text-sm font-semibold">Recent price points</div>
+            <div class="text-xs text-slate-500" id="rows-count">—</div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th class="text-left py-2 px-3">Date</th>
+                  <th class="text-left py-2 px-3">Unit Price</th>
+                  <th class="text-left py-2 px-3">Daily Return</th>
+                </tr>
+              </thead>
+              <tbody id="px-body" class="divide-y divide-slate-100">
+                <!-- rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== Profile Modal (unchanged) ===== -->
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
+      </div>
+      <div class="p-2">
+        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
       </div>
     </div>
-  </header>
+  </div>
 
-  <!-- Main -->
-  <main class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Hero -->
-    <section id="hero" class="mb-6">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <div class="flex items-center gap-2 mb-2">
-            <span id="st-status" class="badge">—</span>
-            <span id="st-code" class="chip">—</span>
-            <span id="st-ccy" class="chip">—</span>
-          </div>
-          <h1 id="st-name" class="text-2xl md:text-3xl font-extrabold tracking-tight">Strategy</h1>
-          <p id="st-sub" class="text-slate-500 mt-1 line-clamp-2">—</p>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <a id="allocate-btn" class="btn btn-olive" href="#" target="_self">Allocate</a>
-          <a href="strategies.html" class="btn btn-ghost">Back</a>
-        </div>
-      </div>
-    </section>
+  <!-- Font Awesome runtime -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
 
-    <!-- Chart + Metrics -->
-    <section class="grid md:grid-cols-3 gap-4 mb-6">
-      <div class="card md:col-span-2 p-3">
-        <div class="flex items-center justify-between px-2">
-          <div class="text-sm font-semibold">Equity Curve</div>
-          <div class="flex items-center gap-2">
-            <button data-range="1M" class="chip range-chip">1M</button>
-            <button data-range="3M" class="chip range-chip">3M</button>
-            <button data-range="6M" class="chip range-chip">6M</button>
-            <button data-range="YTD" class="chip range-chip">YTD</button>
-            <button data-range="ALL" class="chip range-chip border-slate-400">ALL</button>
-          </div>
-        </div>
-        <div class="mt-2 rounded-xl border border-slate-200 overflow-hidden">
-          <canvas id="eqChart" class="w-full block" style="height:320px"></canvas>
-        </div>
-        <div id="chart-note" class="text-xs text-slate-500 px-2 pt-2">Prices shown as unit price (NAV per unit).</div>
-      </div>
+  <!-- Sidebar collapse memory -->
+  <script>
+    (function(){
+      const layout=document.getElementById('layout');
+      const aside=document.getElementById('ah-sidebar');
+      const btn=document.getElementById('ah-collapse');
+      const saved=localStorage.getItem('ah_collapsed')==='true';
+      if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed'); }
+      btn.addEventListener('click',()=>{
+        const isCollapsed=aside.getAttribute('data-collapsed')==='true';
+        if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
+      });
+    })();
+  </script>
 
-      <div class="card p-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="metric"><div class="l">Unit Price</div><div id="m-price" class="k">—</div></div>
-          <div class="metric"><div class="l">YTD</div><div id="m-ytd" class="k">—</div></div>
-          <div class="metric"><div class="l">1M</div><div id="m-1m" class="k">—</div></div>
-          <div class="metric"><div class="l">All-time</div><div id="m-all" class="k">—</div></div>
-          <div class="metric"><div class="l">Max DD</div><div id="m-dd" class="k">—</div></div>
-          <div class="metric"><div class="l">Sharpe (naïve)</div><div id="m-sharpe" class="k">—</div></div>
-        </div>
-        <div class="mt-4 border-t border-slate-200 pt-3">
-          <div class="text-sm font-semibold mb-2">Fees</div>
-          <div class="flex flex-wrap gap-2 text-sm">
-            <span id="m-mgmt" class="chip">Mgmt: —</span>
-            <span id="m-perf" class="chip">Perf: —</span>
-            <span id="m-model" class="chip">Model: Standard</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- About + Facts -->
-    <section class="grid md:grid-cols-3 gap-4">
-      <div class="card p-4 md:col-span-2">
-        <div class="text-sm font-semibold mb-2">About</div>
-        <p id="st-about" class="text-sm text-slate-600 leading-6">
-          —
-        </p>
-      </div>
-      <div class="card p-4">
-        <div class="text-sm font-semibold mb-3">Fast facts</div>
-        <ul class="space-y-2 text-sm">
-          <li class="flex items-center justify-between"><span>Base Currency</span><span id="f-ccy" class="font-semibold">—</span></li>
-          <li class="flex items-center justify-between"><span>Code</span><span id="f-code" class="font-semibold">—</span></li>
-          <li class="flex items-center justify-between"><span>Status</span><span id="f-status" class="font-semibold">—</span></li>
-          <li class="flex items-center justify-between"><span>Inception</span><span id="f-incp" class="font-semibold">—</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- Recent Prices (optional table) -->
-    <section class="mt-6 card overflow-hidden">
-      <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-        <div class="text-sm font-semibold">Recent price points</div>
-        <div class="text-xs text-slate-500" id="rows-count">—</div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm table">
-          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
-            <tr>
-              <th class="text-left">Date</th>
-              <th class="text-left">Unit Price</th>
-              <th class="text-left">Daily Return</th>
-            </tr>
-          </thead>
-          <tbody id="px-body" class="divide-y divide-slate-100">
-            <!-- rows -->
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <!-- Scripts -->
+  <!-- ===== Supabase Auth + Hydrate + Strategy Perf ===== -->
   <script type="module">
     import { supabase } from "/js/supabase.js";
 
     const OLIVE = getComputedStyle(document.documentElement).getPropertyValue('--olive')?.trim() || '#556B2F';
     const $  = (q, el=document)=>el.querySelector(q);
     const $$ = (q, el=document)=>Array.from(el.querySelectorAll(q));
-    const bpsToPct = bps => (bps? (bps/100).toFixed(2)+'%':'0.00%');
     const pct = (x, dp=2)=> (isFinite(x)? (x*100).toFixed(dp)+'%':'—');
-    const fmtMoney = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy||'USD', maximumFractionDigits:2 });
+    const bpsToPct = bps => (bps? (bps/100).toFixed(2)+'%':'0.00%');
+    const fmtMoney = (ccy)=> new Intl.NumberFormat(undefined,{style:'currency', currency: ccy||'USD', maximumFractionDigits:2});
 
-    function qs(key){
-      const u=new URL(location.href);
-      return u.searchParams.get(key);
+    // toast
+    function banner(msg, tone="warn"){
+      let el=document.getElementById("banner");
+      if(!el){
+        el=document.createElement("div");
+        el.id="banner";
+        el.className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+        document.body.appendChild(el);
+      }
+      el.className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+      el.classList.remove("bg-amber-100","text-amber-900","bg-emerald-100","text-emerald-900","bg-rose-100","text-rose-900");
+      if(tone==="warn"){ el.classList.add("bg-amber-100","text-amber-900"); }
+      if(tone==="ok"){   el.classList.add("bg-emerald-100","text-emerald-900"); }
+      if(tone==="err"){  el.classList.add("bg-rose-100","text-rose-900"); }
+      el.textContent=msg; clearTimeout(el._t); el._t=setTimeout(()=>el.remove(), 3500);
     }
 
-    // Minimal line chart (no libs)
+    // Auth guard
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session){
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    }
+    const { data:{ user } } = await supabase.auth.getUser();
+
+    // Ensure profile row
+    async function ensureProfile(userId, email){
+      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      if (data) return data;
+      const up = await supabase.from("profiles").upsert({ id:userId, email, updated_at:new Date().toISOString() }, { onConflict:"id" }).select("*").single();
+      if (up.error) throw up.error;
+      return up.data;
+    }
+    const row = await ensureProfile(user.id, user.email || null);
+
+    // Hydrate header
+    $('#pm-email').textContent = user?.email || "—";
+    $('#sidebar-acc').textContent = row?.account_number || "—";
+    const fn=(row?.first_name||"").trim(), ln=(row?.last_name||"").trim();
+    $('#hdr-name').textContent = (fn||ln) ? `${fn} ${ln}`.trim() : (user.email?.split("@")[0] || "User");
+    const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+    $('#hdr-avatar').src = row?.avatar_url || blankAvatar;
+
+    // Profile modal & routes
+    const modal = $('#profile-modal');
+    $('#hdr-profile-btn')?.addEventListener('click', (e)=>{ e.preventDefault(); modal.classList.remove('hidden'); });
+    modal.addEventListener('click',(e)=>{ if(e.target===modal || e.target.classList.contains('bg-black/40')) modal.classList.add('hidden'); });
+    window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') modal.classList.add('hidden'); });
+    $('#ah-settings')?.addEventListener('click',(e)=>{ e.preventDefault(); location.href='/settings.html#basic'; });
+    $('#pm-logout')?.addEventListener('click', async ()=>{ try{ await supabase.auth.signOut(); location.replace('/auth.html?tab=in'); } catch{ banner('Sorry, logout failed.', 'err'); }});
+    supabase.auth.onAuthStateChange((_ev, sess) => { if(!sess) location.replace('/auth.html?tab=in'); });
+
+    // ===== Strategy Perf =====
+    function qs(key){ return new URL(location.href).searchParams.get(key); }
+
+    // Simple canvas line chart (no libs)
     function drawChart(canvas, series, labels){
       if(!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -176,186 +349,115 @@
       canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
       ctx.clearRect(0,0,W,H);
 
-      // padding + axes
       const P = {l:48, r:16, t:16, b:28};
-      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(P.l, H-P.b); ctx.lineTo(W-P.r, H-P.b); // x
-      ctx.moveTo(P.l, P.t);   ctx.lineTo(P.l,   H-P.b); // y
-      ctx.stroke();
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(P.l,H-P.b); ctx.lineTo(W-P.r,H-P.b); ctx.moveTo(P.l,P.t); ctx.lineTo(P.l,H-P.b); ctx.stroke();
 
       if(!series?.length) return;
+      const min = Math.min(...series), max = Math.max(...series), rng=(max-min)||1;
+      const n=series.length, stepX=(W-P.l-P.r)/Math.max(1,n-1);
 
-      const min = Math.min(...series), max = Math.max(...series), rng = (max-min)||1;
-      const n = series.length;
-      const stepX = (W - P.l - P.r) / Math.max(1, n-1);
-
-      // grid / y ticks (4)
-      ctx.fillStyle = '#64748b'; ctx.font = '12px Inter';
+      // y grid + ticks
+      ctx.fillStyle='#64748b'; ctx.font='12px Inter'; ctx.textAlign='left';
       for(let i=0;i<=4;i++){
-        const y = P.t + (H-P.t-P.b) * (i/4);
+        const y = P.t + (H-P.t-P.b)*(i/4);
         const v = max - rng*(i/4);
-        ctx.strokeStyle='#f1f5f9'; ctx.beginPath(); ctx.moveTo(P.l, y); ctx.lineTo(W-P.r,y); ctx.stroke();
-        ctx.fillStyle='#64748b';
-        ctx.fillText(v.toFixed(2), 8, y+4);
+        ctx.strokeStyle='#f1f5f9'; ctx.beginPath(); ctx.moveTo(P.l,y); ctx.lineTo(W-P.r,y); ctx.stroke();
+        ctx.fillStyle='#64748b'; ctx.fillText(v.toFixed(2), 8, y+4);
       }
 
       // line
       ctx.beginPath();
       for(let i=0;i<n;i++){
-        const x = P.l + i*stepX;
-        const y = P.t + (H-P.t-P.b) * (1 - (series[i]-min)/rng);
-        i? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+        const x=P.l+i*stepX, y=P.t+(H-P.t-P.b)*(1-(series[i]-min)/rng);
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
       }
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = OLIVE;
-      ctx.stroke();
+      ctx.lineWidth=2; ctx.strokeStyle=OLIVE; ctx.stroke();
 
       // area
-      const lastX = P.l + (n-1)*stepX;
-      ctx.lineTo(lastX, H-P.b); ctx.lineTo(P.l, H-P.b); ctx.closePath();
-      const grad = ctx.createLinearGradient(0,P.t,0,H-P.b);
-      grad.addColorStop(0, 'rgba(85,107,47,0.18)');
-      grad.addColorStop(1, 'rgba(85,107,47,0.02)');
-      ctx.fillStyle = grad; ctx.fill();
+      const lastX=P.l+(n-1)*stepX;
+      ctx.lineTo(lastX,H-P.b); ctx.lineTo(P.l,H-P.b); ctx.closePath();
+      const grad=ctx.createLinearGradient(0,P.t,0,H-P.b);
+      grad.addColorStop(0,'rgba(85,107,47,0.18)'); grad.addColorStop(1,'rgba(85,107,47,0.02)');
+      ctx.fillStyle=grad; ctx.fill();
 
-      // x labels: begin, mid, end
+      // x labels start/mid/end
       if(labels?.length){
-        const lbls = [[0,'start'],[Math.floor((n-1)/2),'mid'],[n-1,'end']];
         ctx.fillStyle='#64748b'; ctx.textAlign='center';
-        lbls.forEach(([idx])=>{
-          const x = P.l + idx*stepX;
-          ctx.fillText(labels[idx] || '', x, H-8);
-        });
+        const idxs=[0, Math.floor((n-1)/2), n-1];
+        idxs.forEach(i=>{ const x=P.l+i*stepX; ctx.fillText(labels[i]||'', x, H-8); });
       }
     }
 
     // Metrics helpers
-    function returnsFromPrices(prices){
-      const r=[];
-      for(let i=1;i<prices.length;i++){
-        r.push((prices[i]/prices[i-1])-1);
-      }
-      return r;
-    }
-    function maxDrawdown(prices){
-      let peak = -Infinity, mdd = 0;
-      for(const p of prices){
-        if (p>peak) peak=p;
-        mdd = Math.min(mdd, p/peak - 1);
-      }
-      return mdd; // negative
-    }
-    function sharpeNaive(dailyRets){
-      if(!dailyRets.length) return NaN;
-      const mean = dailyRets.reduce((a,b)=>a+b,0)/dailyRets.length;
-      const sd = Math.sqrt(dailyRets.reduce((a,b)=>a+(b-mean)**2,0)/(dailyRets.length||1));
-      const ann = (mean/ (sd||Infinity)) * Math.sqrt(252);
-      return ann;
-    }
-    function ytd(prices, dates){ // dates: ISO
-      if(!prices?.length || !dates?.length) return NaN;
-      const year = new Date().getFullYear();
-      const idxStart = dates.findIndex(d => new Date(d).getFullYear()===year);
-      if(idxStart<0) return NaN;
-      const start = prices[idxStart], last=prices[prices.length-1];
-      return (last/start)-1;
-    }
+    function returnsFromPrices(prices){ const r=[]; for(let i=1;i<prices.length;i++){ r.push(prices[i]/prices[i-1]-1); } return r; }
+    function maxDrawdown(prices){ let peak=-Infinity, mdd=0; for(const p of prices){ if(p>peak) peak=p; mdd=Math.min(mdd, p/peak-1);} return mdd; }
+    function sharpeNaive(daily){ if(!daily.length) return NaN; const m=daily.reduce((a,b)=>a+b,0)/daily.length; const sd=Math.sqrt(daily.reduce((a,b)=>a+(b-m)**2,0)/daily.length)||Infinity; return (m/sd)*Math.sqrt(252); }
+    function ytd(prices, dates){ const yr=(new Date()).getFullYear(); const i=dates.findIndex(d=> new Date(d).getFullYear()===yr); if(i<0) return NaN; return prices.at(-1)/prices[i]-1; }
     function rangeSlice(dates, prices, key){
       if(key==='ALL') return {dates, prices};
-      const now = new Date();
-      let from = new Date(0);
-      if(key==='1M'){ from = new Date(now); from.setMonth(now.getMonth()-1); }
-      if(key==='3M'){ from = new Date(now); from.setMonth(now.getMonth()-3); }
-      if(key==='6M'){ from = new Date(now); from.setMonth(now.getMonth()-6); }
-      if(key==='YTD'){ from = new Date(new Date().getFullYear(),0,1); }
-      const outD=[]; const outP=[];
-      for(let i=0;i<dates.length;i++){
-        const d = new Date(dates[i]);
-        if(d>=from){ outD.push(dates[i]); outP.push(prices[i]); }
-      }
-      return outD.length? {dates:outD, prices:outP} : {dates, prices};
+      const now = new Date(); let from=new Date(0);
+      if(key==='1M'){ from=new Date(now); from.setMonth(now.getMonth()-1); }
+      if(key==='3M'){ from=new Date(now); from.setMonth(now.getMonth()-3); }
+      if(key==='6M'){ from=new Date(now); from.setMonth(now.getMonth()-6); }
+      if(key==='YTD'){ from=new Date(now.getFullYear(),0,1); }
+      const D=[], P=[]; for(let i=0;i<dates.length;i++){ const d=new Date(dates[i]); if(d>=from){ D.push(dates[i]); P.push(prices[i]); } }
+      return D.length? {dates:D, prices:P} : {dates, prices};
     }
+    function shortDate(dISO){ const d=new Date(dISO); return d.toLocaleDateString(undefined,{month:'short', day:'2-digit'}); }
 
-    // Page state
-    const state = {
-      id: qs('id'),
-      strategy: null,
-      prices: [],
-      dates: [],
-      base_ccy: 'USD',
-      latest: null
-    };
+    // State
+    const state = { id: qs('id'), strategy:null, base:'USD', prices:[], dates:[], latest:null };
 
-    if(!state.id){
-      alert('Missing strategy id'); location.replace('strategies.html');
-    }
+    if(!state.id){ banner('Missing strategy id', 'err'); location.replace('strategies.html'); }
 
     // Load strategy
     const { data: st, error: e1 } = await supabase
       .from('strategies')
       .select('id, code, name, base_currency, status, mgmt_fee_bps, perf_fee_bps, meta')
       .eq('id', state.id).single();
-
     if(e1 || !st){
-      document.querySelector('main').innerHTML = `
-        <div class="card p-6 mt-10">
-          <div class="text-rose-700 font-semibold mb-2">Strategy not found</div>
-          <a class="btn btn-ghost" href="strategies.html">Back to Strategies</a>
-        </div>`;
+      $('.px-6.py-6')?.insertAdjacentHTML('afterbegin', `<div class="card p-6 text-rose-700">Strategy not found.</div>`);
       throw e1 || new Error('No strategy');
     }
-    state.strategy = st;
-    state.base_ccy = st.base_currency || 'USD';
+    state.strategy = st; state.base = st.base_currency || 'USD';
 
-    // Try latest price
+    // Latest price (optional)
     try{
-      const { data: px } = await supabase
-        .from('v_strategy_latest_price')
-        .select('unit_price')
-        .eq('strategy_id', state.id).maybeSingle();
-      state.latest = px?.unit_price ?? null;
+      const { data: lp } = await supabase.from('v_strategy_latest_price')
+        .select('unit_price').eq('strategy_id', state.id).maybeSingle();
+      state.latest = lp?.unit_price ?? null;
     }catch{}
 
-    // Load series (try view -> fallback to strategy_valuations -> placeholder)
-    let rows = [];
-    let usedSource = 'v_strategy_unit_price_series';
+    // Series: view -> fallback -> placeholder
+    let rows=[]; let used='v_strategy_unit_price_series';
     try{
-      const since = new Date(); since.setMonth(since.getMonth()-12);
-      const { data } = await supabase
-        .from('v_strategy_unit_price_series')
-        .select('d, unit_price')
-        .eq('strategy_id', state.id)
-        .gte('d', since.toISOString().slice(0,10))
-        .order('d', {ascending:true});
+      const since=new Date(); since.setMonth(since.getMonth()-12);
+      const { data } = await supabase.from('v_strategy_unit_price_series')
+        .select('d, unit_price').eq('strategy_id', state.id).gte('d', since.toISOString().slice(0,10)).order('d',{ascending:true});
       rows = data || [];
     }catch{
-      usedSource = 'strategy_valuations';
+      used='strategy_valuations';
       try{
-        const since = new Date(); since.setMonth(since.getMonth()-12);
-        const { data } = await supabase
-          .from('strategy_valuations')
-          .select('d, unit_price')
-          .eq('strategy_id', state.id)
-          .gte('d', since.toISOString().slice(0,10))
-          .order('d',{ascending:true});
+        const since=new Date(); since.setMonth(since.getMonth()-12);
+        const { data } = await supabase.from('strategy_valuations')
+          .select('d, unit_price').eq('strategy_id', state.id).gte('d', since.toISOString().slice(0,10)).order('d',{ascending:true});
         rows = data || [];
       }catch{}
     }
 
-    if(!rows.length){
-      // build a gentle placeholder slope around 1.00
-      const N = 120; let p=1;
-      for(let i=0;i<N;i++){ p *= (1 + (Math.random()-0.48)*0.004); state.prices.push(+p.toFixed(4)); }
-      const start = new Date(); start.setMonth(start.getMonth()-6);
-      for(let i=0;i<N;i++){ const d=new Date(start); d.setDate(d.getDate()+i); state.dates.push(d.toISOString().slice(0,10)); }
-    } else {
-      state.dates  = rows.map(r=> (r.d?.slice?.(0,10)) || r.d);
+    if(rows.length){
+      state.dates  = rows.map(r=> r.d?.slice?.(0,10) || r.d);
       state.prices = rows.map(r=> Number(r.unit_price));
-      if(!state.latest && state.prices.length) state.latest = state.prices[state.prices.length-1];
+      if(state.latest==null && state.prices.length) state.latest = state.prices.at(-1);
+    } else {
+      // Placeholder gentle drift
+      const N=120; let p=1;
+      const start=new Date(); start.setMonth(start.getMonth()-6);
+      for(let i=0;i<N;i++){ p *= (1+(Math.random()-0.48)*0.004); state.prices.push(+p.toFixed(4)); const d=new Date(start); d.setDate(d.getDate()+i); state.dates.push(d.toISOString().slice(0,10)); }
     }
 
-    // Paint header bits
+    // Paint header/meta
     $('#st-name').textContent = st.name || st.code || 'Strategy';
     $('#st-code').textContent = st.code || '—';
     $('#st-ccy').textContent  = st.base_currency || '—';
@@ -363,79 +465,59 @@
     $('#f-ccy').textContent   = st.base_currency || '—';
     $('#f-status').textContent= st.status || '—';
     $('#st-sub').textContent  = st.meta?.subtitle || 'Strategy performance overview';
-    $('#st-about').textContent= st.meta?.description || 'No description provided yet.';
+    $('#st-about').textContent= st.meta?.description || 'No description yet.';
     $('#f-incp').textContent  = st.meta?.inception_date || '—';
-    const sb = $('#st-status');
-    sb.textContent = st.status || '—';
-    sb.className = `badge status-${st.status||'NA'}`;
-
-    // Fees
+    const sb = $('#st-status'); sb.textContent = st.status || '—'; sb.className = `badge status-${st.status||'NA'}`;
     $('#m-mgmt').textContent  = `Mgmt: ${bpsToPct(st.mgmt_fee_bps)}`;
     $('#m-perf').textContent  = `Perf: ${bpsToPct(st.perf_fee_bps)}`;
+    $('#m-model').textContent = `Model: ${st.meta?.fee_model || 'Standard'}`;
     $('#allocate-btn').href   = `allocate.html?strategy=${encodeURIComponent(state.id)}`;
 
-    // Metrics calc
-    const px = state.prices.slice();
-    const dt = state.dates.slice();
-    const latest = state.latest;
-    const mfmt = fmtMoney(state.base_ccy);
-    $('#m-price').textContent = (latest!=null)? mfmt.format(latest) : '—';
-
+    // Metrics
+    const px = state.prices, dt = state.dates;
     const dR = returnsFromPrices(px);
-    const ytdR   = ytd(px, dt);
-    const oneM   = (()=>{ // 21 trading days ~ 1M
-      if(px.length<22) return NaN;
-      const a = px[px.length-22], b=px[px.length-1]; return (b/a)-1;
-    })();
-    const allR   = px.length? (px[px.length-1]/px[0] - 1) : NaN;
-    const dd     = maxDrawdown(px);
-    const shr    = sharpeNaive(dR);
+    const oneM = (px.length>21)? (px.at(-1)/px.at(-22)-1) : NaN;
+    const allR = px.length? (px.at(-1)/px[0]-1) : NaN;
+    const ytdR = ytd(px, dt);
+    const dd   = maxDrawdown(px);
+    const shr  = sharpeNaive(dR);
+    $('#m-price').textContent = (state.latest!=null)? fmtMoney(state.base).format(state.latest) : '—';
+    $('#m-1m').textContent    = isFinite(oneM)? pct(oneM):'—';
+    $('#m-all').textContent   = isFinite(allR)? pct(allR):'—';
+    $('#m-ytd').textContent   = isFinite(ytdR)? pct(ytdR):'—';
+    $('#m-dd').textContent    = isFinite(dd)?  pct(dd):'—';
+    $('#m-sharpe').textContent= isFinite(shr)? (Math.round(shr*100)/100).toFixed(2) : '—';
 
-    $('#m-ytd').textContent   = isFinite(ytdR)?  pct(ytdR): '—';
-    $('#m-1m').textContent    = isFinite(oneM)?  pct(oneM): '—';
-    $('#m-all').textContent   = isFinite(allR)?  pct(allR): '—';
-    $('#m-dd').textContent    = isFinite(dd)?    pct(dd):   '—';
-    $('#m-sharpe').textContent= isFinite(shr)?   (Math.round(shr*100)/100).toFixed(2) : '—';
-
-    // Chart initial
+    // Chart
     const chart = $('#eqChart');
-    function labelFormat(dISO){
-      const d = new Date(dISO);
-      return d.toLocaleDateString(undefined,{month:'short', day:'2-digit'});
-    }
-    drawChart(chart, px, dt.map(labelFormat));
-    $('#chart-note').textContent = (rows.length? `Source: ${usedSource}`:'Showing placeholder curve (no stored history yet).');
+    drawChart(chart, px, dt.map(shortDate));
+    $('#chart-note').textContent = rows.length? `Source: ${used}` : 'Showing placeholder curve (no stored history yet).';
 
     // Range chips
     $$('.range-chip').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        $$('.range-chip').forEach(b=>b.style.borderColor='');
-        btn.style.borderColor = '#94a3b8';
-        const key = btn.getAttribute('data-range');
+        $$('.range-chip').forEach(b=> b.style.borderColor='');
+        btn.style.borderColor='#94a3b8';
+        const key=btn.getAttribute('data-range');
         const sliced = rangeSlice(state.dates, state.prices, key);
-        drawChart(chart, sliced.prices, sliced.dates.map(labelFormat));
+        drawChart(chart, sliced.prices, sliced.dates.map(shortDate));
       });
     });
 
-    // Recent price table
-    const body = $('#px-body');
-    const rowsCount = $('#rows-count');
+    // Recent table
+    const body = $('#px-body'); const rowsCount = $('#rows-count');
     if(body){
       const lastN = Math.min(30, px.length);
       let html='';
       for(let i=px.length-lastN; i<px.length; i++){
         if(i<0) continue;
-        const d = dt[i];
-        const p = px[i];
-        const r = i? (p/px[i-1]-1): 0;
+        const r = i? px[i]/px[i-1]-1 : 0;
         const col = r>0? 'text-emerald-600' : (r<0? 'text-rose-600':'text-slate-600');
-        html += `
-          <tr>
-            <td>${d}</td>
-            <td>${p.toFixed(4)}</td>
-            <td class="${col}">${(r*100).toFixed(2)}%</td>
-          </tr>
-        `;
+        html += `<tr>
+          <td class="py-2 px-3">${dt[i]}</td>
+          <td class="py-2 px-3">${px[i].toFixed(4)}</td>
+          <td class="py-2 px-3 ${col}">${(r*100).toFixed(2)}%</td>
+        </tr>`;
       }
       body.innerHTML = html || `<tr><td colspan="3" class="py-6 text-center text-slate-500">No price history yet.</td></tr>`;
       rowsCount.textContent = html? `${lastN} rows` : '0 rows';
