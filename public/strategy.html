@@ -1,69 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoHive – Dashboard (Dynamic)</title>
 
-  <!-- Tailwind + Fonts + Icons (fine for dev) -->
+  <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
   <style>
-    :root {
-      --page: #0b1220;
-      --bg: #ffffff;
-      --muted: #64748b;
-      --ink: #0f172a;
-      --olive: #556B2F;
-      --brand: #f59e0b;
-      --line: #e2e8f0
-    }
-
-    html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink) }
-
-    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; height: 40px; padding: 0 .875rem; border-radius: 10px; border: 1px solid var(--line); font-weight: 600 }
-    .input { height: 40px; border: 1px solid var(--line); border-radius: 10px; padding: 0 .75rem }
-    .tab { height: 36px; border-radius: 8px; padding: 0 .75rem }
-    .tab-active { background: #111827; color: #fff }
-
-    /* Layout / Sidebar */
-    #layout { --sb: 220px; display: grid; grid-template-columns: var(--sb) 1fr; min-height: 100vh }
-    #layout.is-collapsed { --sb: 64px }
-    #ah-sidebar { transition: width .2s ease; width: var(--sb) }
-    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron { display: none }
-    #ah-sidebar details .sub { transition: height .2s ease }
-    #ah-sidebar[data-collapsed="true"] details>.sub { display: none !important }
-    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary { justify-content: center; gap: .25rem }
-    #ah-sidebar[data-collapsed="true"] details>summary span { gap: 0 }
-    #ah-sidebar .footer { transition: all .2s ease }
-    #ah-sidebar[data-collapsed="true"] .footer { justify-content: center; flex-direction: column; gap: 12px }
-    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) { transform: rotate(180deg) }
-
-    /* Perf tiles */
-    .ps-tile { border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; background: #fff }
-    .ps-label { color: #64748b; font-weight: 500; font-size: .85rem }
-    .ps-value { font-weight: 600; font-size: 1rem; margin-top: 2px }
-
-    .no-scrollbar::-webkit-scrollbar { display: none }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none }
-    .scrollbar-hide::-webkit-scrollbar { display: none }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none }
-
-    canvas { max-width: 100%; height: auto }
-    table { max-width: 100% }
-
-    /* refresh spin */
-    @keyframes ah-spin { to { transform: rotate(360deg);} }
-    .spin i { animation: ah-spin 0.8s linear infinite; }
+    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0 }
+    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink)}
+    .card{ background:#fff; border:1px solid var(--line); border-radius:12px}
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600}
+    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem}
+    .tab{ height:36px; border-radius:8px; padding:0 .75rem}
+    .tab-active{ background:#111827; color:#fff}
+    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh}
+    #layout.is-collapsed{ --sb:64px }
+    #ah-sidebar{ transition:width .2s ease; width:var(--sb)}
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none}
+    #ah-sidebar details .sub{ transition:height .2s ease}
+    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none !important}
+    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem}
+    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0}
+    #ah-sidebar .footer{ transition:all .2s ease}
+    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px}
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg)}
+    .ps-tile{ border:1px solid #e5e7eb; border-radius:14px; padding:14px 16px; background:#fff}
+    .ps-label{ color:#64748b; font-weight:500; font-size:.85rem}
+    .ps-value{ font-weight:600; font-size:1rem; margin-top:2px}
+    .no-scrollbar::-webkit-scrollbar{ display:none}
+    .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none}
+    canvas{ max-width:100%; height:auto}
+    table{ max-width:100%}
+    @keyframes ah-spin{ to{ transform:rotate(360deg)}}
+    .spin i{ animation:ah-spin .8s linear infinite}
 
     /* Calendar Returns */
-    .cal-grid { display: grid; grid-auto-rows: minmax(36px, auto); }
-    .cal-cell { font-size: 12px; font-weight: 600; border-radius: 10px; border: 1px solid #e5e7eb; display:flex; align-items:center; justify-content:center; }
-    .cal-head { font-size: 12px; font-weight: 600; color: #64748b; display:flex; align-items:center; }
+    .cal-grid{ display:grid; grid-auto-rows:minmax(36px,auto)}
+    .cal-cell{ font-size:12px; font-weight:600; border-radius:10px; border:1px solid #e5e7eb; display:flex; align-items:center; justify-content:center}
+    .cal-head{ font-size:12px; font-weight:600; color:#64748b; display:flex; align-items:center}
   </style>
 </head>
 
@@ -72,7 +51,7 @@
     <!-- ===== Sidebar ===== -->
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
       <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
-        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain"/>
         <div class="min-w-0">
           <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
           <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
@@ -134,18 +113,15 @@
           </div>
         </div>
 
-        <!-- Profile (dynamic) -->
+        <!-- Profile -->
         <div class="flex items-center gap-3">
           <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
             <i class="fa-regular fa-bell text-slate-500"></i>
             <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
           </button>
-
-          <img id="hdr-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
-
+          <img id="hdr-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
           <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
-            <span id="hdr-name">—</span>
-            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+            <span id="hdr-name">—</span><i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
         </div>
       </div>
@@ -164,9 +140,7 @@
               <button data-range="1M" class="tab text-[13px]">1M</button>
               <button data-range="1Y" class="tab text-[13px]">1Y</button>
               <button data-range="ALL" class="tab text-[13px]">All</button>
-              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
+              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
           </div>
           <div class="px-5 pt-4">
@@ -177,36 +151,30 @@
           </div>
           <div class="px-2 pb-4 pt-2">
             <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
-            <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
-              <span>10 AM</span><span>11 AM</span><span>2 PM</span><span>4 PM</span>
-            </div>
+            <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none"><span>10 AM</span><span>11 AM</span><span>2 PM</span><span>4 PM</span></div>
           </div>
         </section>
 
         <!-- Right column -->
         <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-          <!-- Allocation Flow (replaces 6 months earnings) -->
+          <!-- Allocation Flow (replaces old 6 months + removed Strategies card) -->
           <div class="card p-5 border border-slate-200">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-medium text-slate-900">Allocate to Strategy</h3>
               <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Demo</span>
             </div>
 
-            <label class="block text-xs text-slate-500 mb-1.5" for="alloc-strategy">Strategy</label>
-            <select id="alloc-strategy" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm mb-3">
-              <option>Nasdaq Momentum</option>
-              <option>USDJPY Hedge</option>
-              <option>ZA Equities Long-Only</option>
-            </select>
+            <label class="block text-xs text-slate-500 mb-1.5" for="alloc-name">Strategy name</label>
+            <input id="alloc-name" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm mb-3" placeholder="e.g., Nasdaq Momentum" value="Nasdaq Momentum"/>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs text-slate-500 mb-1.5" for="alloc-price">Unit Price (USD)</label>
-                <input id="alloc-price" type="number" step="0.01" value="100.00" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+                <input id="alloc-price" type="number" step="0.01" value="100.00" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm"/>
               </div>
               <div>
                 <label class="block text-xs text-slate-500 mb-1.5" for="alloc-units">Units</label>
-                <input id="alloc-units" type="number" min="1" value="10" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+                <input id="alloc-units" type="number" min="1" value="10" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm"/>
               </div>
             </div>
 
@@ -219,9 +187,7 @@
               <div class="flex items-center gap-2">
                 <label class="text-xs text-slate-500">Funding</label>
                 <select id="alloc-funding" class="h-8 rounded-full border border-slate-200 px-3 text-xs">
-                  <option>Wire / EFT</option>
-                  <option>Card</option>
-                  <option>Internal Cash</option>
+                  <option>Wire / EFT</option><option>Card</option><option>Internal Cash</option>
                 </select>
               </div>
               <button id="alloc-btn" class="btn bg-[var(--olive)] text-white border-none hover:opacity-90">
@@ -233,20 +199,6 @@
               <i class="fa-solid fa-check mr-2"></i>
               Allocation submitted for <span id="toast-strat">—</span>: <span id="toast-units">—</span> unit(s) @ <span id="toast-price">—</span>.
             </div>
-          </div>
-
-          <!-- Strategies -->
-          <div class="card p-5 border border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-medium text-slate-900">Strategies</h3>
-              <a href="/strategies.html" class="text-sm text-olive-600 hover:underline">Browse</a>
-            </div>
-            <label class="block text-xs text-slate-500 mb-1.5" for="strat-select">Select strategy</label>
-            <select id="strat-select" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm">
-              <option>Loading…</option>
-            </select>
-            <div id="strat-meta" class="text-xs text-slate-500 mt-3">—</div>
-            <div id="strat-empty" class="text-xs text-slate-400 mt-2 hidden">Invest in a strategy</div>
           </div>
 
           <!-- Asset class allocation -->
@@ -272,7 +224,7 @@
               <div class="ps-tile"><div class="ps-label">CAGR (sim.)</div><div id="ps-cagr" class="ps-value text-slate-800">+7.8%</div></div>
             </div>
 
-            <!-- Calendar Returns (Months = rows, Years = cols) -->
+            <!-- Calendar Returns -->
             <div class="mt-6">
               <div class="flex items-center justify-between mb-2">
                 <div class="text-sm font-semibold text-slate-900">Calendar Returns</div>
@@ -303,7 +255,7 @@
           </div>
         </section>
 
-        <!-- Top Positions -->
+        <!-- Top Positions + Recent Orders (unchanged) -->
         <section class="col-span-12 lg:col-span-9 min-w-0">
           <div class="card rounded-2xl border border-slate-200 p-6">
             <div class="flex items-center justify-between">
@@ -312,51 +264,24 @@
             </div>
             <div class="mt-4 flex flex-wrap items-center gap-3">
               <label class="text-sm text-slate-500">Asset Class</label>
-              <select class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <option>All</option><option>Stocks</option><option>Crypto</option><option>ETFs</option>
-              </select>
+              <select class="h-9 rounded-lg border border-slate-200 px-3 text-sm"><option>All</option><option>Stocks</option><option>Crypto</option><option>ETFs</option></select>
               <label class="ml-2 text-sm text-slate-500">Side</label>
-              <select class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <option>All</option><option>Buy</option><option>Sell</option>
-              </select>
+              <select class="h-9 rounded-lg border border-slate-200 px-3 text-sm"><option>All</option><option>Buy</option><option>Sell</option></select>
             </div>
-
             <div class="mt-4 overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="text-slate-500">
-                    <th class="py-3 text-left font-normal">Asset</th>
-                    <th class="py-3 text-left font-normal">Price</th>
-                    <th class="py-3 text-left font-normal">Qty</th>
-                    <th class="py-3 text-left font-normal">Market Value</th>
-                    <th class="py-3 text-left font-normal">Total P/L ($)</th>
-                    <th class="py-3 text-center font-normal"> </th>
-                  </tr>
+                  <tr class="text-slate-500"><th class="py-3 text-left font-normal">Asset</th><th class="py-3 text-left font-normal">Price</th><th class="py-3 text-left font-normal">Qty</th><th class="py-3 text-left font-normal">Market Value</th><th class="py-3 text-left font-normal">Total P/L ($)</th><th class="py-3 text-center font-normal"> </th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
-                    <td class="py-3">$255.46</td>
-                    <td class="py-3">399</td>
-                    <td class="py-3">$101,928.54</td>
-                    <td class="py-3 text-green-600">+$1,121.19</td>
-                    <td class="py-3 text-center"></td>
-                  </tr>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td>
-                    <td class="py-3">$178.19</td>
-                    <td class="py-3">301</td>
-                    <td class="py-3">$53,635.19</td>
-                    <td class="py-3 text-red-600">-$343.50</td>
-                    <td class="py-3 text-center"></td>
-                  </tr>
+                  <tr class="hover:bg-slate-50"><td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td><td class="py-3">$255.46</td><td class="py-3">399</td><td class="py-3">$101,928.54</td><td class="py-3 text-green-600">+$1,121.19</td><td class="py-3 text-center"></td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td><td class="py-3">$178.19</td><td class="py-3">301</td><td class="py-3">$53,635.19</td><td class="py-3 text-red-600">-$343.50</td><td class="py-3 text-center"></td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- Recent Orders -->
         <section class="col-span-12 lg:col-span-9 min-w-0">
           <div class="card rounded-2xl border border-slate-200 p-6">
             <div class="flex items-center justify-between">
@@ -372,9 +297,7 @@
               <button id="cancel-selected" class="h-9 rounded-lg bg-amber-100 text-amber-900 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed" disabled>
                 Cancel <span id="sel-count">0</span> selected
               </button>
-              <button class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <i class="fa-solid fa-table-cells-large mr-2 text-slate-500"></i> Columns
-              </button>
+              <button class="h-9 rounded-lg border border-slate-200 px-3 text-sm"><i class="fa-solid fa-table-cells-large mr-2 text-slate-500"></i> Columns</button>
             </div>
 
             <div class="mt-3 text-xs text-slate-400" id="clear-selection" hidden>Clear Selection</div>
@@ -383,7 +306,7 @@
               <table class="w-full text-sm">
                 <thead>
                   <tr class="text-slate-500">
-                    <th class="py-3 pl-3"><input id="chk-all" type="checkbox" class="h-4 w-4 rounded border-slate-300" /></th>
+                    <th class="py-3 pl-3"><input id="chk-all" type="checkbox" class="h-4 w-4 rounded border-slate-300"/></th>
                     <th class="py-3 text-left font-normal">Asset</th>
                     <th class="py-3 text-left font-normal">Order Type</th>
                     <th class="py-3 text-left font-normal">Side</th>
@@ -396,126 +319,76 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
-                    <td class="py-3">Market</td>
-                    <td class="py-3">sell</td>
-                    <td class="py-3">1.00</td>
-                    <td class="py-3">1.00</td>
-                    <td class="py-3">254.81</td>
-                    <td class="py-3">filled</td>
-                    <td class="py-3">-</td>
-                    <td class="py-3">Sep 26, 2025, 10:34</td>
-                  </tr>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td>
-                    <td class="py-3">Market</td>
-                    <td class="py-3">buy</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">252.66</td>
-                    <td class="py-3">filled</td>
-                    <td class="py-3">-</td>
-                    <td class="py-3">Sep 25, 2025, 09:02</td>
-                  </tr>
-                  <tr class="hover:bg-slate-50">
-                    <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" /></td>
-                    <td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td>
-                    <td class="py-3">Market</td>
-                    <td class="py-3">buy</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">300.00</td>
-                    <td class="py-3">179.33</td>
-                    <td class="py-3">filled</td>
-                    <td class="py-3">-</td>
-                    <td class="py-3">Sep 25, 2025, 08:41</td>
-                  </tr>
+                  <tr class="hover:bg-slate-50"><td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300"/></td><td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td><td class="py-3">Market</td><td class="py-3">sell</td><td class="py-3">1.00</td><td class="py-3">1.00</td><td class="py-3">254.81</td><td class="py-3">filled</td><td class="py-3">-</td><td class="py-3">Sep 26, 2025, 10:34</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300"/></td><td class="py-3"><a class="text-slate-800 hover:underline" href="#">AAPL</a></td><td class="py-3">Market</td><td class="py-3">buy</td><td class="py-3">300.00</td><td class="py-3">300.00</td><td class="py-3">252.66</td><td class="py-3">filled</td><td class="py-3">-</td><td class="py-3">Sep 25, 2025, 09:02</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300"/></td><td class="py-3"><a class="text-slate-800 hover:underline" href="#">NVDA</a></td><td class="py-3">Market</td><td class="py-3">buy</td><td class="py-3">300.00</td><td class="py-3">300.00</td><td class="py-3">179.33</td><td class="py-3">filled</td><td class="py-3">-</td><td class="py-3">Sep 25, 2025, 08:41</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- helpers -->
         <style>
-          .scrollbar-hide::-webkit-scrollbar { display: none }
-          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none }
+          .scrollbar-hide::-webkit-scrollbar{display:none}
+          .scrollbar-hide{ -ms-overflow-style:none; scrollbar-width:none}
         </style>
       </div>
 
       <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
       <script>
-        // Holdings + Allocation demo (existing)
+        // Holdings demo tiles
         (() => {
           const holdings = [
-            { ticker: 'AAPL', name: 'Apple, Inc', price: 1232.00, pct: 11.01, bg: '#111827' },
-            { ticker: 'PYPL', name: 'PayPal, Inc', price: 965.00, pct: -9.05, bg: '#2563eb' },
-            { ticker: 'TSLA', name: 'Tesla, Inc', price: 1232.00, pct: 11.01, bg: '#dc2626' },
-            { ticker: 'AMZN', name: 'Amazon.com', price: 2567.99, pct: 11.01, bg: '#d97706' },
-            { ticker: 'NVDA', name: 'NVIDIA Corp', price: 876.12, pct: 2.44, bg: '#16a34a' },
-            { ticker: 'MSFT', name: 'Microsoft', price: 412.33, pct: -1.32, bg: '#0ea5e9' },
+            { ticker:'AAPL', name:'Apple, Inc', price:1232.00, pct:11.01, bg:'#111827' },
+            { ticker:'PYPL', name:'PayPal, Inc', price:965.00, pct:-9.05, bg:'#2563eb' },
+            { ticker:'TSLA', name:'Tesla, Inc', price:1232.00, pct:11.01, bg:'#dc2626' },
+            { ticker:'AMZN', name:'Amazon.com', price:2567.99, pct:11.01, bg:'#d97706' },
+            { ticker:'NVDA', name:'NVIDIA Corp', price:876.12, pct:2.44, bg:'#16a34a' },
+            { ticker:'MSFT', name:'Microsoft', price:412.33, pct:-1.32, bg:'#0ea5e9' },
           ];
           const track = document.getElementById('hold-track');
-          const fmt = v => `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          const chip = p => `<span class="px-2.5 py-1 rounded-full text-xs font-normal ${p >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${p >= 0 ? '↑' : '↓'} ${Math.abs(p).toFixed(2)}%</span>`;
-          const logo = (t, bg) => `<div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-normal" style="background:${bg}">${t[0]}</div>`;
-          track.innerHTML = holdings.map(h => `
+          const fmt = v => `$${v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}`;
+          const chip = p => `<span class="px-2.5 py-1 rounded-full text-xs font-normal ${p>=0?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${p>=0?'↑':'↓'} ${Math.abs(p).toFixed(2)}%</span>`;
+          const logo = (t,bg) => `<div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-normal" style="background:${bg}">${t[0]}</div>`;
+          track.innerHTML = holdings.map(h=>`
             <article class="min-w-[280px] max-w-[280px] snap-start bg-white border border-slate-200 rounded-2xl p-5 flex justify-between items-center">
-              <div class="flex items-center gap-3">
-                ${logo(h.ticker, h.bg)}
-                <div>
-                  <div class="text-sm font-normal text-slate-900">${h.ticker}</div>
-                  <div class="text-xs text-slate-500">${h.name}</div>
-                </div>
+              <div class="flex items-center gap-3">${logo(h.ticker,h.bg)}
+                <div><div class="text-sm font-normal text-slate-900">${h.ticker}</div><div class="text-xs text-slate-500">${h.name}</div></div>
               </div>
-              <div class="text-right">
-                <div class="text-lg font-normal text-slate-900">${fmt(h.price)}</div>
-                <div class="mt-2">${chip(h.pct)}</div>
-              </div>
-            </article>
-          `).join('');
+              <div class="text-right"><div class="text-lg font-normal text-slate-900">${fmt(h.price)}</div><div class="mt-2">${chip(h.pct)}</div></div>
+            </article>`).join('');
           const CARD_W = 284;
-          document.getElementById('hold-prev').onclick = () => track.scrollBy({ left: -CARD_W, behavior: 'smooth' });
-          document.getElementById('hold-next').onclick = () => track.scrollBy({ left: CARD_W, behavior: 'smooth' });
+          document.getElementById('hold-prev').onclick = () => track.scrollBy({ left: -CARD_W, behavior:'smooth' });
+          document.getElementById('hold-next').onclick = () => track.scrollBy({ left: CARD_W, behavior:'smooth' });
 
-          const alloc = [{ label: 'Stocks', pct: 56, color: '#111827' }, { label: 'ETFs', pct: 22, color: '#2563eb' }, { label: 'Crypto', pct: 17, color: '#16a34a' }, { label: 'Cash', pct: 5, color: '#f59e0b' }];
+          const alloc = [{label:'Stocks',pct:56,color:'#111827'},{label:'ETFs',pct:22,color:'#2563eb'},{label:'Crypto',pct:17,color:'#16a34a'},{label:'Cash',pct:5,color:'#f59e0b'}];
           const allocWrap = document.getElementById('asset-allocation');
-          const row = i => `
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-sm text-slate-700">${i.label}</span>
-                <span class="text-sm font-medium text-slate-900">${i.pct}%</span>
-              </div>
-              <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div>
-              </div>
-            </div>`;
-          allocWrap.innerHTML = alloc.map(row).join('');
+          allocWrap.innerHTML = alloc.map(i=>`
+            <div><div class="flex items-center justify-between mb-1.5"><span class="text-sm text-slate-700">${i.label}</span><span class="text-sm font-medium text-slate-900">${i.pct}%</span></div>
+              <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div></div></div>`).join('');
         })();
       </script>
 
       <!-- Allocation flow logic -->
       <script>
         (function(){
+          const nameEl  = document.getElementById('alloc-name');
           const priceEl = document.getElementById('alloc-price');
           const unitsEl = document.getElementById('alloc-units');
           const totalEl = document.getElementById('alloc-total');
-          const btn = document.getElementById('alloc-btn');
-          const stratSel = document.getElementById('alloc-strategy');
-          const toast = document.getElementById('alloc-toast');
-          const tStrat = document.getElementById('toast-strat');
-          const tUnits = document.getElementById('toast-units');
-          const tPrice = document.getElementById('toast-price');
+          const btn     = document.getElementById('alloc-btn');
+          const toast   = document.getElementById('alloc-toast');
+          const tStrat  = document.getElementById('toast-strat');
+          const tUnits  = document.getElementById('toast-units');
+          const tPrice  = document.getElementById('toast-price');
 
           const fmtUSD = n => '$' + (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-          function refresh(){ const tot = (Number(priceEl.value)||0) * (Number(unitsEl.value)||0); totalEl.textContent = fmtUSD(tot); }
+          function refresh(){ totalEl.textContent = fmtUSD((Number(priceEl.value)||0) * (Number(unitsEl.value)||0)); }
           priceEl.addEventListener('input', refresh); unitsEl.addEventListener('input', refresh); refresh();
 
           btn.addEventListener('click', () => {
-            tStrat.textContent = stratSel.value;
+            tStrat.textContent = (nameEl.value || '—');
             tUnits.textContent = Number(unitsEl.value||0).toLocaleString();
             tPrice.textContent = fmtUSD(priceEl.value||0);
             toast.classList.remove('hidden');
@@ -524,58 +397,54 @@
         })();
       </script>
 
-      <!-- Portfolio line chart (kept) -->
+      <!-- Portfolio line chart -->
       <script>
         (function(){
           const ctxEl = document.getElementById('pf-chart'); if(!ctxEl) return;
           const ctx = ctxEl.getContext('2d');
-          const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-          gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
-          gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
-
-          const chart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: Array.from({length:30},(_,i)=>i+1), datasets: [{ data: Array.from({length:30},()=>0), tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor: gradient, fill:true, pointRadius:0 }] },
-            options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{displayColors:false} }, scales:{ x:{display:false}, y:{display:true, ticks:{color:'#94a3b8', maxTicksLimit:3}} } }
-          });
-          document.querySelectorAll('#portfolio-card .tab').forEach(btn => btn.addEventListener('click', ()=> chart.update()));
-          const upd = document.getElementById('pf-updated');
-          upd.textContent = new Date().toLocaleString('en-ZA', { month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit'}) + ' SAST';
-          document.getElementById('pf-value').textContent = '$0.00';
-          const chg = document.getElementById('pf-change'); chg.textContent = '+0.00%'; chg.style.color='#16a34a';
+          const gradient = ctx.createLinearGradient(0,0,0,260); gradient.addColorStop(0,'rgba(85,107,47,0.35)'); gradient.addColorStop(1,'rgba(85,107,47,0.06)');
+          const chart = new Chart(ctx,{ type:'line', data:{ labels:Array.from({length:30},(_,i)=>i+1), datasets:[{ data:Array.from({length:30},()=>0), tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }] },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{displayColors:false} }, scales:{ x:{display:false}, y:{display:true, ticks:{color:'#94a3b8', maxTicksLimit:3}} } }});
+          document.querySelectorAll('#portfolio-card .tab').forEach(btn=>btn.addEventListener('click',()=>chart.update()));
+          document.getElementById('pf-updated').textContent = new Date().toLocaleString('en-ZA',{month:'long',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' SAST';
+          document.getElementById('pf-value').textContent = '$0.00'; const chg=document.getElementById('pf-change'); chg.textContent='+0.00%'; chg.style.color='#16a34a';
           document.getElementById('pf-refresh').addEventListener('click', (e)=>{ e.currentTarget.classList.add('spin'); setTimeout(()=> e.currentTarget.classList.remove('spin'), 600); });
         })();
       </script>
 
-      <!-- Recent Orders selection logic -->
+      <!-- Calendar Returns build -->
       <script>
-        (function () {
-          const all = document.getElementById('chk-all');
-          const rows = () => Array.from(document.querySelectorAll('.row-chk'));
-          const sel = document.getElementById('sel-count');
-          const btn = document.getElementById('cancel-selected');
-          const clear = document.getElementById('clear-selection');
-
-          function refresh() {
-            const n = rows().filter(c => c.checked).length;
-            sel.textContent = n; btn.disabled = n === 0; clear.hidden = n === 0;
-            if (all) {
-              const total = rows().length;
-              all.checked = (n > 0 && n === total);
-              all.indeterminate = (n > 0 && n < total);
-            }
-          }
-          all?.addEventListener('change', () => { rows().forEach(c => c.checked = all.checked); refresh(); });
-          document.addEventListener('change', e => { if (e.target.classList?.contains('row-chk')) refresh(); });
-          clear?.addEventListener('click', () => { rows().forEach(c => c.checked = false); if (all) { all.checked = false; all.indeterminate = false; } refresh(); });
-          btn?.addEventListener('click', () => { if (!btn.disabled && confirm('Cancel selected orders?')) { rows().forEach(c => c.checked = false); if (all) { all.checked = false; all.indeterminate = false; } refresh(); } });
-          refresh();
+        (function(){
+          const returns = {
+            2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
+            2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
+            2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
+            2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
+            2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
+            2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
+          };
+          const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
+          const years = Object.keys(returns).map(Number).sort((a,b)=>a-b);
+          const grid = document.getElementById('calendarReturns'); if(!grid) return;
+          grid.style.gridTemplateColumns = `120px repeat(${years.length}, minmax(72px,1fr))`;
+          const corner=document.createElement('div'); corner.className='cal-head'; grid.appendChild(corner);
+          years.forEach(y=>{ const h=document.createElement('div'); h.className='cal-head justify-center'; h.textContent=y; grid.appendChild(h); });
+          const color = (v)=> v==null?'#e5e7eb': v>=1.5?'#bbf7d0': v>0?'#dcfce7': v===0?'#f1f5f9': v>-1?'#fee2e2':'#fecaca';
+          months.forEach(m=>{
+            const ml=document.createElement('div'); ml.className='cal-head'; ml.textContent=m; grid.appendChild(ml);
+            years.forEach(y=>{
+              const v=returns[y]?.[m]; const c=document.createElement('div'); c.className='cal-cell'; c.style.background=color(v); c.textContent=(v||v===0)?`${v>0?'+':''}${v.toFixed(1)}%`:'—'; grid.appendChild(c);
+            });
+          });
+          document.getElementById('legNeg').style.background='#fecaca';
+          document.getElementById('legNeu').style.background='#f1f5f9';
+          document.getElementById('legPos').style.background='#dcfce7';
         })();
       </script>
     </main>
   </div>
 
-  <!-- ===== Profile Modal ===== -->
+  <!-- Profile Modal -->
   <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
@@ -585,12 +454,10 @@
       </div>
       <div class="p-2">
         <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
-          <i class="fa-regular fa-user text-slate-500 w-4"></i>
-          <span>Profile settings</span>
+          <i class="fa-regular fa-user text-slate-500 w-4"></i><span>Profile settings</span>
         </a>
         <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
-          <i class="fa-solid fa-right-from-bracket w-4"></i>
-          <span>Log out</span>
+          <i class="fa-solid fa-right-from-bracket w-4"></i><span>Log out</span>
         </button>
       </div>
     </div>
@@ -601,75 +468,79 @@
 
   <!-- Sidebar collapse memory -->
   <script>
-    (function () {
-      const layout = document.getElementById('layout');
-      const aside = document.getElementById('ah-sidebar');
-      const btn = document.getElementById('ah-collapse');
-      const saved = localStorage.getItem('ah_collapsed') === 'true';
-      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
-      btn.addEventListener('click', () => {
-        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
-        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
-        aside.setAttribute('data-collapsed', String(!isCollapsed));
-        layout.classList.toggle('is-collapsed', !isCollapsed);
-        localStorage.setItem('ah_collapsed', String(!isCollapsed));
-        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
-      });
+    (function(){
+      const layout=document.getElementById('layout'); const aside=document.getElementById('ah-sidebar'); const btn=document.getElementById('ah-collapse');
+      const saved=localStorage.getItem('ah_collapsed')==='true'; if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed');}
+      btn.addEventListener('click',()=>{ const isCollapsed=aside.getAttribute('data-collapsed')==='true'; if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed)); layout.classList.toggle('is-collapsed', !isCollapsed); localStorage.setItem('ah_collapsed', String(!isCollapsed)); layout.offsetHeight; window.dispatchEvent(new Event('resize')); });
     })();
   </script>
 
-  <!-- Supabase + app wiring (unchanged, trimmed for brevity) -->
+  <!-- ===== Supabase: profile load (name, avatar, masked account) ===== -->
   <script type="module">
     import { supabase } from "/js/supabase.js";
-    // ... your existing supabase wiring from earlier message can remain here unchanged ...
-  </script>
 
-  <!-- Calendar Returns data & builder -->
-  <script>
-    (function(){
-      // Data from your screenshot (%)
-      const returns = {
-        2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
-        2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
-        2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
-        2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
-        2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
-        2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
-      };
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
-      const years = Object.keys(returns).map(Number).sort((a,b)=>a-b);
+    const $ = (q, el=document)=> el.querySelector(q);
+    const maskId = (uuid)=> uuid ? `••• ${String(uuid).slice(-4)}` : '—';
 
-      const grid = document.getElementById('calendarReturns');
-      if(!grid) return;
-      grid.style.gridTemplateColumns = `120px repeat(${years.length}, minmax(72px,1fr))`;
+    // Profile dropdown
+    (function wireProfileMenu(){
+      const pm = $('#profile-modal'); const btn = $('#hdr-profile-btn'); const logoutBtn = $('#pm-logout');
+      btn?.addEventListener('click', ()=> pm?.classList.toggle('hidden'));
+      pm?.addEventListener('click', (e)=>{ if(e.target===pm) pm.classList.add('hidden'); });
+      logoutBtn?.addEventListener('click', async ()=>{ await supabase.auth.signOut(); location.replace('/auth.html?tab=in'); });
+    })();
 
-      const corner = document.createElement('div'); corner.className='cal-head'; grid.appendChild(corner);
-      years.forEach(y=>{ const h=document.createElement('div'); h.className='cal-head justify-center'; h.textContent=y; grid.appendChild(h); });
+    // Load profile + active account badge
+    (async ()=>{
+      const { data:{ session } } = await supabase.auth.getSession();
+      if(!session){ /* no redirect here; show anon UI */ return; }
+      const { data:{ user } } = await supabase.auth.getUser();
 
-      function color(val){
-        if(val==null) return '#e5e7eb';
-        if(val >= 1.5) return '#bbf7d0';   // strong green
-        if(val > 0)   return '#dcfce7';    // light green
-        if(val === 0) return '#f1f5f9';    // neutral
-        if(val > -1)  return '#fee2e2';    // light red
-        return '#fecaca';                  // stronger red
+      // profiles: name + avatar
+      let profile = null;
+      try{
+        const { data, error } = await supabase.from('profiles')
+          .select('full_name, first_name, last_name, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+        if(!error) profile = data;
+      }catch{}
+
+      const bestName = [
+        profile?.full_name,
+        [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+        user?.user_metadata?.full_name,
+        [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(' '),
+        user?.user_metadata?.name
+      ].find(s => s && String(s).trim()) || '—';
+
+      $('#hdr-name').textContent = bestName;
+      $('#pm-email').textContent = bestName;
+
+      // avatar (URL or initial)
+      const hdrImg = $('#hdr-avatar');
+      const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
+      if(avatarUrl){ hdrImg.src = avatarUrl; }
+      else{
+        const initial = (bestName.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
+        const svg = encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+          <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
+          <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
+                font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
+        </svg>`);
+        hdrImg.src = `data:image/svg+xml;utf8,${svg}`;
       }
 
-      months.forEach(m=>{
-        const ml = document.createElement('div'); ml.className='cal-head'; ml.textContent=m; grid.appendChild(ml);
-        years.forEach(y=>{
-          const v = returns[y]?.[m];
-          const cell = document.createElement('div');
-          cell.className = 'cal-cell';
-          cell.style.background = color(v);
-          cell.textContent = (v||v===0) ? `${v>0?'+':''}${v.toFixed(1)}%` : '—';
-          grid.appendChild(cell);
-        });
-      });
-
-      document.getElementById('legNeg').style.background='#fecaca';
-      document.getElementById('legNeu').style.background='#f1f5f9';
-      document.getElementById('legPos').style.background='#dcfce7';
+      // Active account -> sidebar badge
+      try{
+        const { data: accts } = await supabase.from('investment_accounts')
+          .select('id,status,updated_at').eq('profile_id', user.id)
+          .order('status', { ascending:true }).order('updated_at', { ascending:false });
+        const active = accts?.find(a=>a.status==='ACTIVE') || accts?.[0] || null;
+        const badge = $('#sidebar-acc');
+        if(badge){ badge.textContent = maskId(active?.id); badge.title = active?.id || ''; }
+      }catch{}
     })();
   </script>
 </body>
