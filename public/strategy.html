@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,11 +18,6 @@
     .pill{ @apply inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium; }
     .pill-muted{ @apply inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-medium; }
     .muted{ @apply text-slate-500; }
-    /* Calendar Returns */
-    .cal-grid{ display:grid; grid-auto-rows:minmax(36px,auto); }
-    .cal-cell{ @apply text-[12px] md:text-sm font-medium rounded-lg border border-black/5 flex items-center justify-center; }
-    .cal-head{ @apply text-xs md:text-sm font-semibold text-slate-500; }
-    .tooltip{ position:absolute; pointer-events:none; transform:translate(-50%,-110%); }
   </style>
 </head>
 <body>
@@ -34,7 +30,7 @@
         <header class="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Good <span id="greetTime">afternoon</span>, <span id="greetName">Mihle Matimba</span></h1>
-            <p class="muted mt-1">Your strategy-driven performance, risk and activity at a glance.</p>
+            <p class="muted mt-1">Your strategy‑driven performance, risk and activity at a glance.</p>
           </div>
           <!-- profile quick card -->
           <div class="hidden md:flex items-center gap-3 card p-2">
@@ -58,7 +54,7 @@
                   <div class="font-semibold">Equity Curve — <span class="muted">—</span></div>
                   <div class="text-2xl md:text-3xl font-extrabold mt-1">No data found <span class="pill-muted">—</span></div>
                 </div>
-                <!-- kept for later wiring -->
+                <!-- Segmented time selector -->
                 <div id="rangeSeg" role="tablist" aria-label="Time range" class="inline-flex rounded-full border border-black/10 bg-white p-1">
                   <button class="px-3 py-1.5 text-xs font-medium rounded-full" role="tab" data-range="1M" aria-selected="true">1M</button>
                   <button class="px-3 py-1.5 text-xs font-medium rounded-full" role="tab" data-range="3M">3M</button>
@@ -66,6 +62,30 @@
                   <button class="px-3 py-1.5 text-xs font-medium rounded-full" role="tab" data-range="YTD">YTD</button>
                   <button class="px-3 py-1.5 text-xs font-medium rounded-full" role="tab" data-range="1Y">1Y</button>
                   <button class="px-3 py-1.5 text-xs font-medium rounded-full" role="tab" data-range="3Y">3Y</button>
+                </div>
+              </div>
+
+              <!-- KPI mini tiles -->
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Return</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Max Drawdown</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Sharpe (sim.)</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Win Rate</div>
+                  <div class="font-semibold">No data found</div>
+                </div>
+                <div class="card border-black/5 shadow-none p-3">
+                  <div class="text-xs muted">Volatility</div>
+                  <div class="font-semibold">No data found</div>
                 </div>
               </div>
 
@@ -80,87 +100,10 @@
               </div>
             </div>
 
-            <!-- NEW: Allocation Flow -->
+            <!-- Performance Summary block -->
             <div class="card p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div class="font-semibold">Allocate to Strategy</div>
-                <span class="pill-muted"><i class="fa-solid fa-circle-info"></i> Demo flow</span>
-              </div>
-
-              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="text-xs muted">Strategy</label>
-                  <select id="allocStrategy" class="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm">
-                    <option value="Nasdaq Momentum">Nasdaq Momentum</option>
-                    <option value="USDJPY Hedge">USDJPY Hedge</option>
-                    <option value="ZA Equities Long-Only">ZA Equities Long-Only</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-xs muted">Unit Price</label>
-                  <div class="mt-1 flex items-center gap-2">
-                    <span class="text-sm font-semibold">USD</span>
-                    <input id="unitPrice" type="number" step="0.01" value="100.00" class="w-full rounded-xl border border-black/10 px-3 py-2 text-sm">
-                  </div>
-                </div>
-                <div>
-                  <label class="text-xs muted">Units</label>
-                  <input id="unitsWanted" type="number" min="1" value="10" class="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm">
-                </div>
-                <div>
-                  <label class="text-xs muted">Total (excl. fees)</label>
-                  <div class="mt-1 text-xl font-extrabold" id="allocTotal">USD 1,000.00</div>
-                </div>
-              </div>
-
-              <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="rounded-xl border border-black/10 p-3">
-                  <div class="text-xs muted">Mgmt Fee</div>
-                  <div class="font-semibold" id="mgmtFee">—</div>
-                </div>
-                <div class="rounded-xl border border-black/10 p-3">
-                  <div class="text-xs muted">Perf Fee</div>
-                  <div class="font-semibold" id="perfFee">—</div>
-                </div>
-                <div class="rounded-xl border border-black/10 p-3">
-                  <div class="text-xs muted">Est. First Charge</div>
-                  <div class="font-semibold" id="estFirstCharge">—</div>
-                </div>
-              </div>
-
-              <div class="mt-4 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <label class="text-xs muted">Funding Method</label>
-                  <select id="fundingMethod" class="ml-2 rounded-full border border-black/10 px-3 py-1.5 text-xs">
-                    <option>Wire / EFT</option>
-                    <option>Card</option>
-                    <option>Internal Cash</option>
-                  </select>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button id="allocBtn" class="pill bg-[var(--olive-100)] text-[var(--olive-700)] hover:shadow"><i class="fa-solid fa-circle-plus"></i> Allocate</button>
-                </div>
-              </div>
-
-              <!-- tiny confirm toast -->
-              <div id="allocToast" class="hidden mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-800 text-sm">
-                <i class="fa-solid fa-check mr-2"></i> Allocation submitted for <span id="toastStrategy">—</span> • <span id="toastUnits">—</span> units at <span id="toastPrice">—</span>.
-              </div>
-            </div>
-
-            <!-- Performance Summary + Calendar Returns -->
-            <div class="card p-4">
-              <div class="font-semibold mb-3">Performance Summary — <span class="muted">Calendar Returns</span></div>
-
-              <!-- Headers -->
-              <div class="overflow-x-auto">
-                <div id="calendarReturns" class="cal-grid"></div>
-                <div class="mt-3 flex items-center gap-3 text-xs">
-                  <span class="inline-block w-5 h-3 rounded" id="legNeg"></span> <span class="muted">Negative</span>
-                  <span class="inline-block w-5 h-3 rounded" id="legNeu"></span> <span class="muted">Flat</span>
-                  <span class="inline-block w-5 h-3 rounded" id="legPos"></span> <span class="muted">Positive</span>
-                </div>
-              </div>
+              <div class="font-semibold">Performance Summary — <span class="muted">—</span></div>
+              <div class="mt-3 h-48 rounded-xl border border-black/10 grid place-items-center muted">No data found</div>
             </div>
           </section>
 
@@ -353,89 +296,6 @@
       if(first) styleSeg(first);
       seg.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> styleSeg(b)));
     }
-
-    // ===== Allocation Flow Logic =====
-    const fmt = (n)=> 'USD ' + (Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-    function refreshAlloc(){
-      const price = parseFloat(document.getElementById('unitPrice').value||0);
-      const units = parseFloat(document.getElementById('unitsWanted').value||0);
-      const total = price * units;
-      document.getElementById('allocTotal').textContent = fmt(total);
-      // Example fee placeholders (can wire real fee schedule later)
-      document.getElementById('mgmtFee').textContent = '1.0% p.a.';
-      document.getElementById('perfFee').textContent = '20% over HWM';
-      document.getElementById('estFirstCharge').textContent = fmt(0);
-    }
-    ['unitPrice','unitsWanted'].forEach(id=> document.getElementById(id).addEventListener('input', refreshAlloc));
-    refreshAlloc();
-
-    document.getElementById('allocBtn').addEventListener('click', ()=>{
-      const strat = document.getElementById('allocStrategy').value;
-      const price = parseFloat(document.getElementById('unitPrice').value||0);
-      const units = parseFloat(document.getElementById('unitsWanted').value||0);
-      document.getElementById('toastStrategy').textContent = strat;
-      document.getElementById('toastUnits').textContent = units.toLocaleString();
-      document.getElementById('toastPrice').textContent = fmt(price);
-      const toast = document.getElementById('allocToast');
-      toast.classList.remove('hidden');
-      setTimeout(()=> toast.classList.add('hidden'), 3500);
-    });
-
-    // ===== Calendar Returns (Months as rows, Years as cols) =====
-    const returns = {
-      2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
-      2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
-      2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
-      2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
-      2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
-      2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
-    };
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
-    const years = Object.keys(returns).map(y=>Number(y)).sort((a,b)=>a-b);
-
-    const grid = document.getElementById('calendarReturns');
-    // Build grid template: first col = month labels
-    grid.style.gridTemplateColumns = `120px repeat(${years.length}, minmax(72px,1fr))`;
-    // Top-left empty cell
-    const corner = document.createElement('div');
-    corner.className = 'cal-head flex items-center';
-    corner.textContent = '';
-    grid.appendChild(corner);
-    // Year headers
-    years.forEach(y=>{
-      const h = document.createElement('div');
-      h.className = 'cal-head flex items-center justify-center';
-      h.textContent = y;
-      grid.appendChild(h);
-    });
-    // Month rows
-    months.forEach(m=>{
-      const ml = document.createElement('div');
-      ml.className = 'cal-head flex items-center';
-      ml.textContent = m;
-      grid.appendChild(ml);
-      years.forEach(y=>{
-        const v = returns[y]?.[m];
-        const cell = document.createElement('div');
-        cell.className = 'cal-cell';
-        cell.textContent = (v||v===0) ? `${v>0?'+':''}${v.toFixed(1)}%` : '—';
-        // color scale
-        const c = (val)=>{
-          if(val==null) return '#e5e7eb';
-          if(val >= 1.5) return '#bbf7d0';  // light green
-          if(val > 0)   return '#dcfce7';  // pale green
-          if(val === 0) return '#f1f5f9';
-          if(val > -1)  return '#fee2e2';  // pale red
-          return '#fecaca';                // deeper red
-        };
-        cell.style.background = c(v);
-        grid.appendChild(cell);
-      });
-    });
-    // legend chips
-    document.getElementById('legNeg').style.background = '#fecaca';
-    document.getElementById('legNeu').style.background = '#f1f5f9';
-    document.getElementById('legPos').style.background = '#dcfce7';
   </script>
 </body>
 </html>
