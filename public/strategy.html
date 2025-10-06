@@ -2,220 +2,99 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlgoHive – Strategy Factsheet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlgoHive — Strategy Factsheet (Split Layout + Ozow)</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
   <style>
-    :root{ --page:#0b1220; --bg:#f9fafb; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e5e7f0 }
-    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
-    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.04) }
-    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
+    :root{ --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page:#f7f8fb; --ink:#0f172a; --muted:#64748b }
+    html,body{ height:100%; overflow:hidden; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page); color:var(--ink) }
+    .card{ background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .pill{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border:1px solid rgba(0,0,0,.1); border-radius:9999px; background:#fff; padding:.4rem .75rem; font-size:.75rem; font-weight:600 }
+    .muted{ color:#64748b }
+    .input{ width:100%; height:40px; border:1px solid #e5e7eb; border-radius:10px; padding:0 .875rem }
     .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
-    .tab-btn{ border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff }
-    .tab-btn.active{ background:var(--olive); border-color:var(--olive); color:#fff }
+    .tab-btn{ padding:.375rem .7rem; border-radius:9999px; font-size:.78rem }
+    .tab-active{ background:var(--olive-100); color:var(--olive-700); box-shadow:0 1px 1px rgba(0,0,0,.06) }
     .legend-dot{ width:10px; height:10px; border-radius:9999px; display:inline-block }
-    .kv td{ padding:.4rem .6rem; border-bottom:1px solid #e5e7eb; font-size:.9rem }
     .hm td{ border:1px solid #e5e7eb; font-size:.78rem; text-align:right; padding:.3rem .4rem }
     .hm th{ border:1px solid #e5e7eb; font-size:.72rem; padding:.3rem .4rem; background:#f8fafc; text-align:center }
     .hm .y{ text-align:left; font-weight:600 }
-
-    /* Layout / Sidebar (KEPT) */
-    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
-    #layout.is-collapsed{ --sb:64px }
-    #ah-sidebar{ transition: width .2s ease; width:var(--sb) }
-    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
-    #ah-sidebar details .sub{ transition: height .2s ease }
-    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
-    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
-    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0 }
-    #ah-sidebar .footer{ transition:all .2s ease }
-    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
-    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
-    .input{ width:100%; height:40px; border:1px solid #e5e7eb; border-radius:10px; padding:0 .875rem; }
-    .input[readonly]{ background:#f8fafc; color:#334155 }
     .row{ display:grid; grid-template-columns:1fr auto; gap:.75rem; align-items:center }
-    .money{ font-variant-numeric: tabular-nums; }
-    .pill{ border:1px solid #e5e7eb; border-radius:9999px; padding:.35rem .6rem; font-size:.8rem; }
-    .label-sm{ font-size:.78rem; color:#64748b }
+    .money{ font-variant-numeric: tabular-nums }
   </style>
 </head>
-
-<body class="min-h-screen overflow-x-hidden">
-  <div id="layout">
-    <!-- ===== Sidebar (KEPT) ===== -->
-    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
-      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
-        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain"/>
-        <div class="min-w-0">
-          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
-          <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
-        </div>
-      </div>
-
-      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100" href="home.html" title="Home">
-          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
-        </a>
-
-        <details class="group mt-1">
-          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span></span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Positions"><i class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">Positions</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Orders"><i class="fa-regular fa-clipboard w-4 text-slate-500"></i><span class="label">Orders</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Activity"><i class="fa-solid fa-bars w-4 text-slate-500"></i><span class="label">Activity</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Balances"><i class="fa-solid fa-table w-4 text-slate-500"></i><span class="label">Balances</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funding"><i class="fa-solid fa-hand-holding-dollar w-4 text-slate-500"></i><span class="label">Funding</span></a>
+<body>
+  <div id="app" class="h-[100svh] w-full flex overflow-hidden">
+    <!-- MAIN SCROLL AREA (left factsheet + right rails) -->
+    <main class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+      <div class="mx-auto max-w-7xl px-4 md:px-6 py-6">
+        <!-- Header / Greeting style kept, shows Factsheet context -->
+        <header class="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Strategy Factsheet</h1>
+            <p class="muted mt-1">Performance, risk and allocation overview.</p>
           </div>
-        </details>
-
-        <details class="group mt-1" open>
-          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span></span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100" href="strategies.html" title="OpenStrategies"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds"><i class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
-          </div>
-        </details>
-
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="pricing.html" title="Plans & Features"><i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Community"><i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Support"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Legal"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
-      </nav>
-
-      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
-        <button id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Settings">
-          <i class="fa-solid fa-gear"></i>
-        </button>
-        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-      </div>
-    </aside>
-
-    <!-- ===== Main ===== -->
-    <main class="flex-1 min-w-0">
-      <!-- Header (KEPT) -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
-          <div class="relative w-full">
-            <input class="input w-full pl-9" placeholder="Search"/>
-            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Profile (placeholder) -->
-        <div class="flex items-center gap-3">
-          <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
-            <i class="fa-regular fa-bell text-slate-500"></i>
-            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
-          </button>
-
-          <img id="hdr-avatar"
-               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
-               alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
-
-          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
-            <span id="hdr-name">—</span>
-            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- ===== Factsheet MAIN ===== -->
-      <div class="max-w-7xl mx-auto px-6">
-        <!-- Top breadcrumbs / CTA -->
-        <section class="sticky top-0 z-10 bg-white/70 backdrop-blur border-b border-slate-200 mt-0 px-0 py-3 hidden md:block">
-          <div class="flex items-center gap-3">
-            <a href="strategies.html" class="text-sm text-slate-600 hover:underline">Strategies</a>
-            <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-            <div class="text-sm text-slate-900 font-medium">Factsheet</div>
-            <button id="btnAllocateTop" class="ml-auto rounded-lg h-9 px-3 bg-[var(--olive)] text-white"><i class="fa-solid fa-plus mr-2"></i>Allocate</button>
-          </div>
-        </section>
-
-        <!-- Header / Selector -->
-        <section class="pt-6">
-          <div class="flex flex-wrap items-center gap-4 justify-between">
+          <!-- profile quick card -->
+          <div class="hidden md:flex items-center gap-3 card p-2">
+            <img id="avatar" class="h-10 w-10 rounded-full object-cover bg-slate-100" alt="Profile"/>
             <div class="min-w-0">
-              <div class="flex items-center gap-2 text-xs text-slate-500">
-                <span class="uppercase tracking-wider">Strategy Factsheet</span>
-                <span class="hidden sm:inline">•</span>
-                <span id="fsUpdated" class="hidden sm:inline">Updated —</span>
-              </div>
-              <h1 id="fsTitle" class="text-[28px] leading-tight font-semibold truncate">—</h1>
-              <div class="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-600">
-                <span id="fsProvider">—</span>
-                <span>•</span>
-                <span id="fsSince">Live since —</span>
-                <span>•</span>
-                <span id="fsCurrency">—</span>
-                <span class="chip bg-amber-50 text-amber-700" id="fsRisk">Risk —</span>
-                <span class="chip bg-emerald-50 text-emerald-700" id="fsAum">AUM —</span>
-              </div>
+              <div id="quickName" class="text-sm font-semibold truncate">—</div>
+              <div id="quickEmail" class="text-xs muted truncate">—</div>
             </div>
-            <div class="flex items-center gap-3">
-              <select id="strategySel" class="border rounded-lg text-sm px-2 py-1"></select>
-              <button id="btnShare" class="border rounded-lg px-3 py-1.5 text-sm bg-white"><i class="fa-solid fa-link mr-2"></i>Copy Link</button>
-            </div>
+            <button id="openSettingsBtn" class="pill"><i class="fa-solid fa-gear"></i> Settings</button>
           </div>
-        </section>
+        </header>
 
-        <!-- Content Grid -->
-        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- LEFT MAIN -->
-          <div class="lg:col-span-8 xl:col-span-9 space-y-6">
-            <!-- Growth + Key Metrics + Tabs -->
-            <div class="card p-5">
-              <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <!-- Split grid: main canvas + right rail + settings column -->
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
+          <!-- LEFT: MAIN CANVAS (2 cols) -->
+          <section class="xl:col-span-2 space-y-4">
+            <!-- Equity Curve block -->
+            <div class="card p-4">
+              <div class="flex items-start justify-between gap-3">
                 <div>
-                  <div class="text-sm text-slate-600">Investment Growth (Net of TIF)</div>
-                  <div class="flex items-center gap-2">
-                    <div id="eqValue" class="text-2xl font-semibold">—</div>
+                  <div class="font-semibold">Equity Curve — <span id="fsTitle" class="muted">—</span></div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <div id="eqValue" class="text-2xl md:text-3xl font-extrabold">—</div>
                     <span id="eqDelta" class="chip bg-slate-100 text-slate-600">—%</span>
                   </div>
                 </div>
-                <div class="flex items-center gap-4 text-xs">
-                  <span><span class="legend-dot" style="background:#0f172a"></span> Portfolio</span>
-                  <span><span class="legend-dot" style="background:#556B2F"></span> Benchmark</span>
-                </div>
-                <div class="flex gap-2" id="eqTabs">
-                  <button class="tab-btn active" data-range="1Y">1Y</button>
-                  <button class="tab-btn" data-range="3Y">3Y</button>
-                  <button class="tab-btn" data-range="ALL">All</button>
+                <!-- Segmented time selector -->
+                <div id="rangeSeg" role="tablist" aria-label="Time range" class="inline-flex rounded-full border border-black/10 bg-white p-1">
+                  <button class="tab-btn" role="tab" data-range="1Y">1Y</button>
+                  <button class="tab-btn" role="tab" data-range="3Y">3Y</button>
+                  <button class="tab-btn" role="tab" data-range="ALL">All</button>
                 </div>
               </div>
-              <div class="mb-4 grid grid-cols-2 sm:grid-cols-6 gap-3 text-sm">
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">CAGR</div><div id="mCagr" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Volatility (ann.)</div><div id="mVol" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Sharpe (sim.)</div><div id="mSharpe" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Max Drawdown</div><div id="mDD" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate</div><div id="mWin" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Monthly</div><div id="mAvg" class="font-semibold">—</div></div>
+
+              <!-- KPI mini tiles -->
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div class="card border-black/5 shadow-none p-3"><div class="text-xs muted">CAGR</div><div id="mCagr" class="font-semibold">—</div></div>
+                <div class="card border-black/5 shadow-none p-3"><div class="text-xs muted">Max Drawdown</div><div id="mDD" class="font-semibold">—</div></div>
+                <div class="card border-black/5 shadow-none p-3"><div class="text-xs muted">Sharpe (sim.)</div><div id="mSharpe" class="font-semibold">—</div></div>
+                <div class="card border-black/5 shadow-none p-3"><div class="text-xs muted">Win Rate</div><div id="mWin" class="font-semibold">—</div></div>
+                <div class="card border-black/5 shadow-none p-3"><div class="text-xs muted">Volatility</div><div id="mVol" class="font-semibold">—</div></div>
               </div>
-              <div class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
-                <svg id="growthSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+
+              <!-- Chart -->
+              <div class="mt-4">
+                <div class="h-64 md:h-72 w-full rounded-xl border border-black/10 bg-white overflow-hidden">
+                  <svg id="growthSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
+                </div>
+                <div class="mt-2 text-xs muted">* TIF (Total Investment Fee) applied as a monthly deduction.</div>
               </div>
-              <div class="mt-2 text-xs text-slate-500">* TIF (Total Investment Fee) applied as a monthly deduction.</div>
             </div>
 
-            <!-- Monthly Returns Heatmap -->
-            <div class="card p-5">
+            <!-- Performance Summary / Heatmap -->
+            <div class="card p-4">
               <div class="flex items-center justify-between mb-3">
                 <div class="font-semibold">Monthly Returns (by Year)</div>
-                <div class="text-xs text-slate-500">% net of TIF</div>
+                <div class="text-xs muted">% net of TIF</div>
               </div>
               <div class="overflow-x-auto">
                 <table id="heatmap" class="hm w-full bg-white rounded-lg"></table>
@@ -223,34 +102,34 @@
             </div>
 
             <!-- Drawdown & Rolling Sharpe -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div class="card p-5">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div class="card p-4">
                 <div class="font-semibold mb-2">Drawdown (from peak)</div>
-                <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
+                <div class="w-full h-[220px] rounded-xl border bg-white overflow-hidden">
                   <svg id="ddSvg" viewBox="0 0 900 220" class="w-full h-full"></svg>
                 </div>
               </div>
-              <div class="card p-5">
+              <div class="card p-4">
                 <div class="font-semibold mb-2">Rolling 12M Sharpe (sim.)</div>
-                <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
+                <div class="w-full h-[220px] rounded-xl border bg-white overflow-hidden">
                   <svg id="rollSvg" viewBox="0 0 900 220" class="w-full h-full"></svg>
                 </div>
               </div>
             </div>
 
-            <!-- Allocation (%) -->
-            <div class="card p-5">
+            <!-- Allocation -->
+            <div class="card p-4">
               <div class="flex items-center justify-between mb-2">
                 <div class="font-semibold">Asset Allocation (%)</div>
-                <div class="text-xs text-slate-500">Percentage</div>
+                <div class="text-xs muted">Percentage</div>
               </div>
-              <div class="w-full h-[260px] relative overflow-hidden rounded-xl border bg-white">
+              <div class="w-full h-[260px] rounded-xl border bg-white overflow-hidden">
                 <svg id="allocSvg" viewBox="0 0 900 260" class="w-full h-full"></svg>
               </div>
             </div>
 
-            <!-- Holdings donut -->
-            <div class="card p-5">
+            <!-- Holdings -->
+            <div class="card p-4">
               <div class="font-semibold mb-2">Portfolio Holdings (Neutral)</div>
               <div class="flex items-center gap-4">
                 <svg id="holdingsDonut" viewBox="0 0 180 180" class="h-40 w-40"></svg>
@@ -259,107 +138,84 @@
             </div>
 
             <!-- Costs -->
-            <div class="card p-5">
+            <div class="card p-4">
               <div class="font-semibold mb-2">What Costs Can I Expect to Pay?</div>
               <table class="w-full text-sm">
-                <thead class="text-slate-500">
-                  <tr><th class="text-left py-2">Fee</th><th class="text-right py-2">Incl. VAT</th></tr>
-                </thead>
+                <thead class="muted"><tr><th class="text-left py-2">Fee</th><th class="text-right py-2">Incl. VAT</th></tr></thead>
                 <tbody id="costRows" class="divide-y"></tbody>
               </table>
-              <div class="text-xs text-slate-500 mt-2">Please refer to the end of the factsheet for detailed notes on fees.</div>
             </div>
 
-            <!-- Important Information -->
-            <div class="card p-5">
+            <!-- Important Info -->
+            <div class="card p-4">
               <div class="font-semibold mb-2">Important Information</div>
-              <p id="fsDisclaimer" class="text-sm text-slate-600 leading-relaxed"></p>
+              <p id="fsDisclaimer" class="text-sm text-slate-700 leading-relaxed">—</p>
             </div>
-          </div>
+          </section>
 
-          <!-- RIGHT RAIL -->
-          <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
-            <!-- ===== Allocate card (replaces Fast Facts) ===== -->
-            <div class="card p-5" id="allocateCard">
+          <!-- MIDDLE RIGHT RAIL (1 col) -->
+          <aside class="space-y-4">
+            <!-- Allocate card -->
+            <div class="card p-4" id="allocateCard">
               <div class="flex items-center justify-between">
                 <div class="font-semibold">Allocate</div>
-                <span id="allocBadge" class="pill text-slate-600">Unit pricing</span>
+                <span id="allocBadge" class="pill muted">Unit pricing</span>
               </div>
-
               <div class="mt-4 space-y-3 text-sm">
                 <div>
-                  <div class="label-sm mb-1">Unit Price</div>
+                  <div class="text-xs muted mb-1">Unit Price</div>
                   <div class="row">
                     <input id="unitPrice" class="input money" type="text" value="100.00" readonly>
-                    <span class="text-slate-500">per unit</span>
+                    <span class="muted">per unit</span>
                   </div>
                 </div>
-
                 <div>
-                  <div class="label-sm mb-1">Units to Buy *</div>
+                  <div class="text-xs muted mb-1">Units to Buy *</div>
                   <div class="row">
                     <input id="unitsWanted" class="input" type="number" min="1" step="1" placeholder="Enter units"/>
-                    <button id="maxBtn" class="btn h-10 px-3">Max</button>
+                    <button id="maxBtn" class="pill">Max</button>
                   </div>
-                  <div class="text-xs text-slate-500 mt-1">* Minimum 1 unit. Fractions disabled for now.</div>
+                  <div class="text-[11px] muted mt-1">* Minimum 1 unit. Fractions disabled for now.</div>
                 </div>
-
                 <div class="grid grid-cols-2 gap-3">
                   <div class="p-3 border rounded-xl">
-                    <div class="label-sm">Subtotal</div>
+                    <div class="text-xs muted">Subtotal</div>
                     <div id="subtotalZar" class="font-semibold money">R 0.00</div>
                   </div>
                   <div class="p-3 border rounded-xl">
-                    <div class="label-sm">Fees (est.)</div>
+                    <div class="text-xs muted">Fees (est.)</div>
                     <div id="feesZar" class="font-semibold money">R 0.00</div>
-                    <div id="feeHint" class="text-[11px] text-slate-500 mt-0.5">Upfront %: 0.00%</div>
+                    <div id="feeHint" class="text-[11px] muted mt-0.5">Upfront %: 0.00%</div>
                   </div>
                 </div>
-
                 <div class="p-3 border rounded-xl bg-slate-50">
                   <div class="flex items-center justify-between">
-                    <div class="label-sm">Total Payable</div>
+                    <div class="text-xs muted">Total Payable</div>
                     <div id="totalZar" class="font-semibold text-[17px] money">R 0.00</div>
                   </div>
                 </div>
-
-                <div>
-                  <div class="label-sm mb-1">Funding Method</div>
-                  <select id="fundingMethod" class="input">
-                    <option value="EFT">Bank Transfer (EFT)</option>
-                    <option value="Card">Card</option>
-                    <option value="Wallet">AlgoHive Wallet</option>
-                  </select>
-                </div>
-
                 <div class="flex gap-2 pt-2">
                   <button id="btnAllocate" class="flex-1 h-10 rounded-lg bg-[var(--olive)] text-white font-semibold hover:opacity-95">
                     <i class="fa-solid fa-plus mr-2"></i>Allocate
                   </button>
-                  <button id="btnConfirmInline" class="h-10 px-3 rounded-lg border font-semibold hidden">
-                    Confirm
-                  </button>
                 </div>
-
-                <div class="text-[11px] text-slate-500 mt-2">
-                  By allocating you confirm you’ve reviewed the strategy docs and understand risks.
-                </div>
+                <div class="text-[11px] muted mt-2">By allocating you confirm you’ve reviewed the strategy docs and understand risks.</div>
               </div>
             </div>
 
-            <!-- Strategy Overview (kept) -->
-            <div class="card p-5">
+            <!-- Overview -->
+            <div class="card p-4">
               <div class="font-semibold mb-2">Strategy Overview</div>
               <p id="fsDesc" class="text-sm text-slate-700">—</p>
               <div class="grid grid-cols-2 gap-3 text-sm mt-3">
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Style</div><div id="fsStyle" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Universe</div><div id="fsUniverse" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Holding</div><div id="fsHold" class="font-semibold">—</div></div>
-                <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trades / Month</div><div id="fsTrades" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="muted text-xs">Style</div><div id="fsStyle" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="muted text-xs">Universe</div><div id="fsUniverse" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="muted text-xs">Avg Holding</div><div id="fsHold" class="font-semibold">—</div></div>
+                <div class="p-3 border rounded-xl"><div class="muted text-xs">Trades / Month</div><div id="fsTrades" class="font-semibold">—</div></div>
               </div>
             </div>
 
-            <div class="card p-5">
+            <div class="card p-4">
               <div class="font-semibold mb-1">Risk Description</div>
               <p id="fsRiskDesc" class="text-sm text-slate-700 leading-relaxed">—</p>
               <div class="font-semibold mb-1 mt-4">Investment Objective</div>
@@ -368,121 +224,166 @@
               <p id="fsStrategy" class="text-sm text-slate-700 leading-relaxed">—</p>
             </div>
           </aside>
-        </section>
+
+          <!-- FAR RIGHT: SETTINGS COLUMN (toggle) -->
+          <aside id="settingsCol" class="space-y-4 hidden xl:block">
+            <div class="card p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold">Profile</div>
+                <button class="pill" id="closeSettingsBtn"><i class="fa-solid fa-xmark"></i> Close</button>
+              </div>
+              <div class="mt-3 flex items-center gap-3">
+                <img id="avatarBig" class="h-16 w-16 rounded-2xl object-cover bg-slate-100" alt="Avatar"/>
+                <div>
+                  <div id="profileName" class="text-lg font-bold">—</div>
+                  <div id="profileEmail" class="muted text-sm">—</div>
+                </div>
+              </div>
+              <div class="mt-3">
+                <label class="text-xs muted">Update photo</label>
+                <input id="avatarInput" type="file" accept="image/*" class="mt-1 block w-full text-sm" />
+              </div>
+            </div>
+            <div class="card p-4">
+              <div class="font-semibold">Account Settings</div>
+              <div class="mt-3 space-y-3">
+                <div>
+                  <label class="text-xs muted">Display Name</label>
+                  <input id="nameInput" class="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm" placeholder="Your name"/>
+                </div>
+                <div>
+                  <label class="text-xs muted">Timezone</label>
+                  <select id="tzSelect" class="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 text-sm">
+                    <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="Europe/London">Europe/London</option>
+                  </select>
+                </div>
+                <button class="pill w-full justify-center"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   </div>
 
-  <!-- Profile Modal -->
-  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
-    <div class="absolute inset-0 bg-black/40"></div>
-    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
-      <div class="px-4 py-3 border-b border-slate-200">
-        <div class="text-sm font-semibold text-slate-900">Account</div>
-        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
-      </div>
-      <div class="p-2">
-        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
-          <i class="fa-regular fa-user text-slate-500 w-4"></i>
-          <span>Profile settings</span>
-        </a>
-        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
-          <i class="fa-solid fa-right-from-bracket w-4"></i>
-          <span>Log out</span>
-        </button>
+  <!-- ===== Ozow Flow Modals ===== -->
+  <!-- Step 1: Fund Wallet -->
+  <div id="ozow-fund-modal" class="fixed inset-0 z-[140] hidden">
+    <div class="absolute inset-0 bg-black/50"></div>
+    <div class="absolute inset-0 grid place-items-center p-4">
+      <div class="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-xl">
+        <div class="p-5 border-b flex items-center justify-between">
+          <div class="font-semibold text-[18px]">Fund Wallet</div>
+          <button data-close class="h-9 w-9 grid place-items-center rounded-lg hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="px-5 pt-5">
+          <div class="flex items-center gap-6 text-sm">
+            <button class="pb-2 border-b-2 border-[var(--olive)] font-medium">ZAR Account</button>
+            <button class="pb-2 text-slate-400 cursor-not-allowed">USD Account</button>
+          </div>
+        </div>
+        <div class="p-5 space-y-4 text-sm">
+          <div>
+            <div class="text-xs muted mb-1">Amount to Fund</div>
+            <input id="ozow-amount" class="input money" placeholder="R 0.00" />
+            <div class="text-[11px] muted mt-1">Minimum R50</div>
+          </div>
+          <div>
+            <div class="text-xs muted mb-2">Select Payment Method</div>
+            <div class="grid grid-cols-2 gap-3">
+              <button id="ozow-bank" class="p-4 border rounded-xl hover:bg-slate-50 flex flex-col items-center gap-2"><span class="h-10 w-10 grid place-items-center rounded-full bg-emerald-100 text-emerald-700"><i class="fa-solid fa-building-columns"></i></span><div class="font-medium">Bank Transfer</div></button>
+              <button id="ozow-card" class="p-4 border-2 border-[var(--olive)] rounded-xl hover:bg-slate-50 flex flex-col items-center gap-2"><span class="h-10 w-10 grid place-items-center rounded-full bg-indigo-100 text-indigo-700"><i class="fa-regular fa-credit-card"></i></span><div class="font-medium">Card Payment</div></button>
+            </div>
+          </div>
+        </div>
+        <div class="p-5 border-t flex gap-2">
+          <button data-close class="h-10 px-4 rounded-lg border font-semibold flex-1">Cancel</button>
+          <button id="ozow-proceed" class="h-10 px-4 rounded-lg bg-[var(--olive)] text-white font-semibold flex-1">Proceed</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Confirm Allocation Modal -->
-  <div id="alloc-modal" class="fixed inset-0 z-[120] hidden">
+  <!-- Step 2: Card -->
+  <div id="ozow-card-modal" class="fixed inset-0 z-[150] hidden">
     <div class="absolute inset-0 bg-black/50"></div>
     <div class="absolute inset-0 grid place-items-center p-4">
-      <div class="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl">
+      <div class="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-xl">
         <div class="p-5 border-b flex items-center justify-between">
-          <div class="font-semibold">Confirm Allocation</div>
-          <button id="allocClose" class="h-9 w-9 grid place-items-center rounded-lg hover:bg-slate-100">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <div class="font-semibold text-[18px]">Fund with Card</div>
+          <button data-close class="h-9 w-9 grid place-items-center rounded-lg hover:bg-slate-100"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="p-5 space-y-3 text-sm">
+        <div class="p-5 space-y-4 text-sm">
           <div class="flex items-center justify-between">
-            <span class="text-slate-600">Strategy</span>
-            <span id="c_strategy" class="font-medium">—</span>
+            <div class="flex items-center gap-2">
+              <span class="h-8 w-8 grid place-items-center rounded-lg bg-emerald-100 text-emerald-700"><i class="fa-solid fa-shield-halved"></i></span>
+              <div class="font-semibold">Ozow</div>
+            </div>
+            <div id="ozow-pay-amount" class="text-[15px] font-medium">Pay R 0.00</div>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Unit price</span>
-            <span id="c_unit" class="font-medium money">R 0.00</span>
+          <div>
+            <div class="text-xs muted mb-1">Card Number</div>
+            <input class="input" placeholder="0000 0000 0000 0000" inputmode="numeric" />
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Units</span>
-            <span id="c_units" class="font-medium">0</span>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <div class="text-xs muted mb-1">Card Expiry</div>
+              <input class="input" placeholder="MM / YY" />
+            </div>
+            <div>
+              <div class="text-xs muted mb-1">CVV</div>
+              <input class="input" placeholder="123" inputmode="numeric" />
+            </div>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Subtotal</span>
-            <span id="c_subtotal" class="font-medium money">R 0.00</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Fees (est.)</span>
-            <span id="c_fees" class="font-medium money">R 0.00</span>
-          </div>
-          <div class="pt-2 flex items-center justify-between text-base">
-            <span class="font-semibold">Total payable</span>
-            <span id="c_total" class="font-semibold money">R 0.00</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-600">Funding method</span>
-            <span id="c_method" class="font-medium">—</span>
-          </div>
-          <div class="text-[11px] text-slate-500 pt-2">
-            Funds allocated are subject to T&Cs and settlement times by method selected.
-          </div>
+          <div class="flex items-center gap-2 text-[12px] muted pt-1"><i class="fa-solid fa-lock"></i><span>Secured by Ozow</span></div>
         </div>
         <div class="p-5 border-t flex gap-2">
-          <button id="allocCancel" class="h-10 px-4 rounded-lg border font-semibold flex-1">Cancel</button>
-          <button id="allocConfirm" class="h-10 px-4 rounded-lg bg-[var(--olive)] text-white font-semibold flex-1">
-            Confirm Allocation
-          </button>
+          <button data-back class="h-10 px-4 rounded-lg border font-semibold flex-1">Cancel Payment</button>
+          <button id="ozow-pay" class="h-10 px-4 rounded-lg bg-[var(--olive)] text-white font-semibold flex-1">Pay</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Success -->
+  <div id="ozow-success-modal" class="fixed inset-0 z-[160] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute inset-0 grid place-items-center p-4">
+      <div class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-xl text-center p-8">
+        <div class="mx-auto h-12 w-12 grid place-items-center rounded-full bg-emerald-100 text-emerald-700 mb-4"><i class="fa-solid fa-check"></i></div>
+        <div class="text-xl font-semibold mb-1">Wallet Successfully Funded</div>
+        <p class="text-sm muted mb-6">Your wallet has been successfully funded.</p>
+        <button id="ozow-success-close" class="h-10 px-4 rounded-lg bg-[var(--olive)] text-white font-semibold w-full">Back to Wallet</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Sidebar collapse memory
-    (function(){
-      const layout=document.getElementById('layout');
-      const aside=document.getElementById('ah-sidebar');
-      const btn=document.getElementById('ah-collapse');
-      const saved=localStorage.getItem('ah_collapsed')==='true';
-      if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed'); }
-      btn.addEventListener('click',()=>{
-        const isCollapsed=aside.getAttribute('data-collapsed')==='true';
-        if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
-        aside.setAttribute('data-collapsed', String(!isCollapsed));
-        layout.classList.toggle('is-collapsed', !isCollapsed);
-        localStorage.setItem('ah_collapsed', String(!isCollapsed));
-        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
-      });
-    })();
+    // Simple avatar initials
+    function initialsSVG(name){
+      const initials = (name||'GU').split(' ').map(s=>s[0]?.toUpperCase()).slice(0,2).join('') || 'GU';
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='100%' height='100%' fill='#ecf4e6'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='36' font-family='Inter' fill='#3e4f23'>${initials}</text></svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+    const fallback = initialsSVG('Mihle Matimba');
+    ['avatar','avatarBig'].forEach(id=>{ const el=document.getElementById(id); if(el) el.src = fallback; });
+    document.getElementById('quickName').textContent = 'Mihle Matimba';
+    document.getElementById('profileName').textContent = 'Mihle Matimba';
 
     // ===== SVG helpers (no libs) =====
     function drawGrowth(svgEl, port, bench, labels){
       const W=900, H=320, padL=44, padR=12, padT=16, padB=28; svgEl.innerHTML='';
       if(!port?.length || !bench?.length){ svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="12">No data</text>'; return; }
-      const all = port.concat(bench);
-      const mn = Math.min(...all), mx = Math.max(...all), rng=(mx-mn)||1;
+      const all = port.concat(bench); const mn = Math.min(...all), mx = Math.max(...all), rng=(mx-mn)||1;
       for(let i=0;i<4;i++){ const y=padT+i*(H-padT-padB)/3; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',padL); ln.setAttribute('x2',W-padR); ln.setAttribute('y1',y); ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
-      const step=(W-padL-padR)/(port.length-1);
-      const X=i=> padL+i*step, Y=v=> padT + (mx-v)*((H-padT-padB)/rng);
+      const step=(W-padL-padR)/(port.length-1); const X=i=> padL+i*step, Y=v=> padT + (mx-v)*((H-padT-padB)/rng);
       function pathFor(arr){ let d=''; arr.forEach((v,i)=>{ d+=(i?'L':'M')+X(i).toFixed(2)+','+Y(v).toFixed(2)+' '; }); return d.trim(); }
       const pPath=document.createElementNS('http://www.w3.org/2000/svg','path'); pPath.setAttribute('d',pathFor(port)); pPath.setAttribute('fill','none'); pPath.setAttribute('stroke','#0f172a'); pPath.setAttribute('stroke-width','2.6'); svgEl.appendChild(pPath);
       const bPath=document.createElementNS('http://www.w3.org/2000/svg','path'); bPath.setAttribute('d',pathFor(bench)); bPath.setAttribute('fill','none'); bPath.setAttribute('stroke','#556B2F'); bPath.setAttribute('stroke-width','2.2'); bPath.setAttribute('stroke-dasharray','4 4'); svgEl.appendChild(bPath);
-      if(labels?.length){ const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-        const stepL=(W-padL-padR)/(labels.length-1);
-        labels.forEach((lb,i)=>{ if(i%6!==0 && i!==labels.length-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); });
-        svgEl.appendChild(g);
-      }
+      if(labels?.length){ const g=document.createElementNS('http://www.w3.org/2000/svg','g'); const stepL=(W-padL-padR)/(labels.length-1); labels.forEach((lb,i)=>{ if(i%6!==0 && i!==labels.length-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g); }
     }
     function drawLine(svgEl, series, labels, {minY=null,maxY=null, padL=34,padR=12,padT=16,padB=26, color='#0f172a'}={}){
       const W=svgEl.viewBox.baseVal.width||900, H=svgEl.viewBox.baseVal.height||320; svgEl.innerHTML='';
@@ -493,31 +394,39 @@
       const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d.trim()); path.setAttribute('fill','none'); path.setAttribute('stroke',color); path.setAttribute('stroke-width','2.4'); svgEl.appendChild(path);
       if(labels?.length){ const g=document.createElementNS('http://www.w3.org/2000/svg','g'); const n=labels.length; const stepL=(W-padL-padR)/(n-1); labels.forEach((lb,i)=>{ if(i%6!==0 && i!==n-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g); }
     }
-    function drawAllocBars(svgEl, rows){
-      const W=900, H=260, padL=130, padR=26, padT=18, padB=28; svgEl.innerHTML='';
-      if(!rows?.length){ svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="12">No data</text>'; return; }
-      const maxPct = Math.max(100, Math.max(...rows.map(r=>r.pct||0)));
-      const X=v=> padL + ((v||0)/maxPct)*(W-padL-padR), Y=i=> padT + i*((H-padT-padB)/rows.length) + 8;
-      for(let i=0;i<=5;i++){ const x=padL+i*(W-padL-padR)/5; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',x); ln.setAttribute('x2',x); ln.setAttribute('y1',padT); ln.setAttribute('y2',H-padB); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
-      rows.forEach((r,i)=>{
-        const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=r.label||'—'; t.setAttribute('x', padL-8); t.setAttribute('y', Y(i)+4); t.setAttribute('font-size','11'); t.setAttribute('text-anchor','end'); t.setAttribute('fill','#334155'); svgEl.appendChild(t);
-        const rect=document.createElementNS('http://www.w3.org/200/svg','rect');
-      });
-      // (trimmed minor SVG impl detail to keep file size tidy)
-    }
     function drawDonut(svgEl, items){
       const cx=90, cy=90, r=62, R=72, TAU=Math.PI*2; svgEl.innerHTML='';
       if(!items?.length){ svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="12">No data</text>'; return; }
       const sum = items.reduce((s,i)=>s+(i.pct||0),0) || 1; let a0=-Math.PI/2;
-      items.forEach(it=>{ const frac = (it.pct||0)/sum, a1=a0+frac*TAU, la=(a1-a0)>Math.PI?1:0;
-        const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)];
-        const q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)];
-        const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-        const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d); path.setAttribute('fill',it.color||'#0f172a'); path.setAttribute('opacity','.95'); svgEl.appendChild(path); a0=a1; });
-      const tot=document.createElementNS('http://www.w3.org/200/svg','text');
+      items.forEach(it=>{ const frac = (it.pct||0)/sum, a1=a0+frac*TAU, la=(a1-a0)>Math.PI?1:0; const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)]; const q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)]; const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`; const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d); path.setAttribute('fill',it.color||'#0f172a'); path.setAttribute('opacity','.95'); svgEl.appendChild(path); a0=a1; });
     }
 
-    // ===== Factsheet logic (unchanged core) =====
+    // ===== Dummy Strategy (single) =====
+    const STRAT = {
+      name: 'Momentum Edge ZA',
+      provider: 'AlgoHive Research',
+      inception: '2021-03-01',
+      currency: 'ZAR',
+      risk: 'Medium',
+      aum_text: 'R 4.2m',
+      updated_at: new Date().toLocaleDateString(),
+      unit_price: 102.37,
+      costs: [['Management Fee','1.00% p.a.'],['Performance Fee','10% > High Watermark'],['Platform (once-off)','0.25%']],
+      costs_pct: { tif: 1.25, upfront: 0.25 },
+      desc: 'Systematic momentum tilt across SA equities with dynamic cash overlay.',
+      style: 'Systematic / Momentum', universe: 'JSE Top 100', avg_holding: '30–90 days', trades_pm: 12,
+      risk_desc: 'Equity market risk, style risk, and liquidity risk apply.',
+      objective: 'Outperform FTSE/JSE Top 40 on a risk-adjusted basis over a 3–5 year horizon.',
+      strategy: 'Rank universe on multi-horizon momentum; rebalance monthly; volatility targeting.',
+      monthly_port: { 2023:[2.1,-1.3,0.4,1.2,-0.6,1.0,0.9,2.3,-1.1,1.5,0.8,1.0], 2024:[1.2,0.4,1.0,-0.7,0.9,1.6,0.3,-0.4,1.1,0.6,0.0,0.0] },
+      monthly_bench:{ 2023:[1.6,-1.8,0.2,0.8,-1.2,0.6,0.5,1.2,-1.5,1.0,0.4,0.6], 2024:[1.0,0.2,0.6,-0.9,0.6,1.1,0.1,-0.6,0.7,0.4,0.0,0.0] },
+      allocation:[{label:'SA Equity',pct:78,color:'#0f172a'},{label:'Cash',pct:12,color:'#556B2F'},{label:'Offshore ETF',pct:10,color:'#737373'}],
+      holdings:[{label:'Naspers',pct:14,color:'#0f172a'},{label:'Prosus',pct:11,color:'#4355a5'},{label:'Shoprite',pct:9,color:'#556B2F'},{label:'BHP',pct:8,color:'#c2410c'},{label:'Cash',pct:12,color:'#10b981'}],
+      headline_base: 1000000,
+      headline_fmt: (x)=> 'R ' + Number(x).toLocaleString(undefined,{maximumFractionDigits:0})
+    };
+
+    // ===== Factsheet helpers =====
     function flattenMonthlyMap(m){ if(!m) return {vals:[],labels:[]}; const years = Object.keys(m).map(n=>+n).sort((a,b)=>a-b); const vals=[], labels=[]; const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; years.forEach(y=>{ (m[y]||[]).forEach((v,i)=>{ vals.push(v); labels.push(`${months[i]} ${String(y).slice(2)}`); }); }); return {vals, labels}; }
     function sliceByRange(vals, labels, range){ if(range==='ALL') return {vals, labels}; const n = range==='3Y' ? 36 : 12; if(vals.length<=n) return {vals, labels}; return { vals: vals.slice(-n), labels: labels.slice(-n) }; }
     function applyTIFNet(monthlyPct, tifAnnualPct){ const mFee=(tifAnnualPct||0)/12; return (monthlyPct||[]).map(x=> (x??0) - mFee); }
@@ -526,17 +435,10 @@
     function calcMetricsFromMonthly(pcts){ if(!pcts?.length) return {eq:[1],dds:[0],cagr:0,volA:0,sharpe:0,maxDD:0,wins:0,avgM:0}; const eq=equityFromMonthly(pcts), first=eq[0], last=eq.at(-1); const total=(last/first-1); const years=pcts.length/12; const cagr = Math.pow(1+total, Math.max(1/years,0)) - 1 || 0; const mR=pcts.map(x=>(x||0)/100); const avg=mR.reduce((a,b)=>a+b,0)/mR.length; const sdM=Math.sqrt(mR.reduce((a,b)=>a+Math.pow(b-avg,2),0)/mR.length)||1e-6; const volA= sdM * Math.sqrt(12); const sharpe = avg/sdM * Math.sqrt(12); let peak=eq[0], maxDD=0; const dds=eq.map(v=>{ peak=Math.max(peak,v); const dd=v/peak-1; maxDD=Math.min(maxDD,dd); return dd; }); const wins = pcts.filter(x=>(x||0)>0).length / pcts.length; const avgM = pcts.reduce((a,b)=>a+(b||0),0)/pcts.length; return {eq, dds, cagr, volA, sharpe, maxDD:Math.abs(maxDD), wins, avgM}; }
 
     let eqRange='1Y';
-    function renderFactsheet(s){
-      // Header fields
-      document.getElementById('fsTitle').textContent = s?.name || '—';
-      document.getElementById('fsProvider').textContent = s?.provider || '—';
-      document.getElementById('fsSince').textContent = s?.inception ? 'Live since ' + new Date(s.inception).toLocaleDateString() : 'Live since —';
-      document.getElementById('fsCurrency').textContent = s?.currency || '—';
-      document.getElementById('fsRisk').textContent = 'Risk ' + (s?.risk || '—');
-      document.getElementById('fsAum').textContent = 'AUM ' + (s?.aum_text || '—');
-      document.getElementById('fsUpdated').textContent = 'Updated ' + (s?.updated_at || '—');
+    function buildHeatmap(tbl, ymap){ if(!tbl) return; const years = Object.keys(ymap).sort(); if(!years.length){ tbl.innerHTML='<tbody><tr><td class="p-3 text-slate-500">No data</td></tr></tbody>'; return; } const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; let html = '<thead><tr><th class="y">Year</th>'+months.map(m=>`<th>${m}</th>`).join('')+'</tr></thead><tbody>'; years.forEach(y=>{ html += `<tr><td class="y">${y}</td>`+months.map((_,i)=>{ const v = ymap[y][i+1]; const col = v>0?'text-emerald-700':'text-rose-700'; return `<td class="${col}">${v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%'}</td>`; }).join('')+'</tr>'; }); html+='</tbody>'; tbl.innerHTML = html; }
 
-      // Overview
+    function renderFactsheet(s){
+      document.getElementById('fsTitle').textContent = s?.name || '—';
       document.getElementById('fsDesc').textContent = s?.desc || '—';
       document.getElementById('fsStyle').textContent = s?.style || '—';
       document.getElementById('fsUniverse').textContent = s?.universe || '—';
@@ -545,161 +447,54 @@
       document.getElementById('fsRiskDesc').textContent = s?.risk_desc || '—';
       document.getElementById('fsObjective').textContent = s?.objective || '—';
       document.getElementById('fsStrategy').textContent = s?.strategy || '—';
+      const costs = s?.costs || []; document.getElementById('costRows').innerHTML = costs.map(([k,v])=>`<tr><td class="py-2">${k}</td><td class="py-2 text-right">${v}</td></tr>`).join('');
 
-      // Costs table
-      const costs = s?.costs || [];
-      document.getElementById('costRows').innerHTML = costs.map(([k,v])=>`<tr><td class="py-2">${k}</td><td class="py-2 text-right">${v}</td></tr>`).join('');
+      const port = flattenMonthlyMap(s?.monthly_port); const bench = flattenMonthlyMap(s?.monthly_bench); const portNet = applyTIFNet(port.vals, s?.costs_pct?.tif || 0);
+      const M = calcMetricsFromMonthly(portNet); const pct = (x,dp=1)=> (x>=0?'+':'')+(x*100).toFixed(dp)+'%';
+      document.getElementById('mCagr').textContent = pct(M.cagr); document.getElementById('mVol').textContent  = (M.volA*100).toFixed(1)+'%'; document.getElementById('mSharpe').textContent = M.sharpe ? M.sharpe.toFixed(2) : '—'; document.getElementById('mDD').textContent = (M.maxDD?-(M.maxDD*100).toFixed(1):'—') + (M.maxDD? '%':''); document.getElementById('mWin').textContent = M.wins? (M.wins*100).toFixed(0)+'%' : '—';
 
-      // Series + metrics
-      const port = flattenMonthlyMap(s?.monthly_port);
-      const bench = flattenMonthlyMap(s?.monthly_bench);
-      const portNet = applyTIFNet(port.vals, s?.costs_pct?.tif || 0);
-      const M = calcMetricsFromMonthly(portNet);
-      const pct = (x,dp=1)=> (x>=0?'+':'')+(x*100).toFixed(dp)+'%';
-      document.getElementById('mCagr').textContent = pct(M.cagr);
-      document.getElementById('mVol').textContent  = (M.volA*100).toFixed(1)+'%';
-      document.getElementById('mSharpe').textContent = M.sharpe ? M.sharpe.toFixed(2) : '—';
-      document.getElementById('mDD').textContent = (M.maxDD?-(M.maxDD*100).toFixed(1):'—') + (M.maxDD? '%':'');
-      document.getElementById('mWin').textContent = M.wins? (M.wins*100).toFixed(0)+'%' : '—';
-      document.getElementById('mAvg').textContent = M.avgM? ((M.avgM>=0?'+':'')+M.avgM.toFixed(2)+'%') : '—';
+      const sliced = sliceByRange(portNet, port.labels, eqRange); const slicedBench = sliceByRange(bench.vals, bench.labels, eqRange); const eqPort = seqFromMonthly(sliced.vals, 100); const eqBench = seqFromMonthly(slicedBench.vals, 100); drawGrowth(document.getElementById('growthSvg'), eqPort, eqBench, sliced.labels);
+      const base = s?.headline_base ?? 1_000_000; const eqMoney = seqFromMonthly(sliced.vals, base); const delta = eqMoney.length ? ((eqMoney.at(-1)/eqMoney[0])-1)*100 : 0; document.getElementById('eqValue').textContent = s?.headline_fmt ? s.headline_fmt(eqMoney.at(-1)) : (eqMoney.at(-1)?.toLocaleString?.() || '—'); const dEl=document.getElementById('eqDelta'); dEl.textContent = isFinite(delta) ? ((delta>=0?'+':'')+delta.toFixed(1)+'%') : '—'; dEl.className = 'chip ' + (delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
 
-      const range = eqRange;
-      const sliced = sliceByRange(portNet, port.labels, range);
-      const slicedBench = sliceByRange(bench.vals, bench.labels, range);
-      const eqPort = seqFromMonthly(sliced.vals, 100);
-      const eqBench = seqFromMonthly(slicedBench.vals, 100);
-      drawGrowth(document.getElementById('growthSvg'), eqPort, eqBench, sliced.labels);
-
-      const base = s?.headline_base ?? 1_000_000;
-      const eqMoney = seqFromMonthly(sliced.vals, base);
-      const delta = eqMoney.length ? ((eqMoney.at(-1)/eqMoney[0])-1)*100 : 0;
-      document.getElementById('eqValue').textContent = s?.headline_fmt ? s.headline_fmt(eqMoney.at(-1)) : (eqMoney.at(-1)?.toLocaleString?.() || '—');
-      const dEl=document.getElementById('eqDelta');
-      dEl.textContent = isFinite(delta) ? ((delta>=0?'+':'')+delta.toFixed(1)+'%') : '—';
-      dEl.className = 'chip ' + (delta>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700');
-
-      // Heatmap, DD, rolling sharpe, alloc, donut
       const ymap = {}; if(s?.monthly_port){ Object.keys(s.monthly_port).forEach(y=>{ ymap[y] = {}; (s.monthly_port[y]||[]).forEach((v,i)=> ymap[y][i+1]= (v??0) - (s?.costs_pct?.tif||0)/12 ); }); }
-      buildHeatmap?.(document.getElementById('heatmap'), ymap);
-      const eqFull = equityFromMonthly(portNet);
-      let peak=eqFull[0]; const ddPct = eqFull.map(v=>{ peak=Math.max(peak,v); return (v/peak-1)*100; });
-      const ddSlice = ddPct.slice(-(sliced.labels.length||ddPct.length));
-      drawLine(document.getElementById('ddSvg'), ddSlice, sliced.labels, {minY:-100,maxY:0,color:'#ef4444'});
+      buildHeatmap(document.getElementById('heatmap'), ymap);
+      const eqFull = equityFromMonthly(portNet); let peak=eqFull[0]; const ddPct = eqFull.map(v=>{ peak=Math.max(peak,v); return (v/peak-1)*100; }); const ddSlice = ddPct.slice(-(sliced.labels.length||ddPct.length)); drawLine(document.getElementById('ddSvg'), ddSlice, sliced.labels, {minY:-100,maxY:0,color:'#ef4444'});
       const win=12; const rolls=[]; for(let i=win;i<=portNet.length;i++){ const seg=portNet.slice(i-win,i).map(x=>(x||0)/100); const avg=seg.reduce((a,b)=>a+b,0)/seg.length; const sd=Math.sqrt(seg.reduce((a,b)=>a+Math.pow(b-avg,2),0)/seg.length)||1e-6; rolls.push((avg/sd)*Math.sqrt(12)); }
-      const rLbls = port.labels.slice(win-1);
-      drawLine(document.getElementById('rollSvg'), rolls, rLbls, {color:'#6366f1'});
-      drawAllocBars?.(document.getElementById('allocSvg'), s?.allocation || []);
-      drawDonut?.(document.getElementById('holdingsDonut'), s?.holdings || []);
+      const rLbls = port.labels.slice(win-1); drawLine(document.getElementById('rollSvg'), rolls, rLbls, {color:'#6366f1'});
+      drawDonut(document.getElementById('holdingsDonut'), s?.holdings || []);
       document.getElementById('holdingsLegend').innerHTML = (s?.holdings||[]).map(h=>`<div class="flex items-center justify-between py-1"><div class="flex items-center gap-2 min-w-0"><span class="legend-dot" style="background:${h.color||'#0f172a'}"></span><span class="truncate">${h.label||'—'}</span></div><div class="ml-3">${(h.pct??0).toFixed(2)}%</div></div>`).join('');
 
-      // ===== Allocate card hydration =====
-      const unitPrice = Number(s?.unit_price ?? 100);
-      document.getElementById('unitPrice').value = (unitPrice).toFixed(2);
-      const upfrontPct = Number(s?.costs_pct?.upfront ?? 0); // e.g. entry/platform once-off
-      document.getElementById('feeHint').textContent = 'Upfront %: ' + upfrontPct.toFixed(2) + '%';
-      document.getElementById('allocBadge').textContent = s?.currency ? `Price in ${s.currency}` : 'Unit pricing';
-
-      // Keep a small calc state
-      window.__ALLOC = { name: s?.name || '—', currency: s?.currency || 'ZAR', unitPrice, upfrontPct };
-      recalcAllocation();
+      const unitPrice = Number(s?.unit_price ?? 100); document.getElementById('unitPrice').value = (unitPrice).toFixed(2); const upfrontPct = Number(s?.costs_pct?.upfront ?? 0); document.getElementById('feeHint').textContent = 'Upfront %: ' + upfrontPct.toFixed(2) + '%'; document.getElementById('allocBadge').textContent = s?.currency ? `Price in ${s.currency}` : 'Unit pricing'; window.__ALLOC = { name: s?.name || '—', currency: s?.currency || 'ZAR', unitPrice, upfrontPct }; recalcAllocation();
     }
 
-    // Simple heatmap builder (placeholder)
-    function buildHeatmap(tbl, ymap){
-      if(!tbl) return;
-      const years = Object.keys(ymap).sort();
-      if(!years.length){ tbl.innerHTML='<tbody><tr><td class="p-3 text-slate-500">No data</td></tr></tbody>'; return; }
-      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      let html = '<thead><tr><th class="y">Year</th>'+months.map(m=>`<th>${m}</th>`).join('')+'</tr></thead><tbody>';
-      years.forEach(y=>{
-        html += `<tr><td class="y">${y}</td>`+months.map((_,i)=>{
-          const v = ymap[y][i+1];
-          const c = v==null?'bg-white':'';
-          const col = v>0?'text-emerald-700':'text-rose-700';
-          return `<td class="${c} ${col}">${v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%'}</td>`;
-        }).join('')+'</tr>';
-      });
-      html+='</tbody>'; tbl.innerHTML = html;
-    }
-
-    // ===== Allocation UI wiring =====
     function money(x){ return 'R ' + (Number(x)||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
-    function recalcAllocation(){
-      const st = window.__ALLOC || {unitPrice:100, upfrontPct:0, name:'—', currency:'ZAR'};
-      const units = Math.max(0, Math.floor(Number(document.getElementById('unitsWanted').value||0)));
-      const sub = st.unitPrice * units;
-      const fees = sub * (st.upfrontPct/100);
-      const total = sub + fees;
-      document.getElementById('subtotalZar').textContent = money(sub);
-      document.getElementById('feesZar').textContent = money(fees);
-      document.getElementById('totalZar').textContent = money(total);
-      return {units, sub, fees, total};
-    }
+    function recalcAllocation(){ const st = window.__ALLOC || {unitPrice:100, upfrontPct:0, name:'—', currency:'ZAR'}; const units = Math.max(0, Math.floor(Number(document.getElementById('unitsWanted').value||0))); const sub = st.unitPrice * units; const fees = sub * (st.upfrontPct/100); const total = sub + fees; document.getElementById('subtotalZar').textContent = money(sub); document.getElementById('feesZar').textContent = money(fees); document.getElementById('totalZar').textContent = money(total); return {units, sub, fees, total}; }
 
-    (function init(){
-      // Tabs
-      document.querySelectorAll('#eqTabs .tab-btn').forEach(b=>{
-        b.addEventListener('click',()=>{ document.querySelectorAll('#eqTabs .tab-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); eqRange=b.dataset.range; if(window.__currentStrategy) renderFactsheet(window.__currentStrategy); });
-      });
+    // Range segmented control styling
+    const seg = document.getElementById('rangeSeg');
+    function styleSeg(btn){ seg.querySelectorAll('button').forEach(b=>{ b.classList.remove('tab-active'); b.setAttribute('aria-selected','false'); }); btn.classList.add('tab-active'); btn.setAttribute('aria-selected','true'); eqRange = btn.dataset.range; renderFactsheet(STRAT); }
+    seg.querySelectorAll('button').forEach((b,i)=>{ if(i===0) styleSeg(b); b.addEventListener('click', ()=> styleSeg(b)); });
 
-      // Strategy selector
-      const sel=document.getElementById('strategySel');
-      const S = window.STRATS || null;
-      if(S && typeof S==='object'){
-        sel.innerHTML = Object.entries(S).map(([k,v])=> `<option value="${k}">${v?.name||k}</option>`).join('');
-        const urlK=new URLSearchParams(location.search).get('strategy');
-        const firstKey = urlK && S[urlK] ? urlK : Object.keys(S)[0];
-        sel.value=firstKey;
-        window.__currentStrategy = S[firstKey];
-        renderFactsheet(S[firstKey]);
-        sel.addEventListener('change', e=>{ const k=e.target.value; window.__currentStrategy = S[k]; const url=new URL(location.href); url.searchParams.set('strategy',k); history.replaceState({},'',url); renderFactsheet(S[k]); });
-      } else {
-        window.__currentStrategy = {};
-        renderFactsheet({});
-      }
+    // Allocate interactions + Ozow wiring
+    document.getElementById('unitsWanted').addEventListener('input', recalcAllocation);
+    document.getElementById('maxBtn').addEventListener('click', ()=>{ document.getElementById('unitsWanted').value = '1000'; recalcAllocation(); });
+    document.getElementById('btnAllocate').addEventListener('click', ()=>{ const { total } = recalcAllocation(); const amtEl = document.getElementById('ozow-amount'); amtEl.value = money(total).replace(/\u00A0/g,' '); document.getElementById('ozow-pay-amount').textContent = 'Pay ' + amtEl.value; document.getElementById('ozow-fund-modal').classList.remove('hidden'); });
 
-      // Share + Allocate (top)
-      document.getElementById('btnShare').addEventListener('click', async ()=>{ const url=location.href; try{ await navigator.clipboard.writeText(url);}catch(e){} const btn=document.getElementById('btnShare'); const old=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-check mr-2"></i>Copied!'; setTimeout(()=>btn.innerHTML=old,1200); });
-      document.getElementById('btnAllocateTop').addEventListener('click', ()=>{ document.getElementById('unitsWanted').focus(); });
-
-      // Profile modal toggles (placeholder)
-      const modal=document.getElementById('profile-modal');
-      document.getElementById('hdr-profile-btn')?.addEventListener('click',()=> modal.classList.toggle('hidden'));
-      modal.addEventListener('click',(e)=>{ if(e.target===modal||e.target.classList.contains('bg-black/40')) modal.classList.add('hidden'); });
-
-      // Allocation handlers
-      document.getElementById('unitsWanted').addEventListener('input', recalcAllocation);
-      document.getElementById('maxBtn').addEventListener('click', ()=>{
-        // Placeholder: set an arbitrary cap (you can wire to available balance later)
-        const maxUnits = 1000;
-        document.getElementById('unitsWanted').value = String(maxUnits);
-        recalcAllocation();
-      });
-
-      const allocModal = document.getElementById('alloc-modal');
-      const openConfirm = ()=>{
-        const st = window.__ALLOC || {};
-        const {units, sub, fees, total} = recalcAllocation();
-        if(units<=0){ alert('Please enter at least 1 unit.'); return; }
-        document.getElementById('c_strategy').textContent = st.name || '—';
-        document.getElementById('c_unit').textContent = money(st.unitPrice);
-        document.getElementById('c_units').textContent = units;
-        document.getElementById('c_subtotal').textContent = money(sub);
-        document.getElementById('c_fees').textContent = money(fees);
-        document.getElementById('c_total').textContent = money(total);
-        document.getElementById('c_method').textContent = document.getElementById('fundingMethod').value;
-        allocModal.classList.remove('hidden');
-      };
-      document.getElementById('btnAllocate').addEventListener('click', openConfirm);
-
-      document.getElementById('allocClose').addEventListener('click', ()=> allocModal.classList.add('hidden'));
-      document.getElementById('allocCancel').addEventListener('click', ()=> allocModal.classList.add('hidden'));
-      document.getElementById('allocConfirm').addEventListener('click', ()=>{
-        allocModal.classList.add('hidden');
-        // TODO: Replace with Supabase insert & redirect
-        alert('Allocation submitted. We’ll notify you once funds clear.'); 
-      });
+    (function ozow(){
+      const m1 = document.getElementById('ozow-fund-modal'); const m2 = document.getElementById('ozow-card-modal'); const m3 = document.getElementById('ozow-success-modal');
+      let chosen='Card'; const hide=el=>el.classList.add('hidden'); const show=el=>el.classList.remove('hidden');
+      m1.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', ()=>hide(m1)));
+      m2.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', ()=>{ hide(m2); show(m1); }));
+      document.getElementById('ozow-success-close').addEventListener('click', ()=>hide(m3));
+      document.getElementById('ozow-bank').addEventListener('click', ()=> chosen='Bank');
+      document.getElementById('ozow-card').addEventListener('click', ()=> chosen='Card');
+      document.getElementById('ozow-proceed').addEventListener('click', ()=>{ const amt = document.getElementById('ozow-amount').value || ''; document.getElementById('ozow-pay-amount').textContent = 'Pay ' + (amt||'R 0.00'); hide(m1); if(chosen==='Card'){ show(m2); } else { show(m3); } });
+      m2.querySelector('[data-back]').addEventListener('click', ()=>{ hide(m2); show(m1); });
+      document.getElementById('ozow-pay').addEventListener('click', ()=>{ hide(m2); show(m3); /* TODO: integrate real Ozow init */ });
     })();
+
+    // Kickoff
+    renderFactsheet(STRAT);
   </script>
 </body>
 </html>
