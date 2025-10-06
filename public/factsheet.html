@@ -2,64 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlgoHive — Strategy Factsheet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AlgoHive – Strategy Factsheet</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
   <style>
-    :root { --olive:#556B2F; --olive-700:#3e4f23; --olive-100:#ecf4e6; --page-bg:#f9fafb; }
-    html,body{ font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page-bg); color:#0f172a }
+    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0; --page-bg:#f9fafb }
+    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--page-bg); color:var(--ink) }
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:1rem; box-shadow:0 1px 2px rgba(0,0,0,.04) }
-    .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
-    .glass{ backdrop-filter: blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(255,255,255,.65); border-bottom:1px solid rgba(229,231,235,.9) }
-    .num{ font-variant-numeric: tabular-nums }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
+    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem }
     .tab-btn{ border:1px solid #e5e7eb; border-radius:.6rem; padding:.35rem .7rem; font-size:.85rem; background:#fff }
     .tab-btn.active{ background:var(--olive); border-color:var(--olive); color:#fff }
-    .topbar{ height:52px }
-    .tip{ position:absolute; pointer-events:none; background:#111827; color:#fff; font-size:.75rem; border-radius:.5rem; padding:.35rem .5rem; box-shadow:0 10px 25px rgba(0,0,0,.12) }
+    .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
     .legend-dot{ width:10px; height:10px; border-radius:9999px; display:inline-block; }
     .kv td{ padding:.4rem .6rem; border-bottom:1px solid #e5e7eb; font-size:.9rem; }
     .kv td:first-child{ color:#64748b; width:46% }
     .hm td{ border:1px solid #e5e7eb; font-size:.78rem; text-align:right; padding:.3rem .4rem }
     .hm th{ border:1px solid #e5e7eb; font-size:.72rem; padding:.3rem .4rem; background:#f8fafc; text-align:center }
     .hm .y{ text-align:left; font-weight:600 }
-    @media print{ .no-print{ display:none !important } .print-block{ break-inside: avoid } body{ background:#fff } }
+    .num{ font-variant-numeric: tabular-nums }
+
+    /* Layout / Sidebar (kept from your setup) */
+    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
+    #layout.is-collapsed{ --sb:64px }
+    #ah-sidebar{ transition: width .2s ease; width:var(--sb); background:#fff }
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
+    #ah-sidebar details .sub{ transition: height .2s ease }
+    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
+    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
+    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0 }
+    #ah-sidebar .footer{ transition:all .2s ease }
+    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
+    .btn-collapse :is(svg,i){ display:inline-block; transition:transform .25s ease }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+
+    /* Utility */
+    .no-print{ }
+    @media print{ .no-print{ display:none !important } .card{ break-inside: avoid } body{ background:#fff } }
   </style>
 </head>
-<body>
-  <div class="min-h-screen flex">
-    <!-- GLOBAL MENU (partial) -->
-    <div id="sidebarMount" data-menu="/partials/menu.html"></div>
 
-    <!-- MAIN -->
-    <main class="flex-1 min-h-screen">
-      <!-- Topbar -->
-      <section class="glass sticky top-0 z-10 topbar no-print">
-        <div class="max-w-7xl mx-auto px-6 h-full flex items-center gap-3">
-          <a href="/dashboard.html" class="text-sm text-slate-600 hover:underline">Dashboard</a>
-          <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-          <div class="text-sm text-slate-900 font-medium">Factsheet</div>
-          <div class="flex items-center gap-2 w-full">
-            <div class="hidden md:flex items-center border rounded-full px-3 h-9 bg-white ml-4">
-              <i class="fa-solid fa-magnifying-glass mr-2 text-gray-500"></i>
-              <input id="search" placeholder="Search anything…" class="outline-none text-sm w-56" />
-            </div>
-            <!-- Replaced Export with Allocate -->
-            <button id="btnAllocateTop" class="rounded-lg h-9 px-3 bg-[var(--olive)] text-white ml-auto mr-0">
-              <i class="fa-solid fa-plus mr-2"></i>Allocate
-            </button>
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <!-- ===== Sidebar (kept) ===== -->
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain"/>
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
+        </div>
+      </div>
+
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="home.html" title="Home">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
+        </a>
+
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Positions"><i class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">Positions</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Orders"><i class="fa-regular fa-clipboard w-4 text-slate-500"></i><span class="label">Orders</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Activity"><i class="fa-solid fa-bars w-4 text-slate-500"></i><span class="label">Activity</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Balances"><i class="fa-solid fa-table w-4 text-slate-500"></i><span class="label">Balances</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funding"><i class="fa-solid fa-hand-holding-dollar w-4 text-slate-500"></i><span class="label">Funding</span></a>
+          </div>
+        </details>
+
+        <details class="group mt-1" open>
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100" href="#" title="OpenStrategies"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds"><i class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
+          </div>
+        </details>
+
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="pricing.html" title="Plans & Features"><i class="fa-regular fa-square-check w-4 text-slate-500"></i><span class="label">Plans & Features</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Community"><i class="fa-regular fa-comments w-4 text-slate-500"></i><span class="label">Community</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Support"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#" title="Legal"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <button id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Main ===== -->
+    <main class="flex-1 min-w-0">
+      <!-- Header (kept) -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
+          <div class="relative w-full">
+            <input class="input w-full pl-9" placeholder="Search"/>
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
           </div>
         </div>
-      </section>
 
-      <!-- Page container -->
-      <div class="max-w-7xl mx-auto px-6">
+        <!-- Profile (dynamic) -->
+        <div class="flex items-center gap-3">
+          <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
+            <i class="fa-regular fa-bell text-slate-500"></i>
+            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
+          </button>
+
+          <img id="hdr-avatar"
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
+               alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
+
+          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
+            <span id="hdr-name">—</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== Factsheet Main Content ===== -->
+      <div class="max-w-7xl mx-auto px-6 py-6">
         <!-- Header / Selector -->
-        <section class="pt-6">
+        <section class="pb-2">
           <div class="flex flex-wrap items-center gap-4 justify-between">
             <div class="min-w-0">
               <div class="flex items-center gap-2 text-xs text-slate-500">
@@ -78,19 +158,20 @@
                 <span class="chip bg-emerald-50 text-emerald-700" id="fsAum">AUM —</span>
               </div>
             </div>
-            <div class="flex items-center gap-3 no-print">
+            <div class="flex items-center gap-3">
               <select id="strategySel" class="border rounded-lg text-sm px-2 py-1"></select>
               <button id="btnShare" class="border rounded-lg px-3 py-1.5 text-sm bg-white"><i class="fa-solid fa-link mr-2"></i>Copy Link</button>
+              <button id="btnAllocateTop" class="rounded-lg h-9 px-3 bg-[var(--olive)] text-white"><i class="fa-solid fa-plus mr-2"></i>Allocate</button>
             </div>
           </div>
         </section>
 
         <!-- Content Grid -->
-        <section class="py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- LEFT MAIN -->
+        <section class="py-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- LEFT -->
           <div class="lg:col-span-8 xl:col-span-9 space-y-6">
-            <!-- Growth (Net of TIF) + Key Metrics + Tabs -->
-            <div class="card p-5 print-block">
+            <!-- Growth + Metrics -->
+            <div class="card p-5">
               <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div>
                   <div class="text-sm text-slate-600">Investment Growth (Net of TIF)</div>
@@ -103,7 +184,7 @@
                   <span><span class="legend-dot" style="background:#0f172a"></span> Portfolio</span>
                   <span><span class="legend-dot" style="background:#556B2F"></span> Benchmark</span>
                 </div>
-                <div class="flex gap-2 no-print" id="eqTabs">
+                <div class="flex gap-2" id="eqTabs">
                   <button class="tab-btn active" data-range="1Y">1Y</button>
                   <button class="tab-btn" data-range="3Y">3Y</button>
                   <button class="tab-btn" data-range="ALL">All</button>
@@ -119,13 +200,12 @@
               </div>
               <div class="relative w-full h-[320px] overflow-hidden rounded-xl border bg-white">
                 <svg id="growthSvg" viewBox="0 0 900 320" class="w-full h-full"></svg>
-                <div id="grTip" class="tip hidden"></div>
               </div>
               <div class="mt-2 text-xs text-slate-500">* TIF (Total Investment Fee) applied as a monthly deduction.</div>
             </div>
 
-            <!-- Monthly Returns Heatmap -->
-            <div class="card p-5 print-block">
+            <!-- Monthly Heatmap -->
+            <div class="card p-5">
               <div class="flex items-center justify-between mb-3">
                 <div class="font-semibold">Monthly Returns (by Year)</div>
                 <div class="text-xs text-slate-500">% net of TIF</div>
@@ -136,7 +216,7 @@
             </div>
 
             <!-- Drawdown & Rolling Sharpe -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-block">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div class="card p-5">
                 <div class="font-semibold mb-2">Drawdown (from peak)</div>
                 <div class="w-full h-[220px] relative overflow-hidden rounded-xl border bg-white">
@@ -151,8 +231,8 @@
               </div>
             </div>
 
-            <!-- Asset Allocation (%) -->
-            <div class="card p-5 print-block">
+            <!-- Allocation -->
+            <div class="card p-5">
               <div class="flex items-center justify-between mb-2">
                 <div class="font-semibold">Asset Allocation (%)</div>
                 <div class="text-xs text-slate-500">Percentage</div>
@@ -162,8 +242,8 @@
               </div>
             </div>
 
-            <!-- Portfolio Holdings (now directly under Allocation) -->
-            <div class="card p-5 print-block">
+            <!-- Holdings -->
+            <div class="card p-5">
               <div class="font-semibold mb-2">Portfolio Holdings (Neutral)</div>
               <div class="flex items-center gap-4">
                 <svg id="holdingsDonut" viewBox="0 0 180 180" class="h-40 w-40"></svg>
@@ -172,7 +252,7 @@
             </div>
 
             <!-- Costs -->
-            <div class="card p-5 print-block">
+            <div class="card p-5">
               <div class="font-semibold mb-2">What Costs Can I Expect to Pay?</div>
               <table class="w-full text-sm">
                 <thead class="text-slate-500">
@@ -183,22 +263,20 @@
               <div class="text-xs text-slate-500 mt-2">Please refer to the end of the factsheet for detailed notes on fees.</div>
             </div>
 
-            <!-- Important Information -->
-            <div class="card p-5 print-block">
+            <!-- Important Info -->
+            <div class="card p-5">
               <div class="font-semibold mb-2">Important Information</div>
               <p id="fsDisclaimer" class="text-sm text-slate-600 leading-relaxed"></p>
             </div>
           </div>
 
-          <!-- RIGHT RAIL -->
+          <!-- RIGHT -->
           <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
-            <!-- Portfolio Information -->
             <div class="card p-5">
               <div class="font-semibold mb-2">Portfolio Information</div>
               <table class="kv w-full"><tbody id="keyFacts"></tbody></table>
             </div>
 
-            <!-- Strategy Overview (older data block) -->
             <div class="card p-5">
               <div class="font-semibold mb-2">Strategy Overview</div>
               <p id="fsDesc" class="text-sm text-slate-700">—</p>
@@ -210,7 +288,6 @@
               </div>
             </div>
 
-            <!-- Narrative blocks -->
             <div class="card p-5">
               <div class="font-semibold mb-1">Risk Description</div>
               <p id="fsRiskDesc" class="text-sm text-slate-700 leading-relaxed">—</p>
@@ -224,118 +301,174 @@
       </div>
     </main>
   </div>
-  <script type="module">
-  import { supabase } from "/js/supabase.js";
-  (async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const next = encodeURIComponent(location.pathname);
-      location.replace(`/auth.html?redirect=${next}`);
-    }
-  })();
-</script>
-<script type="module">
-  import { signOut } from "/js/auth.js";
-  document.querySelector(".js-logout")?.addEventListener("click", signOut);
-</script>
 
+  <!-- ===== Profile Modal (kept) ===== -->
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
+      </div>
+      <div class="p-2">
+        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Font Awesome runtime -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
+
+  <!-- Sidebar collapse memory -->
   <script>
-    /* ===== MENU PARTIAL (identical to dashboard) ===== */
-    async function loadMenu() {
-      const mount = document.getElementById('sidebarMount');
-      const url = (mount.getAttribute('data-menu') || '/partials/menu.html').trim();
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to load ' + url);
-      mount.outerHTML = await res.text();
-    }
-    function buildMenu(activeKey = 'factsheet') {
-      const navContainer = document.getElementById('navContainer');
-      if (!navContainer) return;
-      const menu = [{
-        section: "Menu", items: [
-          { key: "dashboard", label: "Dashboard", icon: "fa-gauge", href: "/dashboard.html" },
-          { key: "open-strategies", label: "Open Strategies", icon: "fa-cubes", href: "/open-strategies.html" },
-          { key: "portfolio", label: "My Portfolio", icon: "fa-chart-line", href: "/portfolio.html" },
-          { key: "funding", label: "Funding", icon: "fa-wallet", href: "/funding.html" },
-          { key: "reports", label: "Reports", icon: "fa-file-invoice", href: "/reports.html" },
-          { key: "news", label: "News & Insights", icon: "fa-newspaper", href: "/news.html" },
-          { key: "alerts", label: "Notifications", icon: "fa-bell", href: "/alerts.html" },
-          // { key: "factsheet", label: "Factsheet", icon: "fa-sheet-plastic", href: "/factsheet.html" },
-        ]
-      }, {
-        section: "General", items: [
-          { key: "settings", label: "Settings", icon: "fa-gear", href: "/settings.html" },
-          { key: "help", label: "Help Desk", icon: "fa-circle-question", href: "/help.html" },
-          { key: "integration", label: "Integration", icon: "fa-plug", href: "/integrations.html" },
-          { key: "feedback", label: "Feedback", icon: "fa-comment-dots", href: "/feedback.html" },
-        ]
-      }];
-      function group(sec) {
-        const g = document.createElement('div'); g.className = 'mb-2';
-        const header = document.createElement('button'); header.className = 'w-full flex items-center justify-between px-2 py-1'; header.setAttribute('aria-expanded', 'true');
-        const title = document.createElement('div'); title.className = 'section-title'; title.textContent = sec.section;
-        const right = document.createElement('div'); right.className = 'label'; right.innerHTML = '<i class="fa-solid fa-chevron-up chev text-xs"></i>';
-        const body = document.createElement('div'); body.className = 'group-body';
-        const list = document.createElement('nav'); list.className = 'space-y-1 px-0.5';
-        sec.items.forEach(it => {
-          const a = document.createElement('a'); a.href = it.href; a.className = 'sidebar-link'; a.title = it.label;
-          if (it.key === activeKey) a.classList.add('active');
-          a.innerHTML = `<i class="fa-solid ${it.icon}"></i><span class="label">${it.label}</span>`; list.appendChild(a);
-        });
-        body.appendChild(list); header.append(title, right); g.append(header, body);
-        requestAnimationFrame(() => { body.style.maxHeight = body.scrollHeight + 'px'; });
-        header.addEventListener('click', () => {
-          const exp = header.getAttribute('aria-expanded') === 'true';
-          header.setAttribute('aria-expanded', String(!exp));
-          const chev = header.querySelector('.chev');
-          if (exp) { body.style.maxHeight = '0px'; chev.classList.add('rot'); } else { body.style.maxHeight = body.scrollHeight + 'px'; chev.classList.remove('rot'); }
-        });
-        return g;
-      }
-      navContainer.innerHTML = ''; menu.forEach(s => navContainer.appendChild(group(s)));
-      const sidebar = document.getElementById('sidebar');
-      const collapseBtn = document.getElementById('collapseBtn'); let collapsed = false;
-      collapseBtn?.addEventListener('click', () => {
-        collapsed = !collapsed; sidebar.classList.toggle('is-collapsed', collapsed);
-        collapseBtn.innerHTML = collapsed ? '<i class="fa-solid fa-angles-right text-sm"></i>' : '<i class="fa-solid fa-angles-left text-sm"></i>';
-        try { sessionStorage.setItem('ah_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { };
+    (function(){
+      const layout=document.getElementById('layout');
+      const aside=document.getElementById('ah-sidebar');
+      const btn=document.getElementById('ah-collapse');
+      const saved=localStorage.getItem('ah_collapsed')==='true';
+      if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed'); }
+      btn.addEventListener('click',()=>{
+        const isCollapsed=aside.getAttribute('data-collapsed')==='true';
+        if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
       });
-      try { if (sessionStorage.getItem('ah_sidebar_collapsed') === '1') { collapsed = true; sidebar.classList.add('is-collapsed'); if (collapseBtn) collapseBtn.innerHTML = '<i class="fa-solid fa-angles-right text-sm"></i>'; } } catch (e) { }
+    })();
+  </script>
+
+  <!-- ===== Supabase Auth + Hydrate (kept) ===== -->
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+
+    // tiny toast
+    function banner(msg, tone="warn"){
+      let el=document.getElementById("banner");
+      if(!el){
+        el=document.createElement("div");
+        el.id="banner";
+        el.className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+        document.body.appendChild(el);
+      }
+      el.className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+      el.classList.remove("bg-amber-100","text-amber-900","bg-emerald-100","text-emerald-900","bg-rose-100","text-rose-900");
+      if(tone==="warn"){ el.classList.add("bg-amber-100","text-amber-900"); }
+      if(tone==="ok"){   el.classList.add("bg-emerald-100","text-emerald-900"); }
+      if(tone==="err"){  el.classList.add("bg-rose-100","text-rose-900"); }
+      el.textContent=msg; clearTimeout(el._t); el._t=setTimeout(()=>el.remove(), 3500);
     }
 
-    /* ===== UTIL ===== */
+    // ---- Auth guard ----
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session){
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    }
+    const { data:{ user } } = await supabase.auth.getUser();
+
+    // ---- Load / ensure profile row ----
+    async function ensureProfile(userId, email){
+      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      if (data) return data;
+      const payload = { id:userId, email, updated_at:new Date().toISOString() };
+      const up = await supabase.from("profiles").upsert(payload, { onConflict:"id" }).select("*").single();
+      if (up.error) throw up.error;
+      return up.data;
+    }
+    const row = await ensureProfile(user.id, user.email || null);
+
+    // ---- Hydrate header + sidebar ----
+    const hdrName = document.getElementById("hdr-name");
+    const hdrAvatar = document.getElementById("hdr-avatar");
+    const pmEmail = document.getElementById("pm-email");
+    const acct = row?.account_number || "—";
+    document.getElementById("sidebar-acc").textContent = acct;
+
+    const fn = (row?.first_name||"").trim(), ln=(row?.last_name||"").trim();
+    hdrName.textContent = (fn||ln) ? `${fn} ${ln}`.trim() : (user.email?.split("@")[0] || "User");
+
+    const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+    hdrAvatar.src = row?.avatar_url || blankAvatar;
+
+    // ---- Profile dropdown ----
+    const profileBtn = document.getElementById("hdr-profile-btn");
+    const modal = document.getElementById("profile-modal");
+    const btnLogout = document.getElementById("pm-logout");
+    const btnGear = document.getElementById("ah-settings");
+
+    function openModal(){ pmEmail.textContent = user?.email || "—"; modal.classList.remove("hidden"); }
+    function closeModal(){ modal.classList.add("hidden"); }
+
+    profileBtn?.addEventListener("click",(e)=>{ e.preventDefault(); openModal(); });
+    modal.addEventListener("click",(e)=>{ if(e.target===modal || e.target.classList.contains("bg-black/40")) closeModal(); });
+    window.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeModal(); });
+
+    // Go to settings on gear click
+    btnGear?.addEventListener("click", (e)=>{ e.preventDefault(); location.href="/settings.html#basic"; });
+
+    // Logout
+    btnLogout?.addEventListener("click", async ()=>{
+      try{ await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); }
+      catch{ banner("Sorry, logout failed.", "err"); }
+    });
+
+    // ---- Session changes (safety) ----
+    supabase.auth.onAuthStateChange((_ev, sess) => {
+      if(!sess){ location.replace("/auth.html?tab=in"); }
+    });
+  </script>
+
+  <!-- ===== Factsheet Logic (dummy data) ===== -->
+  <script>
+    /* UTIL */
     const fmtMoney = (v,c='ZAR')=> new Intl.NumberFormat('en-ZA',{style:'currency',currency:c,maximumFractionDigits:0}).format(v);
     const fmtPct   = (x,dp=2)=> (x>=0?'+':'')+x.toFixed(dp)+'%';
     const lastUpdated = ()=> new Date().toLocaleString();
 
-    /* ===== CHARTS ===== */
+    /* CHART RENDERERS (SVG) */
     function drawGrowth(svgEl, port, bench, labels){
       const W=900, H=320, padL=44, padR=12, padT=16, padB=28;
       svgEl.innerHTML='';
       const all = port.concat(bench);
       const mn = Math.min(...all), mx = Math.max(...all), rng=(mx-mn)||1;
-      for(let i=0;i<4;i++){ const y=padT+i*(H-padT-padB)/3; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',padL); ln.setAttribute('x2',W-padR); ln.setAttribute('y1',y); ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
-      const step=(W-padL-padR)/(port.length-1);
+      for(let i=0;i<4;i++){
+        const y=padT+i*(H-padT-padB)/3;
+        const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+        ln.setAttribute('x1',padL); ln.setAttribute('x2',W-padR); ln.setAttribute('y1',y); ln.setAttribute('y2',y);
+        ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln);
+      }
+      const step=(W-padL-padR)/Math.max(1,(port.length-1));
       const X=i=> padL+i*step, Y=v=> padT + (mx-v)*((H-padT-padB)/rng);
-      function pathFor(arr){ let d=''; arr.forEach((v,i)=>{ d+=(i?'L':'M')+X(i).toFixed(2)+','+Y(v).toFixed(2)+' '; }); return d.trim(); }
-      const pPath = document.createElementNS('http://www.w3.org/2000/svg','path');
-      pPath.setAttribute('d', pathFor(port)); pPath.setAttribute('fill','none'); pPath.setAttribute('stroke','#0f172a'); pPath.setAttribute('stroke-width','2.6'); svgEl.appendChild(pPath);
-      const bPath = document.createElementNS('http://www.w3.org/2000/svg','path');
-      bPath.setAttribute('d', pathFor(bench)); bPath.setAttribute('fill','none'); bPath.setAttribute('stroke','#556B2F'); bPath.setAttribute('stroke-width','2.2'); bPath.setAttribute('stroke-dasharray','4 4'); svgEl.appendChild(bPath);
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const stepL=(W-padL-padR)/(labels.length-1);
-      labels.forEach((lb,i)=>{ if(i%6!==0 && i!==labels.length-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); });
+      const pathFor = (arr, dash=false, color='#0f172a', width=2.6)=>{
+        let d=''; arr.forEach((v,i)=>{ d+=(i?'L':'M')+X(i).toFixed(2)+','+Y(v).toFixed(2)+' '; });
+        const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+        p.setAttribute('d', d.trim()); p.setAttribute('fill','none'); p.setAttribute('stroke', color);
+        p.setAttribute('stroke-width', width); if(dash) p.setAttribute('stroke-dasharray','4 4'); svgEl.appendChild(p);
+      };
+      pathFor(port,false,'#0f172a',2.6);
+      pathFor(bench,true,'#556B2F',2.2);
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      const stepL=(W-padL-padR)/Math.max(1,(labels.length-1));
+      labels.forEach((lb,i)=>{ if(i%6!==0 && i!==labels.length-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t);});
       svgEl.appendChild(g);
     }
     function drawLine(svgEl, series, labels, {minY=null,maxY=null, padL=34,padR=12,padT=16,padB=26, color='#0f172a'}={}){
       const W=svgEl.viewBox.baseVal.width||900, H=svgEl.viewBox.baseVal.height||320;
       svgEl.innerHTML='';
       for(let i=0;i<4;i++){ const y=padT+i*(H-padT-padB)/3; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',padL);ln.setAttribute('x2',W-padR);ln.setAttribute('y1',y);ln.setAttribute('y2',y); ln.setAttribute('stroke','#e5e7eb'); ln.setAttribute('stroke-width','1'); svgEl.appendChild(ln); }
-      const mn = (minY??Math.min(...series)), mx = (maxY??Math.max(...series)), rng=(mx-mn)||1; const step=(W-padL-padR)/(series.length-1);
+      const mn = (minY??Math.min(...series)), mx = (maxY??Math.max(...series)), rng=(mx-mn)||1; const step=(W-padL-padR)/Math.max(1,(series.length-1));
       let d=''; series.forEach((v,i)=>{ const x=padL+i*step; const y= padT + (mx-v)*((H-padT-padB)/rng); d += (i?'L':'M')+x.toFixed(2)+','+y.toFixed(2)+' '; });
       const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d',d.trim()); path.setAttribute('fill','none'); path.setAttribute('stroke',color); path.setAttribute('stroke-width','2.4'); svgEl.appendChild(path);
-      if(labels){ const g=document.createElementNS('http://www.w3.org/2000/svg','g'); const n=labels.length; const stepL=(W-padL-padR)/(n-1); labels.forEach((lb,i)=>{ if(i%6!==0 && i!==n-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g); }
+      if(labels){ const g=document.createElementNS('http://www.w3.org/2000/svg','g'); const n=labels.length; const stepL=(W-padL-padR)/Math.max(1,(n-1)); labels.forEach((lb,i)=>{ if(i%6!==0 && i!==n-1) return; const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.textContent=lb; t.setAttribute('x', padL+i*stepL); t.setAttribute('y', H-8); t.setAttribute('font-size','10'); t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#64748b'); g.appendChild(t); }); svgEl.appendChild(g); }
     }
     function drawAllocBars(svgEl, rows){
       const W=900, H=260, padL=130, padR=26, padT=18, padB=28;
@@ -368,7 +501,7 @@
       const tot=document.createElementNS('http://www.w3.org/2000/svg','text'); tot.textContent='100%'; tot.setAttribute('x',cx); tot.setAttribute('y',cy+5); tot.setAttribute('text-anchor','middle'); tot.setAttribute('font-size','16'); tot.setAttribute('font-weight','700'); svgEl.appendChild(tot);
     }
 
-    /* ===== METRICS & TABLE HELPERS ===== */
+    /* METRIC HELPERS */
     function flattenMonthlyMap(m){
       const years = Object.keys(m).map(n=>+n).sort((a,b)=>a-b);
       const vals=[], labels=[]; const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -394,7 +527,8 @@
       const avgM = pcts.reduce((a,b)=>a+b,0)/pcts.length;
       return {eq, dds, cagr, volA, sharpe, maxDD:Math.abs(maxDD), wins, avgM};
     }
-    function buildHeatmap(el, yearly){ const years = Object.keys(yearly).sort((a,b)=> b-a);
+    function buildHeatmap(el, yearly){
+      const years = Object.keys(yearly).sort((a,b)=> b-a);
       const head = ['<tr><th>Year</th>', ...['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m=>`<th>${m}</th>`), '<th>YTD</th></tr>'].join('');
       function bg(v){ if(v===null||v===undefined) return ''; const a=Math.min(1, Math.abs(v)/6); return `style="background:${v>=0?`rgba(16,185,129,${0.12+a*0.35})`:`rgba(239,68,68,${0.12+a*0.35})`}"`; }
       const rows = years.map(y=>{
@@ -408,16 +542,16 @@
       el.innerHTML = `<thead>${head}</thead><tbody>${rows}</tbody>`;
     }
 
-    /* ===== SAMPLE DATA (older + new) ===== */
+    /* DUMMY DATA */
     const STRATS = {
       'trend-alpha': {
         name:'Trend Alpha', provider:'AlgoForge', currency:'ZAR', aum: 1200000, risk:'Moderate',
         manager:'AlgoHive Multi-Manager', client_need:'2.5% – 6.5% income band', benchmark:'SA CPI +4%', inception:'2021-02-01',
         desc:'Medium-term trend-following model on large-cap equities and index ETFs with systematic risk management and volatility targeting.',
         style:'Trend-Following', universe:'Global Equities & ETFs', avg_holding:'25–45 days', trades_pm: 18,
-        risk_desc:'Suitable for investors seeking exposure to a diversified mix of growth and income assets while prioritising capital preservation over the medium term. Accepts moderate market volatility in exchange for potential inflation-beating returns.',
-        objective:'Provide moderate long-term total return with a low probability of capital loss over the medium term. Target drawdown 4.5%–6.5% and CPI+4% over a rolling 5-year period.',
-        strategy:'Dual-bucket rebalancing with a risk-managed equity trend sleeve and flexible income sleeve; volatility targeting, dynamic stops and macro filters aim to limit tail risk while preserving upside.',
+        risk_desc:'Suitable for investors seeking exposure to a diversified mix of growth and income assets while prioritising capital preservation.',
+        objective:'Provide moderate long-term total return; target drawdown 4.5%–6.5% and CPI+4% over a rolling 5-year period.',
+        strategy:'Dual-bucket rebalancing; volatility targeting; dynamic stops and macro filters.',
         costs:{ mpc:1.26, tif:1.51 },
         monthly_port:{
           2019:[0.6,0.4,0.9,1.2,-0.8,0.7,0.9,1.0,-0.3,1.1,0.8,1.0],
@@ -460,11 +594,11 @@
       'momentum-fx': {
         name:'Momentum FX', provider:'QuantBee', currency:'USD', aum: 820000, risk:'Low',
         manager:'AlgoHive Multi-Manager', client_need:'Income stabiliser (low vol)', benchmark:'BBg US Agg (proxy)', inception:'2020-06-01',
-        desc:'Diversified G10 momentum/carry strategy trading major FX pairs with tight risk controls and low correlation to equities.',
+        desc:'Diversified G10 momentum/carry strategy trading major FX pairs with tight risk controls.',
         style:'FX Momentum', universe:'G10 FX', avg_holding:'2–7 days', trades_pm: 35,
-        risk_desc:'Low-volatility FX momentum & carry sleeve designed for diversification from equity beta; tight downside controls.',
+        risk_desc:'Low-volatility FX momentum & carry sleeve designed for diversification from equity beta.',
         objective:'Low correlation to equities with steady returns and shallow drawdowns.',
-        strategy:'Systematic G10 FX basket using time-series momentum & carry with volatility scaling and risk parity sizing.',
+        strategy:'Systematic G10 FX basket using time-series momentum & carry.',
         costs:{ mpc:1.10, tif:1.30 },
         monthly_port:{
           2020:[0.3,0.2,0.2,0.4,0.3,0.2,0.1],
@@ -496,7 +630,7 @@
       }
     };
 
-    /* ===== STATE & RENDER ===== */
+    /* STATE & RENDER */
     let currentKey='trend-alpha', eqRange='1Y';
 
     function renderFactsheet(key){
@@ -522,7 +656,7 @@
       ];
       document.getElementById('keyFacts').innerHTML = facts.map(([k,v])=>`<tr><td>${k}</td><td class="text-right">${v}</td></tr>`).join('');
 
-      // Overview (old data block)
+      // Overview
       document.getElementById('fsDesc').textContent = s.desc;
       document.getElementById('fsStyle').textContent = s.style;
       document.getElementById('fsUniverse').textContent = s.universe;
@@ -602,11 +736,8 @@
         This factsheet is for information only and does not constitute advice.`;
     }
 
-    /* ===== BOOT ===== */
-    (async function(){
-      await loadMenu();
-      buildMenu('factsheet');
-
+    // Boot
+    (function(){
       // Strategy selector + URL sync
       const sel=document.getElementById('strategySel');
       sel.innerHTML = Object.entries(STRATS).map(([k,v])=> `<option value="${k}">${v.name}</option>`).join('');
@@ -638,7 +769,6 @@
       });
     })();
   </script>
-  <script type="module" src="/js/guard.js"></script>
 
 </body>
 </html>
