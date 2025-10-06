@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AlgoHive — Strategy</title>
+
+  <!-- Tailwind + Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root{ --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e2e8f0 }
+    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
+    .card{ background:#fff; border:1px solid var(--line); border-radius:16px }
+    .chip{ font-size:.75rem; padding:.25rem .5rem; border:1px solid var(--line); border-radius:999px }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:42px; padding:0 1rem; border-radius:12px; font-weight:600 }
+    .btn-olive{ background:var(--olive); color:#fff }
+    .btn-ghost{ border:1px solid var(--line); background:#fff; color:#0f172a }
+    .metric .k{ font-size:1.25rem; font-weight:700; }
+    .metric .l{ font-size:.70rem; color:#64748b }
+    .badge{ font-size:.75rem; padding:.125rem .5rem; border-radius:999px }
+    .status-ACTIVE{ background:#d1fae5; color:#065f46 }
+    .status-PAUSED{ background:#fef3c7; color:#92400e }
+    .status-CLOSED{ background:#fee2e2; color:#991b1b }
+    .table td, .table th{ padding:.6rem .8rem; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+  <!-- Top bar -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" class="w-9 h-9" alt="AH"/>
+        <span class="font-extrabold tracking-tight">AlgoHive</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1">
+        <a href="home.html" class="chip">Home</a>
+        <a href="pricing.html" class="chip">Plans</a>
+        <a href="#" class="chip">Support</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Notifications">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/></svg>
+        </button>
+        <a href="settings.html" class="chip">Settings</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <!-- Hero -->
+    <section id="hero" class="mb-6">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 mb-2">
+            <span id="st-status" class="badge">—</span>
+            <span id="st-code" class="chip">—</span>
+            <span id="st-ccy" class="chip">—</span>
+          </div>
+          <h1 id="st-name" class="text-2xl md:text-3xl font-extrabold tracking-tight">Strategy</h1>
+          <p id="st-sub" class="text-slate-500 mt-1 line-clamp-2">—</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <a id="allocate-btn" class="btn btn-olive" href="#" target="_self">Allocate</a>
+          <a href="strategies.html" class="btn btn-ghost">Back</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chart + Metrics -->
+    <section class="grid md:grid-cols-3 gap-4 mb-6">
+      <div class="card md:col-span-2 p-3">
+        <div class="flex items-center justify-between px-2">
+          <div class="text-sm font-semibold">Equity Curve</div>
+          <div class="flex items-center gap-2">
+            <button data-range="1M" class="chip range-chip">1M</button>
+            <button data-range="3M" class="chip range-chip">3M</button>
+            <button data-range="6M" class="chip range-chip">6M</button>
+            <button data-range="YTD" class="chip range-chip">YTD</button>
+            <button data-range="ALL" class="chip range-chip border-slate-400">ALL</button>
+          </div>
+        </div>
+        <div class="mt-2 rounded-xl border border-slate-200 overflow-hidden">
+          <canvas id="eqChart" class="w-full block" style="height:320px"></canvas>
+        </div>
+        <div id="chart-note" class="text-xs text-slate-500 px-2 pt-2">Prices shown as unit price (NAV per unit).</div>
+      </div>
+
+      <div class="card p-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="metric"><div class="l">Unit Price</div><div id="m-price" class="k">—</div></div>
+          <div class="metric"><div class="l">YTD</div><div id="m-ytd" class="k">—</div></div>
+          <div class="metric"><div class="l">1M</div><div id="m-1m" class="k">—</div></div>
+          <div class="metric"><div class="l">All-time</div><div id="m-all" class="k">—</div></div>
+          <div class="metric"><div class="l">Max DD</div><div id="m-dd" class="k">—</div></div>
+          <div class="metric"><div class="l">Sharpe (naïve)</div><div id="m-sharpe" class="k">—</div></div>
+        </div>
+        <div class="mt-4 border-t border-slate-200 pt-3">
+          <div class="text-sm font-semibold mb-2">Fees</div>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span id="m-mgmt" class="chip">Mgmt: —</span>
+            <span id="m-perf" class="chip">Perf: —</span>
+            <span id="m-model" class="chip">Model: Standard</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About + Facts -->
+    <section class="grid md:grid-cols-3 gap-4">
+      <div class="card p-4 md:col-span-2">
+        <div class="text-sm font-semibold mb-2">About</div>
+        <p id="st-about" class="text-sm text-slate-600 leading-6">
+          —
+        </p>
+      </div>
+      <div class="card p-4">
+        <div class="text-sm font-semibold mb-3">Fast facts</div>
+        <ul class="space-y-2 text-sm">
+          <li class="flex items-center justify-between"><span>Base Currency</span><span id="f-ccy" class="font-semibold">—</span></li>
+          <li class="flex items-center justify-between"><span>Code</span><span id="f-code" class="font-semibold">—</span></li>
+          <li class="flex items-center justify-between"><span>Status</span><span id="f-status" class="font-semibold">—</span></li>
+          <li class="flex items-center justify-between"><span>Inception</span><span id="f-incp" class="font-semibold">—</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Recent Prices (optional table) -->
+    <section class="mt-6 card overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div class="text-sm font-semibold">Recent price points</div>
+        <div class="text-xs text-slate-500" id="rows-count">—</div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm table">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="text-left">Date</th>
+              <th class="text-left">Unit Price</th>
+              <th class="text-left">Daily Return</th>
+            </tr>
+          </thead>
+          <tbody id="px-body" class="divide-y divide-slate-100">
+            <!-- rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scripts -->
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+
+    const OLIVE = getComputedStyle(document.documentElement).getPropertyValue('--olive')?.trim() || '#556B2F';
+    const $  = (q, el=document)=>el.querySelector(q);
+    const $$ = (q, el=document)=>Array.from(el.querySelectorAll(q));
+    const bpsToPct = bps => (bps? (bps/100).toFixed(2)+'%':'0.00%');
+    const pct = (x, dp=2)=> (isFinite(x)? (x*100).toFixed(dp)+'%':'—');
+    const fmtMoney = (ccy)=> new Intl.NumberFormat(undefined, { style:'currency', currency: ccy||'USD', maximumFractionDigits:2 });
+
+    function qs(key){
+      const u=new URL(location.href);
+      return u.searchParams.get(key);
+    }
+
+    // Minimal line chart (no libs)
+    function drawChart(canvas, series, labels){
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = devicePixelRatio || 1;
+      const W = canvas.clientWidth; const H = canvas.clientHeight;
+      canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
+      ctx.clearRect(0,0,W,H);
+
+      // padding + axes
+      const P = {l:48, r:16, t:16, b:28};
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(P.l, H-P.b); ctx.lineTo(W-P.r, H-P.b); // x
+      ctx.moveTo(P.l, P.t);   ctx.lineTo(P.l,   H-P.b); // y
+      ctx.stroke();
+
+      if(!series?.length) return;
+
+      const min = Math.min(...series), max = Math.max(...series), rng = (max-min)||1;
+      const n = series.length;
+      const stepX = (W - P.l - P.r) / Math.max(1, n-1);
+
+      // grid / y ticks (4)
+      ctx.fillStyle = '#64748b'; ctx.font = '12px Inter';
+      for(let i=0;i<=4;i++){
+        const y = P.t + (H-P.t-P.b) * (i/4);
+        const v = max - rng*(i/4);
+        ctx.strokeStyle='#f1f5f9'; ctx.beginPath(); ctx.moveTo(P.l, y); ctx.lineTo(W-P.r,y); ctx.stroke();
+        ctx.fillStyle='#64748b';
+        ctx.fillText(v.toFixed(2), 8, y+4);
+      }
+
+      // line
+      ctx.beginPath();
+      for(let i=0;i<n;i++){
+        const x = P.l + i*stepX;
+        const y = P.t + (H-P.t-P.b) * (1 - (series[i]-min)/rng);
+        i? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+      }
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = OLIVE;
+      ctx.stroke();
+
+      // area
+      const lastX = P.l + (n-1)*stepX;
+      ctx.lineTo(lastX, H-P.b); ctx.lineTo(P.l, H-P.b); ctx.closePath();
+      const grad = ctx.createLinearGradient(0,P.t,0,H-P.b);
+      grad.addColorStop(0, 'rgba(85,107,47,0.18)');
+      grad.addColorStop(1, 'rgba(85,107,47,0.02)');
+      ctx.fillStyle = grad; ctx.fill();
+
+      // x labels: begin, mid, end
+      if(labels?.length){
+        const lbls = [[0,'start'],[Math.floor((n-1)/2),'mid'],[n-1,'end']];
+        ctx.fillStyle='#64748b'; ctx.textAlign='center';
+        lbls.forEach(([idx])=>{
+          const x = P.l + idx*stepX;
+          ctx.fillText(labels[idx] || '', x, H-8);
+        });
+      }
+    }
+
+    // Metrics helpers
+    function returnsFromPrices(prices){
+      const r=[];
+      for(let i=1;i<prices.length;i++){
+        r.push((prices[i]/prices[i-1])-1);
+      }
+      return r;
+    }
+    function maxDrawdown(prices){
+      let peak = -Infinity, mdd = 0;
+      for(const p of prices){
+        if (p>peak) peak=p;
+        mdd = Math.min(mdd, p/peak - 1);
+      }
+      return mdd; // negative
+    }
+    function sharpeNaive(dailyRets){
+      if(!dailyRets.length) return NaN;
+      const mean = dailyRets.reduce((a,b)=>a+b,0)/dailyRets.length;
+      const sd = Math.sqrt(dailyRets.reduce((a,b)=>a+(b-mean)**2,0)/(dailyRets.length||1));
+      const ann = (mean/ (sd||Infinity)) * Math.sqrt(252);
+      return ann;
+    }
+    function ytd(prices, dates){ // dates: ISO
+      if(!prices?.length || !dates?.length) return NaN;
+      const year = new Date().getFullYear();
+      const idxStart = dates.findIndex(d => new Date(d).getFullYear()===year);
+      if(idxStart<0) return NaN;
+      const start = prices[idxStart], last=prices[prices.length-1];
+      return (last/start)-1;
+    }
+    function rangeSlice(dates, prices, key){
+      if(key==='ALL') return {dates, prices};
+      const now = new Date();
+      let from = new Date(0);
+      if(key==='1M'){ from = new Date(now); from.setMonth(now.getMonth()-1); }
+      if(key==='3M'){ from = new Date(now); from.setMonth(now.getMonth()-3); }
+      if(key==='6M'){ from = new Date(now); from.setMonth(now.getMonth()-6); }
+      if(key==='YTD'){ from = new Date(new Date().getFullYear(),0,1); }
+      const outD=[]; const outP=[];
+      for(let i=0;i<dates.length;i++){
+        const d = new Date(dates[i]);
+        if(d>=from){ outD.push(dates[i]); outP.push(prices[i]); }
+      }
+      return outD.length? {dates:outD, prices:outP} : {dates, prices};
+    }
+
+    // Page state
+    const state = {
+      id: qs('id'),
+      strategy: null,
+      prices: [],
+      dates: [],
+      base_ccy: 'USD',
+      latest: null
+    };
+
+    if(!state.id){
+      alert('Missing strategy id'); location.replace('strategies.html');
+    }
+
+    // Load strategy
+    const { data: st, error: e1 } = await supabase
+      .from('strategies')
+      .select('id, code, name, base_currency, status, mgmt_fee_bps, perf_fee_bps, meta')
+      .eq('id', state.id).single();
+
+    if(e1 || !st){
+      document.querySelector('main').innerHTML = `
+        <div class="card p-6 mt-10">
+          <div class="text-rose-700 font-semibold mb-2">Strategy not found</div>
+          <a class="btn btn-ghost" href="strategies.html">Back to Strategies</a>
+        </div>`;
+      throw e1 || new Error('No strategy');
+    }
+    state.strategy = st;
+    state.base_ccy = st.base_currency || 'USD';
+
+    // Try latest price
+    try{
+      const { data: px } = await supabase
+        .from('v_strategy_latest_price')
+        .select('unit_price')
+        .eq('strategy_id', state.id).maybeSingle();
+      state.latest = px?.unit_price ?? null;
+    }catch{}
+
+    // Load series (try view -> fallback to strategy_valuations -> placeholder)
+    let rows = [];
+    let usedSource = 'v_strategy_unit_price_series';
+    try{
+      const since = new Date(); since.setMonth(since.getMonth()-12);
+      const { data } = await supabase
+        .from('v_strategy_unit_price_series')
+        .select('d, unit_price')
+        .eq('strategy_id', state.id)
+        .gte('d', since.toISOString().slice(0,10))
+        .order('d', {ascending:true});
+      rows = data || [];
+    }catch{
+      usedSource = 'strategy_valuations';
+      try{
+        const since = new Date(); since.setMonth(since.getMonth()-12);
+        const { data } = await supabase
+          .from('strategy_valuations')
+          .select('d, unit_price')
+          .eq('strategy_id', state.id)
+          .gte('d', since.toISOString().slice(0,10))
+          .order('d',{ascending:true});
+        rows = data || [];
+      }catch{}
+    }
+
+    if(!rows.length){
+      // build a gentle placeholder slope around 1.00
+      const N = 120; let p=1;
+      for(let i=0;i<N;i++){ p *= (1 + (Math.random()-0.48)*0.004); state.prices.push(+p.toFixed(4)); }
+      const start = new Date(); start.setMonth(start.getMonth()-6);
+      for(let i=0;i<N;i++){ const d=new Date(start); d.setDate(d.getDate()+i); state.dates.push(d.toISOString().slice(0,10)); }
+    } else {
+      state.dates  = rows.map(r=> (r.d?.slice?.(0,10)) || r.d);
+      state.prices = rows.map(r=> Number(r.unit_price));
+      if(!state.latest && state.prices.length) state.latest = state.prices[state.prices.length-1];
+    }
+
+    // Paint header bits
+    $('#st-name').textContent = st.name || st.code || 'Strategy';
+    $('#st-code').textContent = st.code || '—';
+    $('#st-ccy').textContent  = st.base_currency || '—';
+    $('#f-code').textContent  = st.code || '—';
+    $('#f-ccy').textContent   = st.base_currency || '—';
+    $('#f-status').textContent= st.status || '—';
+    $('#st-sub').textContent  = st.meta?.subtitle || 'Strategy performance overview';
+    $('#st-about').textContent= st.meta?.description || 'No description provided yet.';
+    $('#f-incp').textContent  = st.meta?.inception_date || '—';
+    const sb = $('#st-status');
+    sb.textContent = st.status || '—';
+    sb.className = `badge status-${st.status||'NA'}`;
+
+    // Fees
+    $('#m-mgmt').textContent  = `Mgmt: ${bpsToPct(st.mgmt_fee_bps)}`;
+    $('#m-perf').textContent  = `Perf: ${bpsToPct(st.perf_fee_bps)}`;
+    $('#allocate-btn').href   = `allocate.html?strategy=${encodeURIComponent(state.id)}`;
+
+    // Metrics calc
+    const px = state.prices.slice();
+    const dt = state.dates.slice();
+    const latest = state.latest;
+    const mfmt = fmtMoney(state.base_ccy);
+    $('#m-price').textContent = (latest!=null)? mfmt.format(latest) : '—';
+
+    const dR = returnsFromPrices(px);
+    const ytdR   = ytd(px, dt);
+    const oneM   = (()=>{ // 21 trading days ~ 1M
+      if(px.length<22) return NaN;
+      const a = px[px.length-22], b=px[px.length-1]; return (b/a)-1;
+    })();
+    const allR   = px.length? (px[px.length-1]/px[0] - 1) : NaN;
+    const dd     = maxDrawdown(px);
+    const shr    = sharpeNaive(dR);
+
+    $('#m-ytd').textContent   = isFinite(ytdR)?  pct(ytdR): '—';
+    $('#m-1m').textContent    = isFinite(oneM)?  pct(oneM): '—';
+    $('#m-all').textContent   = isFinite(allR)?  pct(allR): '—';
+    $('#m-dd').textContent    = isFinite(dd)?    pct(dd):   '—';
+    $('#m-sharpe').textContent= isFinite(shr)?   (Math.round(shr*100)/100).toFixed(2) : '—';
+
+    // Chart initial
+    const chart = $('#eqChart');
+    function labelFormat(dISO){
+      const d = new Date(dISO);
+      return d.toLocaleDateString(undefined,{month:'short', day:'2-digit'});
+    }
+    drawChart(chart, px, dt.map(labelFormat));
+    $('#chart-note').textContent = (rows.length? `Source: ${usedSource}`:'Showing placeholder curve (no stored history yet).');
+
+    // Range chips
+    $$('.range-chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        $$('.range-chip').forEach(b=>b.style.borderColor='');
+        btn.style.borderColor = '#94a3b8';
+        const key = btn.getAttribute('data-range');
+        const sliced = rangeSlice(state.dates, state.prices, key);
+        drawChart(chart, sliced.prices, sliced.dates.map(labelFormat));
+      });
+    });
+
+    // Recent price table
+    const body = $('#px-body');
+    const rowsCount = $('#rows-count');
+    if(body){
+      const lastN = Math.min(30, px.length);
+      let html='';
+      for(let i=px.length-lastN; i<px.length; i++){
+        if(i<0) continue;
+        const d = dt[i];
+        const p = px[i];
+        const r = i? (p/px[i-1]-1): 0;
+        const col = r>0? 'text-emerald-600' : (r<0? 'text-rose-600':'text-slate-600');
+        html += `
+          <tr>
+            <td>${d}</td>
+            <td>${p.toFixed(4)}</td>
+            <td class="${col}">${(r*100).toFixed(2)}%</td>
+          </tr>
+        `;
+      }
+      body.innerHTML = html || `<tr><td colspan="3" class="py-6 text-center text-slate-500">No price history yet.</td></tr>`;
+      rowsCount.textContent = html? `${lastN} rows` : '0 rows';
+    }
+  </script>
+</body>
+</html>
