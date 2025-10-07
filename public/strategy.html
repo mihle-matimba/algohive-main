@@ -489,35 +489,73 @@
         })();
       </script>
 
-      <!-- Calendar Returns (same as before) -->
-      <script>
-        (function(){
-          const R = {
-            2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
-            2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
-            2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
-            2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
-            2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
-            2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
-          };
-          const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
-          const years=Object.keys(R).map(Number).sort((a,b)=>a-b);
-          const grid=document.getElementById('calendarReturns'); if(!grid) return;
-          grid.style.gridTemplateColumns = `120px repeat(${years.length}, minmax(72px,1fr))`;
-          const corner=document.createElement('div'); corner.className='cal-head'; grid.appendChild(corner);
-          years.forEach(y=>{ const h=document.createElement('div'); h.className='cal-head justify-center'; h.textContent=y; grid.appendChild(h); });
-          const color = (v)=> v==null?'#e5e7eb': v>=1.5?'#bbf7d0': v>0?'#dcfce7': v===0?'#f1f5f9': v>-1?'#fee2e2':'#fecaca';
-          months.forEach(m=>{
-            const ml=document.createElement('div'); ml.className='cal-head'; ml.textContent=m; grid.appendChild(ml);
-            years.forEach(y=>{
-              const v=R[y]?.[m]; const c=document.createElement('div'); c.className='cal-cell'; c.style.background=color(v); c.textContent=(v||v===0)?`${v>0?'+':''}${v.toFixed(1)}%`:'—'; grid.appendChild(c);
-            });
-          });
-          document.getElementById('legNeg').style.background='#fecaca';
-          document.getElementById('legNeu').style.background='#f1f5f9';
-          document.getElementById('legPos').style.background='#dcfce7';
-        })();
-      </script>
+<!-- Calendar Returns (YEAR on Y, MONTH on X) -->
+<script>
+  (function(){
+    const R = {
+      2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
+      2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
+      2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
+      2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
+      2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
+      2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
+    };
+
+    // Columns = months (x-axis), Rows = years (y-axis)
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
+    const years  = Object.keys(R).map(Number).sort((a,b)=>a-b);
+
+    const grid = document.getElementById('calendarReturns'); 
+    if(!grid) return;
+    grid.innerHTML = ''; // reset
+
+    // Set grid: first column is the row header (years), then one col per month
+    grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px,1fr))`;
+
+    const color = (v)=> v==null?'#e5e7eb'
+      : v>=1.5 ? '#bbf7d0'
+      : v>0    ? '#dcfce7'
+      : v===0  ? '#f1f5f9'
+      : v>-1   ? '#fee2e2'
+               : '#fecaca';
+
+    // Top-left empty corner
+    const corner = document.createElement('div');
+    corner.className = 'cal-head';
+    grid.appendChild(corner);
+
+    // Top header: months across X
+    months.forEach(m=>{
+      const h = document.createElement('div');
+      h.className = 'cal-head justify-center';
+      h.textContent = m;
+      grid.appendChild(h);
+    });
+
+    // For each YEAR (row): add row header (year), then cells for each MONTH
+    years.forEach(y=>{
+      const yr = document.createElement('div');
+      yr.className = 'cal-head';
+      yr.textContent = y;
+      grid.appendChild(yr);
+
+      months.forEach(m=>{
+        const v = R[y]?.[m];
+        const c = document.createElement('div');
+        c.className = 'cal-cell';
+        c.style.background = color(v);
+        c.textContent = (v||v===0) ? `${v>0?'+':''}${v.toFixed(1)}%` : '—';
+        grid.appendChild(c);
+      });
+    });
+
+    // Legend colors (unchanged)
+    document.getElementById('legNeg').style.background = '#fecaca';
+    document.getElementById('legNeu').style.background = '#f1f5f9';
+    document.getElementById('legPos').style.background = '#dcfce7';
+  })();
+</script>
+
     </main>
   </div>
 
