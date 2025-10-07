@@ -410,13 +410,11 @@
                   </button>
                 </div>
 
-<!-- In your modal body -->
+<!-- SDK will inject the payment iframe here -->
 <div id="paymentContainer" class="w-full h-full"></div>
+<!-- optional hidden cancel button the SDK wiring can click -->
+<button id="cancelOzowPayment" class="hidden" type="button"></button>
 
-<!-- Optional cancel button in the modal header/footer -->
-<button id="cancelOzowPayment" class="h-9 px-3 rounded-lg hover:bg-slate-100">
-  Cancel
-</button>
 
 
                 <div class="px-4 py-2 text-[12px] text-slate-500 border-t border-slate-200">
@@ -933,96 +931,124 @@
 
 
 <script>
-  (function () {
-    const ozow = new Ozow();               // 1) instantiate SDK
-    const modal = document.getElementById('ozow-modal');
-    const openModal = () => { modal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
-    const closeModal = () => { modal.classList.add('hidden'); document.body.style.overflow = ''; };
+  // ========= CONFIG — USE TEST / SANDBOX DETAILS ONLY =========
+  const OZOW = {
+    siteCode:    'ALG-ALG-003',          // <-- your TEST SiteCode
+    privateKey:  '398a4e543bfa42c39d18dde8bba9a9cf',// <-- your TEST Private Key
+    isTest:      true,
+    successUrl:  location.origin + '/pay/success',
+    errorUrl:    location.origin + '/pay/error',
+    cancelUrl:   location.origin + '/pay/cancel',
+    notifyUrl:   location.origin + '/pay/notify' // can be a dummy in pure front-end mode
+  };
+  // ============================================================
 
-    // Helpers
-    const getAmount = () => {
-      // "R 1,124.00" -> "1124.00"
-      const raw = (document.getElementById('alloc-total')?.textContent || 'R 0')
-        .replace(/[^\d.,]/g, '')           // keep digits . ,
-        .replace(/,/g, '');                // remove thousands
-      return Number(raw).toFixed(2);       // "1124.00"
+  // Helpers
+  const twoDec = (n) => (Number(n || 0)).toFixed(2);
+  const toLower = (s) => String(s ?? '').toLowerCase();
+
+  async function sha512LowerHex(str) {
+    const data = new TextEncoder().encode(toLower(str));
+    const hash = await crypto.subtle.digest('SHA-512', data);
+    const bytes = new Uint8Array(hash);
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function openModal()  { $('#ozow-modal').removeClass('hidden'); $('body').css('overflow','hidden'); }
+  function closeModal() { $('#ozow-modal').addClass('hidden');  $('body').css('overflow',''); }
+
+  // Keep one Ozow SDK instance
+  const ozow = new Ozow();
+  const PAYMENT_URL = 'https://pay.ozow.com/';
+
+  async function buildOzowFields({ amount, transactionReference, bankReference, customer = '' }) {
+    const fields = {
+      SiteCode:             OZOW.siteCode,
+      CountryCode:          'ZA',
+      CurrencyCode:         'ZAR',
+      Amount:               twoDec(amount),
+      TransactionReference: String(transactionReference),
+      BankReference:        String(bankReference).slice(0, 20),
+      Customer:             customer,
+      Optional1:            '',
+      Optional2:            '',
+      Optional3:            '',
+      Optional4:            '',
+      Optional5:            '',
+      NotifyUrl:            OZOW.notifyUrl,
+      SuccessUrl:           OZOW.successUrl,
+      ErrorUrl:             OZOW.errorUrl,
+      CancelUrl:            OZOW.cancelUrl,
+      IsTest:               OZOW.isTest ? 'true' : 'false'
     };
 
-    async function createOzowSession() {
-      const amount = getAmount();
-      const transactionReference = 'AH-' + Date.now();
-      const bankReference = 'ALGOHIVE-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    // Exact Ozow concatenation order:
+    const order = [
+      'SiteCode','CountryCode','CurrencyCode','Amount',
+      'TransactionReference','BankReference',
+      'Customer','Optional1','Optional2','Optional3','Optional4','Optional5',
+      'NotifyUrl','SuccessUrl','ErrorUrl','CancelUrl','IsTest'
+    ];
 
-      // Call your backend to build + sign Ozow fields
-      const res = await fetch('/api/ozow-create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          transactionReference,
-          bankReference,
-          customer: 'AlgoHive User'
-        })
-      });
+    const concatenated = order.map(k => fields[k] ?? '').join('') + OZOW.privateKey;
+    const HashCheck = await sha512LowerHex(concatenated);
 
-      if (!res.ok) {
-        const text = await res.text().catch(()=>'');
-        console.error('ozow-create failed', res.status, text);
-        alert('Could not start Ozow checkout');
-        throw new Error('ozow-create failed');
-      }
+    return { ...fields, HashCheck };
+  }
 
-      return res.json(); // { action, fields }
+  async function startFrontEndOzow() {
+    // Amount from your UI: "R 1,124.00" -> 1124.00
+    const amtText = ($('#alloc-total').text() || '0').replace(/[^\d.,]/g, '').replace(/,/g, '');
+    const amount  = twoDec(amtText);
+
+    const transactionReference = 'AH-' + Date.now();
+    const bankReference        = 'ALGOHIVE-' + Math.random().toString(36).slice(2,8).toUpperCase();
+    const customer             = $('#hdr-name').text() || 'AlgoHive User';
+
+    // Build fields + hash in-browser (TEST ONLY)
+    const fields = await buildOzowFields({ amount, transactionReference, bankReference, customer });
+
+    // Open modal and inject the iFrame via SDK
+    openModal();
+    ozow.createPaymentFrame('paymentContainer', PAYMENT_URL, fields);
+  }
+
+  // Wire Allocate button -> Ozow iFrame
+  $('#alloc-btn').on('click', async function (e) {
+    e.preventDefault();
+    try {
+      await startFrontEndOzow();
+    } catch (err) {
+      console.error('Ozow front-end launch failed:', err);
+      alert('Could not start Ozow checkout');
     }
+  });
 
-    // Allocate button -> open Ozow iFrame
-    document.getElementById('alloc-btn')?.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        const { action, fields } = await createOzowSession();
+  // Cancel/close behaviours
+  $('#cancelOzowPayment').on('click', function () {
+    ozow.cancelFramePayment();
+    closeModal();
+  });
 
-        // 2) open modal first (optional, but feels better UX-wise)
-        openModal();
+  $('[data-close-ozow]').on('click', function () {
+    ozow.cancelFramePayment();
+    closeModal();
+  });
 
-        // 3) Launch the Ozow iFrame
-        // The SDK will POST the fields and append ?viewName=JsInjection&... automatically
-        ozow.createPaymentFrame('paymentContainer', action, fields);
-
-      } catch (err) {
-        console.error(err);
-      }
-    });
-
-    // Cancel button in your modal
-    document.getElementById('cancelOzowPayment')?.addEventListener('click', () => {
-      // 4) Tell the SDK to cancel the embedded checkout
+  $(window).on('keydown', function (e) {
+    if (e.key === 'Escape' && !$('#ozow-modal').hasClass('hidden')) {
       ozow.cancelFramePayment();
-      // Optional: also close your modal
       closeModal();
-    });
+    }
+  });
 
-    // Let users click backdrop / Esc to close your modal if you want
-    modal?.addEventListener('click', (e) => {
-      if (e.target?.dataset?.closeOzow !== undefined) {
-        ozow.cancelFramePayment();
-        closeModal();
-      }
-    });
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-        ozow.cancelFramePayment();
-        closeModal();
-      }
-    });
-
-    // (Optional) listen for messages if you want extra hooks
-    window.addEventListener('message', (e) => {
-      // SDK already handles ozowResize & ipayMessage internally.
-      // Add custom logic if you want.
-      // if (e.data?.event === 'ozowResize') { ... }
-    });
-  })();
+  // (Optional) Listen to messages if you want to hook success/cancel
+  window.addEventListener('message', (e) => {
+    // SDK already handles ozowResize + ipayMessage (redirects).
+    // You can add custom logic here if needed.
+  });
 </script>
+
 
 
 
