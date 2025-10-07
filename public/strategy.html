@@ -30,32 +30,15 @@
     .ps-value{ font-weight:600; font-size:1rem; margin-top:2px }
     @keyframes ah-spin{ to{ transform:rotate(360deg) } }
     .spin i{ animation:ah-spin .8s linear infinite }
- .cal-grid {
-  display: grid;
-  grid-auto-rows: minmax(36px, auto);
-  gap: 0;                /* removes grid gap completely */
-  border-collapse: collapse;
-}
 
-.cal-grid > .cal-sticky {
-  border-right: 0;       /* ensure sticky col doesn’t double the border */
-}
-
-.cal-cell, .cal-head {
-  border: 1px solid #e5e7eb;
-  margin: 0;             /* removes inline gaps */
-}
-    .cal-head.cal-sticky {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
+    /* Calendar heatmap */
+    .cal-grid{ display:grid; grid-auto-rows:minmax(36px,auto); gap:0; border-collapse:collapse }
+    .cal-grid>.cal-sticky{ border-right:0 }
+    .cal-cell,.cal-head{ border:1px solid #e5e7eb; margin:0 }
+    .cal-head.cal-sticky{ display:flex; align-items:center; justify-content:center; text-align:center }
 
     .badge{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .65rem; border-radius:999px; border:1px solid #e5e7eb; font-size:.75rem; font-weight:600; background:#fff }
     .legend-dot{ width:10px; height:10px; border-radius:9999px; display:inline-block }
-
   </style>
 </head>
 
@@ -137,81 +120,73 @@
       <!-- GRID -->
       <div class="px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
 
+        <!-- Equity Curve + header + description -->
+        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-9 min-w-0">
+          <div class="px-5 pt-5">
+            <div class="text-[12px] text-slate-500 font-semibold tracking-wide">
+              STRATEGY FACTSHEET
+              <span class="mx-1">•</span>
+              <span id="fs-updated">Updated —</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold mt-1" id="fs-title">Trend Alpha</h1>
+            <div class="mt-2 mb-3 flex flex-wrap items-center gap-2 text-slate-600" id="fs-badges">
+              <span id="fs-provider">AlgoForge</span>
+              <span class="mx-1 text-slate-400">•</span>
+              <span>Live since <span class="font-medium" id="fs-since">01/02/2021</span></span>
+              <span class="mx-1 text-slate-400">•</span>
+              <span id="fs-currency">ZAR</span>
+              <span class="badge bg-amber-50 border-amber-200 text-amber-700" id="fs-risk">Risk Moderate</span>
+              <span class="badge bg-emerald-50 border-emerald-200 text-emerald-700" id="fs-aum">AUM R 1,200,000</span>
+            </div>
+          </div>
 
-<!-- Equity Curve + (moved) Strategy Header + Description UNDER it -->
-<section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-9 min-w-0">
-  <!-- Strategy Header now inside the card -->
-  <div class="px-5 pt-5">
-    <div class="text-[12px] text-slate-500 font-semibold tracking-wide">
-      STRATEGY FACTSHEET
-      <span class="mx-1">•</span>
-      <span id="fs-updated">Updated —</span>
-    </div>
-    <h1 class="text-2xl md:text-3xl font-extrabold mt-1">Trend Alpha</h1>
-    <div class="mt-2 mb-3 flex flex-wrap items-center gap-2 text-slate-600">
-      <span>AlgoForge</span>
-      <span class="mx-1 text-slate-400">•</span>
-      <span>Live since <span class="font-medium">01/02/2021</span></span>
-      <span class="mx-1 text-slate-400">•</span>
-      <span>ZAR</span>
-      <span class="badge bg-amber-50 border-amber-200 text-amber-700">Risk Moderate</span>
-      <span class="badge bg-emerald-50 border-emerald-200 text-emerald-700">AUM R 1,200,000</span>
-    </div>
-  </div>
+          <div class="flex items-center justify-between px-5 py-4 border-t border-b border-slate-200">
+            <div>
+              <h3 class="font-normal text-slate-800">Equity Curve — <span class="font-semibold">Trend Alpha</span></h3>
+              <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button data-range="1M" class="tab tab-active text-[13px]">1M</button>
+              <button data-range="6M" class="tab text-[13px]">6M</button>
+              <button data-range="1Y" class="tab text-[13px]">1Y</button>
+              <button data-range="ALL" class="tab text-[13px]">All</button>
+              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
 
-  <!-- Curve toolbar -->
-  <div class="flex items-center justify-between px-5 py-4 border-t border-b border-slate-200">
-    <div>
-      <h3 class="font-normal text-slate-800">Equity Curve — <span class="font-semibold">Trend Alpha</span></h3>
-      <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
-    </div>
-    <div class="flex items-center gap-2">
-      <button data-range="1M" class="tab tab-active text-[13px]">1M</button>
-      <button data-range="6M" class="tab text-[13px]">6M</button>
-      <button data-range="1Y" class="tab text-[13px]">1Y</button>
-      <button data-range="ALL" class="tab text-[13px]">All</button>
-      <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
-        <i class="fa-solid fa-rotate-right"></i>
-      </button>
-    </div>
-  </div>
+          <div class="px-5 pt-4">
+            <div class="flex items-baseline gap-3">
+              <div class="text-2xl font-bold" id="pf-value">R 0.00</div>
+              <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+            </div>
+          </div>
+          <div class="px-2 pb-4 pt-2">
+            <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
+            <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
+              <span>Start</span><span>25%</span><span>50%</span><span>75%</span><span>End</span>
+            </div>
+          </div>
 
-  <!-- Curve numbers + chart -->
-  <div class="px-5 pt-4">
-    <div class="flex items-baseline gap-3">
-      <div class="text-2xl font-bold" id="pf-value">R 0.00</div>
-      <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
-    </div>
-  </div>
-  <div class="px-2 pb-4 pt-2">
-    <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
-    <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
-      <span>Start</span><span>25%</span><span>50%</span><span>75%</span><span>End</span>
-    </div>
-  </div>
-
-          <!-- Strategy Description (own card) -->
-<section class="card col-span-12 lg:col-span-9 p-6">
-  <h3 class="text-lg font-medium text-slate-900 mb-2">Strategy Description</h3>
-  <p class="text-sm text-slate-700">
-    Rules-based trend-following approach across large-cap SA equities and index futures.
-    Signals combine medium-term momentum and volatility filters. Portfolio is rebalanced
-    monthly with position-sizing to a volatility budget.
-  </p>
-  <ul class="list-disc pl-5 mt-2 text-sm text-slate-700">
-    <li>Universe: Top 40 equities + ALSI futures</li>
-    <li>Target volatility: 12%</li>
-    <li>Risk controls: 12% trailing stops, max 25% single-name exposure</li>
-  </ul>
-</section>
-</section>
-
-
-
+          <!-- Strategy Description -->
+          <section class="card mx-5 mb-5 p-6">
+            <h3 class="text-lg font-medium text-slate-900 mb-2">Strategy Description</h3>
+            <p class="text-sm text-slate-700" id="fs-desc">
+              Rules-based trend-following approach across large-cap SA equities and index futures. Signals combine
+              medium-term momentum and volatility filters. Portfolio is rebalanced monthly with position-sizing to a volatility budget.
+            </p>
+            <ul class="list-disc pl-5 mt-2 text-sm text-slate-700" id="fs-desc-bullets">
+              <li>Universe: Top 40 equities + ALSI futures</li>
+              <li>Target volatility: 12%</li>
+              <li>Risk controls: 12% trailing stops, max 25% single-name exposure</li>
+            </ul>
+          </section>
+        </section>
 
         <!-- Right column -->
         <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-          <!-- Allocation Flow -->
+          <!-- Allocate -->
           <div class="card p-5 border border-slate-200">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-medium text-slate-900">Allocate to Strategy</h3>
@@ -258,6 +233,19 @@
             </div>
             <div class="space-y-4" id="asset-allocation"></div>
           </div>
+
+          <!-- NEW: Strategy Overview -->
+          <div class="card p-5 border border-slate-200">
+            <div class="font-semibold mb-2">Strategy Overview</div>
+            <p id="fsDesc" class="text-sm text-slate-700">—</p>
+            <div class="grid grid-cols-2 gap-3 text-sm mt-3">
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Style</div><div id="fsStyle" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Universe</div><div id="fsUniverse" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Holding</div><div id="fsHold" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trades / Month</div><div id="fsTrades" class="font-semibold">—</div></div>
+            </div>
+          </div>
+
         </aside>
 
         <!-- Performance Summary -->
@@ -290,7 +278,7 @@
           </div>
         </section>
 
-        <!-- Institutional Factsheet blocks -->
+        <!-- Institutional blocks -->
         <section class="col-span-12 lg:col-span-9 grid gap-6">
           <div class="card p-6">
             <h3 class="text-lg font-medium text-slate-900 mb-4">Key Facts & Terms</h3>
@@ -312,8 +300,8 @@
                 <div class="mt-1">15% over HWM</div>
               </div>
               <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Min Investment</div>
-                <div class="mt-1">R 50,000</div>
+                <div class="text-xs text-slate-500">Min Units</div>
+                <div class="mt-1">500</div>
               </div>
               <div class="rounded-xl border border-slate-200 p-3">
                 <div class="text-xs text-slate-500">Liquidity / Dealing</div>
@@ -330,143 +318,122 @@
             </div>
           </div>
 
+          <!-- NEW: Important Information -->
           <div class="card p-6">
-            <h3 class="text-lg font-medium text-slate-900 mb-4">Ratings & Risk</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Internal Rating</div>
-                <div class="mt-1 flex items-center gap-1">
-                  <i class="fa-solid fa-star text-amber-400"></i>
-                  <i class="fa-solid fa-star text-amber-400"></i>
-                  <i class="fa-solid fa-star text-amber-400"></i>
-                  <i class="fa-solid fa-star text-amber-400"></i>
-                  <i class="fa-regular fa-star text-amber-400"></i>
-                  <span class="ml-2 text-slate-700">4 / 5</span>
-                </div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Risk</div>
-                <div class="mt-1"><span class="badge bg-amber-50 border-amber-200 text-amber-700">Moderate</span></div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Volatility (ann.)</div>
-                <div class="mt-1">11.8% (sim.)</div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Max Drawdown</div>
-                <div class="mt-1">-9.6% (sim.)</div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Sharpe (sim.)</div>
-                <div class="mt-1">0.92</div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Win Rate (months)</div>
-                <div class="mt-1">64%</div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Avg Hold</div>
-                <div class="mt-1">~32 trading days</div>
-              </div>
-              <div class="rounded-xl border border-slate-200 p-3">
-                <div class="text-xs text-slate-500">Leverage</div>
-                <div class="mt-1">None</div>
-              </div>
-            </div>
+            <div class="font-semibold mb-2">Important Information</div>
+            <p id="fsDisclaimer" class="text-sm text-slate-600 leading-relaxed">
+              Past performance is not indicative of future results. Returns are shown net of Total Investment Fee (TIF)
+              and before brokerage, slippage and taxes. Trading and investing involve risk, including the possible loss
+              of capital. AlgoHive is an authorised Financial Services Provider (FSP No. 55118) regulated by the FSCA
+              in South Africa. This factsheet is for information only and does not constitute advice.
+            </p>
           </div>
         </section>
 
-<!-- Portfolio Holdings -->
-<section class="col-span-12 lg:col-span-9 min-w-0">
-  <div class="card p-6 rounded-2xl border border-slate-200">
-    <div class="flex items-center justify-between mb-5">
-      <h3 class="text-lg font-medium text-slate-900">Portfolio Holdings</h3>
-      <div class="text-xs text-slate-500">Weights (demo)</div>
-    </div>
+        <!-- Portfolio Holdings -->
+        <section class="col-span-12 lg:col-span-9 min-w-0">
+          <div class="card p-6 rounded-2xl border border-slate-200">
+            <div class="flex items-center justify-between mb-5">
+              <h3 class="text-lg font-medium text-slate-900">Portfolio Holdings</h3>
+              <div class="text-xs text-slate-500">Weights (demo)</div>
+            </div>
 
-    <div class="flex items-center gap-6">
-      <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
-      <div id="ph-legend" class="text-sm grow"></div>
-    </div>
-  </div>
-</section>
+            <div class="flex items-center gap-6">
+              <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
+              <div id="ph-legend" class="text-sm grow"></div>
+            </div>
+          </div>
+        </section>
 
       </div>
 
       <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<script>
-  (() => {
-    // --- Donut helper ---
-    function drawDonut(svgEl, items){
-      const cx=90, cy=90, r=62, R=72, TAU=Math.PI*2;
-      svgEl.innerHTML='';
-      const sum = items.reduce((s,i)=>s+i.pct,0) || 1;
-      let a0=-Math.PI/2;
-      items.forEach(it=>{
-        const frac = it.pct/sum, a1=a0+frac*TAU, la=(a1-a0)>Math.PI?1:0;
-        const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)];
-        const q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)];
-        const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-        const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-        path.setAttribute('d',d); path.setAttribute('fill',it.color||'#0f172a'); path.setAttribute('opacity','.95');
-        svgEl.appendChild(path); a0=a1;
-      });
-      const tot=document.createElementNS('http://www.w3.org/2000/svg','text');
-      tot.textContent='100%'; tot.setAttribute('x',cx); tot.setAttribute('y',cy+5);
-      tot.setAttribute('text-anchor','middle'); tot.setAttribute('font-size','16'); tot.setAttribute('font-weight','700');
-      svgEl.appendChild(tot);
-    }
+      <script>
+        (() => {
+          // Donut helper
+          function drawDonut(svgEl, items){
+            const cx=90, cy=90, r=62, R=72, TAU=Math.PI*2;
+            svgEl.innerHTML='';
+            const sum = items.reduce((s,i)=>s+i.pct,0) || 1;
+            let a0=-Math.PI/2;
+            items.forEach(it=>{
+              const frac = it.pct/sum, a1=a0+frac*TAU, la=(a1-a0)>Math.PI?1:0;
+              const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)];
+              const q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)];
+              const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
+              const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+              path.setAttribute('d',d); path.setAttribute('fill',it.color||'#0f172a'); path.setAttribute('opacity','.95');
+              svgEl.appendChild(path); a0=a1;
+            });
+            const tot=document.createElementNS('http://www.w3.org/2000/svg','text');
+            tot.textContent='100%'; tot.setAttribute('x',cx); tot.setAttribute('y',cy+5);
+            tot.setAttribute('text-anchor','middle'); tot.setAttribute('font-size','16'); tot.setAttribute('font-weight','700');
+            svgEl.appendChild(tot);
+          }
 
-    // --- Demo holdings (replace with real data when ready) ---
-    const holdings = [
-      { label:'AlgoHive Global Flexible Fund B3', pct:20.15, color:'#111827' },
-      { label:'Stability Income Fund B1',        pct:18.65, color:'#94a3b8' },
-      { label:'Asc SA Absolute Prescient B3',    pct:10.07, color:'#2563eb' },
-      { label:'Stone Growth BCI Opp B3',         pct:7.85,  color:'#64748b' },
-      { label:'Allan Gray Balanced R',           pct:7.58,  color:'#6366f1' },
-      { label:'Baillie Gifford Worldwide',       pct:7.55,  color:'#10b981' },
-      { label:'Laurium SA Flexible C1',          pct:7.56,  color:'#ef4444' },
-      { label:'Ninety One Opportunity Z',        pct:7.23,  color:'#f59e0b' },
-      { label:'AlgoHive Multi-Asset Growth',     pct:7.08,  color:'#3f6212' },
-      { label:'Truffle SCI Flexible R',          pct:7.58,  color:'#6b7280' },
-    ];
+          // Demo holdings
+          const holdings = [
+            { label:'AlgoHive Global Flexible Fund B3', pct:20.15, color:'#111827' },
+            { label:'Stability Income Fund B1',        pct:18.65, color:'#94a3b8' },
+            { label:'Asc SA Absolute Prescient B3',    pct:10.07, color:'#2563eb' },
+            { label:'Stone Growth BCI Opp B3',         pct:7.85,  color:'#64748b' },
+            { label:'Allan Gray Balanced R',           pct:7.58,  color:'#6366f1' },
+            { label:'Baillie Gifford Worldwide',       pct:7.55,  color:'#10b981' },
+            { label:'Laurium SA Flexible C1',          pct:7.56,  color:'#ef4444' },
+            { label:'Ninety One Opportunity Z',        pct:7.23,  color:'#f59e0b' },
+            { label:'AlgoHive Multi-Asset Growth',     pct:7.08,  color:'#3f6212' },
+            { label:'Truffle SCI Flexible R',          pct:7.58,  color:'#6b7280' },
+          ];
 
-    // --- Render donut + legend ---
-    drawDonut(document.getElementById('ph-donut'), holdings);
-    document.getElementById('ph-legend').innerHTML = holdings.map(h=>`
-      <div class="flex items-center justify-between py-1">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="legend-dot" style="background:${h.color}"></span>
-          <span class="truncate">${h.label}</span>
-        </div>
-        <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
-      </div>`).join('');
+          // Render donut + legend
+          drawDonut(document.getElementById('ph-donut'), holdings);
+          document.getElementById('ph-legend').innerHTML = holdings.map(h=>`
+            <div class="flex items-center justify-between py-1">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="legend-dot" style="background:${h.color}"></span>
+                <span class="truncate">${h.label}</span>
+              </div>
+              <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
+            </div>`).join('');
 
-    // --- Keep your asset allocation bars (unchanged) ---
-    const alloc = [
-      {label:'Stocks', pct:56, color:'#111827'},
-      {label:'ETFs',   pct:22, color:'#2563eb'},
-      {label:'Crypto', pct:17, color:'#16a34a'},
-      {label:'Cash',   pct:5,  color:'#f59e0b'}
-    ];
-    const wrap = document.getElementById('asset-allocation');
-    if (wrap) {
-      wrap.innerHTML = alloc.map(i=>`
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm text-slate-700">${i.label}</span>
-            <span class="text-sm font-medium">${i.pct}%</span>
-          </div>
-          <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-            <div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div>
-          </div>
-        </div>`).join('');
-    }
-  })();
-</script>
+          // Asset allocation bars
+          const alloc = [
+            {label:'Stocks', pct:56, color:'#111827'},
+            {label:'ETFs',   pct:22, color:'#2563eb'},
+            {label:'Crypto', pct:17, color:'#16a34a'},
+            {label:'Cash',   pct:5,  color:'#f59e0b'}
+          ];
+          const wrap = document.getElementById('asset-allocation');
+          if (wrap) {
+            wrap.innerHTML = alloc.map(i=>`
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-sm text-slate-700">${i.label}</span>
+                  <span class="text-sm font-medium">${i.pct}%</span>
+                </div>
+                <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div>
+                </div>
+              </div>`).join('');
+          }
 
+          // --- Strategy Overview demo data (swap to real later) ---
+          const demoOverview = {
+            desc: 'Medium-term trend-following model on large-cap equities and index ETFs with systematic risk management and volatility targeting.',
+            style: 'Trend-Following',
+            universe: 'SA Top 40 + ETFs',
+            avgHold: '25–45 days',
+            tradesPM: 18
+          };
+          document.getElementById('fsDesc').textContent = demoOverview.desc;
+          document.getElementById('fsStyle').textContent = demoOverview.style;
+          document.getElementById('fsUniverse').textContent = demoOverview.universe;
+          document.getElementById('fsHold').textContent = demoOverview.avgHold;
+          document.getElementById('fsTrades').textContent = demoOverview.tradesPM;
+        })();
+      </script>
 
       <!-- Allocation flow math + toast -->
       <script>
@@ -482,8 +449,9 @@
           const tPrice  = document.getElementById('toast-price');
 
           const fmtZAR = n => 'R ' + (Number(n)||0).toLocaleString('en-ZA',{minimumFractionDigits:2, maximumFractionDigits:2});
-          function refresh(){ totalEl.textContent = fmtZAR((Number(priceEl.value)||0) * (Number(unitsEl.value)||0)); }
-          unitsEl.addEventListener('input', refresh); refresh();
+          function refresh(){ totalEl.textContent = fmtZAR((Number(priceEl.value)||0) * Math.floor(Number(unitsEl.value)||0)); }
+          unitsEl.addEventListener('input', (e)=>{ e.target.value = Math.max(1, Math.floor(Number(e.target.value)||1)); refresh(); });
+          refresh();
 
           btn.addEventListener('click', () => {
             tStrat.textContent = (nameEl.value || '—');
@@ -504,11 +472,10 @@
           const ctxEl = document.getElementById('pf-chart'); if(!ctxEl) return;
           const ctx = ctxEl.getContext('2d');
 
-          // synthetic unit-price curve (upward random walk)
           function makeSeries(n=180, start=90){
             const arr=[]; let p=start;
             for(let i=0;i<n;i++){
-              const step = (Math.random()-0.45)*0.8; // small drift up
+              const step = (Math.random()-0.45)*0.8; // slight drift up
               p = Math.max(70, p * (1 + step/100));
               arr.push(Number(p.toFixed(2)));
             }
@@ -526,7 +493,6 @@
             options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{displayColors:false, callbacks:{ label:(c)=> 'R ' + c.raw.toLocaleString('en-ZA',{minimumFractionDigits:2}) }}}, scales:{ x:{display:false}, y:{display:true, ticks:{color:'#94a3b8', maxTicksLimit:4, callback:(v)=>'R '+Number(v).toLocaleString('en-ZA')} } }
           });
 
-          // header numbers
           const last = series[series.length-1], first = series[0];
           const chg = ((last-first)/first)*100;
           document.getElementById('pf-value').textContent = 'R ' + last.toLocaleString('en-ZA',{minimumFractionDigits:2});
@@ -535,7 +501,7 @@
           document.getElementById('pf-updated').textContent =
             new Date().toLocaleString('en-ZA', { month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit'}) + ' SAST';
 
-          // range tabs (just resample)
+          // range tabs
           document.querySelectorAll('#portfolio-card .tab').forEach(btn=>{
             btn.addEventListener('click', ()=>{
               document.querySelectorAll('#portfolio-card .tab').forEach(b=>b.classList.remove('tab-active'));
@@ -561,70 +527,65 @@
         })();
       </script>
 
-<!-- Calendar Returns (YEAR on Y, MONTH on X) -->
-<script>
-  (function(){
-    const R = {
-      2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
-      2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
-      2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
-      2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
-      2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
-      2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
-    };
+      <!-- Calendar Returns (YEAR on Y, MONTH on X) -->
+      <script>
+        (function(){
+          const R = {
+            2019:{Jan:0.5, Feb:0.3, Mar:0.8, Apr:1.1, May:-0.9, Jun:0.6, Jul:0.8, Aug:0.9, Sep:-0.4, Oct:1.0, Nov:0.7, Dec:0.9, YTD:6.0},
+            2020:{Jan:0.4, Feb:-2.2, Mar:-6.3, Apr:3.7, May:2.1, Jun:1.0, Jul:1.1, Aug:1.4, Sep:0.7, Oct:0.9, Nov:1.1, Dec:1.2, YTD:4.8},
+            2021:{Jan:0.9, Feb:0.7, Mar:0.8, Apr:1.2, May:0.5, Jun:0.4, Jul:0.8, Aug:1.0, Sep:0.9, Oct:-0.8, Nov:1.0, Dec:0.9, YTD:8.0},
+            2022:{Jan:1.0, Feb:-0.9, Mar:0.8, Apr:1.2, May:0.5, Jun:-2.2, Jul:0.9, Aug:2.1, Sep:-0.5, Oct:1.5, Nov:0.6, Dec:1.1, YTD:5.8},
+            2023:{Jan:0.7, Feb:0.9, Mar:-0.7, Apr:1.3, May:2.0, Jun:0.4, Jul:1.2, Aug:0.8, Sep:1.5, Oct:-0.8, Nov:1.1, Dec:0.9, YTD:9.0},
+            2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
+          };
 
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
-    const years  = Object.keys(R).map(Number).sort((a,b)=>a-b);
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
+          const years  = Object.keys(R).map(Number).sort((a,b)=>a-b);
 
-    const grid = document.getElementById('calendarReturns'); 
-    if(!grid) return;
-    grid.innerHTML = '';
-    grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px,1fr))`;
+          const grid = document.getElementById('calendarReturns'); 
+          if(!grid) return;
+          grid.innerHTML = '';
+          grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px,1fr))`;
 
-    const color = (v)=> v==null?'#e5e7eb'
-      : v>=1.5 ? '#bbf7d0'
-      : v>0    ? '#dcfce7'
-      : v===0  ? '#f1f5f9'
-      : v>-1   ? '#fee2e2'
-               : '#fecaca';
+          const color = (v)=> v==null?'#e5e7eb'
+            : v>=1.5 ? '#bbf7d0'
+            : v>0    ? '#dcfce7'
+            : v===0  ? '#f1f5f9'
+            : v>-1   ? '#fee2e2'
+                     : '#fecaca';
 
-    // Top-left corner (sticky left)
-    const corner = document.createElement('div');
-    corner.className = 'cal-head cal-sticky';
-    grid.appendChild(corner);
+          const corner = document.createElement('div');
+          corner.className = 'cal-head cal-sticky';
+          grid.appendChild(corner);
 
-    // Month headers
-    months.forEach(m=>{
-      const h = document.createElement('div');
-      h.className = 'cal-head justify-center';
-      h.textContent = m;
-      grid.appendChild(h);
-    });
+          months.forEach(m=>{
+            const h = document.createElement('div');
+            h.className = 'cal-head justify-center';
+            h.textContent = m;
+            grid.appendChild(h);
+          });
 
-    // Rows: Year header (sticky) + month cells
-    years.forEach(y=>{
-      const yr = document.createElement('div');
-      yr.className = 'cal-head cal-sticky';
-      yr.textContent = y;
-      grid.appendChild(yr);
+          years.forEach(y=>{
+            const yr = document.createElement('div');
+            yr.className = 'cal-head cal-sticky';
+            yr.textContent = y;
+            grid.appendChild(yr);
 
-      months.forEach(m=>{
-        const v = R[y]?.[m];
-        const c = document.createElement('div');
-        c.className = 'cal-cell';
-        c.style.background = color(v);
-        c.textContent = (v||v===0) ? `${v>0?'+':''}${v.toFixed(1)}%` : '—';
-        grid.appendChild(c);
-      });
-    });
+            months.forEach(m=>{
+              const v = R[y]?.[m];
+              const c = document.createElement('div');
+              c.className = 'cal-cell';
+              c.style.background = color(v);
+              c.textContent = (v||v===0) ? `${v>0?'+':''}${v.toFixed(1)}%` : '—';
+              grid.appendChild(c);
+            });
+          });
 
-    // Legend colors
-    document.getElementById('legNeg').style.background = '#fecaca';
-    document.getElementById('legNeu').style.background = '#f1f5f9';
-    document.getElementById('legPos').style.background = '#dcfce7';
-  })();
-</script>
-
+          document.getElementById('legNeg').style.background = '#fecaca';
+          document.getElementById('legNeu').style.background = '#f1f5f9';
+          document.getElementById('legPos').style.background = '#dcfce7';
+        })();
+      </script>
 
     </main>
   </div>
