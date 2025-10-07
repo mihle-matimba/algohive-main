@@ -54,6 +54,8 @@
 
 
     .badge{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .65rem; border-radius:999px; border:1px solid #e5e7eb; font-size:.75rem; font-weight:600; background:#fff }
+    .legend-dot{ width:10px; height:10px; border-radius:9999px; display:inline-block }
+
   </style>
 </head>
 
@@ -372,59 +374,97 @@
           </div>
         </section>
 
-        <!-- Current holdings (demo tiles kept) -->
-        <section class="col-span-12 lg:col-span-9 min-w-0">
-          <div class="card p-6 rounded-2xl border border-slate-200">
-            <div class="flex items-center justify-between mb-5">
-              <h3 class="text-lg font-medium text-slate-900">Current holdings</h3>
-              <div class="flex gap-2">
-                <button id="hold-prev" class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Previous"><i class="fa-solid fa-chevron-left text-slate-500"></i></button>
-                <button id="hold-next" class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Next"><i class="fa-solid fa-chevron-right text-slate-500"></i></button>
-              </div>
-            </div>
-            <div id="hold-track" class="flex gap-4 overflow-x-auto no-scrollbar snap-x"></div>
-          </div>
-        </section>
+<!-- Portfolio Holdings -->
+<section class="col-span-12 lg:col-span-9 min-w-0">
+  <div class="card p-6 rounded-2xl border border-slate-200">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-medium text-slate-900">Portfolio Holdings</h3>
+      <div class="text-xs text-slate-500">Weights (demo)</div>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
+      <div id="ph-legend" class="text-sm grow"></div>
+    </div>
+  </div>
+</section>
+
       </div>
 
       <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-      <!-- Allocation / holdings / allocation bars -->
-      <script>
-        (() => {
-          const holdings = [
-            { ticker:'AAPL', name:'Apple, Inc', price:1232.00, pct:11.01, bg:'#111827' },
-            { ticker:'PYPL', name:'PayPal, Inc', price:965.00, pct:-9.05, bg:'#2563eb' },
-            { ticker:'TSLA', name:'Tesla, Inc', price:1232.00, pct:11.01, bg:'#dc2626' },
-            { ticker:'AMZN', name:'Amazon.com', price:2567.99, pct:11.01, bg:'#d97706' },
-            { ticker:'NVDA', name:'NVIDIA Corp', price:876.12, pct:2.44, bg:'#16a34a' },
-            { ticker:'MSFT', name:'Microsoft', price:412.33, pct:-1.32, bg:'#0ea5e9' },
-          ];
-          const track = document.getElementById('hold-track');
-          const fmt = v => `R ${v.toLocaleString('en-ZA',{minimumFractionDigits:2, maximumFractionDigits:2})}`;
-          const chip = p => `<span class="px-2.5 py-1 rounded-full text-xs font-normal ${p>=0?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${p>=0?'↑':'↓'} ${Math.abs(p).toFixed(2)}%</span>`;
-          const logo = (t,bg) => `<div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-normal" style="background:${bg}">${t[0]}</div>`;
-          track.innerHTML = holdings.map(h=>`
-            <article class="min-w-[280px] max-w-[280px] snap-start bg-white border border-slate-200 rounded-2xl p-5 flex justify-between items-center">
-              <div class="flex items-center gap-3">${logo(h.ticker,h.bg)}
-                <div><div class="text-sm font-normal">${h.ticker}</div><div class="text-xs text-slate-500">${h.name}</div></div>
-              </div>
-              <div class="text-right"><div class="text-lg font-normal">${fmt(h.price)}</div><div class="mt-2">${chip(h.pct)}</div></div>
-            </article>`).join('');
-          const CARD_W = 284;
-          document.getElementById('hold-prev').onclick = () => track.scrollBy({ left: -CARD_W, behavior:'smooth' });
-          document.getElementById('hold-next').onclick = () => track.scrollBy({ left: CARD_W, behavior:'smooth' });
+<script>
+  (() => {
+    // --- Donut helper ---
+    function drawDonut(svgEl, items){
+      const cx=90, cy=90, r=62, R=72, TAU=Math.PI*2;
+      svgEl.innerHTML='';
+      const sum = items.reduce((s,i)=>s+i.pct,0) || 1;
+      let a0=-Math.PI/2;
+      items.forEach(it=>{
+        const frac = it.pct/sum, a1=a0+frac*TAU, la=(a1-a0)>Math.PI?1:0;
+        const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)];
+        const q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)];
+        const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
+        const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d',d); path.setAttribute('fill',it.color||'#0f172a'); path.setAttribute('opacity','.95');
+        svgEl.appendChild(path); a0=a1;
+      });
+      const tot=document.createElementNS('http://www.w3.org/2000/svg','text');
+      tot.textContent='100%'; tot.setAttribute('x',cx); tot.setAttribute('y',cy+5);
+      tot.setAttribute('text-anchor','middle'); tot.setAttribute('font-size','16'); tot.setAttribute('font-weight','700');
+      svgEl.appendChild(tot);
+    }
 
-          const alloc = [{label:'Stocks',pct:56,color:'#111827'},{label:'ETFs',pct:22,color:'#2563eb'},{label:'Crypto',pct:17,color:'#16a34a'},{label:'Cash',pct:5,color:'#f59e0b'}];
-          const wrap = document.getElementById('asset-allocation');
-          wrap.innerHTML = alloc.map(i=>`
-            <div>
-              <div class="flex items-center justify-between mb-1.5"><span class="text-sm text-slate-700">${i.label}</span><span class="text-sm font-medium">${i.pct}%</span></div>
-              <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div></div>
-            </div>`).join('');
-        })();
-      </script>
+    // --- Demo holdings (replace with real data when ready) ---
+    const holdings = [
+      { label:'AlgoHive Global Flexible Fund B3', pct:20.15, color:'#111827' },
+      { label:'Stability Income Fund B1',        pct:18.65, color:'#94a3b8' },
+      { label:'Asc SA Absolute Prescient B3',    pct:10.07, color:'#2563eb' },
+      { label:'Stone Growth BCI Opp B3',         pct:7.85,  color:'#64748b' },
+      { label:'Allan Gray Balanced R',           pct:7.58,  color:'#6366f1' },
+      { label:'Baillie Gifford Worldwide',       pct:7.55,  color:'#10b981' },
+      { label:'Laurium SA Flexible C1',          pct:7.56,  color:'#ef4444' },
+      { label:'Ninety One Opportunity Z',        pct:7.23,  color:'#f59e0b' },
+      { label:'AlgoHive Multi-Asset Growth',     pct:7.08,  color:'#3f6212' },
+      { label:'Truffle SCI Flexible R',          pct:7.58,  color:'#6b7280' },
+    ];
+
+    // --- Render donut + legend ---
+    drawDonut(document.getElementById('ph-donut'), holdings);
+    document.getElementById('ph-legend').innerHTML = holdings.map(h=>`
+      <div class="flex items-center justify-between py-1">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="legend-dot" style="background:${h.color}"></span>
+          <span class="truncate">${h.label}</span>
+        </div>
+        <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
+      </div>`).join('');
+
+    // --- Keep your asset allocation bars (unchanged) ---
+    const alloc = [
+      {label:'Stocks', pct:56, color:'#111827'},
+      {label:'ETFs',   pct:22, color:'#2563eb'},
+      {label:'Crypto', pct:17, color:'#16a34a'},
+      {label:'Cash',   pct:5,  color:'#f59e0b'}
+    ];
+    const wrap = document.getElementById('asset-allocation');
+    if (wrap) {
+      wrap.innerHTML = alloc.map(i=>`
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm text-slate-700">${i.label}</span>
+            <span class="text-sm font-medium">${i.pct}%</span>
+          </div>
+          <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-full rounded-full" style="width:${i.pct}%; background:${i.color}"></div>
+          </div>
+        </div>`).join('');
+    }
+  })();
+</script>
+
 
       <!-- Allocation flow math + toast -->
       <script>
