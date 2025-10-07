@@ -982,7 +982,7 @@
     })();
   </script>
 
-  <script>
+ <script>
   const $ = (q,el=document)=>el.querySelector(q);
   const modal  = $('#ozow-modal');
   const frame  = $('#ozow-frame');
@@ -1006,12 +1006,20 @@
   }
 
   async function startOzowCheckout({ amount, transactionReference, bankReference, customer }){
-const res = await fetch('/api/ozow-create', {
+    // 🔥 use the correct route
+    const res = await fetch('/api/ozow-create', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ amount, transactionReference, bankReference, customer })
     });
-    if(!res.ok){ alert('Could not start Ozow checkout'); return; }
+
+    if(!res.ok){
+      const text = await res.text().catch(()=> '');
+      console.error('ozow-create failed', res.status, text);
+      alert('Could not start Ozow checkout');
+      return;
+    }
+
     const { action, fields } = await res.json();
     openOzow();
     postToIframe('ozow-frame', action, fields);
@@ -1019,13 +1027,18 @@ const res = await fetch('/api/ozow-create', {
 
   allocBtn?.addEventListener('click', (e)=>{
     e.preventDefault();
-    const amtText=(document.getElementById('alloc-total')?.textContent||'R 0').replace(/[^\d.,]/g,'');
-    const amount=Number(amtText.replace(',',''));
-    const transactionReference='AH-'+Date.now();
-    const bankReference='ALGOHIVE-'+Math.random().toString(36).slice(2,8).toUpperCase();
+
+    // Parse amount safely
+    const amtText = (document.getElementById('alloc-total')?.textContent || 'R 0').replace(/[^\d.,]/g,'');
+    const amount  = Number(amtText.replace(/,/g,''));  // remove all commas
+
+    const transactionReference = 'AH-' + Date.now();
+    const bankReference = 'ALGOHIVE-' + Math.random().toString(36).slice(2,8).toUpperCase();
+
     startOzowCheckout({ amount, transactionReference, bankReference, customer:'AlgoHive User' });
   });
 </script>
+
 
 
 </body>
