@@ -9,7 +9,7 @@ const sha512LowerHex = (s) =>
 /** Build Ozow fields + HashCheck */
 function buildOzowPayload({ amount, transactionReference, bankReference, customer = "", optional1 = "", optional2 = "", optional3 = "", optional4 = "", optional5 = "" }) {
   const {
-    OZOW_SITE_CODE = "= "ALG-ALG-003",
+    OZOW_SITE_CODE = "ALG-ALG-003",
     OZOW_PRIVATE_KEY = "398a4e543bfa42c39d18dde8bba9a9cf",
     OZOW_IS_TEST = "true",
     OZOW_SUCCESS_URL = "https://your.app/pay/success",
