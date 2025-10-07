@@ -1,0 +1,37 @@
+<div id="paymentContainer"></div>
+
+<label class="inline-flex items-center gap-2">
+  <input type="radio" id="payUsingOzow" value="Ozow"> Pay with Ozow
+</label>
+<button id="cancelOzowPayment">Cancel</button>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://static-content.ozow.com/scripts/js/v2/ozow-integration-2.0.min.js"></script>
+<script>
+  // wait for DOM
+  $(function () {
+    const ozow = new Ozow();
+    const paymentUrl = 'https://pay.ozow.com/';
+
+    const postData = {
+      SiteCode: "ALG-ALG-003",
+      CountryCode: "ZA",
+      CurrencyCode: "ZAR",
+      Amount: "45.00",                           // 2-decimal string
+      TransactionReference: "Test-" + Date.now(),// unique
+      SuccessUrl: window.location.origin + "/pay/success.html",
+      ErrorUrl:   window.location.origin + "/pay/error.html",
+      CancelUrl:  window.location.origin + "/pay/cancel.html",
+      IsTest: true
+      // If your Ozow setup requires HashCheck/Token, you'll need to add it here.
+    };
+
+    $('#payUsingOzow').on('click', function () {
+      ozow.createPaymentFrame('paymentContainer', paymentUrl, postData);
+    });
+
+    $('#cancelOzowPayment').on('click', function () {
+      ozow.cancelFramePayment();
+    });
+  });
+</script>
