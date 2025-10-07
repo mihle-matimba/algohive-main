@@ -347,6 +347,38 @@
 
       </div>
 
+      <!-- Ozow Modal -->
+<div id="ozow-modal" class="fixed inset-0 z-[200] hidden">
+  <div class="absolute inset-0 bg-black/50" data-close-ozow></div>
+
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+              w-[95vw] max-w-3xl h-[80vh] rounded-2xl bg-white shadow-2xl
+              border border-slate-200 flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+      <div class="text-sm font-semibold text-slate-900">Complete payment with Ozow</div>
+      <button id="ozow-close" class="h-9 w-9 grid place-items-center rounded-lg hover:bg-slate-100" title="Close" data-close-ozow>
+        <i class="fa-solid fa-xmark text-slate-600"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-hidden">
+      <!-- IMPORTANT: set this src from your server (signed Ozow checkout URL). -->
+      <iframe id="ozow-frame"
+              src="about:blank"
+              title="Ozow Checkout"
+              class="w-full h-full"
+              frameborder="0"
+              allow="payment *; clipboard-write *; accelerometer; autoplay; camera; gyroscope"
+              referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+
+    <div class="px-4 py-2 text-[12px] text-slate-500 border-t border-slate-200">
+      Press <kbd class="px-1 py-0.5 border rounded">Esc</kbd> to close
+    </div>
+  </div>
+</div>
+
+
       <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -681,5 +713,68 @@
       }catch{}
     })();
   </script>
+
+  <script>
+  (function(){
+    const modal  = document.getElementById('ozow-modal');
+    const frame  = document.getElementById('ozow-frame');
+    const openBtn = document.getElementById('alloc-btn');
+
+    // Replace this with a real, server-generated Ozow checkout URL.
+    // Ozow requires a signed payload; build it on your backend and return it to the browser.
+    function getOzowCheckoutUrl() {
+      // Optional: read amount / reference from your UI
+      const totalText = (document.getElementById('alloc-total')?.textContent || 'R 0').replace(/[^\d.,]/g,'');
+      // e.g. send amount + reference to your API, which responds with the secure Ozow URL
+      // return fetch('/api/ozow/checkout?amount=' + encodeURIComponent(totalText)).then(r=>r.text());
+      // Demo placeholder:
+      return Promise.resolve('https://pay.ozow.com/?demo=true'); // <-- swap with real URL
+    }
+
+    function openModal(url){
+      frame.src = url || 'about:blank';
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(){
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      // clear src to stop payment session if needed
+      frame.src = 'about:blank';
+    }
+
+    // Open on Allocate
+    openBtn?.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      try{
+        const ozowUrl = await getOzowCheckoutUrl();
+        openModal(ozowUrl);
+      }catch(err){
+        console.error(err);
+        alert('Sorry, could not start Ozow checkout.');
+      }
+    });
+
+    // Close interactions
+    modal?.addEventListener('click', (e)=>{ if(e.target.dataset.closeOzow!==undefined) closeModal(); });
+    document.getElementById('ozow-close')?.addEventListener('click', closeModal);
+    window.addEventListener('keydown', (e)=>{ if(!modal.classList.contains('hidden') && e.key==='Escape') closeModal(); });
+
+    // (Optional) Listen for postMessage from Ozow to auto-close on success/cancel
+    window.addEventListener('message', (e)=>{
+      // Validate origin if Ozow provides a fixed origin
+      // if (e.origin !== 'https://pay.ozow.com') return;
+      if(e.data && e.data.type === 'OZOW_CHECKOUT_COMPLETE'){
+        closeModal();
+        // TODO: refresh balances / show receipt
+      }
+      if(e.data && e.data.type === 'OZOW_CHECKOUT_CANCEL'){
+        closeModal();
+      }
+    });
+  })();
+</script>
+
 </body>
 </html>
