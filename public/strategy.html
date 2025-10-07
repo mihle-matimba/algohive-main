@@ -410,9 +410,14 @@
                   </button>
                 </div>
 
-                <iframe id="ozow-frame" name="ozow-frame" title="Ozow Checkout" class="w-full h-full" frameborder="0"
-                  allow="payment *; clipboard-write *; accelerometer; autoplay; camera; gyroscope"
-                  referrerpolicy="no-referrer-when-downgrade"></iframe>
+<!-- In your modal body -->
+<div id="paymentContainer" class="w-full h-full"></div>
+
+<!-- Optional cancel button in the modal header/footer -->
+<button id="cancelOzowPayment" class="h-9 px-3 rounded-lg hover:bg-slate-100">
+  Cancel
+</button>
+
 
                 <div class="px-4 py-2 text-[12px] text-slate-500 border-t border-slate-200">
                   Press <kbd class="px-1 py-0.5 border rounded">Esc</kbd> to close
@@ -579,6 +584,11 @@
 
 
 
+<!-- jQuery (required by Ozow SDK) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+<!-- Ozow Embedded iFrame SDK -->
+<script src="https://static-content.ozow.com/scripts/js/v2/ozow-integration-2.0.min.js"></script>
 
       <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -922,62 +932,98 @@
 
 
 
- <script>
-  const $ = (q,el=document)=>el.querySelector(q);
-  const modal  = $('#ozow-modal');
-  const frame  = $('#ozow-frame');
-  const allocBtn = $('#alloc-btn');
+<script>
+  (function () {
+    const ozow = new Ozow();               // 1) instantiate SDK
+    const modal = document.getElementById('ozow-modal');
+    const openModal = () => { modal.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
+    const closeModal = () => { modal.classList.add('hidden'); document.body.style.overflow = ''; };
 
-  function openOzow(){ modal.classList.remove('hidden'); document.body.style.overflow='hidden'; }
-  function closeOzow(){ modal.classList.add('hidden'); document.body.style.overflow=''; frame.src='about:blank'; }
+    // Helpers
+    const getAmount = () => {
+      // "R 1,124.00" -> "1124.00"
+      const raw = (document.getElementById('alloc-total')?.textContent || 'R 0')
+        .replace(/[^\d.,]/g, '')           // keep digits . ,
+        .replace(/,/g, '');                // remove thousands
+      return Number(raw).toFixed(2);       // "1124.00"
+    };
 
-  // Close modal interactions
-  modal?.addEventListener('click', (e)=>{ if(e.target.dataset.closeOzow!==undefined) closeOzow(); });
-  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !modal.classList.contains('hidden')) closeOzow(); });
+    async function createOzowSession() {
+      const amount = getAmount();
+      const transactionReference = 'AH-' + Date.now();
+      const bankReference = 'ALGOHIVE-' + Math.random().toString(36).slice(2, 8).toUpperCase();
 
-  function postToIframe(targetName, action, fields){
-    const form=document.createElement('form');
-    form.method='POST'; form.action=action; form.target=targetName;
-    for(const [k,v] of Object.entries(fields||{})){
-      const i=document.createElement('input');
-      i.type='hidden'; i.name=k; i.value=v; form.appendChild(i);
+      // Call your backend to build + sign Ozow fields
+      const res = await fetch('/api/ozow-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          transactionReference,
+          bankReference,
+          customer: 'AlgoHive User'
+        })
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(()=>'');
+        console.error('ozow-create failed', res.status, text);
+        alert('Could not start Ozow checkout');
+        throw new Error('ozow-create failed');
+      }
+
+      return res.json(); // { action, fields }
     }
-    document.body.appendChild(form); form.submit(); form.remove();
-  }
 
-  async function startOzowCheckout({ amount, transactionReference, bankReference, customer }){
-    // 🔥 use the correct route
-    const res = await fetch('/api/ozow-create', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ amount, transactionReference, bankReference, customer })
+    // Allocate button -> open Ozow iFrame
+    document.getElementById('alloc-btn')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const { action, fields } = await createOzowSession();
+
+        // 2) open modal first (optional, but feels better UX-wise)
+        openModal();
+
+        // 3) Launch the Ozow iFrame
+        // The SDK will POST the fields and append ?viewName=JsInjection&... automatically
+        ozow.createPaymentFrame('paymentContainer', action, fields);
+
+      } catch (err) {
+        console.error(err);
+      }
     });
 
-    if(!res.ok){
-      const text = await res.text().catch(()=> '');
-      console.error('ozow-create failed', res.status, text);
-      alert('Could not start Ozow checkout');
-      return;
-    }
+    // Cancel button in your modal
+    document.getElementById('cancelOzowPayment')?.addEventListener('click', () => {
+      // 4) Tell the SDK to cancel the embedded checkout
+      ozow.cancelFramePayment();
+      // Optional: also close your modal
+      closeModal();
+    });
 
-    const { action, fields } = await res.json();
-    openOzow();
-    postToIframe('ozow-frame', action, fields);
-  }
+    // Let users click backdrop / Esc to close your modal if you want
+    modal?.addEventListener('click', (e) => {
+      if (e.target?.dataset?.closeOzow !== undefined) {
+        ozow.cancelFramePayment();
+        closeModal();
+      }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        ozow.cancelFramePayment();
+        closeModal();
+      }
+    });
 
-  allocBtn?.addEventListener('click', (e)=>{
-    e.preventDefault();
-
-    // Parse amount safely
-    const amtText = (document.getElementById('alloc-total')?.textContent || 'R 0').replace(/[^\d.,]/g,'');
-    const amount  = Number(amtText.replace(/,/g,''));  // remove all commas
-
-    const transactionReference = 'AH-' + Date.now();
-    const bankReference = 'ALGOHIVE-' + Math.random().toString(36).slice(2,8).toUpperCase();
-
-    startOzowCheckout({ amount, transactionReference, bankReference, customer:'AlgoHive User' });
-  });
+    // (Optional) listen for messages if you want extra hooks
+    window.addEventListener('message', (e) => {
+      // SDK already handles ozowResize & ipayMessage internally.
+      // Add custom logic if you want.
+      // if (e.data?.event === 'ozowResize') { ... }
+    });
+  })();
 </script>
+
 
 
 
