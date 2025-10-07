@@ -31,6 +31,15 @@
     @keyframes ah-spin{ to{ transform:rotate(360deg) } }
     .spin i{ animation:ah-spin .8s linear infinite }
     .cal-grid{ display:grid; grid-auto-rows:minmax(36px,auto) }
+    /* Sticky first column (years) */
+.cal-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;              /* above other cells */
+  background: #fff;        /* match card bg so it doesn’t show content underneath */
+  box-shadow: 1px 0 0 #e5e7eb inset; /* subtle right divider */
+}
+
     .cal-cell{ font-size:12px; font-weight:600; border-radius:10px; border:1px solid #e5e7eb; display:flex; align-items:center; justify-content:center }
     .cal-head{ font-size:12px; font-weight:600; color:#64748b; display:flex; align-items:center }
     .badge{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .65rem; border-radius:999px; border:1px solid #e5e7eb; font-size:.75rem; font-weight:600; background:#fff }
@@ -501,15 +510,12 @@
       2024:{Jan:1.0, Feb:0.6, Mar:0.5, Apr:0.9, May:0.8, Jun:0.9, Jul:0.3, Aug:0.5, Sep:1.0, Oct:0.7, Nov:0.8, Dec:0.9, YTD:8.6}
     };
 
-    // Columns = months (x-axis), Rows = years (y-axis)
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','YTD'];
     const years  = Object.keys(R).map(Number).sort((a,b)=>a-b);
 
     const grid = document.getElementById('calendarReturns'); 
     if(!grid) return;
-    grid.innerHTML = ''; // reset
-
-    // Set grid: first column is the row header (years), then one col per month
+    grid.innerHTML = '';
     grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px,1fr))`;
 
     const color = (v)=> v==null?'#e5e7eb'
@@ -519,12 +525,12 @@
       : v>-1   ? '#fee2e2'
                : '#fecaca';
 
-    // Top-left empty corner
+    // Top-left corner (sticky left)
     const corner = document.createElement('div');
-    corner.className = 'cal-head';
+    corner.className = 'cal-head cal-sticky';
     grid.appendChild(corner);
 
-    // Top header: months across X
+    // Month headers
     months.forEach(m=>{
       const h = document.createElement('div');
       h.className = 'cal-head justify-center';
@@ -532,10 +538,10 @@
       grid.appendChild(h);
     });
 
-    // For each YEAR (row): add row header (year), then cells for each MONTH
+    // Rows: Year header (sticky) + month cells
     years.forEach(y=>{
       const yr = document.createElement('div');
-      yr.className = 'cal-head';
+      yr.className = 'cal-head cal-sticky';
       yr.textContent = y;
       grid.appendChild(yr);
 
@@ -549,12 +555,13 @@
       });
     });
 
-    // Legend colors (unchanged)
+    // Legend colors
     document.getElementById('legNeg').style.background = '#fecaca';
     document.getElementById('legNeu').style.background = '#f1f5f9';
     document.getElementById('legPos').style.background = '#dcfce7';
   })();
 </script>
+
 
     </main>
   </div>
