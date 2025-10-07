@@ -920,67 +920,6 @@
     })();
   </script>
 
-  <script>
-    (function () {
-      const modal = document.getElementById('ozow-modal');
-      const frame = document.getElementById('ozow-frame');
-      const openBtn = document.getElementById('alloc-btn');
-
-      // Replace this with a real, server-generated Ozow checkout URL.
-      // Ozow requires a signed payload; build it on your backend and return it to the browser.
-      function getOzowCheckoutUrl() {
-        // Optional: read amount / reference from your UI
-        const totalText = (document.getElementById('alloc-total')?.textContent || 'R 0').replace(/[^\d.,]/g, '');
-        // e.g. send amount + reference to your API, which responds with the secure Ozow URL
-        // return fetch('/api/ozow/checkout?amount=' + encodeURIComponent(totalText)).then(r=>r.text());
-        // Demo placeholder:
-        return Promise.resolve('https://pay.ozow.com/?demo=true'); // <-- swap with real URL
-      }
-
-      function openModal(url) {
-        frame.src = url || 'about:blank';
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-      }
-
-      function closeModal() {
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
-        // clear src to stop payment session if needed
-        frame.src = 'about:blank';
-      }
-
-      // Open on Allocate
-      openBtn?.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          const ozowUrl = await getOzowCheckoutUrl();
-          openModal(ozowUrl);
-        } catch (err) {
-          console.error(err);
-          alert('Sorry, could not start Ozow checkout.');
-        }
-      });
-
-      // Close interactions
-      modal?.addEventListener('click', (e) => { if (e.target.dataset.closeOzow !== undefined) closeModal(); });
-      document.getElementById('ozow-close')?.addEventListener('click', closeModal);
-      window.addEventListener('keydown', (e) => { if (!modal.classList.contains('hidden') && e.key === 'Escape') closeModal(); });
-
-      // (Optional) Listen for postMessage from Ozow to auto-close on success/cancel
-      window.addEventListener('message', (e) => {
-        // Validate origin if Ozow provides a fixed origin
-        // if (e.origin !== 'https://pay.ozow.com') return;
-        if (e.data && e.data.type === 'OZOW_CHECKOUT_COMPLETE') {
-          closeModal();
-          // TODO: refresh balances / show receipt
-        }
-        if (e.data && e.data.type === 'OZOW_CHECKOUT_CANCEL') {
-          closeModal();
-        }
-      });
-    })();
-  </script>
 
  <script>
   const $ = (q,el=document)=>el.querySelector(q);
