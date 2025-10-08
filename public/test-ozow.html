@@ -1,134 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ozow Dynamic Payment Demo (iFrame)</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        #form-container { max-width: 400px; margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input[type="number"], input[type="text"] { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
-        button { padding: 10px 15px; margin-top: 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
-        #paymentContainer { border: 1px solid #000; height: 600px; width: 100%; margin-top: 20px; }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ozow Dynamic Payment Demo (iFrame)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #form-container { max-width: 400px; margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input[type="number"], input[type="text"], input[type="email"] { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+    button { padding: 10px 15px; margin-top: 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+    #paymentContainer { border: 1px solid #000; height: 600px; width: 100%; margin-top: 20px; display: grid; place-items: center; }
+    .muted { color:#666; font-size:14px }
+  </style>
 </head>
 <body>
+  <h1>Ozow Dynamic Payment Integration</h1>
 
-    <h1>Ozow Dynamic Payment Integration</h1>
-    
-    <div id="form-container">
-        <h2>Enter Payment Details</h2>
+  <div id="form-container">
+    <h2>Enter Payment Details</h2>
 
-        <label for="amount">Dynamic Amount (ZAR):</label>
-        <input type="number" id="amount" value="500.00" min="1.00" step="0.01">
+    <label for="amount">Dynamic Amount (ZAR):</label>
+    <input type="number" id="amount" value="500.00" min="1.00" step="0.01"/>
 
-        <label for="reference">Transaction Reference:</label>
-        <input type="text" id="reference" value="INV-456789" maxlength="50">
+    <label for="reference">Transaction Reference:</label>
+    <input type="text" id="reference" value="INV-456789" maxlength="50"/>
 
-        <label for="customer">Customer Email:</label>
-        <input type="email" id="customer" value="user@example.com" maxlength="100">
+    <label for="customer">Customer Email:</label>
+    <input type="email" id="customer" value="user@example.com" maxlength="100"/>
 
-        <button id="payUsingOzow">Pay with Ozow</button>
-        <button id="cancelOzowPayment" style="background-color: #dc3545;">Cancel Payment</button>
-    </div>
+    <button id="payUsingOzow">Pay with Ozow</button>
+    <button id="cancelOzowPayment" style="background-color:#dc3545;">Cancel Payment</button>
 
-    <hr>
+    <p class="muted">This demo loads Ozow’s secure checkout URL returned by your backend into the iFrame below.</p>
+  </div>
 
-    <h3>Ozow iFrame Loads Here:</h3>
-    <div id="paymentContainer"></div>
+  <hr/>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://static-content.ozow.com/scripts/js/v2/ozow-integration-2.0.min.js"></script>
+  <h3>Ozow iFrame Loads Here:</h3>
+  <div id="paymentContainer">
+    <span class="muted">No payment started yet.</span>
+  </div>
 
-    <script>
-        // 3. Instantiate the SDK
-        const ozow = new Ozow();
-        const paymentUrl = 'https://pay.ozow.com/';
+  <!-- jQuery only if you still want it (not required for this flow) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-        // 🔑 🔑 🔑 SECURITY WARNING: PLACEHOLDERS 🔑 🔑 🔑
-        // The HashCheck, SiteCode, and PrivateKey must come from a secure backend server!
-        const MERCHANT_CONFIG = {
-            SiteCode: 'ALG-ALG-003', // Your SiteCode from Ozow Merchant Admin
-            PrivateKey: 'c1492bbbb4834075864fcbd1b844b772', // Your Private Key (NEVER expose this in live JS!)
-            CountryCode: 'ZA',
-            CurrencyCode: 'ZAR',
-            SuccessUrl: 'https://thealgohive.com/payment/success',
-            CancelUrl: 'https://thealgohive.com/payment/cancel',
-            ErrorUrl: 'https://thealgohive.com/payment/error',
-            NotifyUrl: 'https://thealgohive.com/webhooks/ozow', // The server-to-server webhook
-            IsTest: false // Set to false for a live transaction
-        };
+  <script>
+    const container = document.getElementById('paymentContainer');
+    const btnPay    = document.getElementById('payUsingOzow');
+    const btnCancel = document.getElementById('cancelOzowPayment');
 
-        // --- SIMULATED HASH GENERATION FUNCTION (Insecure client-side demo) ---
-        // In a real application, this entire function is on your SECURE BACKEND.
-        function generateHash(data) {
-            // Ozow Hash Generation Logic:
-            // 1. Collect required parameters in a specific order.
-            // 2. Concatenate them with the Merchant Private Key.
-            // 3. Hash the resulting string using SHA512.
-            
-            // For this *insecure* client-side demo, we use a mock hash.
-            // The real hash ensures the data hasn't been tampered with.
-            const dataString = `${data.SiteCode}|${data.Amount}|${data.TransactionReference}|${MERCHANT_CONFIG.PrivateKey}`;
-            console.log("Simulating Hash Generation on Backend with data:", dataString);
+    function setLoading(on=true){
+      container.innerHTML = on ? '<div>Creating payment…</div>' : '<span class="muted">No payment started yet.</span>';
+    }
 
-            // ⚠️ WARNING: Returning a mock hash for DEMO purposes.
-            return 'MOCK_SHA512_HASH_CHECK_1234567890ABCDEF'; 
+    function loadIframe(url){
+      container.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = url;              // URL from /api/ozow/create (staging/live)
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = '0';
+      container.appendChild(iframe);
+    }
+
+    btnPay.addEventListener('click', async () => {
+      const amount = Number(document.getElementById('amount').value || 0);
+      const reference = document.getElementById('reference').value.trim();
+      const customer = document.getElementById('customer').value.trim();
+
+      if (!amount || amount <= 0 || !reference) {
+        alert('Please enter a valid amount and transaction reference.');
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Call your Vercel function that does PostPaymentRequest + hashCheck server-side
+        const resp = await fetch('/api/ozow/create', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            amount,
+            customerName: customer || 'AlgoHive User',
+            // optional: pass reference through so backend can use it for transactionReference/bankReference
+            reference
+          })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data?.url) {
+          console.error('Ozow create error:', data);
+          container.innerHTML = `<div style="color:#b91c1c">Failed to create payment: ${data?.error || 'Unknown error'}</div>`;
+          return;
         }
 
-        // 4. Launch the IFrame when the Pay button is clicked
-        $('#payUsingOzow').on('click', () => {
-            
-            // 1. Gather Dynamic Inputs
-            const amount = parseFloat($('#amount').val()).toFixed(2); // Ensure two decimal places
-            const reference = $('#reference').val();
-            const customerEmail = $('#customer').val();
+        // Load Ozow checkout URL inside the iFrame
+        loadIframe(data.url);
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div style="color:#b91c1c">Unexpected error. Check console.</div>`;
+      }
+    });
 
-            if (isNaN(amount) || amount <= 0 || !reference) {
-                alert("Please enter a valid amount and transaction reference.");
-                return;
-            }
+    btnCancel.addEventListener('click', () => {
+      // Just clear/replace the iFrame area (there’s nothing to “cancel” client-side for the REST URL)
+      container.innerHTML = '<h2>Payment was Cancelled.</h2>';
+    });
 
-            // 2. Build the FINAL Payload for the Backend (or simulate here)
-            const payloadData = {
-                SiteCode: MERCHANT_CONFIG.SiteCode,
-                CountryCode: MERCHANT_CONFIG.CountryCode,
-                CurrencyCode: MERCHANT_CONFIG.CurrencyCode,
-                Amount: amount,                         // DYNAMIC AMOUNT
-                TransactionReference: reference,        // DYNAMIC REFERENCE
-                Customer: customerEmail,                // Optional Dynamic Data
-                BankReference: reference,               // Reference on Merchant's bank statement
-                SuccessUrl: MERCHANT_CONFIG.SuccessUrl,
-                CancelUrl: MERCHANT_CONFIG.CancelUrl,
-                ErrorUrl: MERCHANT_CONFIG.ErrorUrl,
-                NotifyUrl: MERCHANT_CONFIG.NotifyUrl,
-                IsTest: MERCHANT_CONFIG.IsTest
-            };
-
-            // 3. Add the Security Hash (SIMULATED BACKEND STEP)
-            payloadData.HashCheck = generateHash(payloadData);
-            
-            // 4. Launch the Ozow iFrame
-            ozow.createPaymentFrame('paymentContainer', paymentUrl, payloadData);
-        });
-
-        // 5. Handle Cancellation
-        $('#cancelOzowPayment').on('click', () => {
-            ozow.cancelFramePayment(); // Sends `ozowCancelPayment` to the iframe
-            // You might also clear the container or display a message here
-            $('#paymentContainer').html('<h2>Payment was Cancelled.</h2>');
-        });
-
-        // 6. Optional: Global listener for custom logic
-        window.addEventListener('message', (e) => {
-            if (e.data?.event === 'ozowResize') {
-                // The iFrame has requested a resize for better viewing
-                console.log('Ozow iFrame resized to height:', e.data.height + 'px');
-            }
-            // Other events like ipayMessage (which leads to the redirect) are handled internally.
-        });
-    </script>
-
+    // Optional: listen for messages if you implement postMessage on your success/error pages
+    window.addEventListener('message', (e) => {
+      // e.g., if your success page posts a message when done
+      // console.log('Message from iframe:', e.data);
+    });
+  </script>
 </body>
 </html>
