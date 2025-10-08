@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       errorUrl: OZOW.errorUrl,
       successUrl: OZOW.successUrl,
       notifyUrl: OZOW.notifyUrl,
-      isTest: true,
+      isTest: false,
       selectedBankId: "",
       bankAccountNumber: "", branchCode: "",
       bankAccountName: "", payeeDisplayName: "",
