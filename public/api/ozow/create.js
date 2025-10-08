@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const OZOW = {
-  api: "https://stagingapi.ozow.com/PostPaymentRequest",
+  api: "https://api.ozow.com/PostPaymentRequest",
   apiKey: process.env.OZOW_API_KEY,
   privateKey: process.env.OZOW_PRIVATE_KEY,
   siteCode: process.env.OZOW_SITE_CODE,
