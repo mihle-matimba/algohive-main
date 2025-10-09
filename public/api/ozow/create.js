@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const OZOW = {
-  api: "https://api.ozow.com/PostPaymentRequest",
+  api: "https://stagingapi.ozow.com/PostPaymentRequest",
   apiKey: process.env.OZOW_API_KEY,
   privateKey: process.env.OZOW_PRIVATE_KEY,
   siteCode: process.env.OZOW_SITE_CODE,
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       errorUrl: OZOW.errorUrl,
       successUrl: OZOW.successUrl,
       notifyUrl: OZOW.notifyUrl,
-      isTest: false,
+      isTest: true,
       selectedBankId: "",
       bankAccountNumber: "", branchCode: "",
       bankAccountName: "", payeeDisplayName: "",
