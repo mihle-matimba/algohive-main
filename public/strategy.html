@@ -721,16 +721,45 @@ function hydrateHeader(strategy){
     $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
 
     // === Auto-refresh metrics every 2 minutes ===
+// helper: light strategy fetch (gets fields used in header + AUM)
+async function fetchStrategyLite(id){
+  const { data, error } = await supabase
+    .from('strategies')
+    .select('id,name,creator,inception_date,currency,risk_level,aum,strategy_description,style,asset_universe,avg_holding_days,avg_trades_per_month')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+// === Auto-refresh metrics + strategy (AUM) every 2 minutes ===
 const doAutoRefresh = async () => {
   const btn = document.getElementById('pf-refresh');
   btn?.classList.add('spin');
   try {
-    const fresh = await fetchMetrics(strategy.id);
+    // get metrics AND the latest strategy row (for AUM/currency/name changes)
+    const [freshMetrics, freshStrategy] = await Promise.all([
+      fetchMetrics(strategy.id),
+      fetchStrategyLite(strategy.id),
+    ]);
+
+    // fall back to the original 'strategy' if lite fetch fails
+    const activeStrategy = freshStrategy || strategy;
+
+    // update header (AUM, currency, desc, etc.)
+    hydrateHeader(activeStrategy);
+    currentCCY = activeStrategy.currency || 'ZAR';
+
+    // re-render equity curve with fresh AUM rebasing
     const range =
       document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '1M';
-    selectRangeAndRender(range, fresh, strategy);
-    fillPerfSummary(fresh?.perf_summary || null);
-    renderCalendarDaily(document.getElementById('calendarReturns'), fresh?.calendar_returns || []);
+    selectRangeAndRender(range, freshMetrics, activeStrategy);
+
+    // refresh summary & calendar from metrics
+    fillPerfSummary(freshMetrics?.perf_summary || null);
+    renderCalendarDaily(document.getElementById('calendarReturns'), freshMetrics?.calendar_returns || []);
+
+    // timestamp
     document.getElementById('fs-updated').textContent =
       'Updated ' + new Date().toLocaleString('en-ZA', {
         day: '2-digit', month: '2-digit', year: 'numeric',
@@ -742,7 +771,9 @@ const doAutoRefresh = async () => {
     setTimeout(() => btn?.classList.remove('spin'), 600);
   }
 };
-setInterval(doAutoRefresh, 1000); // 120,000 ms = 2 minutes
+
+// run every 2 minutes (120,000 ms)
+setInterval(doAutoRefresh, 10000);
 
 
   } catch (err) {
