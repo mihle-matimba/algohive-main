@@ -464,10 +464,221 @@
   <!-- Sidebar collapse memory -->
   <script> (function () { const layout = document.getElementById('layout'); const aside = document.getElementById('ah-sidebar'); const btn = document.getElementById('ah-collapse'); const saved = localStorage.getItem('ah_collapsed') === 'true'; if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); } btn.addEventListener('click', () => { const isCollapsed = aside.getAttribute('data-collapsed') === 'true'; if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open')); aside.setAttribute('data-collapsed', String(!isCollapsed)); layout.classList.toggle('is-collapsed', !isCollapsed); localStorage.setItem('ah_collapsed', String(!isCollapsed)); layout.offsetHeight; window.dispatchEvent(new Event('resize')); }); })(); </script>
   <!-- Supabase profile (optional) -->
-  <script
-    type="module"> import { supabase } from "/js/supabase.js"; const $ = (q, el = document) => el.querySelector(q); const maskId = (uuid) => uuid ?••• ${ String(uuid).slice(-4)}: '—'; (function wireProfileMenu() { const pm = $('#profile-modal'); const btn = $('#hdr-profile-btn'); const logoutBtn = $('#pm-logout'); btn?.addEventListener('click', () => pm?.classList.toggle('hidden')); pm?.addEventListener('click', (e) => { if (e.target === pm) pm.classList.add('hidden') }); logoutBtn?.addEventListener('click', async () => { await supabase.auth.signOut(); location.replace('/auth.html?tab=in'); }); })(); (async () => { const { data: { session } } = await supabase.auth.getSession(); if (!session) return; const { data: { user } } = await supabase.auth.getUser(); let profile = null; try { const { data, error } = await supabase.from('profiles').select('full_name, first_name, last_name, avatar_url').eq('id', user.id).maybeSingle(); if (!error) profile = data; } catch { } const bestName = [profile?.full_name, [profile?.first_name, profile?.last_name].filter(Boolean).join(' '), user?.user_metadata?.full_name, [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(' '), user?.user_metadata?.name].find(s => s && String(s).trim()) || '—'; $('#hdr-name').textContent = bestName; $('#pm-email').textContent = bestName; const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url; const img = $('#hdr-avatar'); if (avatarUrl) { img.src = avatarUrl; } else { const initial = (bestName.match(/[A-Za-z]/)?.[0] || '?').toUpperCase(); const svg = encodeURIComponent(<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' rx='8' ry='8' fill='#111827' /><text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle' font-family='Inter' font-size='36' fill='#fff'>${initial}</text></svg>); img.src = data: image / svg + xml; utf8, ${ svg }; } try { const { data: accts } = await supabase.from('investment_accounts').select('id,status,updated_at').eq('profile_id', user.id).order('status', { ascending: true }).order('updated_at', { ascending: false }); const active = accts?.find(a => a.status === 'ACTIVE') || accts?.[0] || null; const badge = $('#sidebar-acc'); if (badge) { badge.textContent = maskId(active?.id); badge.title = active?.id || ''; } } catch { } })(); </script>
-  <!-- === Ozow FRONT-END ONLY integration (TEST CREDS) === -->
-  <script> // ⚠️ TEST / SANDBOX ONLY — do not expose privateKey in production const OZOW = { siteCode: 'ALG-ALG-003', // your TEST SiteCode privateKey: '398a4e543bfa42c39d18dde8bba9a9cf', // your TEST Private Key isTest: true, successUrl: location.origin + '/pay/success', errorUrl: location.origin + '/pay/error', cancelUrl: location.origin + '/pay/cancel', notifyUrl: location.origin + '/pay/notify' }; const twoDec = (n)=> (Number(n||0)).toFixed(2); const toLower = (s)=> String(s ?? '').toLowerCase(); async function sha512LowerHex(str){ const data = new TextEncoder().encode(toLower(str)); const hash = await crypto.subtle.digest('SHA-512', data); const bytes = new Uint8Array(hash); return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(''); } function openModal(){ $('#ozow-modal').removeClass('hidden'); $('body').css('overflow','hidden'); } function closeModal(){ $('#ozow-modal').addClass('hidden'); $('body').css('overflow',''); } const ozow = new Ozow(); // SDK instance const PAYMENT_URL = 'https://pay.ozow.com/'; // SDK will append viewName & query async function buildOzowFields({ amount, transactionReference, bankReference, customer='' }){ const fields = { SiteCode: OZOW.siteCode, CountryCode:'ZA', CurrencyCode:'ZAR', Amount: twoDec(amount), TransactionReference: String(transactionReference), BankReference: String(bankReference).slice(0,20), Customer: customer, Optional1:'', Optional2:'', Optional3:'', Optional4:'', Optional5:'', NotifyUrl: OZOW.notifyUrl, SuccessUrl: OZOW.successUrl, ErrorUrl: OZOW.errorUrl, CancelUrl: OZOW.cancelUrl, IsTest: OZOW.isTest ? 'true' : 'false' }; const order = ['SiteCode','CountryCode','CurrencyCode','Amount','TransactionReference','BankReference','Customer','Optional1','Optional2','Optional3','Optional4','Optional5','NotifyUrl','SuccessUrl','ErrorUrl','CancelUrl','IsTest']; const concatenated = order.map(k=>fields[k] ?? '').join('') + OZOW.privateKey; const HashCheck = await sha512LowerHex(concatenated); return { ...fields, HashCheck }; } async function startFrontEndOzow(){ const amtText = ($('#alloc-total').text() || '0').replace(/[^\d.,]/g,'').replace(/,/g,''); const amount = twoDec(amtText); const transactionReference = 'AH-' + Date.now(); const bankReference = 'ALGOHIVE-' + Math.random().toString(36).slice(2,8).toUpperCase(); const customer = $('#hdr-name').text() || 'AlgoHive User'; const fields = await buildOzowFields({ amount, transactionReference, bankReference, customer }); openModal(); ozow.createPaymentFrame('paymentContainer', PAYMENT_URL, fields); } // Wire Allocate -> Ozow $('#alloc-btn').on('click', async function(e){ e.preventDefault(); try { await startFrontEndOzow(); } catch(err){ console.error('Ozow launch failed:', err); alert('Could not start Ozow checkout'); } }); // Cancel & close behaviours $('#cancelOzowPayment').on('click', function(){ ozow.cancelFramePayment(); closeModal(); }); $('[data-close-ozow]').on('click', function(){ ozow.cancelFramePayment(); closeModal(); }); $(window).on('keydown', function(e){ if(e.key==='Escape' && !$('#ozow-modal').hasClass('hidden')){ ozow.cancelFramePayment(); closeModal(); } }); // Optional: observe postMessage if needed (SDK already handles resize/redirect) window.addEventListener('message', (e)=>{ /* custom hooks if you want */ }); </script>
+<script type="module">
+  import { supabase } from "/js/supabase.js";
+
+  // ---- utils ----
+  const $ = (q, el=document) => el.querySelector(q);
+  const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+  const fmtMoney = (n, ccy='ZAR') =>
+    (ccy === 'ZAR' ? 'R ' : ccy + ' ') + Number(n||0).toLocaleString('en-ZA', { minimumFractionDigits: 2 });
+  const liveSince = (iso) => iso ? new Date(iso).toLocaleDateString('en-ZA') : '—';
+  const symbolFor = (ccy) => ccy === 'ZAR' ? 'R' : (ccy||'USD');
+
+  // build index curve from % changes
+  function curveFromPct(points, base = 100) {
+    // points: [{pct, date/label}]
+    const out = [];
+    let level = base;
+    for (const p of points) {
+      const r = Number(p?.pct);
+      if (Number.isFinite(r)) level *= (1 + r/100);
+      out.push(Number(level.toFixed(2)));
+    }
+    return out;
+  }
+
+  // chart wiring
+  let chart;
+  function initChart() {
+    const ctx = $('#pf-chart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0,0,0,260);
+    gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+    gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, plugins:{ legend:{display:false}, tooltip:{displayColors:false, callbacks:{label:(c)=> c.raw}}},
+        scales: { x:{display:false}, y:{display:true, ticks:{ color:'#94a3b8', maxTicksLimit:4 } } }
+      }
+    });
+  }
+
+  function setCurve(seriesVals, ccy) {
+    const labels = seriesVals.map((_,i)=> i+1);
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = seriesVals;
+    chart.update();
+
+    const first = seriesVals[0], last = seriesVals[seriesVals.length-1];
+    const chg = ((last - first)/first)*100;
+    $('#pf-value').textContent = fmtMoney(last, ccy);
+    const chgEl = $('#pf-change');
+    chgEl.textContent = `${chg>=0?'+':''}${chg.toFixed(2)}%`;
+    chgEl.style.color = chg>=0 ? '#16a34a' : '#dc2626';
+    $('#pf-updated').textContent = new Date().toLocaleString('en-ZA', { month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' SAST';
+  }
+
+  // calendar daily heatmap (year x months x days)
+  function renderCalendarDaily(container, daily) {
+    // daily: [{year,month,day,pct}]
+    container.innerHTML = '';
+    if (!daily || !daily.length) { container.textContent = 'No daily data yet.'; return; }
+
+    // Group by year -> month -> day
+    const byYear = {};
+    daily.forEach(d => {
+      byYear[d.year] ||= {};
+      byYear[d.year][d.month] ||= {};
+      byYear[d.year][d.month][d.day] = Number.isFinite(d.pct) ? d.pct : null;
+    });
+
+    const monthsAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Header row
+    const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    container.style.gridTemplateColumns = `120px repeat(12, minmax(72px, 1fr))`;
+    const corner = document.createElement('div'); corner.className = 'cal-head cal-sticky'; container.appendChild(corner);
+    monthsAbbr.forEach(m => {
+      const h = document.createElement('div');
+      h.className = 'cal-head justify-center'; h.textContent = m;
+      container.appendChild(h);
+    });
+
+    // cells
+    years.forEach(y => {
+      const yr = document.createElement('div');
+      yr.className = 'cal-head cal-sticky'; yr.textContent = y;
+      container.appendChild(yr);
+
+      for (let m=1; m<=12; m++){
+        const box = document.createElement('div'); box.className = 'cal-cell p-1';
+        // tiny grid of days
+        const inner = document.createElement('div');
+        inner.style.display = 'grid';
+        inner.style.gridTemplateColumns = 'repeat(7, 10px)';
+        inner.style.gap = '2px';
+
+        const daysInMonth = new Date(y, m, 0).getDate();
+        for (let d=1; d<=daysInMonth; d++){
+          const v = byYear[y]?.[m]?.[d];
+          const cell = document.createElement('div');
+          cell.style.width='10px'; cell.style.height='10px'; cell.style.borderRadius='2px';
+          let color = '#e5e7eb'; // neutral
+          if (v != null) {
+            color = v >= 1.5 ? '#bbf7d0' : (v > 0 ? '#dcfce7' : (v === 0 ? '#f1f5f9' : (v > -1 ? '#fee2e2' : '#fecaca')));
+          }
+          cell.style.background = color;
+          cell.title = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} : ${v!=null?(v>0?'+':'')+v.toFixed(2)+'%':'—'}`;
+          inner.appendChild(cell);
+        }
+        box.appendChild(inner);
+        container.appendChild(box);
+      }
+    });
+
+    $('#legNeg').style.background = '#fecaca';
+    $('#legNeu').style.background = '#f1f5f9';
+    $('#legPos').style.background = '#dcfce7';
+  }
+
+  // fill perf summary tiles
+  function fillPerfSummary(ps) {
+    const val = (v, suffix='%') => (v==null || !Number.isFinite(v)) ? '—' : `${v>=0?'+':''}${Number(v).toFixed(2)}${suffix}`;
+    $('#ps-best').textContent  = val(ps?.best_day_pct);
+    $('#ps-worst').textContent = val(ps?.worst_day_pct);
+    $('#ps-avg').textContent   = val(ps?.avg_daily_return_pct);
+    $('#ps-pos').textContent   = (ps?.positive_days_pct==null?'—':`${Number(ps.positive_days_pct).toFixed(0)}%`);
+    $('#ps-days').textContent  = (ps?.total_days??0);
+    // Keep your static CAGR tile for now (or compute later if you want)
+  }
+
+  // fetch strategy + metrics
+  async function loadData() {
+    const url = new URL(location.href);
+    const stratId = url.searchParams.get('id');
+
+    // strategies
+    let strategy = null;
+    if (stratId) {
+      const { data, error } = await supabase.from('strategies').select('*').eq('id', stratId).maybeSingle();
+      if (!error) strategy = data;
+    } else {
+      const { data } = await supabase.from('strategies').select('*').limit(1);
+      strategy = data?.[0] || null;
+    }
+    if (!strategy) throw new Error('No strategy found');
+
+    // metrics
+    const { data: metrics } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategy.id).maybeSingle();
+
+    // ---- Fill header/meta
+    $('#fs-title').textContent = strategy.name || '—';
+    $('#fs-provider').textContent = strategy.creator || '—';
+    $('#fs-since').textContent = liveSince(strategy.inception_date);
+    $('#fs-currency').textContent = strategy.currency || 'USD';
+    $('#fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+    $('#fs-aum').textContent = `AUM ${fmtMoney(strategy.aum || 0, strategy.currency || 'ZAR')}`;
+    $('#fs-desc').textContent = strategy.strategy_description || '—';
+
+    // Equity curve: pick set based on tabs (default 1M)
+    initChart();
+
+    const series = {
+      '1M': metrics?.series_1m || [],
+      '6M': metrics?.series_6m || [],
+      '1Y': metrics?.series_1y || [],
+      'ALL': metrics?.series_all || []
+    };
+
+    // Render default (1M)
+    function selectRange(key){
+      // We plot an index derived from pct stream
+      const src = series[key] || [];
+      const pcts = src.map(x => ({ pct: Number(x?.pct) }));
+      const curve = curveFromPct(pcts, 100);
+      if (!curve.length) { $('#pf-value').textContent = fmtMoney(0, strategy.currency); $('#pf-change').textContent = '—'; }
+      setCurve(curve, strategy.currency);
+    }
+
+    selectRange('1M');
+    $$('#portfolio-card .tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $$('#portfolio-card .tab').forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+        const r = btn.getAttribute('data-range');
+        selectRange(r);
+      });
+    });
+
+    $('#pf-refresh').addEventListener('click', (e)=>{
+      e.currentTarget.classList.add('spin');
+      setTimeout(()=> e.currentTarget.classList.remove('spin'), 600);
+      // re-pull latest metrics quickly (optional)
+    });
+
+    // Perf summary
+    fillPerfSummary(metrics?.perf_summary || null);
+
+    // Calendar daily returns
+    renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
+
+    // Set “Updated …” timestamp
+    $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+
+  // boot
+  try {
+    await loadData();
+  } catch (e) {
+    console.error(e);
+    // show lightweight fallback
+    $('#pf-value').textContent = 'R 0.00';
+    $('#pf-change').textContent = '—';
+  }
+</script>
+// ⚠️ TEST / SANDBOX ONLY — do not expose privateKey in production const OZOW = { siteCode: 'ALG-ALG-003', // your TEST SiteCode privateKey: '398a4e543bfa42c39d18dde8bba9a9cf', // your TEST Private Key isTest: true, successUrl: location.origin + '/pay/success', errorUrl: location.origin + '/pay/error', cancelUrl: location.origin + '/pay/cancel', notifyUrl: location.origin + '/pay/notify' }; const twoDec = (n)=> (Number(n||0)).toFixed(2); const toLower = (s)=> String(s ?? '').toLowerCase(); async function sha512LowerHex(str){ const data = new TextEncoder().encode(toLower(str)); const hash = await crypto.subtle.digest('SHA-512', data); const bytes = new Uint8Array(hash); return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(''); } function openModal(){ $('#ozow-modal').removeClass('hidden'); $('body').css('overflow','hidden'); } function closeModal(){ $('#ozow-modal').addClass('hidden'); $('body').css('overflow',''); } const ozow = new Ozow(); // SDK instance const PAYMENT_URL = 'https://pay.ozow.com/'; // SDK will append viewName & query async function buildOzowFields({ amount, transactionReference, bankReference, customer='' }){ const fields = { SiteCode: OZOW.siteCode, CountryCode:'ZA', CurrencyCode:'ZAR', Amount: twoDec(amount), TransactionReference: String(transactionReference), BankReference: String(bankReference).slice(0,20), Customer: customer, Optional1:'', Optional2:'', Optional3:'', Optional4:'', Optional5:'', NotifyUrl: OZOW.notifyUrl, SuccessUrl: OZOW.successUrl, ErrorUrl: OZOW.errorUrl, CancelUrl: OZOW.cancelUrl, IsTest: OZOW.isTest ? 'true' : 'false' }; const order = ['SiteCode','CountryCode','CurrencyCode','Amount','TransactionReference','BankReference','Customer','Optional1','Optional2','Optional3','Optional4','Optional5','NotifyUrl','SuccessUrl','ErrorUrl','CancelUrl','IsTest']; const concatenated = order.map(k=>fields[k] ?? '').join('') + OZOW.privateKey; const HashCheck = await sha512LowerHex(concatenated); return { ...fields, HashCheck }; } async function startFrontEndOzow(){ const amtText = ($('#alloc-total').text() || '0').replace(/[^\d.,]/g,'').replace(/,/g,''); const amount = twoDec(amtText); const transactionReference = 'AH-' + Date.now(); const bankReference = 'ALGOHIVE-' + Math.random().toString(36).slice(2,8).toUpperCase(); const customer = $('#hdr-name').text() || 'AlgoHive User'; const fields = await buildOzowFields({ amount, transactionReference, bankReference, customer }); openModal(); ozow.createPaymentFrame('paymentContainer', PAYMENT_URL, fields); } // Wire Allocate -> Ozow $('#alloc-btn').on('click', async function(e){ e.preventDefault(); try { await startFrontEndOzow(); } catch(err){ console.error('Ozow launch failed:', err); alert('Could not start Ozow checkout'); } }); // Cancel & close behaviours $('#cancelOzowPayment').on('click', function(){ ozow.cancelFramePayment(); closeModal(); }); $('[data-close-ozow]').on('click', function(){ ozow.cancelFramePayment(); closeModal(); }); $(window).on('keydown', function(e){ if(e.key==='Escape' && !$('#ozow-modal').hasClass('hidden')){ ozow.cancelFramePayment(); closeModal(); } }); // Optional: observe postMessage if needed (SDK already handles resize/redirect) window.addEventListener('message', (e)=>{ /* custom hooks if you want */ }); </script>
 </body>
 
 </html>
