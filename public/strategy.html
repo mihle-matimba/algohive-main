@@ -467,217 +467,255 @@
 <script type="module">
   import { supabase } from "/js/supabase.js";
 
-  // ---- utils ----
-  const $ = (q, el=document) => el.querySelector(q);
+  // ---------- tiny utils ----------
+  const $  = (q, el=document) => el.querySelector(q);
   const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
-  const fmtMoney = (n, ccy='ZAR') =>
-    (ccy === 'ZAR' ? 'R ' : ccy + ' ') + Number(n||0).toLocaleString('en-ZA', { minimumFractionDigits: 2 });
-  const liveSince = (iso) => iso ? new Date(iso).toLocaleDateString('en-ZA') : '—';
-  const symbolFor = (ccy) => ccy === 'ZAR' ? 'R' : (ccy||'USD');
+  const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  const money = (n, ccy='ZAR') => (ccy==='ZAR' ? 'R ' : (ccy + ' ')) + Number(n||0).toLocaleString('en-ZA', ZA);
+  const liveSince = iso => iso ? new Date(iso).toLocaleDateString('en-ZA') : '—';
+  const finite = v => Number.isFinite(Number(v));
 
-  // build index curve from % changes
-  function curveFromPct(points, base = 100) {
-    // points: [{pct, date/label}]
-    const out = [];
-    let level = base;
-    for (const p of points) {
-      const r = Number(p?.pct);
-      if (Number.isFinite(r)) level *= (1 + r/100);
-      out.push(Number(level.toFixed(2)));
-    }
-    return out;
-  }
+  // ---------- URL params ----------
+  const params = new URLSearchParams(location.search);
+  const stratKey = params.get('id') || params.get('strategy') || params.get('code') || null;
 
-  // chart wiring
-  let chart;
+  // ---------- chart setup ----------
+  let chart, currentLabels = [], currentCCY = 'ZAR';
   function initChart() {
-    const ctx = $('#pf-chart').getContext('2d');
+    const ctx = $('#pf-chart')?.getContext('2d');
+    if (!ctx) return;
     const gradient = ctx.createLinearGradient(0,0,0,260);
     gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
     gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
     chart = new Chart(ctx, {
       type: 'line',
-      data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
+      data: { labels: [], datasets: [{ data: [], tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }] },
       options: {
-        responsive: true, maintainAspectRatio: false, plugins:{ legend:{display:false}, tooltip:{displayColors:false, callbacks:{label:(c)=> c.raw}}},
-        scales: { x:{display:false}, y:{display:true, ticks:{ color:'#94a3b8', maxTicksLimit:4 } } }
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false},
+          tooltip:{ displayColors:false,
+            callbacks:{
+              title: items => currentLabels[items[0].dataIndex] ?? '',
+              label: c => money(c.raw, currentCCY)
+            }
+          }
+        },
+        scales:{
+          x:{ display:true, ticks:{ maxTicksLimit:6, color:'#94a3b8' }, grid:{ display:false } },
+          y:{ display:true, ticks:{ color:'#94a3b8', maxTicksLimit:4, callback:v=>money(v,currentCCY) } }
+        }
       }
     });
   }
 
-  function setCurve(seriesVals, ccy) {
-    const labels = seriesVals.map((_,i)=> i+1);
-    chart.data.labels = labels;
+  // build index curve from % points (base = 100)
+  function curveFromPct(points, base=100){
+    const out=[]; let lvl=base;
+    for (const p of points){
+      const r = Number(p?.pct);
+      if (Number.isFinite(r)) lvl *= (1 + r/100);
+      out.push(Number(lvl.toFixed(2)));
+    }
+    return out;
+  }
+
+  // push curve into chart + header stats
+  function setCurve(seriesVals, ccy){
+    if (!chart) return;
+    chart.data.labels = currentLabels;
     chart.data.datasets[0].data = seriesVals;
     chart.update();
 
-    const first = seriesVals[0], last = seriesVals[seriesVals.length-1];
-    const chg = ((last - first)/first)*100;
-    $('#pf-value').textContent = fmtMoney(last, ccy);
+    if (!seriesVals.length){
+      $('#pf-value').textContent = money(0, ccy);
+      $('#pf-change').textContent = '—';
+      return;
+    }
+    const first = seriesVals[0], last = seriesVals.at(-1);
+    const chg = ((last-first)/first)*100;
+    $('#pf-value').textContent = money(last, ccy);
     const chgEl = $('#pf-change');
     chgEl.textContent = `${chg>=0?'+':''}${chg.toFixed(2)}%`;
     chgEl.style.color = chg>=0 ? '#16a34a' : '#dc2626';
-    $('#pf-updated').textContent = new Date().toLocaleString('en-ZA', { month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' SAST';
+    $('#pf-updated').textContent =
+      new Date().toLocaleString('en-ZA', { month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' SAST';
   }
 
-  // calendar daily heatmap (year x months x days)
-  function renderCalendarDaily(container, daily) {
-    // daily: [{year,month,day,pct}]
+  // ---------- calendar (daily returns) ----------
+  function renderCalendarDaily(container, daily){
     container.innerHTML = '';
-    if (!daily || !daily.length) { container.textContent = 'No daily data yet.'; return; }
+    if (!daily?.length){ container.textContent='No daily data yet.'; return; }
 
-    // Group by year -> month -> day
     const byYear = {};
-    daily.forEach(d => {
-      byYear[d.year] ||= {};
-      byYear[d.year][d.month] ||= {};
-      byYear[d.year][d.month][d.day] = Number.isFinite(d.pct) ? d.pct : null;
-    });
-
+    for (const d of daily){
+      if (!finite(d.pct)) continue;
+      byYear[d.year] ??= {};
+      byYear[d.year][d.month] ??= {};
+      byYear[d.year][d.month][d.day] = Number(d.pct);
+    }
     const monthsAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-    // Header row
     const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+
     container.style.gridTemplateColumns = `120px repeat(12, minmax(72px, 1fr))`;
-    const corner = document.createElement('div'); corner.className = 'cal-head cal-sticky'; container.appendChild(corner);
-    monthsAbbr.forEach(m => {
-      const h = document.createElement('div');
-      h.className = 'cal-head justify-center'; h.textContent = m;
-      container.appendChild(h);
-    });
+    const corner = document.createElement('div'); corner.className='cal-head cal-sticky'; container.appendChild(corner);
+    monthsAbbr.forEach(m=>{ const h=document.createElement('div'); h.className='cal-head justify-center'; h.textContent=m; container.appendChild(h); });
 
-    // cells
-    years.forEach(y => {
-      const yr = document.createElement('div');
-      yr.className = 'cal-head cal-sticky'; yr.textContent = y;
-      container.appendChild(yr);
-
+    years.forEach(y=>{
+      const yr=document.createElement('div'); yr.className='cal-head cal-sticky'; yr.textContent=y; container.appendChild(yr);
       for (let m=1; m<=12; m++){
-        const box = document.createElement('div'); box.className = 'cal-cell p-1';
-        // tiny grid of days
-        const inner = document.createElement('div');
-        inner.style.display = 'grid';
-        inner.style.gridTemplateColumns = 'repeat(7, 10px)';
-        inner.style.gap = '2px';
-
-        const daysInMonth = new Date(y, m, 0).getDate();
-        for (let d=1; d<=daysInMonth; d++){
+        const box=document.createElement('div'); box.className='cal-cell p-1';
+        const inner=document.createElement('div');
+        inner.style.display='grid'; inner.style.gridTemplateColumns='repeat(7,10px)'; inner.style.gap='2px';
+        const dim = new Date(y, m, 0).getDate();
+        for (let d=1; d<=dim; d++){
           const v = byYear[y]?.[m]?.[d];
-          const cell = document.createElement('div');
-          cell.style.width='10px'; cell.style.height='10px'; cell.style.borderRadius='2px';
-          let color = '#e5e7eb'; // neutral
-          if (v != null) {
+          const dot=document.createElement('div');
+          dot.style.cssText='width:10px;height:10px;border-radius:2px;';
+          let color='#e5e7eb';
+          if (v != null){
             color = v >= 1.5 ? '#bbf7d0' : (v > 0 ? '#dcfce7' : (v === 0 ? '#f1f5f9' : (v > -1 ? '#fee2e2' : '#fecaca')));
           }
-          cell.style.background = color;
-          cell.title = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} : ${v!=null?(v>0?'+':'')+v.toFixed(2)+'%':'—'}`;
-          inner.appendChild(cell);
+          dot.style.background=color;
+          dot.title = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} : ${v!=null?(v>0?'+':'')+v.toFixed(2)+'%':'—'}`;
+          inner.appendChild(dot);
         }
         box.appendChild(inner);
         container.appendChild(box);
       }
     });
-
-    $('#legNeg').style.background = '#fecaca';
-    $('#legNeu').style.background = '#f1f5f9';
-    $('#legPos').style.background = '#dcfce7';
+    $('#legNeg').style.background='#fecaca';
+    $('#legNeu').style.background='#f1f5f9';
+    $('#legPos').style.background='#dcfce7';
   }
 
-  // fill perf summary tiles
-  function fillPerfSummary(ps) {
-    const val = (v, suffix='%') => (v==null || !Number.isFinite(v)) ? '—' : `${v>=0?'+':''}${Number(v).toFixed(2)}${suffix}`;
-    $('#ps-best').textContent  = val(ps?.best_day_pct);
-    $('#ps-worst').textContent = val(ps?.worst_day_pct);
-    $('#ps-avg').textContent   = val(ps?.avg_daily_return_pct);
-    $('#ps-pos').textContent   = (ps?.positive_days_pct==null?'—':`${Number(ps.positive_days_pct).toFixed(0)}%`);
-    $('#ps-days').textContent  = (ps?.total_days??0);
-    // Keep your static CAGR tile for now (or compute later if you want)
+  // ---------- perf summary ----------
+  function fillPerfSummary(ps){
+    const pct = v => (v==null || !finite(v)) ? '—' : `${v>=0?'+':''}${Number(v).toFixed(2)}%`;
+    $('#ps-best').textContent  = pct(ps?.best_day_pct);
+    $('#ps-worst').textContent = pct(ps?.worst_day_pct);
+    $('#ps-avg').textContent   = pct(ps?.avg_daily_return_pct);
+    $('#ps-pos').textContent   = (ps?.positive_days_pct==null ? '—' : `${Number(ps.positive_days_pct).toFixed(0)}%`);
+    $('#ps-days').textContent  = ps?.total_days ?? 0;
+    // (CAGR tile left as-is in your HTML)
   }
 
-  // fetch strategy + metrics
-  async function loadData() {
-    const url = new URL(location.href);
-    const stratId = url.searchParams.get('id');
+  // ---------- header/meta ----------
+  function hydrateHeader(strategy){
+    $('#fs-title').textContent   = strategy.name || '—';
+    $('#fs-provider').textContent= strategy.creator || '—';
+    $('#fs-since').textContent   = liveSince(strategy.inception_date);
+    $('#fs-currency').textContent= strategy.currency || 'USD';
+    $('#fs-risk').textContent    = `Risk ${strategy.risk_level || '—'}`;
+    $('#fs-aum').textContent     = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
+    $('#fs-desc').textContent    = strategy.strategy_description || '—';
+  }
 
-    // strategies
-    let strategy = null;
-    if (stratId) {
-      const { data, error } = await supabase.from('strategies').select('*').eq('id', stratId).maybeSingle();
-      if (!error) strategy = data;
-    } else {
-      const { data } = await supabase.from('strategies').select('*').limit(1);
-      strategy = data?.[0] || null;
+  // ---------- data load ----------
+  async function fetchStrategy(){
+    if (stratKey){
+      // try UUID then code
+      let r = await supabase.from('strategies').select('*').eq('id', stratKey).maybeSingle();
+      if (!r.data){
+        r = await supabase.from('strategies').select('*').eq('code', stratKey).maybeSingle();
+      }
+      return r.data || null;
     }
+    const { data } = await supabase.from('strategies').select('*').limit(1);
+    return data?.[0] || null;
+  }
+  async function fetchMetrics(strategyId){
+    const { data } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategyId).maybeSingle();
+    return data || null;
+  }
+
+  // ---------- equity curve selection ----------
+  function makeLabels1M(src){
+    return src.map(x=>{
+      const d = new Date(x.date);
+      return d.toLocaleDateString('en-ZA', { day:'2-digit', month:'short' }); // e.g. 10 Oct
+    });
+  }
+  function makeLabelsMonthly(src){ return src.map(x => x.label || ''); }
+
+  function selectRangeAndRender(rangeKey, metrics, strategy){
+    // Build index curve from % series
+    let src = [];
+    if (rangeKey === '1M') {
+      src = metrics?.series_1m || [];                         // [{date,label,pct}]
+      currentLabels = makeLabels1M(src);
+    } else if (rangeKey === '6M') {
+      src = metrics?.series_6m || [];                         // [{label,pct}]
+      currentLabels = makeLabelsMonthly(src);
+    } else if (rangeKey === '1Y') {
+      src = metrics?.series_1y || [];
+      currentLabels = makeLabelsMonthly(src);
+    } else {
+      src = metrics?.series_all || [];
+      currentLabels = makeLabelsMonthly(src);
+    }
+
+    const pcts = src.map(x => ({ pct: Number(x?.pct) }));
+    let curve = curveFromPct(pcts, 100);                      // index 100 base
+    // Rebase to show *money* with last point = current AUM (if available)
+    const aum = Number(strategy?.aum);
+    if (finite(aum) && aum > 0 && curve.length){
+      const scale = aum / curve.at(-1);
+      curve = curve.map(v => Number((v * scale).toFixed(2)));
+    }
+    setCurve(curve, strategy.currency || 'ZAR');
+  }
+
+  // ---------- boot ----------
+  try {
+    const strategy = await fetchStrategy();
     if (!strategy) throw new Error('No strategy found');
+    const metrics  = await fetchMetrics(strategy.id);
 
-    // metrics
-    const { data: metrics } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategy.id).maybeSingle();
-
-    // ---- Fill header/meta
-    $('#fs-title').textContent = strategy.name || '—';
-    $('#fs-provider').textContent = strategy.creator || '—';
-    $('#fs-since').textContent = liveSince(strategy.inception_date);
-    $('#fs-currency').textContent = strategy.currency || 'USD';
-    $('#fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-    $('#fs-aum').textContent = `AUM ${fmtMoney(strategy.aum || 0, strategy.currency || 'ZAR')}`;
-    $('#fs-desc').textContent = strategy.strategy_description || '—';
-
-    // Equity curve: pick set based on tabs (default 1M)
+    currentCCY = strategy.currency || 'ZAR';
+    hydrateHeader(strategy);
     initChart();
 
-    const series = {
-      '1M': metrics?.series_1m || [],
-      '6M': metrics?.series_6m || [],
-      '1Y': metrics?.series_1y || [],
-      'ALL': metrics?.series_all || []
-    };
+    // default range
+    selectRangeAndRender('1M', metrics, strategy);
 
-    // Render default (1M)
-    function selectRange(key){
-      // We plot an index derived from pct stream
-      const src = series[key] || [];
-      const pcts = src.map(x => ({ pct: Number(x?.pct) }));
-      const curve = curveFromPct(pcts, 100);
-      if (!curve.length) { $('#pf-value').textContent = fmtMoney(0, strategy.currency); $('#pf-change').textContent = '—'; }
-      setCurve(curve, strategy.currency);
-    }
-
-    selectRange('1M');
-    $$('#portfolio-card .tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        $$('#portfolio-card .tab').forEach(b => b.classList.remove('tab-active'));
+    // tabs
+    $$('#portfolio-card .tab').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        $$('#portfolio-card .tab').forEach(b=>b.classList.remove('tab-active'));
         btn.classList.add('tab-active');
-        const r = btn.getAttribute('data-range');
-        selectRange(r);
+        selectRangeAndRender(btn.getAttribute('data-range'), metrics, strategy);
       });
     });
 
-    $('#pf-refresh').addEventListener('click', (e)=>{
+    // refresh button (re-pull metrics live if you want)
+    $('#pf-refresh')?.addEventListener('click', async (e)=>{
       e.currentTarget.classList.add('spin');
-      setTimeout(()=> e.currentTarget.classList.remove('spin'), 600);
-      // re-pull latest metrics quickly (optional)
+      try {
+        const fresh = await fetchMetrics(strategy.id);
+        selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1M', fresh, strategy);
+        fillPerfSummary(fresh?.perf_summary || null);
+        renderCalendarDaily($('#calendarReturns'), fresh?.calendar_returns || []);
+        $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      } catch {}
+      setTimeout(()=>e.currentTarget.classList.remove('spin'), 600);
     });
 
-    // Perf summary
+    // perf + calendar
     fillPerfSummary(metrics?.perf_summary || null);
-
-    // Calendar daily returns
     renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
 
-    // Set “Updated …” timestamp
+    // set header timestamp
     $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  }
 
-  // boot
-  try {
-    await loadData();
-  } catch (e) {
-    console.error(e);
-    // show lightweight fallback
-    $('#pf-value').textContent = 'R 0.00';
+  } catch (err) {
+    console.error('[factsheet init] ', err);
+    // graceful UI fallbacks:
+    $('#pf-value').textContent = money(0);
     $('#pf-change').textContent = '—';
+    $('#calendarReturns').textContent = 'No data.';
   }
 </script>
+
 </body>
 
 </html>
