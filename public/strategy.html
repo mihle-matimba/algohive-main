@@ -716,6 +716,31 @@ function hydrateHeader(strategy){
     // set header timestamp
     $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
 
+    // === Auto-refresh metrics every 2 minutes ===
+const doAutoRefresh = async () => {
+  const btn = document.getElementById('pf-refresh');
+  btn?.classList.add('spin');
+  try {
+    const fresh = await fetchMetrics(strategy.id);
+    const range =
+      document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '1M';
+    selectRangeAndRender(range, fresh, strategy);
+    fillPerfSummary(fresh?.perf_summary || null);
+    renderCalendarDaily(document.getElementById('calendarReturns'), fresh?.calendar_returns || []);
+    document.getElementById('fs-updated').textContent =
+      'Updated ' + new Date().toLocaleString('en-ZA', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+  } catch (e) {
+    console.warn('[auto-refresh] failed:', e);
+  } finally {
+    setTimeout(() => btn?.classList.remove('spin'), 600);
+  }
+};
+setInterval(doAutoRefresh, 1000); // 120,000 ms = 2 minutes
+
+
   } catch (err) {
     console.error('[factsheet init] ', err);
     // graceful UI fallbacks:
