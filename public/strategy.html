@@ -289,16 +289,16 @@
                                     class="font-semibold">—</span></h3>
                             <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
                         </div>
-<div class="flex items-center gap-2">
-  <button data-range="1D" class="tab tab-active text-[13px]">1D</button>
-  <button data-range="1M" class="tab text-[13px]">1M</button>
-  <button data-range="6M" class="tab text-[13px]">6M</button>
-  <button data-range="1Y" class="tab text-[13px]">1Y</button>
-  <button data-range="ALL" class="tab text-[13px]">All</button>
-  <button id="pf-refresh"
-    class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
-    title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
-</div>
+                        <div class="flex items-center gap-2">
+                            <button data-range="1D" class="tab tab-active text-[13px]">1D</button>
+                            <button data-range="1M" class="tab text-[13px]">1M</button>
+                            <button data-range="6M" class="tab text-[13px]">6M</button>
+                            <button data-range="1Y" class="tab text-[13px]">1Y</button>
+                            <button data-range="ALL" class="tab text-[13px]">All</button>
+                            <button id="pf-refresh"
+                                class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
+                                title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
 
 
                     </div>
@@ -504,6 +504,92 @@
     <!-- Supabase profile (optional) -->
     <script type="module">
         import { supabase } from "/js/supabase.js";
+
+        // tiny banner
+        function banner(msg, tone = "warn") {
+            let el = document.getElementById("banner");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "banner";
+                el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+                document.body.appendChild(el);
+            }
+            el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+            el.classList.remove("bg-amber-100", "text-amber-900", "bg-emerald-100", "text-emerald-900", "bg-rose-100", "text-rose-900");
+            if (tone === "warn") { el.classList.add("bg-amber-100", "text-amber-900"); }
+            if (tone === "ok") { el.classList.add("bg-emerald-100", "text-emerald-900"); }
+            if (tone === "err") { el.classList.add("bg-rose-100", "text-rose-900"); }
+            el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 3500);
+        }
+        // ---- Auth guard (redirect to login if needed) ----
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            const next = encodeURIComponent(location.pathname + location.search + location.hash);
+            location.replace(`/auth.html?tab=in&redirect=${next}`);
+        }
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // ---- Ensure profile row exists / fetch it ----
+        async function ensureProfile(userId, email) {
+            let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+            if (error && error.code !== "PGRST116") throw error; // ignore "no rows"
+            if (data) return data;
+            const payload = { id: userId, email, updated_at: new Date().toISOString() };
+            const up = await supabase.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
+            if (up.error) throw up.error;
+            return up.data;
+        }
+        const row = await ensureProfile(user.id, user.email || null);
+
+        // ---- Hydrate header + sidebar ----
+        const hdrName = document.getElementById("hdr-name");
+        const hdrAvatar = document.getElementById("hdr-avatar");
+        const pmEmail = document.getElementById("pm-email");
+
+        document.getElementById("sidebar-acc").textContent = row?.account_number || "—";
+
+        const fn = (row?.first_name || "").trim();
+        const ln = (row?.last_name || "").trim();
+        hdrName.textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email?.split("@")[0] || "User");
+
+        const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+        hdrAvatar.src = row?.avatar_url || blankAvatar;
+
+        // ---- Profile modal / routes ----
+        const profileBtn = document.getElementById("hdr-profile-btn");
+        const modal = document.getElementById("profile-modal");
+        const btnLogout = document.getElementById("pm-logout");
+        const btnGear = document.getElementById("ah-settings");
+
+        function openModal() { pmEmail.textContent = user?.email || "—"; modal.classList.remove("hidden"); }
+        function closeModal() { modal.classList.add("hidden"); }
+
+        profileBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(); });
+        // close on backdrop click
+        modal?.addEventListener("click", (e) => {
+            if (e.target === modal || (e.target.classList && e.target.classList.contains("bg-black/40"))) closeModal();
+        });
+        // Esc to close
+        window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+        // settings gear → settings page
+        btnGear?.addEventListener("click", (e) => { e.preventDefault(); location.href = "/settings.html#basic"; });
+
+        // logout
+        btnLogout?.addEventListener("click", async () => {
+            try {
+                await supabase.auth.signOut();
+                location.replace("/auth.html?tab=in");
+            } catch {
+                banner("Sorry, logout failed.", "err");
+            }
+        });
+
+        // ---- Session changes (safety) ----
+        supabase.auth.onAuthStateChange((_ev, sess) => {
+            if (!sess) { location.replace("/auth.html?tab=in"); }
+        });
+
 
         // ---------- tiny utils ----------
         const $ = (q, el = document) => el.querySelector(q);
@@ -847,4 +933,3 @@
 </body>
 
 </html>
-ƒ
