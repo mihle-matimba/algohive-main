@@ -599,6 +599,49 @@
         const params = new URLSearchParams(location.search);
         const stratKey = params.get('id') || params.get('strategy') || params.get('code') || null;
 
+        function renderDescAndBullets(strategy) {
+            // 1) description
+            const descEl = document.getElementById('fs-desc');
+            if (descEl) descEl.textContent = strategy?.strategy_description || '—';
+
+            // 2) bullets
+            const wrap = document.getElementById('fs-desc-bullets');
+            if (!wrap) return;
+
+            const bullets = strategy?.strategy_description_bullets;
+            wrap.innerHTML = '';
+
+            if (!bullets || (Array.isArray(bullets) && bullets.length === 0)) {
+                wrap.classList.add('hidden'); // hide list if nothing
+                return;
+            }
+            wrap.classList.remove('hidden');
+
+            // supports:
+            // - ["text", ...]
+            // - [{title,text}, ...]
+            // - [{label,value}, ...]
+            (bullets || []).forEach(b => {
+                const li = document.createElement('li');
+                li.className = 'text-sm text-slate-700';
+                if (typeof b === 'string') {
+                    li.textContent = b;
+                } else if (b && typeof b === 'object') {
+                    const t = (b.title || b.label || '').toString().trim();
+                    const v = (b.text || b.value || '').toString().trim();
+                    if (t && v) {
+                        li.innerHTML = `<strong>${t}:</strong> ${v}`;
+                    } else {
+                        li.textContent = v || t || '—';
+                    }
+                } else {
+                    li.textContent = '—';
+                }
+                wrap.appendChild(li);
+            });
+        }
+
+
         // ---------- chart setup ----------
         let chart, currentLabels = [], currentCCY = 'ZAR';
         function initChart() {
@@ -724,20 +767,44 @@
         }
 
 
-        // ---------- header/meta ----------
         function hydrateHeader(strategy) {
-            $('#fs-title').textContent = strategy.name || '—';
-            $('#fs-provider').textContent = strategy.creator || '—';
-            $('#fs-since').textContent = liveSince(strategy.inception_date);
-            $('#fs-currency').textContent = strategy.currency || 'USD';
-            $('#fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-            $('#fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
-            $('#fs-desc').textContent = strategy.strategy_description || '—';
-
-            // 👇 set the "Equity Curve — <name>" label here
+            // header
+            document.getElementById('fs-title').textContent = strategy.name || '—';
+            document.getElementById('fs-provider').textContent = strategy.creator || '—';
+            document.getElementById('fs-since').textContent = strategy.inception_date
+                ? new Date(strategy.inception_date).toLocaleDateString('en-ZA')
+                : '—';
+            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+            document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
             const ecName = document.getElementById('pf-name');
             if (ecName) ecName.textContent = strategy.name || '—';
+
+            // NEW: description + bullets
+            renderDescAndBullets(strategy);
+
+            // Strategy Overview tiles (right column)
+            const fsDesc = document.getElementById('fsDesc');
+            if (fsDesc) fsDesc.textContent =
+                strategy.investment_objective_description || strategy.strategy_description || '—';
+
+            const fsStyle = document.getElementById('fsStyle');
+            if (fsStyle) fsStyle.textContent = strategy.style || '—';
+
+            const fsUniverse = document.getElementById('fsUniverse');
+            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
+
+            const fsHold = document.getElementById('fsHold');
+            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
+                ? `${strategy.avg_holding_days} days`
+                : '—';
+
+            const fsTrades = document.getElementById('fsTrades');
+            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
+                ? `${strategy.avg_trades_per_month}`
+                : '—';
         }
+
 
 
 
@@ -929,3 +996,4 @@
 </body>
 
 </html>
+ƒ
