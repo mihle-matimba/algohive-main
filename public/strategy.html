@@ -528,617 +528,549 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
     <!-- Sidebar collapse memory -->
     <script> (function () { const layout = document.getElementById('layout'); const aside = document.getElementById('ah-sidebar'); const btn = document.getElementById('ah-collapse'); const saved = localStorage.getItem('ah_collapsed') === 'true'; if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); } btn.addEventListener('click', () => { const isCollapsed = aside.getAttribute('data-collapsed') === 'true'; if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open')); aside.setAttribute('data-collapsed', String(!isCollapsed)); layout.classList.toggle('is-collapsed', !isCollapsed); localStorage.setItem('ah_collapsed', String(!isCollapsed)); layout.offsetHeight; window.dispatchEvent(new Event('resize')); }); })(); </script>
-    <!-- Supabase profile (optional) -->
-    <script type="module">
-        import { supabase } from "/js/supabase.js";
+<script type="module">
+  import { supabase } from "/js/supabase.js";
 
-        // tiny banner
-        function banner(msg, tone = "warn") {
-            let el = document.getElementById("banner");
-            if (!el) {
-                el = document.createElement("div");
-                el.id = "banner";
-                el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-                document.body.appendChild(el);
-            }
-            el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-            el.classList.remove("bg-amber-100", "text-amber-900", "bg-emerald-100", "text-emerald-900", "bg-rose-100", "text-rose-900");
-            if (tone === "warn") { el.classList.add("bg-amber-100", "text-amber-900"); }
-            if (tone === "ok") { el.classList.add("bg-emerald-100", "text-emerald-900"); }
-            if (tone === "err") { el.classList.add("bg-rose-100", "text-rose-900"); }
-            el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 3500);
-        }
-        // ---- Auth guard (redirect to login if needed) ----
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            const next = encodeURIComponent(location.pathname + location.search + location.hash);
-            location.replace(`/auth.html?tab=in&redirect=${next}`);
-        }
-        const { data: { user } } = await supabase.auth.getUser();
+  // tiny banner
+  function banner(msg, tone = "warn") {
+    let el = document.getElementById("banner");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "banner";
+      el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+      document.body.appendChild(el);
+    }
+    el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
+    el.classList.remove("bg-amber-100","text-amber-900","bg-emerald-100","text-emerald-900","bg-rose-100","text-rose-900");
+    if (tone === "warn") { el.classList.add("bg-amber-100","text-amber-900"); }
+    if (tone === "ok")   { el.classList.add("bg-emerald-100","text-emerald-900"); }
+    if (tone === "err")  { el.classList.add("bg-rose-100","text-rose-900"); }
+    el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 3500);
+  }
 
-        // ---- Ensure profile row exists / fetch it ----
-        async function ensureProfile(userId, email) {
-            let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-            if (error && error.code !== "PGRST116") throw error; // ignore "no rows"
-            if (data) return data;
-            const payload = { id: userId, email, updated_at: new Date().toISOString() };
-            const up = await supabase.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
-            if (up.error) throw up.error;
-            return up.data;
-        }
-        const row = await ensureProfile(user.id, user.email || null);
+  // ---- Auth guard (redirect to login if needed) ----
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    const next = encodeURIComponent(location.pathname + location.search + location.hash);
+    location.replace(`/auth.html?tab=in&redirect=${next}`);
+  }
+  const { data: { user } } = await supabase.auth.getUser();
 
-        // ---- Hydrate header + sidebar ----
-        const hdrName = document.getElementById("hdr-name");
-        const hdrAvatar = document.getElementById("hdr-avatar");
-        const pmEmail = document.getElementById("pm-email");
+  // ---- Ensure profile row exists / fetch it ----
+  async function ensureProfile(userId, email) {
+    let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    if (error && error.code !== "PGRST116") throw error; // ignore "no rows"
+    if (data) return data;
+    const payload = { id: userId, email, updated_at: new Date().toISOString() };
+    const up = await supabase.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
+    if (up.error) throw up.error;
+    return up.data;
+  }
+  const row = await ensureProfile(user.id, user.email || null);
 
-        document.getElementById("sidebar-acc").textContent = row?.account_number || "—";
+  // ---- Hydrate header + sidebar ----
+  const hdrName = document.getElementById("hdr-name");
+  const hdrAvatar = document.getElementById("hdr-avatar");
+  const pmEmail = document.getElementById("pm-email");
 
-        const fn = (row?.first_name || "").trim();
-        const ln = (row?.last_name || "").trim();
-        hdrName.textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email?.split("@")[0] || "User");
+  document.getElementById("sidebar-acc").textContent = row?.account_number || "—";
 
-        const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
-        hdrAvatar.src = row?.avatar_url || blankAvatar;
+  const fn = (row?.first_name || "").trim();
+  const ln = (row?.last_name || "").trim();
+  hdrName.textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email?.split("@")[0] || "User");
 
-        // ---- Profile modal / routes ----
-        const profileBtn = document.getElementById("hdr-profile-btn");
-        const modal = document.getElementById("profile-modal");
-        const btnLogout = document.getElementById("pm-logout");
-        const btnGear = document.getElementById("ah-settings");
+  const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+  hdrAvatar.src = row?.avatar_url || blankAvatar;
 
-        function openModal() { pmEmail.textContent = user?.email || "—"; modal.classList.remove("hidden"); }
-        function closeModal() { modal.classList.add("hidden"); }
+  // ---- Profile modal / routes ----
+  const profileBtn = document.getElementById("hdr-profile-btn");
+  const modal = document.getElementById("profile-modal");
+  const btnLogout = document.getElementById("pm-logout");
+  const btnGear = document.getElementById("ah-settings");
 
-        profileBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(); });
-        // close on backdrop click
-        modal?.addEventListener("click", (e) => {
-            if (e.target === modal || (e.target.classList && e.target.classList.contains("bg-black/40"))) closeModal();
-        });
-        // Esc to close
-        window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+  function openModal() { pmEmail.textContent = user?.email || "—"; modal.classList.remove("hidden"); }
+  function closeModal() { modal.classList.add("hidden"); }
 
-        // settings gear → settings page
-        btnGear?.addEventListener("click", (e) => { e.preventDefault(); location.href = "/settings.html#basic"; });
+  profileBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(); });
+  modal?.addEventListener("click", (e) => {
+    if (e.target === modal || (e.target.classList && e.target.classList.contains("bg-black/40"))) closeModal();
+  });
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+  btnGear?.addEventListener("click", (e) => { e.preventDefault(); location.href = "/settings.html#basic"; });
+  btnLogout?.addEventListener("click", async () => {
+    try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); }
+    catch { banner("Sorry, logout failed.", "err"); }
+  });
+  supabase.auth.onAuthStateChange((_ev, sess) => { if (!sess) { location.replace("/auth.html?tab=in"); } });
 
-        // logout
-        btnLogout?.addEventListener("click", async () => {
-            try {
-                await supabase.auth.signOut();
-                location.replace("/auth.html?tab=in");
-            } catch {
-                banner("Sorry, logout failed.", "err");
-            }
-        });
+  // ---------- tiny utils ----------
+  const $ = (q, el = document) => el.querySelector(q);
+  const $$ = (q, el = document) => Array.from(el.querySelectorAll(q));
+  const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
+  const finite = v => Number.isFinite(Number(v));
 
-        // ---- Session changes (safety) ----
-        supabase.auth.onAuthStateChange((_ev, sess) => {
-            if (!sess) { location.replace("/auth.html?tab=in"); }
-        });
+  // ---------- URL params ----------
+  const params = new URLSearchParams(location.search);
+  const stratKey = params.get('id') || params.get('strategy') || params.get('code') || null;
 
+  function renderDescAndBullets(strategy) {
+    const descEl = document.getElementById('fs-desc');
+    if (descEl) descEl.textContent = strategy?.strategy_description || '—';
 
-        // ---------- tiny utils ----------
-        const $ = (q, el = document) => el.querySelector(q);
-        const $$ = (q, el = document) => Array.from(el.querySelectorAll(q));
-        const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-        const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
-        const liveSince = iso => iso ? new Date(iso).toLocaleDateString('en-ZA') : '—';
-        const finite = v => Number.isFinite(Number(v));
+    const wrap = document.getElementById('fs-desc-bullets');
+    if (!wrap) return;
+    const bullets = strategy?.strategy_description_bullets;
+    wrap.innerHTML = '';
+    if (!bullets || (Array.isArray(bullets) && bullets.length === 0)) {
+      wrap.classList.add('hidden'); return;
+    }
+    wrap.classList.remove('hidden');
+    (bullets || []).forEach(b => {
+      const li = document.createElement('li');
+      li.className = 'text-sm text-slate-700';
+      if (typeof b === 'string') {
+        li.textContent = b;
+      } else if (b && typeof b === 'object') {
+        const t = (b.title || b.label || '').toString().trim();
+        const v = (b.text || b.value || '').toString().trim();
+        if (t && v) li.innerHTML = `<strong>${t}:</strong> ${v}`;
+        else li.textContent = v || t || '—';
+      } else {
+        li.textContent = '—';
+      }
+      wrap.appendChild(li);
+    });
+  }
 
-        // ---------- URL params ----------
-        const params = new URLSearchParams(location.search);
-        const stratKey = params.get('id') || params.get('strategy') || params.get('code') || null;
+  // ---- Holdings donut + legend ----
+  function drawDonut(svgEl, items) {
+    const cx = 90, cy = 90, r = 62, R = 72, TAU = Math.PI * 2;
+    svgEl.innerHTML = '';
+    const sum = items.reduce((s, i) => s + (Number(i.pct) || 0), 0) || 1;
+    let a0 = -Math.PI / 2;
 
-        function renderDescAndBullets(strategy) {
-            // 1) description
-            const descEl = document.getElementById('fs-desc');
-            if (descEl) descEl.textContent = strategy?.strategy_description || '—';
+    const colors = ['#111827','#2563eb','#16a34a','#f59e0b','#ef4444','#6b7280','#10b981','#6366f1','#94a3b8','#3f6212'];
 
-            // 2) bullets
-            const wrap = document.getElementById('fs-desc-bullets');
-            if (!wrap) return;
+    items.forEach((it, idx) => {
+      const pct = Number(it.pct) || 0;
+      const frac = pct / sum;
+      const a1 = a0 + frac * TAU;
+      const la = (a1 - a0) > Math.PI ? 1 : 0;
 
-            const bullets = strategy?.strategy_description_bullets;
-            wrap.innerHTML = '';
+      const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)];
+      const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)];
+      const q0 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+      const q1 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
 
-            if (!bullets || (Array.isArray(bullets) && bullets.length === 0)) {
-                wrap.classList.add('hidden'); // hide list if nothing
-                return;
-            }
-            wrap.classList.remove('hidden');
+      const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', it.color || colors[idx % colors.length]);
+      path.setAttribute('opacity', '.95');
+      svgEl.appendChild(path);
+      a0 = a1;
+    });
 
-            // supports:
-            // - ["text", ...]
-            // - [{title,text}, ...]
-            // - [{label,value}, ...]
-            (bullets || []).forEach(b => {
-                const li = document.createElement('li');
-                li.className = 'text-sm text-slate-700';
-                if (typeof b === 'string') {
-                    li.textContent = b;
-                } else if (b && typeof b === 'object') {
-                    const t = (b.title || b.label || '').toString().trim();
-                    const v = (b.text || b.value || '').toString().trim();
-                    if (t && v) {
-                        li.innerHTML = `<strong>${t}:</strong> ${v}`;
-                    } else {
-                        li.textContent = v || t || '—';
-                    }
-                } else {
-                    li.textContent = '—';
-                }
-                wrap.appendChild(li);
-            });
-        }
+    const tot = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tot.textContent = '100%';
+    tot.setAttribute('x', cx);
+    tot.setAttribute('y', cy + 5);
+    tot.setAttribute('text-anchor','middle');
+    tot.setAttribute('font-size','16');
+    tot.setAttribute('font-weight','700');
+    svgEl.appendChild(tot);
+  }
 
-        // ---- Holdings donut + legend ----
-        function drawDonut(svgEl, items) {
-            const cx = 90, cy = 90, r = 62, R = 72, TAU = Math.PI * 2;
-            svgEl.innerHTML = '';
-            const sum = items.reduce((s, i) => s + (Number(i.pct) || 0), 0) || 1;
-            let a0 = -Math.PI / 2;
+  function renderPortfolioHoldingsFromMetrics(freshMetrics) {
+    const svg = document.getElementById('ph-donut');
+    const legend = document.getElementById('ph-legend');
+    if (!svg || !legend) return;
 
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
+    const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
+    const items = src
+      .map(h => ({
+        label: (h.symbol || h.name || '—').toString(),
+        pct: Number(h.weight_pct) || 0
+      }))
+      .filter(x => x.pct > 0);
 
-            items.forEach((it, idx) => {
-                const pct = Number(it.pct) || 0;
-                const frac = pct / sum;
-                const a1 = a0 + frac * TAU;
-                const la = (a1 - a0) > Math.PI ? 1 : 0;
+    if (!items.length) {
+      svg.innerHTML = '';
+      legend.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
+      return;
+    }
 
-                const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)];
-                const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)];
-                const q0 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-                const q1 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
-
-                const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', d);
-                path.setAttribute('fill', it.color || colors[idx % colors.length]);
-                path.setAttribute('opacity', '.95');
-                svgEl.appendChild(path);
-                a0 = a1;
-            });
-
-            const tot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            tot.textContent = '100%';
-            tot.setAttribute('x', cx);
-            tot.setAttribute('y', cy + 5);
-            tot.setAttribute('text-anchor', 'middle');
-            tot.setAttribute('font-size', '16');
-            tot.setAttribute('font-weight', '700');
-            svgEl.appendChild(tot);
-        }
-
-        // ---- Holdings donut + legend ----
-        function renderPortfolioHoldingsFromMetrics(freshMetrics) {
-            const svg = document.getElementById('ph-donut');
-            const legend = document.getElementById('ph-legend');
-            if (!svg || !legend) return;
-
-            const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
-            const items = src
-                .map(h => ({ label: (h.symbol || h.name || '—').toString(), pct: Number(h.weight_pct) || 0 }))
-                .filter(x => x.pct > 0);
-
-            if (!items.length) {
-                svg.innerHTML = '';
-                legend.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
-                return;
-            }
-
-            drawDonut(svg, items);
-            legend.innerHTML = items.map((h, i) => `
-    <div class="flex items-center justify-between py-1">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="legend-dot" style="background: var(--phc-${i});"></span>
-        <span class="truncate">${h.label}</span>
+    drawDonut(svg, items);
+    legend.innerHTML = items.map((h, i) => `
+      <div class="flex items-center justify-between py-1">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="legend-dot" style="background: var(--phc-${i});"></span>
+          <span class="truncate">${h.label}</span>
+        </div>
+        <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
       </div>
-      <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
-    </div>
-  `).join('');
+    `).join('');
 
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-            items.forEach((_, i) => {
-                document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
-            });
-        }
+    const colors = ['#111827','#2563eb','#16a34a','#f59e0b','#ef4444','#6b7280','#10b981','#6366f1','#94a3b8','#3f6212'];
+    items.forEach((_, i) => {
+      document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
+    });
+  }
 
-        // ---- Asset Allocation from metrics (right column card) ----
-        function renderAssetAllocationFromMetrics(freshMetrics) {
-            const wrap = document.getElementById('asset-allocation');
-            if (!wrap) return;
+  function renderAssetAllocationFromMetrics(freshMetrics) {
+    const wrap = document.getElementById('asset-allocation');
+    if (!wrap) return;
 
-            const alloc = Array.isArray(freshMetrics?.asset_allocation) ? freshMetrics.asset_allocation : [];
-            if (!alloc.length) {
-                wrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>';
-                return;
+    const alloc = Array.isArray(freshMetrics?.asset_allocation) ? freshMetrics.asset_allocation : [];
+    if (!alloc.length) {
+      wrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>';
+      return;
+    }
+    const colors = ['#111827','#2563eb','#16a34a','#f59e0b','#ef4444','#6b7280','#10b981','#6366f1','#94a3b8','#3f6212'];
+
+    wrap.innerHTML = alloc.map((i, idx) => {
+      const pct = Number(i.weight_pct) || 0;
+      const label = i.bucket || i.label || '—';
+      const color = colors[idx % colors.length];
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm text-slate-700">${label}</span>
+            <span class="text-sm font-medium">${pct.toFixed(0)}%</span>
+          </div>
+          <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-full rounded-full" style="width:${pct}%; background:${color}"></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ---------- chart setup ----------
+  let chart, currentLabels = [], currentCCY = 'ZAR';
+  function initChart() {
+    const ctx = $('#pf-chart')?.getContext('2d');
+    if (!ctx) return;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+    gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+    gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            displayColors: false,
+            callbacks: {
+              title: items => currentLabels[items[0].dataIndex] ?? '',
+              label: c => money(c.raw, currentCCY)
             }
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-
-            wrap.innerHTML = alloc.map((i, idx) => {
-                const pct = Number(i.weight_pct) || 0;
-                const label = i.bucket || i.label || '—';
-                const color = colors[idx % colors.length];
-                return `
-      <div>
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-sm text-slate-700">${label}</span>
-          <span class="text-sm font-medium">${pct.toFixed(0)}%</span>
-        </div>
-        <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-          <div class="h-full rounded-full" style="width:${pct}%; background:${color}"></div>
-        </div>
-      </div>`;
-            }).join('');
+          }
+        },
+        scales: {
+          x: { display: true, ticks: { maxTicksLimit: 6, color: '#94a3b8' }, grid: { display: false } },
+          y: { display: true, ticks: { color: '#94a3b8', maxTicksLimit: 4, callback: v => money(v, currentCCY) } }
         }
+      }
+    });
+  }
 
+  // build index curve from % points (base = 100)
+  function curveFromPct(points, base = 100) {
+    const out = []; let lvl = base;
+    for (const p of points) {
+      const r = Number(p?.pct);
+      if (Number.isFinite(r)) lvl *= (1 + r / 100);
+      out.push(Number(lvl.toFixed(2)));
+    }
+    return out;
+  }
 
+  // push curve into chart + header stats
+  function setCurve(seriesVals, ccy) {
+    if (!chart) return;
+    chart.data.labels = currentLabels;
+    chart.data.datasets[0].data = seriesVals;
+    chart.update();
 
+    if (!seriesVals.length) {
+      $('#pf-value').textContent = money(0, ccy);
+      $('#pf-change').textContent = '—';
+      return;
+    }
+    const first = seriesVals[0], last = seriesVals.at(-1);
+    const chg = ((last - first) / first) * 100;
+    $('#pf-value').textContent = money(last, ccy);
+    const chgEl = $('#pf-change');
+    chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+    chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
+    $('#pf-updated').textContent =
+      new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
+  }
 
-        // ---------- chart setup ----------
-        let chart, currentLabels = [], currentCCY = 'ZAR';
-        function initChart() {
-            const ctx = $('#pf-chart')?.getContext('2d');
-            if (!ctx) return;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-            gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
-            gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            displayColors: false,
-                            callbacks: {
-                                title: items => currentLabels[items[0].dataIndex] ?? '',
-                                label: c => money(c.raw, currentCCY)
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { display: true, ticks: { maxTicksLimit: 6, color: '#94a3b8' }, grid: { display: false } },
-                        y: { display: true, ticks: { color: '#94a3b8', maxTicksLimit: 4, callback: v => money(v, currentCCY) } }
-                    }
-                }
-            });
+  // ---------- calendar (daily returns) ----------
+  function renderCalendarDaily(container, daily) {
+    container.innerHTML = '';
+    if (!daily?.length) { container.textContent = 'No daily data yet.'; return; }
+
+    const byYear = {};
+    for (const d of daily) {
+      if (!finite(d.pct)) continue;
+      byYear[d.year] ??= {};
+      byYear[d.year][d.month] ??= {};
+      byYear[d.year][d.month][d.day] = Number(d.pct);
+    }
+    const monthsAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+
+    container.style.gridTemplateColumns = `120px repeat(12, minmax(72px, 1fr))`;
+    const corner = document.createElement('div'); corner.className = 'cal-head cal-sticky'; container.appendChild(corner);
+    monthsAbbr.forEach(m => { const h = document.createElement('div'); h.className = 'cal-head justify-center'; h.textContent = m; container.appendChild(h); });
+
+    years.forEach(y => {
+      const yr = document.createElement('div'); yr.className = 'cal-head cal-sticky'; yr.textContent = y; container.appendChild(yr);
+      for (let m = 1; m <= 12; m++) {
+        const box = document.createElement('div'); box.className = 'cal-cell p-1';
+        const inner = document.createElement('div');
+        inner.style.display = 'grid'; inner.style.gridTemplateColumns = 'repeat(7,10px)'; inner.style.gap = '2px';
+        const dim = new Date(y, m, 0).getDate();
+        for (let d = 1; d <= dim; d++) {
+          const v = byYear[y]?.[m]?.[d];
+          const dot = document.createElement('div');
+          dot.style.cssText = 'width:10px;height:10px;border-radius:2px;';
+          let color = '#e5e7eb';
+          if (v != null) {
+            color = v >= 1.5 ? '#bbf7d0' : (v > 0 ? '#dcfce7' : (v === 0 ? '#f1f5f9' : (v > -1 ? '#fee2e2' : '#fecaca')));
+          }
+          dot.style.background = color;
+          dot.title = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} : ${v != null ? (v > 0 ? '+' : '') + v.toFixed(2) + '%' : '—'}`;
+          inner.appendChild(dot);
         }
+        box.appendChild(inner);
+        container.appendChild(box);
+      }
+    });
+    $('#legNeg').style.background = '#fecaca';
+    $('#legNeu').style.background = '#f1f5f9';
+    $('#legPos').style.background = '#dcfce7';
+  }
 
-        // build index curve from % points (base = 100)
-        function curveFromPct(points, base = 100) {
-            const out = []; let lvl = base;
-            for (const p of points) {
-                const r = Number(p?.pct);
-                if (Number.isFinite(r)) lvl *= (1 + r / 100);
-                out.push(Number(lvl.toFixed(2)));
-            }
-            return out;
-        }
+  // ---------- perf summary ----------
+  function fillPerfSummary(ps) {
+    const pct = v => (v == null || isNaN(v)) ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`;
+    document.getElementById('ps-best').textContent  = pct(ps?.best_day_pct);
+    document.getElementById('ps-worst').textContent = pct(ps?.worst_day_pct);
+    document.getElementById('ps-avg').textContent   = pct(ps?.avg_daily_return_pct);
+    document.getElementById('ps-pos').textContent   = (ps?.positive_days_pct == null ? '—' : `${Number(ps.positive_days_pct).toFixed(0)}%`);
+    document.getElementById('ps-days').textContent  = ps?.total_days ?? 0;
+    document.getElementById('ps-ytd').textContent   = pct(ps?.ytd_return_pct);
+  }
 
-        // push curve into chart + header stats
-        function setCurve(seriesVals, ccy) {
-            if (!chart) return;
-            chart.data.labels = currentLabels;
-            chart.data.datasets[0].data = seriesVals;
-            chart.update();
+  function hydrateHeader(strategy) {
+    document.getElementById('fs-title').textContent = strategy.name || '—';
+    document.getElementById('fs-provider').textContent = strategy.creator || '—';
+    document.getElementById('fs-since').textContent = strategy.inception_date
+      ? new Date(strategy.inception_date).toLocaleDateString('en-ZA') : '—';
+    document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+    document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+    document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
+    const ecName = document.getElementById('pf-name');
+    if (ecName) ecName.textContent = strategy.name || '—';
 
-            if (!seriesVals.length) {
-                $('#pf-value').textContent = money(0, ccy);
-                $('#pf-change').textContent = '—';
-                return;
-            }
-            const first = seriesVals[0], last = seriesVals.at(-1);
-            const chg = ((last - first) / first) * 100;
-            $('#pf-value').textContent = money(last, ccy);
-            const chgEl = $('#pf-change');
-            chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
-            chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
-            $('#pf-updated').textContent =
-                new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
-        }
+    renderDescAndBullets(strategy);
 
-        // ---------- calendar (daily returns) ----------
-        (function () {
-            const R = {
-                2019: { Jan: .5, Feb: .3, Mar: .8, Apr: 1.1, May: -.9, Jun: .6, Jul: .8, Aug: .9, Sep: -.4, Oct: 1.0, Nov: .7, Dec: .9, YTD: 6.0 },
-                2020: { Jan: .4, Feb: -2.2, Mar: -6.3, Apr: 3.7, May: 2.1, Jun: 1.0, Jul: 1.1, Aug: 1.4, Sep: .7, Oct: .9, Nov: 1.1, Dec: 1.2, YTD: 4.8 },
-                2021: { Jan: .9, Feb: .7, Mar: .8, Apr: 1.2, May: .5, Jun: .4, Jul: .8, Aug: 1.0, Sep: .9, Oct: -.8, Nov: 1.0, Dec: .9, YTD: 8.0 },
-                2022: { Jan: 1.0, Feb: -.9, Mar: .8, Apr: 1.2, May: .5, Jun: -2.2, Jul: .9, Aug: 2.1, Sep: -.5, Oct: 1.5, Nov: .6, Dec: 1.1, YTD: 5.8 },
-                2023: { Jan: .7, Feb: .9, Mar: -.7, Apr: 1.3, May: 2.0, Jun: .4, Jul: 1.2, Aug: .8, Sep: 1.5, Oct: -.8, Nov: 1.1, Dec: .9, YTD: 9.0 },
-                2024: { Jan: 1.0, Feb: .6, Mar: .5, Apr: .9, May: .8, Jun: .9, Jul: .3, Aug: .5, Sep: 1.0, Oct: .7, Nov: .8, Dec: .9, YTD: 8.6 }
-            };
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD'];
-            const years = Object.keys(R).map(Number).sort((a, b) => a - b);
+    const fsDesc = document.getElementById('fsDesc');
+    if (fsDesc) fsDesc.textContent =
+      strategy.investment_objective_description || strategy.strategy_description || '—';
 
-            const grid = document.getElementById('calendarReturns');
-            if (!grid) return;
-            grid.innerHTML = '';
-            grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px, 1fr))`;
+    const fsStyle = document.getElementById('fsStyle');
+    if (fsStyle) fsStyle.textContent = strategy.style || '—';
 
-            const color = (v) =>
-                v == null ? '#e5e7eb' :
-                    v >= 1.5 ? '#bbf7d0' :
-                        v > 0 ? '#dcfce7' :
-                            v === 0 ? '#f1f5f9' :
-                                v > -1 ? '#fee2e2' : '#fecaca';
+    const fsUniverse = document.getElementById('fsUniverse');
+    if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
 
-            const corner = document.createElement('div');
-            corner.className = 'cal-head cal-sticky';
-            grid.appendChild(corner);
+    const fsHold = document.getElementById('fsHold');
+    if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
+      ? `${strategy.avg_holding_days} days` : '—';
 
-            months.forEach(m => {
-                const h = document.createElement('div');
-                h.className = 'cal-head justify-center';
-                h.textContent = m;
-                grid.appendChild(h);
-            });
+    const fsTrades = document.getElementById('fsTrades');
+    if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
+      ? `${strategy.avg_trades_per_month}` : '—';
+  }
 
-            years.forEach(y => {
-                const yr = document.createElement('div');
-                yr.className = 'cal-head cal-sticky';
-                yr.textContent = y;
-                grid.appendChild(yr);
+  // ---------- data load ----------
+  async function fetchStrategy() {
+    if (stratKey) {
+      let r = await supabase.from('strategies').select('*').eq('id', stratKey).maybeSingle();
+      if (!r.data) r = await supabase.from('strategies').select('*').eq('code', stratKey).maybeSingle();
+      return r.data || null;
+    }
+    const { data } = await supabase.from('strategies').select('*').limit(1);
+    return data?.[0] || null;
+  }
+  async function fetchMetrics(strategyId) {
+    const { data } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategyId).maybeSingle();
+    return data || null;
+  }
 
-                months.forEach(m => {
-                    const v = R[y]?.[m];
-                    const c = document.createElement('div');
-                    c.className = 'cal-cell';
-                    c.style.background = color(v);
-                    c.textContent = (v || v === 0) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—';
-                    grid.appendChild(c);
-                });
-            });
+  // ---------- equity curve selection ----------
+  function makeLabels1M(src) {
+    return src.map(x => {
+      const d = new Date(x.date);
+      return d.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' });
+    });
+  }
+  function makeLabels1D(src) {
+    return (src || []).map(x => {
+      const d = new Date(x.ts);
+      return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+    });
+  }
+  function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
-            document.getElementById('legNeg').style.background = '#fecaca';
-            document.getElementById('legNeu').style.background = '#f1f5f9';
-            document.getElementById('legPos').style.background = '#dcfce7';
-        })();
+  function selectRangeAndRender(rangeKey, metrics, strategy) {
+    if (rangeKey === '1D') {
+      const s1d = metrics?.series_1d || [];
+      const vals = s1d.map(p => Number(p?.equity)).filter(v => Number.isFinite(v));
+      currentLabels = makeLabels1D(s1d);
+      setCurve(vals, strategy.currency || 'ZAR');
+      return;
+    }
+    let src = [];
+    if (rangeKey === '1M') {
+      src = metrics?.series_1m || [];
+      currentLabels = makeLabels1M(src);
+    } else if (rangeKey === '6M') {
+      src = metrics?.series_6m || [];
+      currentLabels = makeLabelsMonthly(src);
+    } else if (rangeKey === '1Y') {
+      src = metrics?.series_1y || [];
+      currentLabels = makeLabelsMonthly(src);
+    } else {
+      src = metrics?.series_all || [];
+      currentLabels = makeLabelsMonthly(src);
+    }
+    const pcts = src.map(x => ({ pct: Number(x?.pct) }));
+    let curve = curveFromPct(pcts, 100);
 
+    const aum = Number(strategy?.aum);
+    if (Number.isFinite(aum) && aum > 0 && curve.length) {
+      const scale = aum / curve.at(-1);
+      curve = curve.map(v => Number((v * scale).toFixed(2)));
+    }
+    setCurve(curve, strategy.currency || 'ZAR');
+  }
 
+  // ---------- boot ----------
+  try {
+    const strategy = await fetchStrategy();
+    if (!strategy) throw new Error('No strategy found');
+    let metrics = await fetchMetrics(strategy.id);
 
-        // ---------- perf summary ----------
-        function fillPerfSummary(ps) {
-            const pct = v => (v == null || isNaN(v)) ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`;
-            document.getElementById('ps-best').textContent = pct(ps?.best_day_pct);
-            document.getElementById('ps-worst').textContent = pct(ps?.worst_day_pct);
-            document.getElementById('ps-avg').textContent = pct(ps?.avg_daily_return_pct);
-            document.getElementById('ps-pos').textContent = (ps?.positive_days_pct == null ? '—' : `${Number(ps.positive_days_pct).toFixed(0)}%`);
-            document.getElementById('ps-days').textContent = ps?.total_days ?? 0;
+    // hydrate UI
+    currentCCY = strategy.currency || 'ZAR';
+    hydrateHeader(strategy);
+    initChart();
 
-            // NEW: YTD
-            document.getElementById('ps-ytd').textContent = pct(ps?.ytd_return_pct);
-        }
+    // render initial curve + tiles + calendar + holdings + allocation
+    selectRangeAndRender('1D', metrics || {}, strategy);
+    fillPerfSummary(metrics?.perf_summary || null);
+    renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
+    renderPortfolioHoldingsFromMetrics(metrics || {});
+    renderAssetAllocationFromMetrics(metrics || {});
 
+    // timestamp
+    $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
 
-        function hydrateHeader(strategy) {
-            // header
-            document.getElementById('fs-title').textContent = strategy.name || '—';
-            document.getElementById('fs-provider').textContent = strategy.creator || '—';
-            document.getElementById('fs-since').textContent = strategy.inception_date
-                ? new Date(strategy.inception_date).toLocaleDateString('en-ZA')
-                : '—';
-            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-            document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
-            const ecName = document.getElementById('pf-name');
-            if (ecName) ecName.textContent = strategy.name || '—';
+    // tabs
+    $$('#portfolio-card .tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $$('#portfolio-card .tab').forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+        selectRangeAndRender(btn.getAttribute('data-range'), metrics || {}, strategy);
+      });
+    });
 
-            // NEW: description + bullets
-            renderDescAndBullets(strategy);
+    // refresh button (re-pull metrics)
+    $('#pf-refresh')?.addEventListener('click', async (e) => {
+      e.currentTarget.classList.add('spin');
+      try {
+        const fresh = await fetchMetrics(strategy.id);
+        metrics = fresh || {};
+        selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1D', metrics, strategy);
+        fillPerfSummary(metrics?.perf_summary || null);
+        renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
+        renderPortfolioHoldingsFromMetrics(metrics || {});
+        renderAssetAllocationFromMetrics(metrics || {});
+        $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+      } catch { /* noop */ }
+      setTimeout(() => e.currentTarget.classList.remove('spin'), 600);
+    });
 
-            // Strategy Overview tiles (right column)
-            const fsDesc = document.getElementById('fsDesc');
-            if (fsDesc) fsDesc.textContent =
-                strategy.investment_objective_description || strategy.strategy_description || '—';
+    // helper: light strategy fetch
+    async function fetchStrategyLite(id) {
+      const { data, error } = await supabase
+        .from('strategies')
+        .select('id,name,creator,inception_date,currency,risk_level,aum,strategy_description,style,asset_universe,avg_holding_days,avg_trades_per_month')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    }
 
-            const fsStyle = document.getElementById('fsStyle');
-            if (fsStyle) fsStyle.textContent = strategy.style || '—';
+    // auto-refresh every 2 minutes
+    const doAutoRefresh = async () => {
+      const btn = document.getElementById('pf-refresh');
+      btn?.classList.add('spin');
+      try {
+        const [freshMetrics, freshStrategy] = await Promise.all([
+          fetchMetrics(strategy.id),
+          fetchStrategyLite(strategy.id),
+        ]);
+        metrics = freshMetrics || metrics || {};
+        const activeStrategy = freshStrategy || strategy;
 
-            const fsUniverse = document.getElementById('fsUniverse');
-            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
+        hydrateHeader(activeStrategy);
+        currentCCY = activeStrategy.currency || 'ZAR';
 
-            const fsHold = document.getElementById('fsHold');
-            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
-                ? `${strategy.avg_holding_days} days`
-                : '—';
+        const range = document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '1D';
+        selectRangeAndRender(range, metrics, activeStrategy);
 
-            const fsTrades = document.getElementById('fsTrades');
-            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
-                ? `${strategy.avg_trades_per_month}`
-                : '—';
-        }
+        fillPerfSummary(metrics?.perf_summary || null);
+        renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []);
+        renderPortfolioHoldingsFromMetrics(metrics || {});
+        renderAssetAllocationFromMetrics(metrics || {});
 
+        document.getElementById('fs-updated').textContent =
+          'Updated ' + new Date().toLocaleString('en-ZA', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          });
+      } catch (e) {
+        console.warn('[auto-refresh] failed:', e);
+      } finally {
+        setTimeout(() => btn?.classList.remove('spin'), 600);
+      }
+    };
+    setInterval(doAutoRefresh, 120000); // 2 minutes
 
+  } catch (err) {
+    console.error('[factsheet init] ', err);
+    $('#pf-value').textContent = money(0);
+    $('#pf-change').textContent = '—';
+    $('#calendarReturns').textContent = 'No data.';
+    // still show "no holdings / no allocation" messages
+    renderPortfolioHoldingsFromMetrics({});
+    renderAssetAllocationFromMetrics({});
+  }
+</script>
 
-
-        // ---------- data load ----------
-        async function fetchStrategy() {
-            if (stratKey) {
-                // try UUID then code
-                let r = await supabase.from('strategies').select('*').eq('id', stratKey).maybeSingle();
-                if (!r.data) {
-                    r = await supabase.from('strategies').select('*').eq('code', stratKey).maybeSingle();
-                }
-                return r.data || null;
-            }
-            const { data } = await supabase.from('strategies').select('*').limit(1);
-            return data?.[0] || null;
-        }
-        async function fetchMetrics(strategyId) {
-            const { data } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategyId).maybeSingle();
-            return data || null;
-        }
-
-        // ---------- equity curve selection ----------
-        function makeLabels1M(src) {
-            return src.map(x => {
-                const d = new Date(x.date);
-                return d.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' }); // e.g. 10 Oct
-            });
-        }
-        function makeLabels1D(src) {
-            // src: [{ts, equity}]
-            return (src || []).map(x => {
-                const d = new Date(x.ts);
-                // SAST (ZA) display
-                return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
-            });
-        }
-
-        function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
-
-        function selectRangeAndRender(rangeKey, metrics, strategy) {
-            // --- 1D: use live equity time series (money values already) ---
-            if (rangeKey === '1D') {
-                const s1d = metrics?.series_1d || [];                  // [{ts, equity}]
-                const vals = s1d
-                    .map(p => Number(p?.equity))
-                    .filter(v => Number.isFinite(v));                    // money values
-                currentLabels = makeLabels1D(s1d);                     // HH:MM SAST labels
-                setCurve(vals, strategy.currency || 'ZAR');            // no rebasing for 1D
-                return;
-            }
-
-            // --- % series (index curve) for other ranges ---
-            let src = [];
-            if (rangeKey === '1M') {
-                src = metrics?.series_1m || [];                        // [{date,label,pct}]
-                currentLabels = makeLabels1M(src);
-            } else if (rangeKey === '6M') {
-                src = metrics?.series_6m || [];                        // [{label,pct}]
-                currentLabels = makeLabelsMonthly(src);
-            } else if (rangeKey === '1Y') {
-                src = metrics?.series_1y || [];
-                currentLabels = makeLabelsMonthly(src);
-            } else {
-                src = metrics?.series_all || [];
-                currentLabels = makeLabelsMonthly(src);
-            }
-
-            const pcts = src.map(x => ({ pct: Number(x?.pct) }));
-            let curve = curveFromPct(pcts, 100);                     // index 100 base
-
-            // Rebase to show *money* with last point = current AUM (if available)
-            const aum = Number(strategy?.aum);
-            if (Number.isFinite(aum) && aum > 0 && curve.length) {
-                const scale = aum / curve.at(-1);
-                curve = curve.map(v => Number((v * scale).toFixed(2)));
-            }
-            setCurve(curve, strategy.currency || 'ZAR');
-        }
-
-
-        // ---------- boot ----------
-        try {
-            const strategy = await fetchStrategy();
-            if (!strategy) throw new Error('No strategy found');
-            const metrics = await fetchMetrics(strategy.id);
-
-            currentCCY = strategy.currency || 'ZAR';
-            hydrateHeader(strategy);
-            initChart();
-
-            // default range
-            selectRangeAndRender('1D', metrics, strategy);
-
-            // tabs
-            $$('#portfolio-card .tab').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    $$('#portfolio-card .tab').forEach(b => b.classList.remove('tab-active'));
-                    btn.classList.add('tab-active');
-                    selectRangeAndRender(btn.getAttribute('data-range'), metrics, strategy);
-                });
-            });
-
-
-            // refresh button (re-pull metrics live if you want)
-            $('#pf-refresh')?.addEventListener('click', async (e) => {
-                e.currentTarget.classList.add('spin');
-                try {
-                    const fresh = await fetchMetrics(strategy.id);
-                    selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1D', fresh, strategy);
-                    fillPerfSummary(fresh?.perf_summary || null);
-                    renderCalendarDaily($('#calendarReturns'), fresh?.calendar_returns || []);
-                    $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                } catch { }
-                setTimeout(() => e.currentTarget.classList.remove('spin'), 600);
-            });
-
-            // perf + calendar
-            fillPerfSummary(metrics?.perf_summary || null);
-            renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
-
-            // set header timestamp
-            $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-            // === Auto-refresh metrics every 2 minutes ===
-            // helper: light strategy fetch (gets fields used in header + AUM)
-            async function fetchStrategyLite(id) {
-                const { data, error } = await supabase
-                    .from('strategies')
-                    .select('id,name,creator,inception_date,currency,risk_level,aum,strategy_description,style,asset_universe,avg_holding_days,avg_trades_per_month')
-                    .eq('id', id)
-                    .maybeSingle();
-                if (error) throw error;
-                return data || null;
-            }
-
-            // === Auto-refresh metrics + strategy (AUM) every 2 minutes ===
-            const doAutoRefresh = async () => {
-                const btn = document.getElementById('pf-refresh');
-                btn?.classList.add('spin');
-                try {
-                    // get metrics AND the latest strategy row (for AUM/currency/name changes)
-                    const [freshMetrics, freshStrategy] = await Promise.all([
-                        fetchMetrics(strategy.id),
-                        fetchStrategyLite(strategy.id),
-                    ]);
-
-                    // fall back to the original 'strategy' if lite fetch fails
-                    const activeStrategy = freshStrategy || strategy;
-
-                    // update header (AUM, currency, desc, etc.)
-                    hydrateHeader(activeStrategy);
-                    currentCCY = activeStrategy.currency || 'ZAR';
-
-                    // re-render equity curve with fresh AUM rebasing
-                    const range =
-                        document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '1D';
-                    selectRangeAndRender(range, freshMetrics, activeStrategy);
-
-                    // refresh summary & calendar from metrics
-                    fillPerfSummary(freshMetrics?.perf_summary || null);
-                    renderCalendarDaily(document.getElementById('calendarReturns'), freshMetrics?.calendar_returns || []);
-
-                    // timestamp
-                    document.getElementById('fs-updated').textContent =
-                        'Updated ' + new Date().toLocaleString('en-ZA', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit', second: '2-digit'
-                        });
-                } catch (e) {
-                    console.warn('[auto-refresh] failed:', e);
-                } finally {
-                    setTimeout(() => btn?.classList.remove('spin'), 600);
-                }
-            };
-
-            // run every 2 minutes (120,000 ms)
-            setInterval(doAutoRefresh, 1000);
-
-
-        } catch (err) {
-            console.error('[factsheet init] ', err);
-            // graceful UI fallbacks:
-            $('#pf-value').textContent = money(0);
-            $('#pf-change').textContent = '—';
-            $('#calendarReturns').textContent = 'No data.';
-        }
-    </script>
 
     <script>
         (function () {
