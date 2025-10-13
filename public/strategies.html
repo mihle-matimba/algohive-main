@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlgoHive – Strategies</title>
+  <title>AlgoHive – Strategies (Table)</title>
 
   <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -28,6 +28,15 @@
     #ah-sidebar .footer{ transition:all .2s ease }
     #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
     #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+
+    /* table styles */
+    .tbl-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden }
+    table { width:100%; border-collapse:separate; border-spacing:0 }
+    thead th { position:sticky; top:0; background:#fff; z-index:1; font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:#64748b; border-bottom:1px solid #e5e7eb; padding:.875rem .875rem; text-align:left }
+    tbody td { padding:1rem .875rem; border-bottom:1px solid #f1f5f9; font-size:.925rem }
+    tbody tr:hover { background:#f8fafc }
+    .th-min { width:1%; white-space:nowrap }
+    .cell-name { font-weight:600 }
   </style>
 </head>
 
@@ -132,8 +141,31 @@
           <div class="text-xs text-slate-400">* Metrics are simulated from monthly returns (net of TIF).</div>
         </div>
 
-        <!-- Cards grid -->
-        <section id="grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 pb-12"></section>
+        <!-- Table -->
+        <section class="tbl-wrap">
+          <div class="overflow-x-auto">
+            <table id="tbl">
+              <thead>
+                <tr>
+                  <th class="th-min">#</th>
+                  <th>Name</th>
+                  <th>Provider</th>
+                  <th class="th-min">Ccy</th>
+                  <th class="th-min">Risk</th>
+                  <th class="th-min">AUM</th>
+                  <th>Style</th>
+                  <th>Universe</th>
+                  <th class="th-min">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <!-- rows injected here -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div id="empty" class="hidden py-10 text-center text-slate-500">No strategies match your filters.</div>
       </div>
     </main>
   </div>
@@ -166,8 +198,8 @@
   // ------- helpers -------
   const $ = (q, el=document) => el.querySelector(q);
   const ZA = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0});
-  const USD = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
-  const money = (n, ccy) => (ccy==='ZAR'? ZA: new Intl.NumberFormat('en-US',{style:'currency',currency:ccy||'USD',maximumFractionDigits:0})).format(n||0);
+  const moneyFmt = (ccy) => new Intl.NumberFormat(ccy==='ZAR'?'en-ZA':'en-US',{style:'currency',currency:ccy||'USD',maximumFractionDigits:0});
+  const money = (n, ccy) => moneyFmt(ccy).format(n||0);
 
   // filters
   const $q     = document.getElementById('q');
@@ -199,56 +231,55 @@
     }));
   }
 
-  // ------- render cards -------
-  function renderCards(items){
-    const grid = document.getElementById('grid');
-    grid.innerHTML = '';
+  // ------- render table -------
+  function renderTable(items){
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
 
-    items.forEach(s => {
-      const chipRisk = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
-                       : s.risk==='High' ? 'bg-rose-50 text-rose-700'
-                       : 'bg-amber-50 text-amber-700';
+    items.forEach((s, idx) => {
+      const tr = document.createElement('tr');
+      const riskChip = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
+                     : s.risk==='High' ? 'bg-rose-50 text-rose-700'
+                     : 'bg-amber-50 text-amber-700';
 
-      const card = document.createElement('div');
-      card.className = 'card p-5 flex flex-col';
-      card.innerHTML = `
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="text-xs text-slate-500">${s.provider} • ${s.currency}</div>
-            <h3 class="text-lg font-semibold truncate" title="${s.name}">${s.name}</h3>
+      tr.innerHTML = `
+        <td class="text-slate-400">${idx+1}</td>
+        <td class="cell-name">
+          <div class="flex items-center gap-2">
+            <span class="truncate" title="${s.name}">${s.name}</span>
           </div>
-          <span class="chip ${chipRisk}">${s.risk} Risk</span>
-        </div>
-
-        <p class="text-sm text-slate-600 mt-2 line-clamp-2">${s.desc}</p>
-
-        <div class="grid grid-cols-2 gap-3 mt-4">
-          <div class="p-3 border rounded-xl">
-            <div class="text-[11px] text-slate-500">AUM</div>
-            <div class="font-semibold">${money(s.aum, s.currency)}</div>
-          </div>
-          <div class="p-3 border rounded-xl">
-            <div class="text-[11px] text-slate-500">Style</div>
-            <div class="font-semibold">${s.style}</div>
-          </div>
-          <div class="p-3 border rounded-xl col-span-2">
-            <div class="text-[11px] text-slate-500">Universe</div>
-            <div class="font-semibold truncate" title="${s.universe}">${s.universe}</div>
-          </div>
-        </div>
-
-        <div class="mt-5 flex items-center gap-2">
-          <a class="btn bg-[var(--olive)] text-white hover:opacity-95"
+        </td>
+        <td class="text-slate-600">${s.provider}</td>
+        <td class="text-slate-600">${s.currency}</td>
+        <td>
+          <span class="chip ${riskChip}">${s.risk}</span>
+        </td>
+        <td class="font-semibold">${money(s.aum, s.currency)}</td>
+        <td class="text-slate-600">${s.style}</td>
+        <td class="text-slate-600 truncate max-w-[360px]" title="${s.universe}">${s.universe}</td>
+        <td>
+          <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm"
              href="strategy.html?strategy=${encodeURIComponent(s.id)}">
-            <i class="fa-regular fa-note-sticky"></i> View factsheet
+            <i class="fa-regular fa-note-sticky"></i>
+            Factsheet
           </a>
-        </div>
-      `;
-      grid.appendChild(card);
+        </td>`;
+
+      // make entire row clickable (optional)
+      tr.classList.add('cursor-pointer');
+      tr.addEventListener('click', (e)=>{
+        // ignore clicks on the button itself
+        if(e.target.closest('a')) return;
+        window.location.href = `strategy.html?strategy=${encodeURIComponent(s.id)}`;
+      });
+
+      tbody.appendChild(tr);
     });
 
     document.getElementById('resultCount').textContent =
       `Showing ${items.length} ${items.length===1?'strategy':'strategies'}`;
+
+    document.getElementById('empty').classList.toggle('hidden', items.length!==0);
   }
 
   // ------- filtering/sorting -------
@@ -279,7 +310,7 @@
       return 0;
     });
 
-    renderCards(rows);
+    renderTable(rows);
   }
 
   // ------- init style dropdown from DB values -------
@@ -290,7 +321,7 @@
   }
 
   // clear button
-  $clear.addEventListener('click', ()=>{
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
     $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
     applyFilters();
   });
@@ -303,10 +334,9 @@
     applyFilters();
   }catch(e){
     console.error(e);
-    $('#grid').innerHTML = '<div class="text-slate-500">Sorry, failed to load strategies.</div>';
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="py-10 text-center text-slate-500">Sorry, failed to load strategies.</td></tr>';
   }
 </script>
-
 
 </body>
 </html>
