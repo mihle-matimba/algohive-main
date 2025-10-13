@@ -979,6 +979,149 @@
         }
     </script>
 
+    <script>
+  (function () {
+    // ------- helpers -------
+    const $  = (q, el=document) => el.querySelector(q);
+    const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+    const money = n => 'R ' + Number(n || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // ------- elements -------
+    const elUnits   = $('#alloc-units');
+    const elPrice   = $('#alloc-price');
+    const elTotal   = $('#alloc-total');
+    const elStrat   = $('#alloc-name');
+    const btnAlloc  = $('#alloc-btn');
+
+    // Ozow modal + container
+    const modal        = $('#ozow-modal');
+    const modalBackdrop= modal?.querySelector('[data-close-ozow]');
+    const container    = $('#paymentContainer');   // iFrame will be injected here
+    const cancelBtn    = $('#cancelOzowPayment');  // hidden fallback
+
+    // ------- dynamic total calc -------
+    function updateTotal() {
+      const price = Number(elPrice.value || 0);
+      const units = Math.max(1, Math.floor(Number(elUnits.value || 0))); // whole numbers only
+      elUnits.value = units; // normalize
+      const total = price * units;
+      elTotal.textContent = money(total);
+      return total;
+    }
+    updateTotal();
+    elUnits.addEventListener('input', updateTotal);
+    elUnits.addEventListener('change', updateTotal);
+
+    // ------- modal helpers -------
+    function openModal() {
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      setLoading(true);
+      // Esc to close
+      const onEsc = (e) => { if (e.key === 'Escape') closeModal(); };
+      modal._onEsc = onEsc;
+      window.addEventListener('keydown', onEsc);
+    }
+    function closeModal() {
+      if (!modal) return;
+      modal.classList.add('hidden');
+      if (modal._onEsc) window.removeEventListener('keydown', modal._onEsc);
+      container.innerHTML = ''; // clear iFrame
+    }
+    function setLoading(on = true) {
+      if (!container) return;
+      container.innerHTML = on
+        ? '<div class="w-full h-full grid place-items-center text-slate-600">Creating Ozow payment…</div>'
+        : '<div class="w-full h-full grid place-items-center text-slate-600">Ready.</div>';
+    }
+    function loadIframe(url) {
+      container.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = url;            // Ozow checkout URL
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = '0';
+      container.appendChild(iframe);
+    }
+
+    // backdrop / X button close
+    modalBackdrop?.addEventListener('click', closeModal);
+    modal?.querySelectorAll('[data-close-ozow]').forEach(b => b.addEventListener('click', closeModal));
+    cancelBtn?.addEventListener('click', closeModal);
+
+    // ------- Allocate → create Ozow payment -------
+    btnAlloc?.addEventListener('click', async () => {
+      try {
+        const total = updateTotal();
+        if (!total || total <= 0) {
+          alert('Please enter a valid units amount.');
+          return;
+        }
+
+        // pull user email from Supabase auth if present (your page already loads supabase)
+        let customerEmail = 'user@algohive.app';
+        try {
+          // this block is safe even if supabase isn't available for some reason
+          // (wrapped to avoid breaking)
+          // @ts-ignore
+          const { supabase } = window;
+          if (supabase?.auth) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email) customerEmail = user.email;
+          }
+        } catch {}
+
+        const reference = `AH-${(elStrat?.value || 'Strategy').replace(/\s+/g, '')}-${Date.now()}`;
+        openModal();
+
+        // Call your Vercel API to create PostPaymentRequest + hashCheck (server-side)
+        const resp = await fetch('/api/ozow/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: Number(total.toFixed(2)),
+            reference,
+            customerName: customerEmail,   // Ozow accepts a name; we pass email if no name
+            // optional: any metadata you want to echo back on notifyUrl
+            meta: {
+              strategy: elStrat?.value || 'Strategy',
+              units: Number(elUnits.value || 0),
+              unitPrice: Number(elPrice.value || 0),
+            }
+          })
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data?.url) {
+          setLoading(false);
+          container.innerHTML = `<div class="p-4 text-rose-700">Failed to create Ozow payment: ${data?.error || 'Unknown error'}</div>`;
+          return;
+        }
+
+        // EITHER iFrame inside modal (recommended for your UX):
+        loadIframe(data.url);
+
+        // OR hard-redirect to Ozow (uncomment next line & remove loadIframe above):
+        // window.location.href = data.url;
+
+      } catch (err) {
+        console.error('[ozow] create failed', err);
+        setLoading(false);
+        container.innerHTML = `<div class="p-4 text-rose-700">Unexpected error, please try again.</div>`;
+      }
+    });
+
+    // (Optional) listen for success/error page postMessage and auto-close modal
+    window.addEventListener('message', (e) => {
+      if (typeof e.data === 'string' && /ozow-(success|error|cancel)/i.test(e.data)) {
+        closeModal();
+        // You can toast or refresh balances here.
+      }
+    });
+  })();
+</script>
+
+
 </body>
 
 </html>
