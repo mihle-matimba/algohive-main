@@ -711,18 +711,15 @@
             svgEl.appendChild(tot);
         }
 
+        // ---- Holdings donut + legend ----
         function renderPortfolioHoldingsFromMetrics(freshMetrics) {
             const svg = document.getElementById('ph-donut');
             const legend = document.getElementById('ph-legend');
             if (!svg || !legend) return;
 
-            const src = Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [];
-            // Map your JSON (NVDA/META/AAPL/NDX/SPX/MSFT/ORCL) -> label/pct
+            const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
             const items = src
-                .map(h => ({
-                    label: (h.symbol || h.name || '—').toString(),
-                    pct: Number(h.weight_pct) || 0
-                }))
+                .map(h => ({ label: (h.symbol || h.name || '—').toString(), pct: Number(h.weight_pct) || 0 }))
                 .filter(x => x.pct > 0);
 
             if (!items.length) {
@@ -742,7 +739,6 @@
     </div>
   `).join('');
 
-            // Paint legend dots to match donut colors
             const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
             items.forEach((_, i) => {
                 document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
@@ -754,12 +750,13 @@
             const wrap = document.getElementById('asset-allocation');
             if (!wrap) return;
 
-            const alloc = Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [];
+            const alloc = Array.isArray(freshMetrics?.asset_allocation) ? freshMetrics.asset_allocation : [];
             if (!alloc.length) {
                 wrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>';
                 return;
             }
             const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
+
             wrap.innerHTML = alloc.map((i, idx) => {
                 const pct = Number(i.weight_pct) || 0;
                 const label = i.bucket || i.label || '—';
@@ -776,6 +773,7 @@
       </div>`;
             }).join('');
         }
+
 
 
 
