@@ -160,212 +160,153 @@
   </div>
 
   <!-- Scripts -->
-  <script>
-    // ===== Sidebar collapse memory =====
-    (function(){
-      const layout=document.getElementById('layout');
-      const aside=document.getElementById('ah-sidebar');
-      const btn=document.getElementById('ah-collapse');
-      const saved=localStorage.getItem('ah_collapsed')==='true';
-      if(saved){ aside.setAttribute('data-collapsed','true'); layout.classList.add('is-collapsed'); }
-      btn.addEventListener('click',()=>{
-        const isCollapsed=aside.getAttribute('data-collapsed')==='true';
-        if(!isCollapsed) aside.querySelectorAll('details[open]').forEach(d=>d.removeAttribute('open'));
-        aside.setAttribute('data-collapsed', String(!isCollapsed));
-        layout.classList.toggle('is-collapsed', !isCollapsed);
-        localStorage.setItem('ah_collapsed', String(!isCollapsed));
-        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
-      });
-    })();
+<script type="module">
+  import { supabase } from "/js/supabase.js";
 
-    // ===== Dummy STRATS (reuse & can plug into Supabase later) =====
-    const STRATS = {
-      'trend-alpha': {
-        slug:'trend-alpha',
-        name:'Trend Alpha', provider:'AlgoForge', currency:'ZAR', aum: 1200000, risk:'Moderate', inception:'2021-02-01',
-        desc:'Medium-term trend-following model on large-cap equities and index ETFs with systematic risk management.',
-        style:'Trend-Following', universe:'Global Equities & ETFs', avg_holding:'25–45 days', trades_pm: 18,
-        costs:{ tif:1.51 },
-        monthly_port:{
-          2023:[0.8,1.0,-0.6,1.4,2.1,0.5,1.3,0.9,1.6,-0.7,1.2,1.0],
-          2024:[1.1,0.7,0.6,1.0,0.9,1.0,0.4,0.6,1.1,0.8,0.9,1.0],
-          2025:[0.9,0.6,0.7,0.8,0.4,0.5,0.7,0.6,0.8,0.7,0.6,0.5]
-        }
-      },
-      'momentum-fx': {
-        slug:'momentum-fx',
-        name:'Momentum FX', provider:'QuantBee', currency:'USD', aum: 820000, risk:'Low', inception:'2020-06-01',
-        desc:'Diversified G10 momentum/carry strategy with low correlation to equities.',
-        style:'FX Momentum', universe:'G10 FX', avg_holding:'2–7 days', trades_pm: 35,
-        costs:{ tif:1.30 },
-        monthly_port:{
-          2023:[0.4,0.3,0.2,0.4,0.5,0.3,0.2,0.4,0.3,0.2,0.2,0.3],
-          2024:[0.4,0.3,0.2,0.4,0.5,0.3,0.2,0.4,0.3,0.2,0.2,0.3],
-          2025:[0.3,0.2,0.3,0.2,0.3,0.2,0.3,0.2,0.3,0.2,0.3,0.2]
-        }
-      },
-      'sentinel-hedge': {
-        slug:'sentinel-hedge',
-        name:'Sentinel Hedge', provider:'AlgoHive MM', currency:'ZAR', aum: 2350000, risk:'High', inception:'2022-01-15',
-        desc:'Long/short index futures with volatility targeting and downside hedges.',
-        style:'Long/Short', universe:'Equity Index Futures', avg_holding:'1–5 days', trades_pm: 48,
-        costs:{ tif:1.80 },
-        monthly_port:{
-          2023:[2.1,-1.4,1.8,2.6,-0.9,3.2,-1.1,1.7,2.0,-1.6,1.1,2.4],
-          2024:[1.8,1.2,-0.7,2.2,2.0,-1.1,1.4,2.1,1.9,-0.8,1.3,2.1],
-          2025:[0.9,1.1,-0.6,1.3,1.5,-0.7,1.0,1.3,1.1,0.8,0.7,0.6]
-        }
-      }
-    };
+  // ------- helpers -------
+  const $ = (q, el=document) => el.querySelector(q);
+  const ZA = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0});
+  const USD = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+  const money = (n, ccy) => (ccy==='ZAR'? ZA: new Intl.NumberFormat('en-US',{style:'currency',currency:ccy||'USD',maximumFractionDigits:0})).format(n||0);
 
-    // ===== Metrics helpers =====
-    function flattenMonthlyMap(m){ const years = Object.keys(m).map(n=>+n).sort((a,b)=>a-b); const vals=[]; years.forEach(y=> (m[y]||[]).forEach(v=> vals.push(v))); return vals; }
-    function applyTIFNet(monthlyPct, tifAnnualPct){ const mFee=(tifAnnualPct||0)/12; return monthlyPct.map(x=> x - mFee); }
-    function equityFromMonthly(pcts){ const eq=[1]; pcts.forEach(r=> eq.push(eq.at(-1)*(1+r/100))); return eq; }
-    function metrics(portMonthly, tif){
-      const net = applyTIFNet(portMonthly, tif||0);
-      // 1Y CAGR-ish: if less than 12, just sum monthly
-      const last12 = net.slice(-12);
-      const eq = equityFromMonthly(last12);
-      const cagr1y = eq.length>1 ? (eq.at(-1)/eq[0]-1) : 0;
+  // filters
+  const $q     = document.getElementById('q');
+  const $risk  = document.getElementById('fRisk');
+  const $cur   = document.getElementById('fCur');
+  const $style = document.getElementById('fStyle');
+  const $sort  = document.getElementById('fSort');
+  const $clear = document.getElementById('clearBtn');
 
-      // Max drawdown on full history
-      const fullEq = equityFromMonthly(net); let peak=fullEq[0], maxDD=0;
-      fullEq.forEach(v=>{ peak=Math.max(peak,v); const dd=v/peak-1; maxDD=Math.min(maxDD,dd); });
-      return { cagr1y, maxDD: Math.abs(maxDD) };
+  // ------- fetch strategies from Supabase -------
+  async function fetchStrategies(){
+    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description';
+    const { data, error } = await supabase.from('strategies').select(cols).order('name', { ascending: true });
+    if (error) {
+      console.error('[strategies]', error);
+      return [];
     }
+    return (data||[]).map(r => ({
+      id: r.id,
+      name: r.name,
+      provider: r.creator || '—',
+      currency: r.currency || 'ZAR',
+      risk: r.risk_level || '—',
+      aum: Number(r.aum || 0),
+      style: r.style || '—',
+      universe: r.asset_universe || '—',
+      inception: r.inception_date || null,
+      desc: r.strategy_description || '—'
+    }));
+  }
 
-    // ===== Build style dropdown from data =====
-    (function initStyleOptions(){
-      const styles = [...new Set(Object.values(STRATS).map(s=>s.style))].sort();
-      const sel = document.getElementById('fStyle');
-      styles.forEach(st => { const o=document.createElement('option'); o.value=st; o.textContent=st; sel.appendChild(o); });
-    })();
+  // ------- render cards -------
+  function renderCards(items){
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
 
-    // ===== Render cards =====
-    function renderCards(items){
-      const grid=document.getElementById('grid');
-      grid.innerHTML='';
-      items.forEach(s=>{
-        const chipRisk = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700' : s.risk==='High' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700';
-        const money = s.currency==='ZAR'
-          ? new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0}).format(s.aum)
-          : new Intl.NumberFormat('en-US',{style:'currency',currency:s.currency,maximumFractionDigits:0}).format(s.aum);
+    items.forEach(s => {
+      const chipRisk = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
+                       : s.risk==='High' ? 'bg-rose-50 text-rose-700'
+                       : 'bg-amber-50 text-amber-700';
 
-        const m = metrics(flattenMonthlyMap(s.monthly_port), s.costs?.tif);
-        const cagrPct = (m.cagr1y*100);
-        const ddPct = (m.maxDD*100);
-
-        const card=document.createElement('div');
-        card.className='card p-5 flex flex-col';
-        card.innerHTML = `
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-xs text-slate-500">${s.provider} • ${s.currency}</div>
-              <h3 class="text-lg font-semibold truncate">${s.name}</h3>
-            </div>
-            <span class="chip ${chipRisk}">${s.risk} Risk</span>
+      const card = document.createElement('div');
+      card.className = 'card p-5 flex flex-col';
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs text-slate-500">${s.provider} • ${s.currency}</div>
+            <h3 class="text-lg font-semibold truncate" title="${s.name}">${s.name}</h3>
           </div>
-          <p class="text-sm text-slate-600 mt-2 line-clamp-2">${s.desc}</p>
+          <span class="chip ${chipRisk}">${s.risk} Risk</span>
+        </div>
 
-          <div class="grid grid-cols-3 gap-3 mt-4">
-            <div class="p-3 border rounded-xl">
-              <div class="text-[11px] text-slate-500">AUM</div>
-              <div class="font-semibold">${money}</div>
-            </div>
-            <div class="p-3 border rounded-xl">
-              <div class="text-[11px] text-slate-500">1Y CAGR (net)</div>
-              <div class="font-semibold ${cagrPct>=0?'text-emerald-700':'text-rose-700'}">${(cagrPct>=0?'+':'')+cagrPct.toFixed(1)}%</div>
-            </div>
-            <div class="p-3 border rounded-xl">
-              <div class="text-[11px] text-slate-500">Max Drawdown</div>
-              <div class="font-semibold text-rose-700">${(-ddPct).toFixed(1).replace('--','-')}%</div>
-            </div>
+        <p class="text-sm text-slate-600 mt-2 line-clamp-2">${s.desc}</p>
+
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <div class="p-3 border rounded-xl">
+            <div class="text-[11px] text-slate-500">AUM</div>
+            <div class="font-semibold">${money(s.aum, s.currency)}</div>
           </div>
-
-          <div class="grid grid-cols-2 gap-3 mt-3">
-            <div class="p-3 border rounded-xl">
-              <div class="text-[11px] text-slate-500">Style</div>
-              <div class="font-semibold">${s.style}</div>
-            </div>
-            <div class="p-3 border rounded-xl">
-              <div class="text-[11px] text-slate-500">Universe</div>
-              <div class="font-semibold truncate" title="${s.universe}">${s.universe}</div>
-            </div>
+          <div class="p-3 border rounded-xl">
+            <div class="text-[11px] text-slate-500">Style</div>
+            <div class="font-semibold">${s.style}</div>
           </div>
-
-          <div class="mt-5 flex items-center gap-2">
-            <a class="btn bg-[var(--olive)] text-white hover:opacity-95" href="factsheet.html?strategy=${encodeURIComponent(s.slug)}">
-              <i class="fa-regular fa-note-sticky"></i> View factsheet
-            </a>
-            <a class="btn hover:bg-slate-50" href="open-strategies.html?strategy=${encodeURIComponent(s.slug)}">
-              <i class="fa-solid fa-plus"></i> Allocate
-            </a>
+          <div class="p-3 border rounded-xl col-span-2">
+            <div class="text-[11px] text-slate-500">Universe</div>
+            <div class="font-semibold truncate" title="${s.universe}">${s.universe}</div>
           </div>
-        `;
-        grid.appendChild(card);
-      });
+        </div>
 
-      // count
-      document.getElementById('resultCount').textContent = `Showing ${items.length} strategy${items.length!==1?'ies':'y'}`;
-    }
-
-    // ===== Filtering & sorting =====
-    const $q = document.getElementById('q');
-    const $risk = document.getElementById('fRisk');
-    const $cur = document.getElementById('fCur');
-    const $style = document.getElementById('fStyle');
-    const $sort = document.getElementById('fSort');
-    const $clear = document.getElementById('clearBtn');
-
-    function getAll(){ return Object.values(STRATS); }
-
-    function applyFilters(){
-      const q = $q.value.trim().toLowerCase();
-      const r = $risk.value;
-      const c = $cur.value;
-      const st = $style.value;
-
-      let rows = getAll().filter(s=>{
-        const text = (s.name+' '+s.provider+' '+s.style+' '+s.universe+' '+s.desc).toLowerCase();
-        if(q && !text.includes(q)) return false;
-        if(r && s.risk!==r) return false;
-        if(c && s.currency!==c) return false;
-        if(st && s.style!==st) return false;
-        return true;
-      });
-
-      // Sort
-      rows = rows.map(s=>{
-        const m = metrics(flattenMonthlyMap(s.monthly_port), s.costs?.tif);
-        return { ...s, __cagr: m.cagr1y, __dd: m.maxDD };
-      });
-
-      const sortVal = $sort.value;
-      rows.sort((a,b)=>{
-        if(sortVal==='name-asc') return a.name.localeCompare(b.name);
-        if(sortVal==='cagr-desc') return (b.__cagr - a.__cagr);
-        if(sortVal==='aum-desc') return (b.aum - a.aum);
-        if(sortVal==='dd-asc') return (a.__dd - b.__dd);
-        return 0;
-      });
-
-      renderCards(rows);
-    }
-
-    [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters));
-    $clear.addEventListener('click', ()=>{
-      $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
-      applyFilters();
+        <div class="mt-5 flex items-center gap-2">
+          <a class="btn bg-[var(--olive)] text-white hover:opacity-95"
+             href="strategy.html?strategy=${encodeURIComponent(s.id)}">
+            <i class="fa-regular fa-note-sticky"></i> View factsheet
+          </a>
+        </div>
+      `;
+      grid.appendChild(card);
     });
 
-    // ===== Profile modal toggles (dummy) =====
-    const modal=document.getElementById('profile-modal');
-    document.getElementById('hdr-profile-btn')?.addEventListener('click',()=> modal.classList.toggle('hidden'));
-    modal.addEventListener('click',(e)=>{ if(e.target===modal||e.target.classList.contains('bg-black/40')) modal.classList.add('hidden'); });
+    document.getElementById('resultCount').textContent =
+      `Showing ${items.length} ${items.length===1?'strategy':'strategies'}`;
+  }
 
-    // ===== Boot =====
+  // ------- filtering/sorting -------
+  let ALL = [];
+
+  function applyFilters(){
+    const q  = ($q.value||'').trim().toLowerCase();
+    const r  = $risk.value;
+    const c  = $cur.value;
+    const st = $style.value;
+    const sortVal = $sort.value;
+
+    let rows = ALL.filter(s => {
+      const text = `${s.name} ${s.provider} ${s.style} ${s.universe} ${s.desc}`.toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (r && s.risk !== r) return false;
+      if (c && s.currency !== c) return false;
+      if (st && s.style !== st) return false;
+      return true;
+    });
+
+    rows.sort((a,b)=>{
+      if (sortVal==='name-asc') return a.name.localeCompare(b.name);
+      if (sortVal==='aum-desc') return (b.aum - a.aum);
+      // placeholders for future metrics:
+      if (sortVal==='cagr-desc') return 0;
+      if (sortVal==='dd-asc')   return 0;
+      return 0;
+    });
+
+    renderCards(rows);
+  }
+
+  // ------- init style dropdown from DB values -------
+  function initStyleOptions(items){
+    const sel = document.getElementById('fStyle');
+    const styles = [...new Set(items.map(s => s.style).filter(Boolean))].sort();
+    styles.forEach(st => { const o=document.createElement('option'); o.value=st; o.textContent=st; sel.appendChild(o); });
+  }
+
+  // clear button
+  $clear.addEventListener('click', ()=>{
+    $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
     applyFilters();
-  </script>
+  });
+  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters));
+
+  // ------- boot -------
+  try{
+    ALL = await fetchStrategies();
+    initStyleOptions(ALL);
+    applyFilters();
+  }catch(e){
+    console.error(e);
+    $('#grid').innerHTML = '<div class="text-slate-500">Sorry, failed to load strategies.</div>';
+  }
+</script>
+
+
 </body>
 </html>
