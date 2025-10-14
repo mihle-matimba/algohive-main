@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive – Fund Factsheet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    :root { --bg:#fff; --line:#e2e8f0; --ink:#0f172a; --olive:#556B2F }
+    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
+    .card{ background:#fff; border:1px solid var(--line); border-radius:12px }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
+    .input{ height:40px; border:1px solid var(--line); border-radius:10px; padding:0 .75rem }
+    .tab{ height:36px; border-radius:8px; padding:0 .75rem }
+    .tab-active{ background:#111827; color:#fff }
+    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
+    #layout.is-collapsed{ --sb:64px }
+    #ah-sidebar{ transition:width .2s ease; width:var(--sb) }
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
+    #ah-sidebar details .sub{ transition:height .2s ease }
+    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
+    #ah-sidebar .footer{ transition:all .2s ease }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+
+    .ps-tile{ border:1px solid #e5e7eb; border-radius:14px; padding:14px 16px; background:#fff }
+    .ps-label{ color:#64748b; font-weight:500; font-size:.85rem }
+    .ps-value{ font-weight:600; font-size:1rem; margin-top:2px }
+
+    @keyframes ah-spin{ to{ transform:rotate(360deg) } }
+    .spin i{ animation:ah-spin .8s linear infinite }
+
+    .cal-grid{ display:grid; grid-auto-rows:minmax(36px,auto); gap:0; border-collapse:collapse }
+    .cal-grid>.cal-sticky{ border-right:0 }
+    .cal-cell,.cal-head{ border:1px solid #e5e7eb; margin:0 }
+    .cal-head.cal-sticky{ display:flex; align-items:center; justify-content:center; text-align:center }
+
+    .badge{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .65rem; border-radius:999px; border:1px solid #e5e7eb; font-size:.75rem; font-weight:600; background:#fff }
+    .legend-dot{ width:10px; height:10px; border-radius:9999px; display:inline-block }
+  </style>
+</head>
+
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <!-- ===== Sidebar ===== -->
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">Fund Desk</div>
+        </div>
+      </div>
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100" href="#" title="Fund Factsheet">
+          <i class="fa-solid fa-layer-group text-slate-500 w-4 shrink-0"></i><span class="label">Fund Factsheet</span>
+        </a>
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-file-contract w-4 text-slate-500"></i><span class="label">Documents</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#docs" title="Key Docs"><i class="fa-solid fa-sheet-plastic w-4 text-slate-500"></i><span class="label">Key Docs</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#terms" title="Terms"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Terms</span></a>
+          </div>
+        </details>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#subscribe" title="Subscribe"><i class="fa-solid fa-circle-plus w-4 text-slate-500"></i><span class="label">Subscribe</span></a>
+      </nav>
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <a id="ah-settings" class="btn h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="#" title="Settings"><i class="fa-solid fa-gear"></i></a>
+        <button id="ah-collapse" class="btn h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse"><i class="fa-solid fa-arrow-left"></i></button>
+      </div>
+    </aside>
+
+    <!-- ===== Main ===== -->
+    <main class="flex-1 min-w-0">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+        <div>
+          <div class="text-[12px] text-slate-500 font-semibold tracking-wide">FUND FACTSHEET <span class="mx-1">•</span> <span id="fs-updated">Current Time —</span></div>
+          <h1 class="text-2xl md:text-3xl font-extrabold mt-1" id="fs-title">—</h1>
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-slate-600" id="fs-badges">
+            <span id="fs-manager">—</span>
+            <span class="mx-1 text-slate-400">•</span>
+            <span>Domicile: <span class="font-medium" id="fs-domicile">—</span></span>
+            <span class="mx-1 text-slate-400">•</span>
+            <span>Inception <span class="font-medium" id="fs-since">—</span></span>
+            <span class="mx-1 text-slate-400">•</span>
+            <span id="fs-ccy">ZAR</span>
+            <span class="badge bg-emerald-50 border-emerald-200 text-emerald-700" id="fs-aum">AUM —</span>
+            <span class="badge bg-amber-50 border-amber-200 text-amber-700" id="fs-risk">Risk —</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button data-range="1M" class="tab tab-active text-[13px]">1M</button>
+          <button data-range="6M" class="tab text-[13px]">6M</button>
+          <button data-range="1Y" class="tab text-[13px]">1Y</button>
+          <button data-range="ALL" class="tab text-[13px]">All</button>
+          <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
+        </div>
+      </div>
+
+      <!-- GRID -->
+      <div class="px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
+        <!-- NAV Curve + KPIs -->
+        <section id="nav-card" class="card col-span-12 lg:col-span-9 min-w-0">
+          <div class="px-5 pt-5">
+            <h3 class="font-normal text-slate-800">NAV Curve — <span id="pf-name" class="font-semibold">—</span></h3>
+            <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
+          </div>
+          <div class="px-5 pt-4">
+            <div class="flex items-baseline gap-3">
+              <div class="text-2xl font-bold" id="pf-value">R 0.00</div>
+              <div class="text-lg font-normal" id="pf-change">—</div>
+            </div>
+          </div>
+          <div class="px-2 pb-4 pt-2">
+            <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 px-5 pb-5">
+            <div class="ps-tile"><div class="ps-label">YTD</div><div id="kpi-ytd" class="ps-value">—</div></div>
+            <div class="ps-tile"><div class="ps-label">1Y</div><div id="kpi-1y" class="ps-value">—</div></div>
+            <div class="ps-tile"><div class="ps-label">Since Inception</div><div id="kpi-since" class="ps-value">—</div></div>
+            <div class="ps-tile"><div class="ps-label">Volatility (ann.)</div><div id="kpi-vol" class="ps-value">—</div></div>
+            <div class="ps-tile"><div class="ps-label">Max Drawdown</div><div id="kpi-dd" class="ps-value">—</div></div>
+            <div class="ps-tile"><div class="ps-label">Sharpe</div><div id="kpi-sharpe" class="ps-value">—</div></div>
+          </div>
+        </section>
+
+        <!-- Right rail: Subscribe + Terms + Share Classes -->
+        <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
+          <!-- Subscribe -->
+          <div id="subscribe" class="card p-5 border border-slate-200">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-base font-medium text-slate-900">Subscribe to Fund</h3>
+              <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Demo</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="col-span-2">
+                <label class="block text-xs text-slate-500 mb-1.5" for="alloc-fund">Fund</label>
+                <input id="alloc-fund" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50" value="—" disabled />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-500 mb-1.5" for="alloc-nav">NAV / Unit (ZAR)</label>
+                <input id="alloc-nav" type="number" step="0.01" value="100.00" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50" disabled />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-500 mb-1.5" for="alloc-amount">Amount</label>
+                <input id="alloc-amount" type="number" min="100" value="1000" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+              </div>
+            </div>
+            <div class="mt-3 rounded-lg border border-slate-200 p-3 flex items-center justify-between">
+              <div class="text-xs text-slate-500">Estimated Units</div>
+              <div id="alloc-est" class="text-base font-semibold text-slate-900">0.0000</div>
+            </div>
+            <div class="mt-3 flex items-center justify-end gap-2">
+              <button id="alloc-btn" class="btn bg-[var(--olive)] text-white border-none hover:opacity-90"><i class="fa-solid fa-circle-plus"></i> Pay via Ozow</button>
+            </div>
+            <!-- Ozow Modal -->
+            <div id="ozow-modal" class="fixed inset-0 z-[200] hidden">
+              <div class="absolute inset-0 bg-black/50" data-close-ozow></div>
+              <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-3xl h-[80vh] rounded-2xl bg-white shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                  <div class="text-sm font-semibold text-slate-900">Complete payment with Ozow</div>
+                  <button class="h-9 w-9 grid place-items-center rounded-lg hover:bg-slate-100" data-close-ozow>
+                    <i class="fa-solid fa-xmark text-slate-600"></i>
+                  </button>
+                </div>
+                <div id="paymentContainer" class="w-full h-full"></div>
+                <button id="cancelOzowPayment" class="hidden" type="button"></button>
+                <div class="px-4 py-2 text-[12px] text-slate-500 border-t border-slate-200">Press <kbd class="px-1 py-0.5 border rounded">Esc</kbd> to close</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fund Terms -->
+          <div id="terms" class="card p-5 border border-slate-200">
+            <div class="font-semibold mb-2">Fund Terms</div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Structure</div><div id="term-structure" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Dealing Frequency</div><div id="term-deal" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Notice / Liquidity</div><div id="term-liq" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Min Investment</div><div id="term-min" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Benchmark</div><div id="term-bmk" class="font-semibold">—</div></div>
+              <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">FSP</div><div id="term-fsp" class="font-semibold">—</div></div>
+            </div>
+          </div>
+
+          <!-- Share Classes -->
+          <div class="card p-5 border border-slate-200">
+            <div class="font-semibold mb-2">Share Classes</div>
+            <div id="share-classes" class="space-y-2 text-sm"></div>
+          </div>
+        </aside>
+
+        <!-- Strategy / Fund Description + Allocation + Holdings + Docs -->
+        <section class="col-span-12 lg:col-span-9 min-w-0">
+          <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
+            <h3 class="text-lg font-medium text-slate-900 mb-2">Fund Overview</h3>
+            <p class="text-sm text-slate-700" id="fund-desc">—</p>
+            <ul class="list-disc pl-5 mt-2 text-sm text-slate-700" id="fund-bullets"></ul>
+          </div>
+
+          <!-- Asset class allocation -->
+          <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-medium text-slate-900">Asset Class Allocation</h3>
+              <span class="text-xs text-slate-500">Total = 100%</span>
+            </div>
+            <div class="space-y-4" id="asset-allocation"></div>
+          </div>
+
+          <!-- Portfolio Holdings -->
+          <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
+            <div class="flex items-center justify-between mb-5">
+              <h3 class="text-lg font-medium text-slate-900">Top Holdings</h3>
+              <div class="text-xs text-slate-500">Weights</div>
+            </div>
+            <div class="flex items-center gap-6">
+              <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
+              <div id="ph-legend" class="text-sm grow"></div>
+            </div>
+          </div>
+
+          <!-- Fees & Docs -->
+          <div id="docs" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 rounded-2xl border border-slate-200">
+              <h3 class="text-lg font-medium text-slate-900 mb-3">Fees</h3>
+              <ul class="space-y-2 text-sm text-slate-700" id="fees-list"></ul>
+              <p class="text-xs text-slate-500 mt-3">Review the detailed fee schedule in the mandate / KID before investing.</p>
+            </div>
+            <div class="card p-6 rounded-2xl border border-slate-200">
+              <h3 class="text-lg font-medium text-slate-900 mb-3">Key Documents</h3>
+              <ul id="doc-links" class="space-y-2 text-sm text-[15px]"></ul>
+            </div>
+          </div>
+
+          <!-- Regulatory Disclaimer -->
+          <div class="card p-6 rounded-2xl border border-slate-200 mt-6">
+            <h3 class="text-lg font-medium text-slate-900 mb-2">Regulatory</h3>
+            <p class="text-sm text-slate-700" id="fs-reg">Investing involves risk. Returns are not guaranteed and past performance is not a reliable indicator of future results. Nothing on this page constitutes financial advice. Products may be offered via an authorised Financial Services Provider in South Africa.</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Calendar Returns placeholder (optional) -->
+      <div class="hidden">
+        <div id="calendarReturns" class="cal-grid"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- JS Libs -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="https://static-content.ozow.com/scripts/js/v2/ozow-integration-2.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- FUND LOGIC -->
+  <script type="module">
+    import { supabase } from "/js/supabase.js";
+
+    // small helpers
+    const $ = (q, el=document) => el.querySelector(q);
+    const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+    const ZA2 = { minimumFractionDigits:2, maximumFractionDigits:2 };
+    const money = (n, ccy='ZAR') => (ccy==='ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA2);
+    const pctf = (n) => (n==null || isNaN(n)) ? '—' : `${Number(n).toFixed(2)}%`;
+
+    // URL param: fund id or code
+    const params = new URLSearchParams(location.search);
+    const fundKey = params.get('fund') || params.get('id') || params.get('code') || null;
+
+    // Fetch fund (fallback to strategies if needed)
+    async function fetchFund() {
+      if (fundKey) {
+        let r = await supabase.from('funds').select('*').eq('id', fundKey).maybeSingle();
+        if (!r.data) r = await supabase.from('funds').select('*').eq('code', fundKey).maybeSingle();
+        if (r.data) return r.data;
+      }
+      // fallback: first fund
+      const { data } = await supabase.from('funds').select('*').limit(1);
+      if (data?.[0]) return data[0];
+      // last resort: adapt a strategy row as a fund-shaped object
+      const s = await supabase.from('strategies').select('*').limit(1);
+      const st = s.data?.[0] || {};
+      return {
+        id: st.id || 'stub', code: st.code || 'STRAT', name: (st.name || 'Sample Fund'),
+        manager: st.creator || 'AlgoHive', domicile: 'ZA', inception_date: st.inception_date || null,
+        currency: st.currency || 'ZAR', risk_level: st.risk_level || 'Moderate', aum: st.aum || 0,
+        description: st.strategy_description || '—', description_bullets: st.strategy_description_bullets || [],
+        structure: 'Pooled (Not CIS)', dealing_frequency: 'Monthly', liquidity_terms: '30 days notice',
+        min_investment: 1000, benchmark: 'CPI + 3%', fsp_number: '—',
+      };
+    }
+
+    async function fetchFundMetrics(fid) {
+      const { data } = await supabase.from('fund_metrics').select('*').eq('fund_id', fid).maybeSingle();
+      return data || null;
+    }
+
+    function hydrateHeader(fund) {
+      $('#fs-title').textContent = fund.name || '—';
+      $('#pf-name').textContent = fund.name || '—';
+      $('#fs-manager').textContent = fund.manager || 'AlgoHive';
+      $('#fs-domicile').textContent = fund.domicile || 'ZA';
+      $('#fs-since').textContent = fund.inception_date ? new Date(fund.inception_date).toLocaleDateString('en-ZA') : '—';
+      $('#fs-ccy').textContent = fund.currency || 'ZAR';
+      $('#fs-aum').textContent = `AUM ${money(fund.aum || 0, fund.currency || 'ZAR')}`;
+      $('#fs-risk').textContent = `Risk ${fund.risk_level || '—'}`;
+      $('#alloc-fund').value = fund.name || '—';
+      $('#fs-reg').textContent = fund.regulatory_line || $('#fs-reg').textContent;
+
+      // Terms
+      $('#term-structure').textContent = fund.structure || '—';
+      $('#term-deal').textContent = fund.dealing_frequency || '—';
+      $('#term-liq').textContent = fund.liquidity_terms || '—';
+      $('#term-min').textContent = fund.min_investment ? money(fund.min_investment, fund.currency || 'ZAR') : '—';
+      $('#term-bmk').textContent = fund.benchmark || '—';
+      $('#term-fsp').textContent = fund.fsp_number ? `FSP ${fund.fsp_number}` : '—';
+
+      // Overview
+      $('#fund-desc').textContent = fund.description || '—';
+      const bullets = $('#fund-bullets');
+      bullets.innerHTML = '';
+      (fund.description_bullets || []).forEach(b => {
+        const li = document.createElement('li'); li.className='text-sm text-slate-700';
+        if (typeof b === 'string') li.textContent = b; else li.textContent = b?.text || b?.value || '—';
+        bullets.appendChild(li);
+      });
+
+      // Share classes
+      const scWrap = $('#share-classes');
+      scWrap.innerHTML = '';
+      const classes = Array.isArray(fund.share_classes) ? fund.share_classes : [];
+      if (!classes.length) {
+        scWrap.innerHTML = '<div class="text-sm text-slate-500">No share classes.</div>';
+      } else {
+        classes.forEach(sc => {
+          const fee = [];
+          if (sc.mgmt_fee_pct!=null) fee.push(`Mgmt ${Number(sc.mgmt_fee_pct).toFixed(2)}%`);
+          if (sc.perf_fee_pct!=null) fee.push(`Perf ${Number(sc.perf_fee_pct).toFixed(0)}% HWM`);
+          const el = document.createElement('div');
+          el.className = 'p-3 border rounded-xl flex items-center justify-between gap-4';
+          el.innerHTML = `<div>
+              <div class="font-semibold">${sc.class_name || 'Class'}</div>
+              <div class="text-xs text-slate-500">${fee.join(' • ') || '—'}</div>
+            </div>
+            <div class="text-sm">
+              <div><span class="text-slate-500 text-xs">Min</span> <span class="font-semibold">${sc.min_invest ? money(sc.min_invest, fund.currency || 'ZAR') : '—'}</span></div>
+              <div class="text-xs text-slate-500">${sc.redemption_terms || ''}</div>
+            </div>`;
+          scWrap.appendChild(el);
+        });
+      }
+
+      // Fees list
+      const fees = $('#fees-list');
+      fees.innerHTML = '';
+      const mgmt = fund.mgmt_fee_pct ?? fund.management_fee_pct;
+      const perf = fund.perf_fee_pct ?? fund.performance_fee_pct;
+      const admin = fund.admin_fee_pct ?? fund.admin_fee_bps;
+      const feeRows = [
+        { label:'Management', value: mgmt!=null ? `${Number(mgmt).toFixed(2)}% p.a.` : '—' },
+        { label:'Performance', value: perf!=null ? `${Number(perf).toFixed(0)}% over HWM` : '—' },
+        { label:'Admin / Platform', value: admin!=null ? (admin>1? `${Number(admin).toFixed(2)}% p.a.` : `${Number(admin*100).toFixed(0)} bps`) : '—' },
+        { label:'Subscriptions / Redemptions', value: fund.dealing_frequency || '—' },
+      ];
+      feeRows.forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2';
+        li.innerHTML = `<span class="font-semibold text-slate-900 min-w-[180px]">${r.label}</span><span>${r.value}</span>`;
+        fees.appendChild(li);
+      });
+
+      // Docs
+      const docs = Array.isArray(fund.docs) ? fund.docs : [];
+      const docList = $('#doc-links'); docList.innerHTML='';
+      if (!docs.length) {
+        docList.innerHTML = '<li class="text-sm text-slate-500">No documents uploaded yet.</li>';
+      } else {
+        docs.forEach(d => {
+          const li = document.createElement('li');
+          const name = d.name || d.title || 'Document';
+          const url = d.url || '#';
+          li.innerHTML = `<a class="inline-flex items-center gap-2 text-[var(--olive)] hover:underline" href="${url}" target="_blank" rel="noopener">
+            <i class="fa-regular fa-file-lines"></i><span>${name}</span></a>`;
+          docList.appendChild(li);
+        });
+      }
+    }
+
+    // NAV chart
+    let chart, currentLabels = [], currentCCY='ZAR';
+    function initChart(){
+      const ctx = $('#pf-chart')?.getContext('2d'); if (!ctx) return;
+      const gradient = ctx.createLinearGradient(0,0,0,260);
+      gradient.addColorStop(0,'rgba(85,107,47,0.35)'); gradient.addColorStop(1,'rgba(85,107,47,0.06)');
+      chart = new Chart(ctx, { type:'line', data:{ labels:[], datasets:[{ data:[], tension:.35, borderWidth:2, borderColor:'#556B2F', backgroundColor:gradient, fill:true, pointRadius:0 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ displayColors:false, callbacks:{ title:items => currentLabels[items[0].dataIndex] ?? '', label:c => money(c.raw, currentCCY) } } }, scales:{ x:{ display:true, ticks:{ maxTicksLimit:6, color:'#94a3b8' }, grid:{ display:false } }, y:{ display:true, ticks:{ color:'#94a3b8', maxTicksLimit:4, callback:v => money(v, currentCCY) } } } });
+    }
+
+    function setCurve(seriesVals, ccy){
+      if (!chart) return; chart.data.labels = currentLabels; chart.data.datasets[0].data = seriesVals; chart.update();
+      if (!seriesVals.length){ $('#pf-value').textContent = money(0, ccy); $('#pf-change').textContent = '—'; return; }
+      const first = seriesVals[0], last = seriesVals.at(-1);
+      const chg = ((last-first)/first)*100;
+      $('#pf-value').textContent = money(last, ccy);
+      const el = $('#pf-change'); el.textContent = `${chg>=0?'+':''}${chg.toFixed(2)}%`; el.style.color = chg>=0 ? '#16a34a' : '#dc2626';
+      $('#pf-updated').textContent = new Date().toLocaleString('en-ZA', { month:'long', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' SAST';
+    }
+
+    function selectRangeAndRender(rangeKey, metrics, fund){
+      let src = [];
+      if (rangeKey==='1M') { src = metrics?.nav_1m || []; currentLabels = src.map(x=> new Date(x.date).toLocaleDateString('en-ZA',{ day:'2-digit', month:'short'})); }
+      else if (rangeKey==='6M') { src = metrics?.nav_6m || []; currentLabels = src.map(x=> x.label || ''); }
+      else if (rangeKey==='1Y') { src = metrics?.nav_1y || []; currentLabels = src.map(x=> x.label || ''); }
+      else { src = metrics?.nav_all || []; currentLabels = src.map(x=> x.label || ''); }
+      const vals = src.map(p => Number(p?.nav)).filter(v => Number.isFinite(v));
+      setCurve(vals, fund.currency || 'ZAR');
+    }
+
+    // Allocation / Holdings visuals (same as strategy page)
+    function drawDonut(svgEl, items){
+      const cx=90, cy=90, r=62, R=72, TAU=Math.PI*2; svgEl.innerHTML='';
+      const sum = items.reduce((s,i)=> s + (Number(i.pct)||0), 0) || 1; let a0 = -Math.PI/2;
+      const colors = ['#111827','#2563eb','#16a34a','#f59e0b','#ef4444','#6b7280','#10b981','#6366f1','#94a3b8','#3f6212'];
+      items.forEach((it,idx)=>{
+        const pct = Number(it.pct)||0; const frac = pct/sum; const a1 = a0 + frac*TAU; const la = (a1-a0)>Math.PI ? 1:0;
+        const p0=[cx+R*Math.cos(a0), cy+R*Math.sin(a0)], p1=[cx+R*Math.cos(a1), cy+R*Math.sin(a1)], q0=[cx+r*Math.cos(a1), cy+r*Math.sin(a1)], q1=[cx+r*Math.cos(a0), cy+r*Math.sin(a0)];
+        const d=`M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
+        const path=document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('d', d); path.setAttribute('fill', it.color || colors[idx%colors.length]); path.setAttribute('opacity','.95'); svgEl.appendChild(path); a0=a1; });
+      const tot=document.createElementNS('http://www.w3.org/2000/svg','text'); tot.textContent='100%'; tot.setAttribute('x',cx); tot.setAttribute('y',cy+5); tot.setAttribute('text-anchor','middle'); tot.setAttribute('font-size','16'); tot.setAttribute('font-weight','700'); svgEl.appendChild(tot);
+    }
+
+    function renderHoldings(metrics){
+      const svg=$('#ph-donut'); const legend=$('#ph-legend'); if (!svg||!legend) return;
+      const src = Array.isArray(metrics?.top_holdings) ? metrics.top_holdings : [];
+      const items = src.map(h=>({ label:(h.symbol||h.name||'—').toString(), pct:Number(h.weight_pct)||0 })).filter(x=>x.pct>0);
+      if (!items.length){ svg.innerHTML=''; legend.innerHTML='<div class="text-sm text-slate-500">No holdings yet.</div>'; return; }
+      drawDonut(svg, items);
+      legend.innerHTML = items.map((h,i)=>`<div class="flex items-center justify-between py-1"><div class="flex items-center gap-2 min-w-0"><span class="legend-dot" style="background: var(--phc-${i});"></span><span class="truncate">${h.label}</span></div><div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div></div>`).join('');
+      const colors=['#111827','#2563eb','#16a34a','#f59e0b','#ef4444','#6b7280','#10b981','#6366f1','#94a3b8','#3f6212']; items.forEach((_,i)=> document.documentElement.style.setProperty(`--phc-${i}`, colors[i%colors.length]));
+    }
+
+    function renderAllocation(metrics){
+      const wrap=$('#asset-allocation'); if (!wrap) return; const alloc = Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [];
+      if (!alloc.length){ wrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>'; return; }
+      const colors=['#111827','#2563eb','#16a34a','#f59e0b','#ef4444','#6b7280','#10b981','#6366f1','#94a3b8','#3f6212'];
+      wrap.innerHTML = alloc.map((i,idx)=>{ const pct=Number(i.weight_pct)||0; const label=i.bucket||i.label||'—'; const color=colors[idx%colors.length]; return `<div><div class="flex items-center justify-between mb-1.5"><span class="text-sm text-slate-700">${label}</span><span class="text-sm font-medium">${pct.toFixed(0)}%</span></div><div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%; background:${color}"></div></div></div>`; }).join('');
+    }
+
+    function fillKPIs(metrics){
+      $('#kpi-ytd').textContent = pctf(metrics?.ytd_return_pct);
+      $('#kpi-1y').textContent = pctf(metrics?.one_year_return_pct);
+      $('#kpi-since').textContent = pctf(metrics?.since_inception_return_pct);
+      $('#kpi-vol').textContent = pctf(metrics?.vol_ann_pct);
+      $('#kpi-dd').textContent = pctf(metrics?.max_drawdown_pct);
+      $('#kpi-sharpe').textContent = metrics?.sharpe!=null ? Number(metrics.sharpe).toFixed(2) : '—';
+    }
+
+    // Subscribe (Ozow)
+    const modal = $('#ozow-modal'); const modalBackdrop = modal?.querySelector('[data-close-ozow]'); const container=$('#paymentContainer'); const cancelBtn=$('#cancelOzowPayment');
+    function openModal(){ if (!modal) return; modal.classList.remove('hidden'); setLoading(true); modal._onEsc=(e)=>{ if(e.key==='Escape') closeModal(); }; window.addEventListener('keydown', modal._onEsc); }
+    function closeModal(){ if (!modal) return; modal.classList.add('hidden'); if(modal._onEsc) window.removeEventListener('keydown', modal._onEsc); container.innerHTML=''; }
+    function setLoading(on=true){ if (!container) return; container.innerHTML = on? '<div class="w-full h-full grid place-items-center text-slate-600">Creating Ozow payment…</div>' : '<div class="w-full h-full grid place-items-center text-slate-600">Ready.</div>'; }
+    function loadIframe(url){ container.innerHTML=''; const iframe=document.createElement('iframe'); iframe.src=url; iframe.style.width='100%'; iframe.style.height='100%'; iframe.style.border='0'; container.appendChild(iframe); }
+
+    function wireSubscribe(fund){
+      const navInput = $('#alloc-nav'); const amtInput = $('#alloc-amount'); const estOut = $('#alloc-est'); const btn = $('#alloc-btn');
+      const update = () => { const nav = Number(navInput.value||0); const amt = Number(amtInput.value||0); const units = nav>0? (amt/nav):0; estOut.textContent = units.toFixed(4); return { nav, amt, units }; };
+      amtInput.addEventListener('input', update); update();
+      btn?.addEventListener('click', async ()=>{
+        const { nav, amt } = update(); if (!amt || amt<=0 || !nav || nav<=0) { alert('Enter an amount and valid NAV.'); return; }
+        // grab email from Supabase if available
+        let customerEmail = 'user@algohive.app';
+        try { const { data:{ user } } = await supabase.auth.getUser(); if (user?.email) customerEmail = user.email; } catch {}
+        const reference = `FUND-${(fund.code||fund.id||'ALG').toString().replace(/\s+/g,'')}-${Date.now()}`;
+        openModal();
+        try {
+          const resp = await fetch('/api/ozow/create', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ amount: Number(amt.toFixed(2)), reference, customerName: customerEmail, meta:{ fund: fund.name, nav: Number(nav.toFixed(2)) } }) });
+          const data = await resp.json().catch(()=>({}));
+          if (!resp.ok || !data?.url) { setLoading(false); container.innerHTML = `<div class="p-4 text-rose-700">Failed to create Ozow payment: ${data?.error||'Unknown error'}</div>`; return; }
+          loadIframe(data.url);
+        } catch (e) { console.error('[ozow] create failed', e); setLoading(false); container.innerHTML = `<div class="p-4 text-rose-700">Unexpected error, please try again.</div>`; }
+      });
+      modalBackdrop?.addEventListener('click', closeModal); cancelBtn?.addEventListener('click', closeModal);
+      window.addEventListener('message', (e)=>{ if (typeof e.data === 'string' && /ozow-(success|error|cancel)/i.test(e.data)) closeModal(); });
+    }
+
+    // Boot
+    let fund = await fetchFund();
+    const metrics = await fetchFundMetrics(fund.id) || {};
+    currentCCY = fund.currency || 'ZAR';
+    hydrateHeader(fund);
+    initChart();
+    selectRangeAndRender('1M', metrics, fund);
+    renderAllocation(metrics); renderHoldings(metrics); fillKPIs(metrics);
+    $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    $$('#nav-card .tab').forEach(btn=> btn.addEventListener('click', ()=>{ $$('#nav-card .tab').forEach(b=>b.classList.remove('tab-active')); btn.classList.add('tab-active'); selectRangeAndRender(btn.getAttribute('data-range'), metrics, fund); }));
+    $('#pf-refresh')?.addEventListener('click', ()=> selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range')||'1M', metrics, fund));
+    wireSubscribe(fund);
+  </script>
+</body>
+</html>
