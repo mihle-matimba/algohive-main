@@ -1,28 +1,62 @@
-import gspread
-from google.oauth2.service_account import Credentials
-import MetaTrader5 as mt5
-import subprocess
-import time
-import os
-import psutil
+import os, time, subprocess, psutil
+from datetime import datetime, timedelta, timezone, date
+import math
 import pandas as pd
-from datetime import datetime, timedelta
-import random
+import MetaTrader5 as mt5
+from supabase import create_client, Client
 
-# === Config ===
-SHEET_ID = "1nKFD3mA4dGxD-1CQH_OH4QxQqJXqfM4YsHNpQO4t3Pc"
-TAB_NAME  = "Accounts"
-MT5_PATH  = r"C:\Program Files\MetaTrader 5 EXNESS\terminal64.exe"
+# ----------------- CONFIG -----------------
+SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODExMjU0NSwiZXhwIjoyMDczNjg4NTQ1fQ.FUyd9yCRrHYv5V5YrKup9_OI3n01aCfxS3_MxReLxBM"
 
-ATTEMPTS_PER_ACCOUNT   = 2
-SLEEP_BETWEEN_ACCOUNTS = 2
-CHUNK_ROWS             = 400
+MT5_PATH = r"C:\Program Files\MetaTrader 5 EXNESS\terminal64.exe"
 
-scope  = ["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
-creds  = Credentials.from_service_account_file("creds.json", scopes=scope)
-client = gspread.authorize(creds)
+ATTEMPTS_PER_STRATEGY = 2
+LOOP_SLEEP_SECONDS = 5   # sample once a minute
+TZ_OFFSET_HOURS = 2      # ZA time (UTC+2)
 
-# === MT5 helpers ===
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# ========= JSON-safe helpers =========
+def num_or_none(x):
+    try:
+        f = float(x)
+        if math.isfinite(f):
+            return f
+    except Exception:
+        pass
+    return None
+
+def safe_round(x, nd=4):
+    f = num_or_none(x)
+    return round(f, nd) if f is not None else None
+
+def jclean(obj):
+    if isinstance(obj, dict):
+        return {k: jclean(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [jclean(v) for v in obj]
+    if isinstance(obj, (int, float)):
+        return num_or_none(obj)
+    if hasattr(obj, "isoformat"):
+        try:
+            return obj.isoformat()
+        except Exception:
+            return None
+    return obj
+
+# ========= Supabase safe executor =========
+def safe_exec(q):
+    """Swallow PostgREST 204 'Missing response' quirks."""
+    try:
+        return q.execute()
+    except Exception as e:
+        msg = str(e)
+        if "Missing response" in msg or "code': '204" in msg or " 204" in msg:
+            return None
+        raise
+
+# ========= MT5 helpers =========
 def kill_mt5():
     os.system('taskkill /IM terminal64.exe /F >nul 2>&1')
 
@@ -30,58 +64,44 @@ def start_mt5():
     subprocess.Popen([MT5_PATH])
     for _ in range(30):
         if any("terminal64.exe" in p.name() for p in psutil.process_iter()):
-            print("✅ MT5 process detected.")
             return True
         time.sleep(1)
     return False
 
-def mt5_last_err():
-    try:
-        return mt5.last_error()
-    except Exception:
-        return None
-
-def attempt_login(login, password, server):
-    kill_mt5()
-    time.sleep(2)
+def mt5_login(login: int, password: str, server: str):
+    """Login and return (ok: bool, equity: float|None)."""
+    kill_mt5(); time.sleep(2)
     if not start_mt5():
-        print("❌ Failed to start MT5 process.")
-        return False
+        print("❌ MT5 failed to start"); return False, None
     time.sleep(5)
-
     ok = mt5.initialize(
-        path=MT5_PATH,
-        login=login,
-        password=password,
-        server=server,
-        timeout=60000,
-        portable=False
+        path=MT5_PATH, login=login, password=password, server=server,
+        timeout=60000, portable=False
     )
     if not ok:
-        print(f"❌ Login failed: {mt5_last_err()}")
-        try: mt5.shutdown()
-        except Exception: pass
-        kill_mt5()
-        return False
+        try: print("❌ Login failed:", mt5.last_error())
+        except: pass
+        try: mt5.shutdown(); kill_mt5()
+        except: pass
+        return False, None
+    eq = None
+    try:
+        info = mt5.account_info()
+        if info is not None and hasattr(info, "equity"):
+            eq = float(info.equity)
+    except Exception as e:
+        print("⚠️ Could not read equity:", e)
+    return True, eq
 
-    print("✅ Logged in.")
-    time.sleep(2)
-    return True
-
-def close_mt5():
+def mt5_shutdown_clean():
     try: mt5.shutdown()
-    except Exception: pass
+    except: pass
     kill_mt5()
-    print("🔒 Closed MT5.")
 
-# === History (no CSV) ===
-def start_of_june_this_year():
-    now = datetime.now()
-    return datetime(now.year, 9, 1, 0, 0, 0)
-
+# ========= Deals utilities =========
 def _to_dt(dt_or_sec):
     if isinstance(dt_or_sec, (int, float)):
-        return datetime.fromtimestamp(dt_or_sec)
+        return datetime.fromtimestamp(dt_or_sec, tz=timezone.utc)
     return dt_or_sec
 
 def dtfmt(dt):
@@ -104,7 +124,6 @@ def safe_history_deals_get(date_from, date_to, retries=8, pause=1.0):
         try: _ = mt5.symbols_total()
         except Exception: pass
         time.sleep(pause)
-
     for _ in range(3):
         try:
             deals = mt5.history_deals_get(df, dt, group="*")
@@ -113,7 +132,6 @@ def safe_history_deals_get(date_from, date_to, retries=8, pause=1.0):
         except Exception:
             pass
         time.sleep(pause)
-
     out=[]; day=timedelta(days=1); cur=df
     while cur <= dt:
         nxt = min(cur+day, dt)
@@ -128,13 +146,11 @@ def safe_history_deals_get(date_from, date_to, retries=8, pause=1.0):
         cur = nxt + timedelta(seconds=1)
     return out
 
-def build_june_to_date_df(login):
-    t_from = start_of_june_this_year()
-    t_to   = datetime.now()
-    if t_to <= t_from:
-        t_to = datetime.now()
-
-    epoch  = datetime(1970,1,1)
+# ========= Build equity timeline =========
+def build_df_from(login: int, start_from: datetime):
+    t_from = start_from
+    t_to   = datetime.now(timezone.utc)
+    epoch  = datetime(1970,1,1, tzinfo=timezone.utc)
 
     deals_before = safe_history_deals_get(epoch, t_from - timedelta(seconds=1))
     starting_balance = 0.0
@@ -144,8 +160,7 @@ def build_june_to_date_df(login):
 
     deals = safe_history_deals_get(t_from, t_to)
 
-    balance_ops = []
-    position_deals = []
+    balance_ops, position_deals = [], []
     for d in deals:
         try:
             if d.type == mt5.DEAL_TYPE_BALANCE:
@@ -162,19 +177,12 @@ def build_june_to_date_df(login):
             rec = pos_map.get(pid)
             if rec is None:
                 rec = {
-                    "account": login,
-                    "position_id": pid,
-                    "symbol": d.symbol,
-                    "open_time": None,
-                    "close_time": None,
-                    "open_price": None,
-                    "close_price": None,
-                    "volume": None,
-                    "type": None,
-                    "total_profit": 0.0,
+                    "account": login, "position_id": pid, "symbol": d.symbol,
+                    "open_time": None, "close_time": None,
+                    "open_price": None, "close_price": None,
+                    "volume": None, "type": None, "total_profit": 0.0,
                 }
                 pos_map[pid] = rec
-
             rec["total_profit"] += deals_sum_pnl(d)
 
             entry = d.entry
@@ -187,7 +195,7 @@ def build_june_to_date_df(login):
                     if d.type == mt5.DEAL_TYPE_BUY:  rec["type"] = "Buy"
                     elif d.type == mt5.DEAL_TYPE_SELL: rec["type"] = "Sell"
 
-            if entry in (mt5.DEAL_ENTRY_OUT, mt5.DEAL_ENTRY_INOUT):
+            if entry in (mt5.DEAL_ENTRY_OUT, mt5.DEAL_ENTRY_INOUT, mt5.DEAL_ENTRY_OUT_BY):
                 ct = _to_dt(d.time)
                 if rec["close_time"] is None or ct > rec["close_time"]:
                     rec["close_time"]  = ct
@@ -200,11 +208,7 @@ def build_june_to_date_df(login):
     bal_events = []
     for d in balance_ops:
         try:
-            bal_events.append({
-                "time": _to_dt(d.time),
-                "amount": deals_sum_pnl(d),
-                "ticket": d.ticket,
-            })
+            bal_events.append({"time": _to_dt(d.time), "amount": deals_sum_pnl(d), "ticket": d.ticket})
         except Exception:
             continue
 
@@ -215,7 +219,6 @@ def build_june_to_date_df(login):
     headers = ["AccountNumber","PositionID","Symbol","Type","Volume","OpenPrice","ClosePrice",
                "OpenTime","CloseTime","TotalNetProfit","RunningBalance"]
     rows = []
-
     rows.append([
         str(login), "STARTING_BALANCE", "---", "Balance",
         "---","---","---",
@@ -223,19 +226,15 @@ def build_june_to_date_df(login):
         f"{starting_balance:.2f}",
         f"{starting_balance:.2f}",
     ])
-
     running = starting_balance
     for ev in events:
         if ev["kind"] == "balance":
             running += ev["amount"]
             rows.append([
-                str(login),
-                f"BAL-{ev['ticket']}",
-                "---","Balance",
+                str(login), f"BAL-{ev['ticket']}", "---","Balance",
                 "---","---","---",
                 dtfmt(ev["time"]), "---",
-                f"{ev['amount']:.2f}",
-                f"{running:.2f}",
+                f"{ev['amount']:.2f}", f"{running:.2f}",
             ])
         else:
             p = ev["pos"]
@@ -251,223 +250,352 @@ def build_june_to_date_df(login):
                 f"{p['total_profit']:.2f}",
                 f"{running:.2f}",
             ])
-
     return pd.DataFrame(rows, columns=headers)
 
-# === Sheets helpers ===
-def find_rows_by_login_server(ws, login_value, server_value, login_col_idx, server_col_idx):
-    login_col_vals  = ws.col_values(login_col_idx)
-    server_col_vals = ws.col_values(server_col_idx)
-    target_login  = str(login_value).strip()
-    target_server = str(server_value).strip()
+# ========= Metrics builders =========
+def build_daily_equity(df: pd.DataFrame):
+    if df.empty: return pd.DataFrame(columns=["date","equity"])
+    df["OpenTime"] = df["OpenTime"].replace({"---": None})
+    df["CloseTime"] = df["CloseTime"].replace({"---": None})
+    pairs = []
+    for _, r in df.iterrows():
+        t = r["CloseTime"] if r["CloseTime"] not in (None, "", "---") else r["OpenTime"]
+        if t in (None, "", "---"): continue
+        rb = float(r["RunningBalance"])
+        pairs.append((datetime.strptime(t, "%Y.%m.%d %H:%M:%S"), rb))
+    if not pairs:
+        return pd.DataFrame(columns=["date","equity"])
+    pairs.sort(key=lambda x: x[0])
+    by_day = {}
+    for t, eq in pairs:
+        d = t.date()
+        by_day[d] = eq
+    return pd.DataFrame([{"date": d, "equity": by_day[d]} for d in sorted(by_day.keys())])
+
+def pct(a, b):
+    if b == 0 or b is None or a is None: return None
+    return (a / b - 1.0) * 100.0
+
+def daily_returns(daily_eq: pd.DataFrame):
+    if daily_eq.empty: return pd.DataFrame(columns=["date","equity","ret_pct"])
+    daily_eq = daily_eq.sort_values("date").reset_index(drop=True)
+    rets = [None]
+    for i in range(1, len(daily_eq)):
+        rets.append(pct(daily_eq.loc[i, "equity"], daily_eq.loc[i-1, "equity"]))
+    out = daily_eq.copy()
+    out["ret_pct"] = rets
+    return out
+
+def label_weekday(d: date):
+    return ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][d.weekday()]
+
+def aggregate_monthly(daily_df: pd.DataFrame):
+    if daily_df.empty: return pd.DataFrame(columns=["ym","label","pct"])
+    daily_df = daily_df.sort_values("date")
+    groups = {}
+    for _, r in daily_df.iterrows():
+        d = r["date"]; ym = (d.year, d.month)
+        groups.setdefault(ym, []).append((d, r["equity"]))
     rows = []
-    max_len = max(len(login_col_vals), len(server_col_vals))
-    for i in range(2, max_len + 1):  # skip header
-        lv = login_col_vals[i-1]  if i-1 < len(login_col_vals)  else ""
-        sv = server_col_vals[i-1] if i-1 < len(server_col_vals) else ""
-        if str(lv).strip() == target_login and str(sv).strip() == target_server:
-            rows.append(i)
-    return rows
+    for (y, m), arr in groups.items():
+        arr.sort(key=lambda x: x[0])
+        first_eq = arr[0][1]; last_eq = arr[-1][1]
+        rows.append({"ym": f"{y}-{m:02d}", "label": f"{date(y,m,1).strftime('%b %Y')}",
+                     "pct": None if first_eq==0 else (last_eq/first_eq - 1.0)*100.0})
+    return pd.DataFrame(rows).sort_values("ym")
 
-def write_cell_with_confirm(ws, row, col, value, tries=3, pause=0.8):
-    for attempt in range(1, tries + 1):
-        ws.update_cell(row, col, value)
-        time.sleep(pause)
-        try:
-            current = ws.cell(row, col).value
-        except Exception:
-            current = None
-        if str(current).strip() == str(value).strip():
-            return True
-        print(f"⚠️ confirm failed (attempt {attempt}) row={row} col={col}: got '{current}' want '{value}'")
-        time.sleep(pause)
-    return False
+def build_series_payloads_equity_monthlies(daily_df: pd.DataFrame):
+    if daily_df.empty:
+        return {"series_6m": [], "series_1y": [], "series_all": []}
+    monthly = aggregate_monthly(daily_df)
+    series_6m = monthly.tail(6)[["label","pct"]].apply(
+        lambda r: {"label": r["label"], "pct": safe_round(r["pct"], 4)}, axis=1
+    ).to_list()
+    series_1y = monthly.tail(12)[["label","pct"]].apply(
+        lambda r: {"label": r["label"], "pct": safe_round(r["pct"], 4)}, axis=1
+    ).to_list()
+    series_all = monthly[["label","pct"]].apply(
+        lambda r: {"label": r["label"], "pct": safe_round(r["pct"], 4)}, axis=1
+    ).to_list()
+    return {"series_6m": series_6m, "series_1y": series_1y, "series_all": series_all}
 
-def write_cells_with_confirm(ws, rows, col, value, tries=3, pause=0.8):
-    ok_all = True
+def build_calendar_returns(daily_df: pd.DataFrame):
+    out = []
+    for _, r in daily_df.iterrows():
+        if r["ret_pct"] is None:
+            continue
+        d = r["date"]
+        out.append({"year": d.year, "month": d.month, "day": d.day, "pct": safe_round(r["ret_pct"], 4)})
+    return out
+
+def build_perf_summary(daily_df: pd.DataFrame):
+    ytd_return_pct = None
+    ytd_start_date = None
+    ytd_end_date = None
+    if daily_df is not None and not daily_df.empty:
+        today_year = datetime.now(timezone.utc).year
+        df_year = daily_df.loc[daily_df["date"].apply(lambda d: d.year == today_year)].sort_values("date")
+        if not df_year.empty:
+            first_eq = float(df_year.iloc[0]["equity"])
+            last_eq  = float(df_year.iloc[-1]["equity"])
+            if first_eq != 0:
+                ytd_return_pct = ((last_eq / first_eq) - 1.0) * 100.0
+            ytd_start_date = df_year.iloc[0]["date"].strftime("%Y-%m-%d")
+            ytd_end_date   = df_year.iloc[-1]["date"].strftime("%Y-%m-%d")
+
+    usable = daily_df.dropna(subset=["ret_pct"]).copy()
+    if usable.empty:
+        return {
+            "best_day_pct": None, "best_day_date": None,
+            "worst_day_pct": None, "worst_day_date": None,
+            "avg_daily_return_pct": None,
+            "positive_days_pct": None, "negative_days_pct": None,
+            "days_positive": 0, "days_negative": 0, "total_days": 0,
+            "ytd_return_pct": safe_round(ytd_return_pct, 4),
+            "ytd_start_date": ytd_start_date,
+            "ytd_end_date": ytd_end_date
+        }
+
+    best_i = usable["ret_pct"].idxmax()
+    worst_i = usable["ret_pct"].idxmin()
+    best = float(usable.loc[best_i, "ret_pct"]);  best_d = usable.loc[best_i, "date"].strftime("%Y-%m-%d")
+    worst = float(usable.loc[worst_i, "ret_pct"]); worst_d = usable.loc[worst_i, "date"].strftime("%Y-%m-%d")
+    avg = float(usable["ret_pct"].mean())
+    pos_days = int((usable["ret_pct"] > 0).sum())
+    neg_days = int((usable["ret_pct"] < 0).sum())
+    total = int(len(usable))
+    pos_pct = 100.0 * pos_days / total if total else None
+    neg_pct = 100.0 * neg_days / total if total else None
+
+    return {
+        "best_day_pct": safe_round(best, 4),
+        "best_day_date": best_d,
+        "worst_day_pct": safe_round(worst, 4),
+        "worst_day_date": worst_d,
+        "avg_daily_return_pct": safe_round(avg, 4),
+        "positive_days_pct": safe_round(pos_pct, 4),
+        "negative_days_pct": safe_round(neg_pct, 4),
+        "days_positive": int(pos_days),
+        "days_negative": int(neg_days),
+        "total_days": int(total),
+        "ytd_return_pct": safe_round(ytd_return_pct, 4),
+        "ytd_start_date": ytd_start_date,
+        "ytd_end_date": ytd_end_date
+    }
+
+# ========= Supabase helpers =========
+def has_val(x):
+    return (x is not None) and (str(x).strip() != "")
+
+def fetch_strategies_with_creds():
+    res = supabase.table("strategies").select(
+        "id,name,mt5_server_name,mt5_account_number,mt5_password,last_login,inception_date"
+    ).execute()
+    rows = res.data or []
+    print(f"[diag] total strategies: {len(rows)}")
+
+    bad = []
+    good = []
     for r in rows:
-        ok = write_cell_with_confirm(ws, r, col, value, tries=tries, pause=pause)
-        ok_all = ok_all and ok
-    return ok_all
+        ok = all([
+            has_val(r.get("mt5_server_name")),
+            has_val(r.get("mt5_account_number")),
+            has_val(r.get("mt5_password")),
+        ])
+        (good if ok else bad).append(r)
 
-def upload_df_to_tab(ss, login, df):
-    # (populate flow unchanged)
-    headers = df.columns.tolist()
-    rows = df.values.tolist()
-    sheet_name = f"Master_Trade_History_{login}"
+    print(f"[diag] with usable creds: {len(good)} | missing creds: {len(bad)}")
+    if bad:
+        for r in bad:
+            print("   ↳ missing for:", r.get("name") or r["id"],
+                  "| srv?", bool(has_val(r.get("mt5_server_name"))),
+                  "acc?", bool(has_val(r.get("mt5_account_number"))),
+                  "pwd?", bool(has_val(r.get("mt5_password"))))
+    return good
 
+def safe_update_strategy(strategy_id: str, payload: dict):
+    q = (supabase.table("strategies")
+         .update(jclean(payload))
+         .eq("id", strategy_id))
+    safe_exec(q)
+
+def set_last_login_and_aum(strategy_id: str, equity):
+    payload = {"last_login": datetime.now(timezone.utc).isoformat()}
+    if equity is not None:
+        payload["aum"] = safe_round(equity, 2)
+    safe_update_strategy(strategy_id, payload)
+
+def upsert_strategy_metrics(strategy_id: str, series_payloads: dict, perf_summary: dict, calendar_returns: list):
+    body = {
+        "strategy_id": strategy_id,
+        "asof_date": date.today().isoformat(),
+        # removed: "series_1m"
+        "series_6m": series_payloads.get("series_6m", []),
+        "series_1y": series_payloads.get("series_1y", []),
+        "series_all": series_payloads.get("series_all", []),
+        "perf_summary": perf_summary,
+        "calendar_returns": calendar_returns
+    }
+    q = supabase.table("strategy_metrics").upsert(
+        jclean(body),
+        on_conflict="strategy_id",
+        returning="representation"
+    )
+    safe_exec(q)
+
+# ---- Intraday (1D) helper only (1m removed) ----
+def za_today(dt_utc: datetime) -> date:
+    return (dt_utc + timedelta(hours=TZ_OFFSET_HOURS)).date()
+
+def ensure_metrics_row(strategy_id: str):
+    r = supabase.table("strategy_metrics").select("strategy_id").eq("strategy_id", strategy_id).maybe_single().execute()
+    exists = bool(getattr(r, "data", None))
+    if not exists:
+        q = supabase.table("strategy_metrics").insert({
+            "strategy_id": strategy_id,
+            "asof_date": date.today().isoformat(),
+            "series_1d": []
+            # removed: "series_1m_money"
+        }, returning="representation")
+        safe_exec(q)
+
+def append_series_1d_and_update_live(strategy_id: str, equity, balance=None, margin=None, floating=None):
+    now_utc = datetime.now(timezone.utc)
+    # fetch current series
+    cur = supabase.table("strategy_metrics").select("series_1d").eq("strategy_id", strategy_id).maybe_single().execute()
+    raw = (cur and getattr(cur, "data", None)) or {}
+    series = raw.get("series_1d", []) if isinstance(raw, dict) else []
+
+    today_za = za_today(now_utc)
+    pruned = []
+    for it in (series or []):
+        try:
+            its = it.get("ts")
+            if not its: continue
+            ts = its.replace("Z", "+00:00") if "Z" in its else its
+            dza = za_today(datetime.fromisoformat(ts))
+            if dza == today_za:
+                pruned.append({"ts": its, "equity": num_or_none(it.get("equity"))})
+        except Exception:
+            continue
+
+    pruned.append({"ts": now_utc.isoformat(), "equity": safe_round(equity, 2)})
+    pruned = pruned[-1440:]  # keep ~1 day of minutes
+
+    q = supabase.table("strategy_metrics").upsert(
+        jclean({
+            "strategy_id": strategy_id,
+            "asof_date": date.today().isoformat(),
+            "series_1d": pruned,
+            "live_equity": safe_round(equity, 2),
+            "live_equity_ts": now_utc.isoformat(),
+            "live_balance": safe_round(balance, 2) if balance is not None else None,
+            "live_margin": safe_round(margin, 2) if margin is not None else None,
+            "live_floating_pnl": safe_round(floating, 2) if floating is not None else None,
+        }),
+        on_conflict="strategy_id",
+        returning="representation"
+    )
+    safe_exec(q)
+
+# ========= Main loop =========
+if __name__ == "__main__":
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("⚠️ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars.")
+        raise SystemExit(1)
+
+    print(f"🔁 MT5 watcher + metrics started. Sweep every {LOOP_SLEEP_SECONDS}s. Ctrl+C to stop.")
     try:
-        acc_ws = ss.worksheet(sheet_name)
-    except gspread.exceptions.WorksheetNotFound:
-        acc_ws = ss.add_worksheet(title=sheet_name, rows="100", cols=str(len(headers) + 5))
-
-    need_rows = max(100, len(rows) + 20)
-    need_cols = max(20, len(headers) + 5)
-    try:
-        acc_ws.resize(rows=need_rows, cols=need_cols)
-    except Exception:
-        pass
-
-    acc_ws.clear()
-    acc_ws.update(values=[headers], range_name="A1")
-
-    start_row = 2
-    for i in range(0, len(rows), CHUNK_ROWS):
-        chunk = rows[i:i + CHUNK_ROWS]
-        end_row = start_row + len(chunk) - 1
-        end_col = len(headers)
-        end_a1 = gspread.utils.rowcol_to_a1(end_row, end_col)
-        rng = f"A{start_row}:{end_a1}"
-        acc_ws.update(values=chunk, range_name=rng)
-        start_row = end_row + 1
-
-    print(f"📊 Uploaded {len(rows)} rows to {sheet_name}")
-    return True
-
-def parse_dt(s):
-    try:
-        return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
-    except Exception:
-        return None
-
-# NEW: universal stale picker (any status) with Under Review priority
-def pick_next_account(ws, stale_minutes=5):
-    accounts = ws.get_all_records()
-    now = datetime.now()
-    norm = lambda v: str(v or "").strip().lower()
-
-    def last_update(a):
-        s = str(a.get("Last Data Update", "")).strip()
-        return parse_dt(s) if s else None
-
-    def is_stale(a):
-        dt = last_update(a)
-        return (dt is None) or (now - dt > timedelta(minutes=stale_minutes))
-
-    stale = [a for a in accounts if is_stale(a)]
-    if not stale:
-        return None, accounts
-
-    # Prioritize Under Review first, then the stalest among the rest
-    under = [a for a in stale if norm(a.get("status")) == "under review"]
-    pool  = under if under else stale
-
-    def sort_key(a):
-        dt = last_update(a)
-        return dt or datetime(1970,1,1)
-
-    # pick the stalest (oldest Last Data Update)
-    pool.sort(key=sort_key)
-    return pool[0], accounts
-
-# === Main loop ===
-while True:
-    try:
-        ss = client.open_by_key(SHEET_ID)
-        ws = ss.worksheet(TAB_NAME)
-
-        headers = ws.row_values(1)
-        changed = False
-        if "status" not in headers:
-            ws.update_cell(1, len(headers) + 1, "status"); headers.append("status"); changed = True
-        if "Last Data Update" not in headers:
-            ws.update_cell(1, len(headers) + 1, "Last Data Update"); headers.append("Last Data Update"); changed = True
-        if "# Successful Logins" not in headers:
-            ws.update_cell(1, len(headers) + 1, "# Successful Logins"); headers.append("# Successful Logins"); changed = True
-        if changed:
-            headers = ws.row_values(1)
-
-        status_col  = headers.index("status") + 1
-        update_col  = headers.index("Last Data Update") + 1
-        counter_col = headers.index("# Successful Logins") + 1
-        login_col   = headers.index("login") + 1
-        server_col  = headers.index("server") + 1
-
-        print("\n🔄 Starting account processing loop...")
-
         while True:
-            candidate, snapshot = pick_next_account(ws, stale_minutes=5)
-            if not candidate:
-                print("😴 Nothing stale (>5 min). Sleeping 20s…")
-                time.sleep(20)
-                break
-
             try:
-                login = int(candidate["login"])
-            except Exception:
-                print(f"⚠️ Bad login value: {candidate.get('login')}; skipping.")
-                time.sleep(2)
-                continue
-
-            password = candidate.get("password", "")
-            server   = candidate.get("server", "")
-            status   = str(candidate.get("status", "")).strip().lower()
-            raw_counter = candidate.get("# Successful Logins", 0)
-            try:
-                counter_val = int(raw_counter)
-            except Exception:
-                counter_val = 0
-
-            # Update ALL rows for (login, server)
-            row_indices = find_rows_by_login_server(ws, login, server, login_col, server_col)
-            if not row_indices:
-                print(f"⚠️ No rows found for ({login}, {server}); skipping.")
-                time.sleep(2)
-                continue
-
-            print(f"\n➡️ Processing {login} ({server}) [status={status}] — up to {ATTEMPTS_PER_ACCOUNT} attempts")
-
-            connected_any = False
-            uploaded_any  = False
-
-            for attempt in range(1, ATTEMPTS_PER_ACCOUNT + 1):
-                print(f"--- Attempt {attempt}/{ATTEMPTS_PER_ACCOUNT} ---")
-                if not attempt_login(login, password, server):
-                    time.sleep(2)
+                strategies = fetch_strategies_with_creds()
+                if not strategies:
+                    print(f"[loop] No rows with creds. Sleeping {LOOP_SLEEP_SECONDS}s…")
+                    time.sleep(LOOP_SLEEP_SECONDS)
                     continue
 
-                connected_any = True
+                for s in strategies:
+                    sid  = s["id"]
+                    name = s.get("name") or sid
+                    srv  = str(s["mt5_server_name"]).strip()
+                    acc_raw = s["mt5_account_number"]
+                    pwd  = str(s["mt5_password"]).strip()
 
-                # Build DF directly from deals
-                try:
-                    df = build_june_to_date_df(login)
-                except Exception as ex:
-                    print("⚠️ Failed to build history DF:", ex)
-                    df = None
-
-                if df is not None:
+                    # start date
+                    start_from = None
                     try:
-                        upload_df_to_tab(ss, login, df)  # populate unchanged
-                        uploaded_any = True
-                    except Exception as ex2:
-                        print("⚠️ Upload failed:", ex2)
+                        if s.get("inception_date"):
+                            start_from = datetime.strptime(s["inception_date"], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    except Exception:
+                        start_from = None
+                    if start_from is None:
+                        start_from = datetime.now(timezone.utc) - timedelta(days=730)
 
-                close_mt5()
+                    try:
+                        login = int(str(acc_raw).strip())
+                    except Exception:
+                        print(f"⚠️ Bad account number for {name}: {acc_raw}")
+                        continue
 
-                if uploaded_any:
-                    print("✅ Success on this attempt — stopping retries.")
-                    break
-                else:
-                    time.sleep(2)
+                    print(f"\n➡️ {datetime.now(timezone.utc).isoformat()} — login & metrics for {name}: {login}@{srv}")
+                    success, equity = False, None
+                    for i in range(1, ATTEMPTS_PER_STRATEGY + 1):
+                        print(f"   attempt {i}/{ATTEMPTS_PER_STRATEGY}…")
+                        success, equity = mt5_login(login, pwd, srv)
+                        if success:
+                            set_last_login_and_aum(sid, equity)
+                            print(f"   ✅ last_login updated; aum={safe_round(equity,2)}")
 
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if uploaded_any:
-                new_status  = "Success"
-                new_counter = counter_val + 1
-            else:
-                new_status  = "Invalid Logins" if not connected_any else "Connected-NoData"
-                new_counter = counter_val
+                            try:
+                                info = mt5.account_info()
+                                bal = float(getattr(info, "balance", 0) or 0) if info else None
+                                mar = float(getattr(info, "margin", 0) or 0) if info else None
+                                flp = float(getattr(info, "profit", 0) or 0) if info else None
+                            except Exception:
+                                bal = mar = flp = None
 
-            ok1 = write_cells_with_confirm(ws, row_indices, status_col,  new_status)
-            ok2 = write_cells_with_confirm(ws, row_indices, update_col,  now_str)
-            ok3 = write_cells_with_confirm(ws, row_indices, counter_col, str(new_counter))
+                            ensure_metrics_row(sid)
+                            append_series_1d_and_update_live(sid, equity, bal, mar, flp)
 
-            print(f"📊 Updated sheet for {login} ({server}) rows={row_indices} | status={new_status} | time={now_str} | #logins={new_counter} | ok={[ok1,ok2,ok3]}")
+                            # history & derived metrics
+                            try:
+                                df = build_df_from(login, start_from)
+                            except Exception as e:
+                                print("   ⚠️ Failed to build history DF:", e)
+                                df = None
 
-            # Re-read the worksheet so if a new Under Review appears, it gets priority on the next pick
-            ws = ss.worksheet(TAB_NAME)
-            time.sleep(SLEEP_BETWEEN_ACCOUNTS)
+                            if df is not None and not df.empty:
+                                daily_eq = build_daily_equity(df)
+                                dr = daily_returns(daily_eq)
+                                monthly_payloads = build_series_payloads_equity_monthlies(dr)
+                                perf_summary = build_perf_summary(dr)
+                                calendar_payload = build_calendar_returns(dr)
 
-    except Exception as e:
-        print("❌ Error:", e)
-        time.sleep(10)
+                                # removed: closed_pct / series_1m calc
+                                upsert_strategy_metrics(sid, monthly_payloads, perf_summary, calendar_payload)
+                                print("   📈 metrics upserted")
+                            else:
+                                print("   ⚠️ no history rows; metrics not updated")
+
+                            mt5_shutdown_clean()
+                            break
+
+                        time.sleep(1)
+
+                    if not success:
+                        print("   ❌ login failed; last_login/aum/metrics unchanged")
+                        mt5_shutdown_clean()
+
+                    time.sleep(1)
+
+            except Exception as e:
+                print("[loop] ❌ error:", e)
+                mt5_shutdown_clean()
+                time.sleep(10)
+
+            print(f"\n[loop] Sleeping {LOOP_SLEEP_SECONDS}s…")
+            time.sleep(LOOP_SLEEP_SECONDS)
+
+    except KeyboardInterrupt:
+        print("\n👋 Exiting cleanly.")
+        mt5_shutdown_clean()
