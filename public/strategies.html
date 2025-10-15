@@ -383,5 +383,81 @@
   }
 </script>
 
+  <script type="module">
+  import { supabase } from "/js/supabase.js";
+
+  // --- tiny helpers ---
+  const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? "—"; };
+  const setSrc  = (id, v) => { const el = document.getElementById(id); if (el) el.src = v || BLANK_AVATAR; };
+
+  async function ensureProfile(id, email) {
+    // try fetch; if missing, create a shell row
+    let { data, error } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (data) return data;
+    const up = await supabase.from("profiles")
+      .upsert({ id, email, updated_at: new Date().toISOString() }, { onConflict: "id" })
+      .select("*").single();
+    if (up.error) throw up.error;
+    return up.data;
+  }
+
+  // --- auth guard + hydrate header + modal ---
+  try {
+    // require session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+      throw new Error("redirecting");
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const row = await ensureProfile(user.id, user.email || null);
+
+    // header name (prefer first + last; fallback email handle)
+    const fn = (row?.first_name || "").trim();
+    const ln = (row?.last_name || "").trim();
+    const fallback = (user.email || "User").split("@")[0];
+    setText("hdr-name", (fn || ln) ? `${fn} ${ln}`.trim() : fallback);
+
+    // avatar (cache-bust public URL)
+    const avatarUrl = row?.avatar_url ? `${row.avatar_url}${row.avatar_url.includes("?") ? "&" : "?"}v=${Date.now()}` : BLANK_AVATAR;
+    setSrc("hdr-avatar", avatarUrl);
+
+    // (optional) sidebar account label if you want it populated
+    if (row?.account_number) setText("sidebar-acc", row.account_number);
+
+    // profile modal wiring
+    const modal = document.getElementById("profile-modal");
+    const pmEmail = document.getElementById("pm-email");
+    const btnOpen = document.getElementById("hdr-profile-btn");
+    const btnLogout = document.getElementById("pm-logout");
+
+    const open = () => { pmEmail.textContent = user.email || "—"; modal?.classList.remove("hidden"); };
+    const close = () => modal?.classList.add("hidden");
+
+    btnOpen?.addEventListener("click", (e) => { e.preventDefault(); open(); });
+    modal?.addEventListener("click", (e) => {
+      if (e.target === modal || e.target.classList.contains("bg-black/40")) close();
+    });
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+    btnLogout?.addEventListener("click", async () => {
+      try {
+        await supabase.auth.signOut();
+        location.replace("/auth.html?tab=in");
+      } catch {
+        console.warn("Logout failed");
+      }
+    });
+  } catch (e) {
+    // ignore “redirecting”
+    if (String(e?.message).toLowerCase() !== "redirecting") console.error(e);
+  }
+</script>
+
+
 </body>
 </html>
