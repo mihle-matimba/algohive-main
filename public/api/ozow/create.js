@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       branchCode: "",
       bankAccountName: "",
       payeeDisplayName: "",
-      expiryDateUtc: "2025-10-16 20:02",              // <<— set here
+      expiryDateUtc: "2025-10-16 16:02",              // <<— set here
       customerIdentifier: "",
     };
 
