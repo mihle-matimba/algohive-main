@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const { amount, customerName } = req.body || {};
 
     // 10 minutes from now (UTC)
-    //const expiryDateUtc = utcIsoNoMillis(new Date(Date.now() + 10 * 60 * 1000));
+    const expiryDateUtc = utcIsoNoMillis(new Date(Date.now() + 10 * 60 * 1000));
 
     const body = {
       siteCode: OZOW.siteCode,
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       branchCode: "",
       bankAccountName: "",
       payeeDisplayName: "",
-      expiryDateUtc: "2025-10-16 16:02",              // <<— set here
+      expiryDateUtc: expiryDateUtc,              // <<— set here
       customerIdentifier: "",
     };
 
