@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Where Smart Capital Gathers</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* General Styles & Fixes */
+    :root { --olive:#7e8d52; --olive-700:#576138; --ink:#0B1215; --muted:#525A67 }
+    html, body { 
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; 
+      background: #FFF; 
+      color: #111827;
+      width: 100%;
+      overflow-x: hidden; /* Prevents horizontal scrolling */
+    }
+    .grid-bg { background-image: radial-gradient(rgba(69,98,67,.08) 1px, transparent 1px); background-size: 18px 18px; background-position: -10px -10px }
+    .btn-shine { position: relative; overflow: hidden }
+    .btn-shine:before { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.7) 50%, transparent 100%); transform: translateX(-120%) }
+    .btn-shine:hover:before { transform: translateX(120%); transition: transform .8s ease }
+    .glass { position: relative; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px) }
+    .glass:before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0)); border-radius: inherit; opacity: .8 }
+    .metric-card { transition: transform .25s ease, background-color .25s ease, color .25s ease, box-shadow .25s ease, border-color .25s ease; will-change: transform }
+    .metric-card:hover { transform: translateY(-2px) scale(1.03) }
+    
+    /* TradingView Ticker Fixes */
+    .tv-ticker .tradingview-widget-container__widget { height: 56px !important }
+    .tv-ticker .tradingview-widget-copyright { display: none }
+    @media (max-width: 640px) { .tv-ticker .tradingview-widget-container__widget { height: 52px !important } }
+
+    /* Hero entrance animations + highlight */
+    .hero-right { animation: heroScaleIn .9s cubic-bezier(.2,.8,.2,1) .05s both }
+    .hero-left { animation: heroSlideUp .7s ease-out 1.0s both }
+    @keyframes heroScaleIn { 0% { transform: scale(1.12); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
+    @keyframes heroSlideUp { 0% { transform: translateY(12px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
+    .highlight { background-image: linear-gradient(0deg, rgba(126,141,82,.28), rgba(126,141,82,.28)); background-size: 0% 100%; background-repeat: no-repeat; border-radius: .25rem; padding: 0 .2em; animation: sweep 1.2s ease-out 1.3s forwards }
+    @keyframes sweep { to { background-size: 100% 100% } }
+
+    /* New styles for strategy filters */
+    @keyframes swapIn { from {opacity:0; transform: translateY(8px) scale(.98)} to {opacity:1; transform: translateY(0) scale(1)} }
+    .swap-in { animation: swapIn .45s cubic-bezier(.2,.8,.2,1) both }
+    .tag-active, .prd-active { background: var(--olive); color: #fff; }
+    .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body class="grid-bg">
+
+  <section class="relative min-h-[100svh] flex flex-col pb-24">
+    <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-full max-w-[80rem] bg-[radial-gradient(ellipse_at_center,rgba(69,98,67,.12),transparent_55%)]"></div>
+
+    <header class="w-full sticky top-3 z-50 px-3 sm:px-4 lg:px-6">
+      <div class="mx-auto max-w-5xl">
+        <nav aria-label="Primary" class="relative flex items-center justify-between gap-2 rounded-full border border-black/10 bg-white px-3 py-2 shadow-lg">
+          <a href="home.html" class="flex flex-shrink-0 items-center gap-2 rounded-full px-2 py-1.5 hover:bg-black/5">
+            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="h-7 w-auto">
+            <span class="hidden md:inline text-sm font-extrabold tracking-tight text-[var(--ink)]">AlgoHive</span>
+          </a>
+
+          <div class="hidden md:flex items-center gap-1">
+            <span class="h-6 w-px bg-black/10 mx-1"></span>
+            <a href="who-we-are.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Who We Are</a>
+            <a href="how-we-work.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">How We Work</a>
+            <a href="#pricing" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Pricing</a>
+            <a href="#faqs" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">FAQs</a>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <a href="/auth.html?redirect=/home.html" class="btn-shine inline-flex items-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--olive-700)]">Login</a>
+            <a href="#strategies" class="hidden sm:inline-flex items-center gap-2 rounded-full border border-black/15 px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-black/5">View OpenStrategies</a>
+            <button id="hamburger-button" class="md:hidden p-2 rounded-full hover:bg-black/5">
+              <svg class="w-6 h-6 text-[var(--ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+          </div>
+          
+          <div id="mobile-menu" class="hidden md:hidden absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-black/10">
+            <a href="who-we-are.html" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">Who We Are</a>
+            <a href="how-we-work.html" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">How We Work</a>
+            <a href="#pricing" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">Pricing</a>
+            <a href="#faqs" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">FAQs</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 flex-1 flex flex-col">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center grow py-8 lg:py-12">
+        <div class="lg:col-span-6 hero-left">
+          <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-xs text-black/60">
+            <span class="inline-block h-2 w-2 rounded-full bg-[var(--olive)]"></span>
+            Beta Now Live
+          </span>
+          <h1 class="mt-5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-[var(--ink)]">
+            Elevate your investment portfolio with <span class="text-[var(--olive)]">AlgoHive</span>
+          </h1>
+
+          <p class="mt-5 text-base sm:text-lg text-[var(--muted)] max-w-xl">
+            Ready-made investment strategies, managed like funds. <span class="highlight">Built to grow your wealth, not fees</span>.
+          </p>
+
+          <div class="mt-8 flex flex-wrap items-center gap-4">
+            <a href="/auth.html?redirect=/home.html" class="btn-shine inline-flex items-center gap-2 rounded-xl bg-[var(--olive)] px-6 py-3 font-semibold text-white hover:bg-[var(--olive-700)]">
+              Get Started
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M13.5 4.5 21 12l-7.5 7.5M21 12H3"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 hero-right relative">
+          <div class="relative rounded-3xl border border-black/10 bg-gradient-to-b from-white to-slate-50 p-2 shadow-[0_6px_24px_rgba(0,0,0,0.06)]">
+            <div class="relative overflow-hidden rounded-2xl bg-white">
+              <img src="https://static.wixstatic.com/media/ac771e_4647dc50bd7e4ab79b46054e1dc3c5d8~mv2.png" alt="Investor" class="h-auto w-full max-h-[560px] object-cover"/>
+              <div class="absolute inset-0 bg-gradient-to-tr from-white/60 via-transparent to-transparent"></div>
+              <div class="absolute bottom-4 left-4 right-4 grid grid-cols-3 gap-3">
+                <div class="metric-card glass rounded-xl p-3 shadow-sm ring-1 ring-white/30 hover:bg-[var(--olive)] hover:text-white hover:ring-white/50">
+                  <p class="text-xs text-black/60 transition-colors duration-200">Avg. return (Last Qrt)</p>
+                  <p class="text-lg font-semibold text-[var(--ink)] transition-colors duration-200">13%</p>
+                </div>
+                <div class="metric-card glass rounded-xl p-3 shadow-sm ring-1 ring-white/30 hover:bg-[var(--olive)] hover:text-white hover:ring-white/50">
+                  <p class="text-xs text-black/60 transition-colors duration-200">Total Strategies</p>
+                  <p class="text-lg font-semibold text-[var(--ink)] transition-colors duration-200">25</p>
+                </div>
+                <div class="metric-card glass rounded-xl p-3 shadow-sm ring-1 ring-white/50 bg-[var(--olive)] text-white">
+                  <p class="text-xs text-white/80">Countdown</p>
+                  <p class="text-base font-semibold tracking-tighter">
+                    <span id="cdDays">--</span>d
+                    <span id="cdHrs">--</span>h
+                    <span id="cdMins">--</span>m
+                    <span id="cdSecs">--</span>s
+                  </p>
+                  <p class="mt-0.5 text-[11px] text-white/70" id="cdLabel">to Launch</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <div class="w-full absolute inset-x-0 bottom-4 z-40">
+      <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
+        <div class="tv-ticker glass rounded-full border border-black/10 shadow-lg overflow-hidden">
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+            {
+              "symbols": [
+                { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
+                { "proName": "FOREXCOM:NSXUSD", "title": "US 100" },
+                { "proName": "FX_IDC:EURUSD",   "title": "EUR/USD" },
+                { "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
+                { "proName": "BITSTAMP:ETHUSD", "title": "Ethereum" }
+              ],
+              "colorTheme": "light",
+              "isTransparent": true,
+              "displayMode": "adaptive",
+              "showSymbolLogo": true,
+              "locale": "en"
+            }
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <section id="strategies" class="py-12 lg:py-16">
+    <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
+        <div id="strategyBar" class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div id="assetFilters" class="flex flex-wrap items-center gap-2 rounded-full border border-black/10 bg-white p-1">
+                </div>
+
+            <div id="strategyNav" class="flex items-center gap-2">
+                 <button id="prevStrat" class="nav-btn p-2 rounded-full hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                </button>
+                 <button id="nextStrat" class="nav-btn p-2 rounded-full hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+
+            <div class="ml-0 sm:ml-auto flex items-center gap-1 rounded-full border border-black/10 bg-white p-1">
+                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="1D">1D</button>
+                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="1M">1M</button>
+                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="6M">6M</button>
+                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="1Y">1Y</button>
+                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="ALL">All</button>
+            </div>
+        </div>
+
+        <div class="relative mt-10">
+            <article id="leftCard" class="swap-in rounded-3xl border border-black/10 bg-gradient-to-b from-white to-slate-50 p-6 shadow-[0_6px_24px_rgba(0,0,0,0.06)]">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <span id="period">All time</span>
+                        </div>
+                        <h3 id="stratName" class="text-[28px] leading-tight font-semibold truncate">—</h3>
+                        <div class="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-600">
+                            <span id="provider">—</span><span>•</span>
+                            <span id="since">Live since —</span><span>•</span>
+                            <span id="currency">USD</span>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-slate-50 text-slate-700" id="risk">Risk —</span>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-emerald-50 text-emerald-700" id="aum">AUM —</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full bg-slate-900"></span> Portfolio</span>
+                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full" style="background:#7e8d52"></span> Benchmark</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div class="lg:col-span-8 xl:col-span-9">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="text-2xl font-semibold" id="eqValue">—</div>
+                                <span id="eqDelta" class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-green-50 text-green-700">+0.0%</span>
+                            </div>
+                            <div class="text-xs text-slate-500">* return vs period start</div>
+                        </div>
+
+                        <div class="relative w-full h-[320px] overflow-hidden rounded-2xl border bg-white">
+                            <svg id="equitySvg" viewBox="0 0 900 320" class="w-full h-full">
+                                <defs>
+                                    <linearGradient id="eqLine" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#7e8d52" stop-opacity="1"/>
+                                        <stop offset="100%" stop-color="#7e8d52" stop-opacity="0.15"/>
+                                    </linearGradient>
+                                </defs>
+                                <g id="eqAxes"></g>
+                                <path id="equityFill" d="" fill="url(#eqLine)" opacity="0.18"></path>
+                                <path id="equityLine" d="" fill="none" stroke="#7e8d52" stroke-width="2.5" stroke-linecap="round"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-4 xl:col-span-3">
+                        <div id="eqMetrics" class="grid grid-cols-2 gap-3 text-sm">
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Best Day</div><div id="mBestDay" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Worst Day</div><div id="mWorstDay" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Positive Days</div><div id="mPosDays" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Negative Days</div><div id="mNegDays" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate (Days)</div><div id="mWinRateDays" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Daily Return</div><div id="mAvgDaily" class="font-semibold">—</div></div>
+                        </div>
+
+                        <p id="stratDesc" class="mt-3 text-[12px] leading-5 text-slate-700">—</p>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <p class="mt-8 text-xs text-black/50">
+            Strategy stats are illustrative. Performance isn’t guaranteed. Fees apply to returns, <span class="highlight">not AUM</span>.
+        </p>
+    </div>
+  </section>
+
+<section id="lending" class="relative flex flex-col justify-center py-12 lg:py-16">
+  <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-[80rem] bg-[radial-gradient(ellipse_at_center,rgba(69,98,67,.12),transparent_55%)]"></div>
+
+  <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div>
+      <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[var(--ink)]">
+        Portfolio-Backed <span class="text-[var(--olive)]">Lending</span>
+      </h2>
+      <p class="mt-3 text-[15px] sm:text-lg text-[var(--muted)]">
+        Leverage your investments to access smarter credit. Pledge your portfolio to unlock lower-cost borrowing without selling your holdings, reducing tax impact and staying invested in market opportunities. Pay less on credit while keeping your growth potential intact.
+      </p>
+    </div>
+
+    <div class="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <article class="lg:col-span-7 rounded-3xl border border-black/10 bg-gradient-to-b from-white to-slate-50 p-6 shadow-[0_6px_24px_rgba(0,0,0,0.06)]">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-xs text-black/60">
+              Portfolio-backed credit
+            </span>
+            <h3 class="mt-2 text-xl font-bold text-[var(--ink)]">Estimate your borrowing power</h3>
+          </div>
+          <div class="hidden sm:flex items-center gap-2 text-xs text-slate-600">
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Stay invested</span>
+            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 border border-amber-200">No forced selling</span>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs text-slate-600">Portfolio value (ZAR)</span>
+            <div class="mt-1 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
+              <span class="text-slate-400">R</span>
+              <input id="pv" type="number" min="10000" step="1000" value="250000"
+                     class="w-full outline-none text-[var(--ink)]" />
+            </div>
+          </label>
+
+          <label class="block">
+            <span class="text-xs text-slate-600">Term</span>
+            <select id="term" class="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-[var(--ink)]">
+              <option value="6">6 months</option>
+              <option value="12" selected>12 months</option>
+              <option value="24">24 months</option>
+              <option value="36">36 months</option>
+            </select>
+          </label>
+
+          <div class="sm:col-span-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-600">Loan-to-Value (LTV)</span>
+              <span id="ltvLabel" class="text-xs font-medium text-[var(--ink)]">40%</span>
+            </div>
+            <input id="ltv" type="range" min="30" max="60" step="1" value="40"
+                   class="mt-2 w-full accent-[var(--olive)]" />
+            <div class="mt-1 flex justify-between text-[11px] text-slate-500">
+              <span>30%</span><span>45%</span><span>60%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="glass rounded-2xl p-4 ring-1 ring-white/30">
+            <div class="text-xs text-black/60">Estimated rate (APR)</div>
+            <div id="aprOut" class="mt-1 text-2xl font-semibold text-[var(--ink)]">—</div>
+            <div class="mt-1 text-[11px] text-slate-500">Varies with LTV</div>
+          </div>
+          <div class="glass rounded-2xl p-4 ring-1 ring-white/30">
+            <div class="text-xs text-black/60">Borrow amount</div>
+            <div id="borrowOut" class="mt-1 text-2xl font-semibold text-[var(--ink)]">—</div>
+            <div class="mt-1 text-[11px] text-slate-500">Up to 60% LTV</div>
+          </div>
+          <div class="glass rounded-2xl p-4 ring-1 ring-white/30">
+            <div class="text-xs text-black/60">Monthly payment (est.)</div>
+            <div id="payOut" class="mt-1 text-2xl font-semibold text-[var(--ink)]">—</div>
+            <div class="mt-1 text-[11px] text-slate-500">Amortising</div>
+          </div>
+        </div>
+
+        <div class="mt-6 relative w-full h-40 overflow-hidden rounded-2xl border border-black/10 bg-white">
+          <svg id="lendSvg" viewBox="0 0 720 160" class="w-full h-full">
+            <defs>
+              <linearGradient id="lendLine" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7e8d52" stop-opacity="1"/>
+                <stop offset="100%" stop-color="#7e8d52" stop-opacity="0.15"/>
+              </linearGradient>
+            </defs>
+            <path id="lendFill" d="" fill="url(#lendLine)" opacity="0.18"></path>
+            <path id="lendLinePath" d="" fill="none" stroke="#7e8d52" stroke-width="2.5" stroke-linecap="round"></path>
+          </svg>
+          <div class="absolute inset-x-4 bottom-2 flex justify-between text-[10px] text-slate-500">
+            <span>Month 0</span><span>Month 6</span><span>Month 12</span><span>Month 18</span><span>Month 24</span><span>Month 36</span>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <button disabled class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-slate-200 px-6 py-3 font-semibold text-slate-500 cursor-not-allowed">
+              Application Coming Soon
+          </button>
+          <span class="text-[11px] text-slate-500">Illustrative only. Final terms subject to assessment.</span>
+        </div>
+      </article>
+
+      <aside class="lg:col-span-5 rounded-3xl border border-black/10 bg-white p-6 shadow-[0_6px_24px_rgba(0,0,0,0.06)]">
+        <h4 class="text-lg font-bold text-[var(--ink)]">Why portfolio-backed credit?</h4>
+        <ul class="mt-3 space-y-3 text-sm text-[var(--ink)]">
+          <li class="flex items-start gap-3">
+            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--olive)]"></span>
+            <div><span class="font-semibold">Stay invested.</span> Borrow without selling assets or disrupting compounding.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--olive)]"></span>
+            <div><span class="font-semibold">Lower cost vs unsecured.</span> Secured against your portfolio for competitive rates.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--olive)]"></span>
+            <div><span class="font-semibold">Flexible terms.</span> Choose LTV and term that fit your cash-flow.</div>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--olive)]"></span>
+            <div><span class="font-semibold">Fast process.</span> Streamlined digital onboarding and pledge.</div>
+          </li>
+        </ul>
+
+        <div class="mt-6 grid grid-cols-3 gap-3">
+          <div class="glass rounded-xl p-3 text-center ring-1 ring-white/30">
+            <div class="text-[11px] text-black/60">Max LTV</div>
+            <div class="text-lg font-semibold text-[var(--ink)]">60%</div>
+          </div>
+          <div class="glass rounded-xl p-3 text-center ring-1 ring-white/30">
+            <div class="text-[11px] text-black/60">Terms</div>
+            <div class="text-lg font-semibold text-[var(--ink)]">6–36 mo</div>
+          </div>
+          <div class="glass rounded-xl p-3 text-center ring-1 ring-white/30">
+            <div class="text-[11px] text-black/60">Use cases</div>
+            <div class="text-lg font-semibold text-[var(--ink)]">Growth / Liquidity</div>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-black/10 bg-black/[0.03] p-4 text-xs text-slate-600">
+          Collateral held with partner custodians. Rates and limits depend on asset mix, volatility and concentration. Not financial advice.
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const $ = (s)=>document.querySelector(s);
+      const fmt = new Intl.NumberFormat('en-ZA', { style:'currency', currency:'ZAR', maximumFractionDigits:0 });
+
+      const pv = $('#pv'), term = $('#term'), ltv = $('#ltv'), ltvLabel = $('#ltvLabel');
+      const aprOut = $('#aprOut'), borrowOut = $('#borrowOut'), payOut = $('#payOut');
+
+      const line = $('#lendLinePath'), fill = $('#lendFill');
+
+      function aprFromLTV(x){
+        // illustrative rate curve: base 12% APR + 0.25% per 1% LTV over 30
+        return 0.12 + Math.max(0, (x - 30)) * 0.0025;
+      }
+
+      function pmnt(principal, apr, months){
+        if (months <= 0) return 0;
+        const r = apr / 12;
+        if (r === 0) return principal / months;
+        return principal * (r / (1 - Math.pow(1 + r, -months)));
+      }
+
+      function drawBalance(principal, apr, months){
+        const W = 720, H = 160, P = 10;
+        const r = apr/12;
+        let bal = principal, y = [];
+        for (let m=0; m<=months; m++){
+          y.push(bal);
+          const pay = pmnt(principal, apr, months);
+          const interest = bal * r;
+          const amort = Math.max(0, pay - interest);
+          bal = Math.max(0, bal - amort);
+        }
+        const max = principal, min = 0;
+        const nx = i => P + (i*(W-2*P))/months;
+        const ny = v => H-P - ((v-min)/(max-min||1))*(H-2*P);
+        const d = 'M ' + y.map((v,i)=>`${nx(i)},${ny(v)}`).join(' L ');
+        line.setAttribute('d', d);
+        const fillD = `${d} L ${nx(months)},${H-P} L ${nx(0)},${H-P} Z`;
+        fill.setAttribute('d', fillD);
+      }
+
+      function update(){
+        const pvZar = Math.max(0, Number(pv.value)||0);
+        const ltvPct = Math.max(30, Math.min(60, Number(ltv.value)||40));
+        ltvLabel.textContent = ltvPct + '%';
+
+        const principal = pvZar * (ltvPct/100);
+        const months = Number(term.value)||12;
+        const apr = aprFromLTV(ltvPct);
+
+        const pay = pmnt(principal, apr, months);
+
+        aprOut.textContent = (apr*100).toFixed(1) + '%';
+        borrowOut.textContent = fmt.format(principal);
+        payOut.textContent = fmt.format(pay);
+
+        drawBalance(principal, apr, months);
+      }
+
+      pv.addEventListener('input', update);
+      term.addEventListener('change', update);
+      ltv.addEventListener('input', update);
+
+      update();
+    })();
+  </script>
+</section>
+
+<section id="pricing" class="flex flex-col justify-center py-12 lg:py-16">
+  <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
+    <div class="relative overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_6px_24px_rgba(0,0,0,0.06)]">
+      <div class="pointer-events-none absolute -top-64 left-1/2 -translate-x-1/2 w-[140%] h-[420px]
+                  bg-[radial-gradient(120%_140%_at_50%_0%,rgba(126,141,82,0.20),rgba(126,141,82,0.10)_40%,transparent_70%)]">
+      </div>
+      <div class="pointer-events-none absolute -bottom-40 left-1/2 -translate-x-1/2 w-[120%] h-[300px]
+                  bg-[radial-gradient(80%_80%_at_50%_100%,rgba(126,141,82,0.10),transparent_60%)]">
+      </div>
+
+      <div class="relative px-6 sm:px-10 pt-14 text-center">
+        <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-xs text-black/60">
+          Simple, transparent pricing — no AUM fees
+        </span>
+        <h2 class="mt-4 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[var(--ink)]">
+          Pick the plan that matches your goals
+        </h2>
+        <p class="mt-3 text-[15px] sm:text-lg text-[var(--muted)]">
+          Start free. Upgrade when you’re ready. Cancel anytime.
+        </p>
+      </div>
+
+<div class="relative px-6 sm:px-10 pb-12">
+  <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 items-stretch">
+    <article class="h-full flex flex-col rounded-2xl border border-black/10 bg-white p-6">
+      <div class="flex items-baseline justify-between">
+        <h3 class="text-lg font-bold text-[var(--ink)]">Silver</h3>
+        <span class="text-xs rounded-full px-2 py-1 bg-black/[0.05] text-slate-600 border border-black/10">Silver</span>
+      </div>
+      <p class="mt-1 text-sm text-slate-600">Starter features for tracking and exploring.</p>
+      <div class="mt-5">
+        <div class="text-3xl font-extrabold">R0<span class="text-sm font-semibold text-slate-500"> / month</span></div>
+      </div>
+      <ul class="mt-5 space-y-3 text-sm text-[var(--ink)]">
+        <li class="flex gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" class="mt-0.5"><path fill="#7e8d52" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          Track <b>1 strategy</b>, no AUM fees
+        </li>
+        <li class="flex gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" class="mt-0.5"><path fill="#7e8d52" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          Access to portfolio-linked credit (Coming Soon)
+        </li>
+      </ul>
+      <a href="#signup"
+         class="mt-auto inline-flex w-full items-center justify-center rounded-xl border border-black/15 px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-black/5">
+        Choose Silver
+      </a>
+    </article>
+
+    <article class="relative h-full flex flex-col rounded-2xl border-2 border-[var(--olive)] bg-white p-6 shadow-[0_10px_30px_rgba(126,141,82,0.12)]">
+      <div class="absolute -top-3 right-4 text-xs rounded-full bg-[var(--olive)] text-white px-2 py-0.5 shadow">Most Popular</div>
+      <div class="flex items-baseline justify-between">
+        <h3 class="text-lg font-bold text-[var(--ink)]">Gold</h3>
+        <span class="text-xs rounded-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200">Gold</span>
+      </div>
+      <p class="mt-1 text-sm text-slate-600">For growing investors who want sharper insights and multiple strategies.</p>
+      <div class="mt-5">
+        <div class="text-3xl font-extrabold">
+          R299 <span class="text-slate-500 line-through">R450</span>
+          <span class="text-sm font-semibold text-slate-500"> / month</span>
+        </div>
+      </div>
+      <ul class="mt-5 space-y-3 text-sm text-[var(--ink)]">
+        <li class="flex gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" class="mt-0.5"><path fill="#7e8d52" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          Track up to <b>6 strategies</b>, no AUM fees
+        </li>
+        <li class="flex gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" class="mt-0.5"><path fill="#7e8d52" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          Day-ahead newsletter (news + economic events)
+        </li>
+        <li class="flex gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" class="mt-0.5"><path fill="#7e8d52" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          <b>Premium</b> Wealth Tracker Tools
+        </li>
+      </ul>
+      <a href="#upgrade-basic"
+         class="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-[var(--olive)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--olive-700)] btn-shine">
+        Choose Gold
+      </a>
+    </article>
+  </div>
+
+  <p class="mt-8 text-center text-[11px] text-slate-600">
+    VAT may apply. Some perks require identity and suitability checks. No financial advice.
+  </p>
+</div>
+
+    </div>
+  </div>
+</section>
+
+<section id="final-cta" class="py-16 lg:py-20">
+  <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
+    <div class="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_10px_32px_rgba(0,0,0,0.08)]">
+      <div class="px-6 sm:px-12 py-12 sm:py-16 text-center">
+        <span class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-xs text-black/60">
+          No AUM fees — we win when you do
+        </span>
+
+        <h2 class="mt-4 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[var(--ink)]">
+          Ready to grow with <span class="text-[var(--olive)]">AlgoHive</span>?
+        </h2>
+        <p class="mt-3 text-[15px] sm:text-lg text-[var(--muted)]">
+          Pick a strategy, track performance, and stay invested with smarter tools.
+        </p>
+
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <a href="/auth.html?redirect=/home.html"
+             class="inline-flex items-center gap-2 rounded-xl bg-[var(--olive)] px-6 py-3 font-semibold text-white hover:bg-[var(--olive-700)] btn-shine">
+            Create your account
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 4.5 21 12l-7.5 7.5M21 12H3"/></svg>
+          </a>
+          <a href="#demo"
+             class="inline-flex items-center gap-2 rounded-xl border border-black/15 px-6 py-3 text-[var(--ink)] font-semibold hover:bg-black/5">
+            View OpenStrategies
+          </a>
+        </div>
+
+        <p class="mt-3 text-xs text-slate-600">Start free. Upgrade anytime. Cancel anytime.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faqs" class="py-16 lg:py-20">
+  <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
+    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[var(--ink)] mb-6">
+      Frequently asked questions
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <details class="group rounded-2xl border border-black/10 bg-white p-4 open:shadow-sm">
+        <summary class="flex cursor-pointer items-center justify-between gap-3 text-[var(--ink)] font-medium">
+          What is AlgoHive?
+          <span class="ml-2 text-slate-400 group-open:rotate-180 transition-transform">&#9662;</span>
+        </summary>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          AlgoHive is a platform where you can discover, track and allocate to managed strategies across asset classes, paying only performance and transaction fees instead of AUM fees.
+        </p>
+      </details>
+
+      <details class="group rounded-2xl border border-black/10 bg-white p-4 open:shadow-sm">
+        <summary class="flex cursor-pointer items-center justify-between gap-3 text-[var(--ink)] font-medium">
+          How do fees work?
+          <span class="ml-2 text-slate-400 group-open:rotate-180 transition-transform">&#9662;</span>
+        </summary>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          You only pay performance fees when strategies deliver returns. A small transaction fee applies when you allocate or rebalance. There are no AUM fees — we only win when you do.
+        </p>
+      </details>
+
+      <details class="group rounded-2xl border border-black/10 bg-white p-4 open:shadow-sm">
+        <summary class="flex cursor-pointer items-center justify-between gap-3 text-[var(--ink)] font-medium">
+          Can I track multiple strategies?
+          <span class="ml-2 text-slate-400 group-open:rotate-180 transition-transform">&#9662;</span>
+        </summary>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          Yes. On the Freemium plan you can track one strategy. The Basic plan allows up to six, and Premium unlocks unlimited tracking.
+        </p>
+      </details>
+
+      <details class="group rounded-2xl border border-black/10 bg-white p-4 open:shadow-sm">
+        <summary class="flex cursor-pointer items-center justify-between gap-3 text-[var(--ink)] font-medium">
+          Do you offer advisory or just tools?
+          <span class="ml-2 text-slate-400 group-open:rotate-180 transition-transform">&#9662;</span>
+        </summary>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          Yes. Alongside our tools and data, you can book sessions with certified wealth advisors for personalised financial advice.
+        </p>
+      </details>
+
+      <details class="group rounded-2xl border border-black/10 bg-white p-4 open:shadow-sm">
+        <summary class="flex cursor-pointer items-center justify-between gap-3 text-[var(--ink)] font-medium">
+          Where is my data stored?
+          <span class="ml-2 text-slate-400 group-open:rotate-180 transition-transform">&#9662;</span>
+        </summary>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          Encrypted at rest and in transit with reputable cloud providers. You control connections and revocations.
+        </p>
+      </details>
+
+      <details class="group rounded-2xl border border-black/10 bg-white p-4 open:shadow-sm">
+        <summary class="flex cursor-pointer items-center justify-between gap-3 text-[var(--ink)] font-medium">
+          Can I cancel anytime?
+          <span class="ml-2 text-slate-400 group-open:rotate-180 transition-transform">&#9662;</span>
+        </summary>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          Yep. Plans are month-to-month. You can downgrade or cancel from your account settings.
+        </p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer class="border-t border-black/10 bg-white">
+  <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 py-10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div>
+        <div class="flex items-center gap-2">
+          <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" class="h-7 w-auto" alt="AlgoHive">
+          <span class="text-[var(--ink)] font-extrabold">AlgoHive</span>
+        </div>
+        <p class="mt-3 text-sm text-[var(--muted)]">
+          Ready-made strategies, tracked and managed. Built to grow your wealth, not fees.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="text-sm font-semibold text-[var(--ink)]">Product</h4>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="#strategies" class="text-[var(--muted)] hover:text-[var(--ink)]">Strategies</a></li>
+          <li><a href="#pricing" class="text-[var(--muted)] hover:text-[var(--ink)]">Pricing</a></li>
+          <li><a href="#lending" class="text-[var(--muted)] hover:text-[var(--ink)]">Portfolio-backed credit</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-sm font-semibold text-[var(--ink)]">Company</h4>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="who-we-are.html" class="text-[var(--muted)] hover:text-[var(--ink)]">About</a></li>
+          <li><a href="how-we-work.html" class="text-[var(--muted)] hover:text-[var(--ink)]">How we work</a></li>
+          <li><a href="#faqs" class="text-[var(--muted)] hover:text-[var(--ink)]">FAQs</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-sm font-semibold text-[var(--ink)]">Legal</h4>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="#" class="text-[var(--muted)] hover:text-[var(--ink)]">Terms</a></li>
+          <li><a href="#" class="text-[var(--muted)] hover:text-[var(--ink)]">Privacy</a></li>
+          <li><a href="#" class="text-[var(--muted)] hover:text-[var(--ink)]">Disclaimers</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <p class="text-xs text-slate-500">© <span id="yr"></span> AlgoHive. All rights reserved.
+AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset classes carry investment risks, including the potential loss of capital. Past performance is not indicative of future results. Investors should carefully consider their financial situation and objectives before making any investment decisions. Invest responsibly.
+ </p>
+
+    </div>
+  </div>
+</footer>
+  
+<script>
+  // Global scripts for all pages
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  // Hamburger Menu Toggle
+  const hamburgerButton = document.getElementById('hamburger-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+  hamburgerButton.addEventListener('click', () => {
+    mobileMenu.classList.toggle('hidden');
+  });
+
+  // Countdown Timer specific to home page
+  (function(){
+    const target = new Date('2025-10-21T00:00:00+02:00');
+    const daysEl  = document.getElementById('cdDays');
+    const hrsEl   = document.getElementById('cdHrs');
+    const minsEl  = document.getElementById('cdMins');
+    const secsEl  = document.getElementById('cdSecs');
+    const labelEl = document.getElementById('cdLabel');
+
+    if (!daysEl || !hrsEl || !minsEl || !secsEl || !labelEl) return;
+
+    function update(){
+      const now = new Date();
+      let ms = target - now;
+      if (ms <= 0){
+        daysEl.textContent = '0';
+        hrsEl.textContent  = '00';
+        minsEl.textContent = '00';
+        secsEl.textContent = '00';
+        labelEl.textContent = 'Launched 🚀';
+        if(interval) clearInterval(interval);
+        return;
+      }
+      const d = Math.floor(ms / (1000*60*60*24));
+      ms -= d * (1000*60*60*24);
+      const h = Math.floor(ms / (1000*60*60));
+      ms -= h * (1000*60*60);
+      const m = Math.floor(ms / (1000*60));
+      ms -= m * (1000*60);
+      const s = Math.floor(ms / 1000);
+
+      daysEl.textContent = d;
+      hrsEl.textContent  = String(h).padStart(2, '0');
+      minsEl.textContent = String(m).padStart(2, '0');
+      secsEl.textContent = String(s).padStart(2, '0');
+    }
+    update();
+    const interval = setInterval(update, 1000); // Update every second
+  })();
+</script>
+
+<script type="module">
+    // --- Supabase Client Setup ---
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- DOM Element Selectors ---
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+
+    const els = {
+        stratName: $('#stratName'), provider: $('#provider'), since: $('#since'), currency: $('#currency'), risk: $('#risk'), aum: $('#aum'), period: $('#period'),
+        eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
+        mBestDay: $('#mBestDay'), mWorstDay: $('#mWorstDay'), mPosDays: $('#mPosDays'), mNegDays: $('#mNegDays'), mWinRateDays: $('#mWinRateDays'), mAvgDaily: $('#mAvgDaily'),
+        axes: $('#eqAxes'), line: $('#equityLine'), fill: $('#equityFill'),
+        stratDesc: $('#stratDesc'), stratLink: $('#stratLink'),
+        leftCard: $('#leftCard'),
+        assetFilters: $('#assetFilters'),
+        periodButtons: $$('.prd'),
+        prevStratBtn: $('#prevStrat'),
+        nextStratBtn: $('#nextStrat')
+    };
+
+    // --- State Management ---
+    let STRATEGIES = [];
+    let selectedAsset = 'All';
+    let selectedPeriod = 'ALL';
+    let activeStrategyIndex = 0;
+
+    // --- Utility Functions ---
+    const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit', day: 'numeric' });
+
+    // --- Data Fetching ---
+    async function fetchStrategies() {
+        console.log("Fetching strategies and metrics from Supabase...");
+
+        const { data, error } = await supabaseClient
+            .from('strategies')
+            .select('*, strategy_metrics(*)');
+
+        if (error) {
+            console.error("Error fetching data:", error);
+            els.stratName.textContent = "Error loading data.";
+            return [];
+        }
+
+        const formatPercent = (value, dp = 1) => {
+            if (value === null || typeof value === 'undefined') return '—';
+            const num = Number(value);
+            if (isNaN(num)) return '—';
+            return (num >= 0 ? '+' : '') + (num).toFixed(dp) + '%';
+        };
+
+        const formatNumber = (value, dp = 2) => {
+            if (value === null || typeof value === 'undefined') return '—';
+            const num = Number(value);
+            if (isNaN(num)) return '—';
+            return num.toFixed(dp);
+        };
+        
+        const formatCount = (value) => {
+            if (value === null || typeof value === 'undefined') return '—';
+            const num = Number(value);
+            if (isNaN(num)) return '—';
+            return num.toString();
+        };
+
+        // Map the raw database data to a clean format for the frontend
+        return data.map(s => {
+            const metrics = s.strategy_metrics[0] || {}; 
+            const perfSummary = metrics.perf_summary || {};
+            
+            return {
+                ...s,
+                name: s.name || 'Unnamed Strategy',
+                provider: s.creator || 'AlgoHive Quant',
+                since: s.inception_date ? new Date(s.inception_date).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit' }).replace('/', '-') : '',
+                sinceMonth: s.inception_date ? s.inception_date.substring(0, 7) : null,
+                desc: s.strategy_description || 'No description provided.',
+                asset: s.asset_universe || 'Other',
+                
+                // Pass series data directly
+                series_1d: metrics.series_1d || [],
+                series_1m: metrics.series_1m || [],
+                series_6m: metrics.series_6m || [],
+                series_1y: metrics.series_1y || [],
+                series_all: metrics.series_all || [],
+
+                // New metrics from perf_summary
+                bestDay: formatPercent(perfSummary.best_day_pct, 2),
+                worstDay: formatPercent(perfSummary.worst_day_pct, 2),
+                posDays: formatCount(perfSummary.days_positive),
+                negDays: formatCount(perfSummary.days_negative),
+                winRateDays: formatPercent(perfSummary.positive_days_pct, 1),
+                avgDaily: formatPercent(perfSummary.avg_daily_return_pct, 3),
+
+                aum: s.aum ? `R${(s.aum / 1_000_000).toFixed(1)}m` : '',
+                risk: s.risk_level || '', 
+                currency: s.currency || 'USD',
+            };
+        });
+    }
+
+    // --- Chart & Rendering Logic
+    function drawChart(equityVals, dates) {
+        els.axes.innerHTML = ''; 
+        els.line.setAttribute('d', '');
+        els.fill.setAttribute('d', '');
+        els.eqValue.textContent = '—';
+        els.eqDelta.textContent = '';
+
+        if (!equityVals || equityVals.length < 2) {
+            els.eqValue.textContent = 'Not enough data';
+            return;
+        };
+
+        const chartPct = (n, dp = 1) => (n >= 0 ? '+' : '') + n.toFixed(dp) + '%';
+
+        const base = equityVals[0];
+        const rets = equityVals.map(v => ((v / base) - 1) * 100);
+        const W = 900, H = 320, P = { top: 16, right: 24, bottom: 40, left: 52 };
+        const innerW = W - P.left - P.right;
+        const innerH = H - P.top - P.bottom;
+        
+        const niceExtent = (minV, maxV) => {
+            if (minV === maxV) { minV -= 1; maxV += 1; }
+            const span = maxV - minV;
+            const pad = Math.max(5, span * 0.12);
+            let lo = Math.floor((Math.min(0, minV - pad)) / 5) * 5;
+            let hi = Math.ceil((Math.max(0, maxV + pad)) / 5) * 5;
+            if (hi === lo) { hi = lo + 5; }
+            return [lo, hi];
+        };
+        
+        const [yMin, yMax] = niceExtent(Math.min(...rets), Math.max(...rets));
+        const sx = (i) => P.left + (i * (innerW)) / Math.max(1, (rets.length - 1));
+        const sy = (r) => P.top + (yMax - r) * (innerH) / Math.max(1, yMax - yMin);
+
+        for (let t = 0; t <= 5; t++) {
+            const val = yMin + (t * (yMax - yMin)) / 5;
+            const y = sy(val);
+            els.axes.innerHTML += `<line x1="${P.left}" x2="${W - P.right}" y1="${y}" y2="${y}" stroke="rgba(0,0,0,0.08)" stroke-dasharray="4 4" />`;
+            els.axes.innerHTML += `<text x="${P.left - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${chartPct(val, 0)}</text>`;
+        }
+        
+        els.axes.innerHTML += `<line x1="${P.left}" x2="${W - P.right}" y1="${H - P.bottom}" y2="${H - P.bottom}" stroke="rgba(0,0,0,0.12)" />`;
+        
+        if (dates.length > 0) {
+            const pickLabelIdx = (n, maxLabels = 6) => {
+                if (n <= 1) return [0];
+                const step = Math.max(1, Math.round((n - 1) / (maxLabels - 1)));
+                const idxs = [];
+                for (let i = 0; i < n; i += step) idxs.push(i);
+                if (idxs.length === 0 || idxs[idxs.length - 1] !== n - 1) idxs.push(n - 1);
+                return [...new Set(idxs)]; // Ensure unique indices
+            };
+
+            const idxs = pickLabelIdx(dates.length, 6);
+            idxs.forEach((i, k) => {
+                const x = sx(i);
+                els.axes.innerHTML += `<text x="${x}" y="${H - P.bottom + 14}" text-anchor="${k === 0 ? 'start' : (k === idxs.length - 1 ? 'end' : 'middle')}" font-size="10" fill="#64748b">${monthFmt.format(dates[i])}</text>`;
+            });
+        }
+
+        const d = 'M ' + rets.map((r, i) => `${sx(i)},${sy(r)}`).join(' L ');
+        els.line.setAttribute('d', d);
+        const fillD = `${d} L ${sx(rets.length - 1)},${H - P.bottom} L ${sx(0)},${H - P.bottom} Z`;
+        els.fill.setAttribute('d', fillD);
+
+        const last = rets.at(-1) || 0;
+        els.eqValue.textContent = `Growth: ${((last / 100) + 1).toFixed(2)}x`;
+        els.eqDelta.textContent = chartPct(last);
+        els.eqDelta.className = `inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${last >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`;
+    }
+
+    function filterByPeriod(strategy) {
+        if (!strategy) return { series: [], dates: [] };
+
+        // --- Configuration: Select the correct series based on the period ---
+        let returnSeries = [];
+        switch (selectedPeriod) {
+            case '1D': returnSeries = strategy.series_1d; break;
+            case '1M': returnSeries = strategy.series_1m; break; // FIX: Added missing 1M case
+            case '6M': returnSeries = strategy.series_6m; break;
+            case '1Y': returnSeries = strategy.series_1y; break;
+            case 'ALL':
+            default: returnSeries = strategy.series_all; break;
+        }
+
+        if (!Array.isArray(returnSeries) || returnSeries.length === 0) {
+            return { series: [100], dates: [new Date(strategy.inception_date || Date.now())] };
+        }
+        
+        const firstPoint = returnSeries[0];
+
+        // --- Helper for Monthly Label Conversion (e.g., "Jan 2025" -> Date object for last day of month) ---
+        function convertLabelToDate(label) {
+            if (!label) return null;
+            const [monthName, year] = label.split(' ');
+            const monthIndex = new Date(Date.parse(monthName + " 1, 2020")).getMonth(); 
+            const dateObj = new Date(year, monthIndex + 1, 0); 
+            return isNaN(dateObj.getTime()) ? null : dateObj;
+        }
+
+        // --- CHART DATA TRANSFORMATION ---
+        
+        // A) Handle Intraday Equity Series: {ts, equity}
+        if (selectedPeriod === '1D' && firstPoint.ts && typeof firstPoint.equity !== 'undefined') {
+            const firstEquity = parseFloat(firstPoint.equity);
+            if (firstEquity <= 0) return { series: [100], dates: [new Date(firstPoint.ts)] };
+            
+            // Directly normalize the equity values to a series starting at 100
+            const series = returnSeries.map(p => 100 * (parseFloat(p.equity) / firstEquity));
+            const dates = returnSeries.map(p => new Date(p.ts));
+            return { series, dates };
+        }
+
+        // B) Handle Periodic Return Series: {pct, date/label}
+        const standardizedReturns = returnSeries.map(item => {
+            const date = item.date ? new Date(item.date) : (item.label ? convertLabelToDate(item.label) : null);
+            const raw_pct = (item.pct !== null && typeof item.pct !== 'undefined') ? parseFloat(item.pct) / 100 : 0;
+            return date ? { date, raw_pct } : null;
+        }).filter(Boolean);
+
+        if (standardizedReturns.length === 0) {
+             return { series: [100], dates: [new Date(strategy.inception_date || Date.now())] };
+        }
+
+        // --- Cumulative Curve Calculation ---
+        const series = standardizedReturns.reduce((curve, ret) => {
+            curve.push(curve.at(-1) * (1 + (ret.raw_pct || 0)));
+            return curve;
+        }, [100]);
+
+        // --- Date Array Creation (add a start date for the baseline '100') ---
+        const firstReturnDate = new Date(standardizedReturns[0].date);
+        const startDate = new Date(firstReturnDate);
+        startDate.setDate(startDate.getDate() - 1); // One day before the first data point
+
+        const dates = [startDate, ...standardizedReturns.map(r => r.date)];
+
+        return { series, dates };
+    }
+
+    function render() {
+        const filteredStrategies = STRATEGIES.filter(s => selectedAsset === 'All' || s.asset === selectedAsset);
+        
+        if (activeStrategyIndex >= filteredStrategies.length) {
+            activeStrategyIndex = 0;
+        }
+        
+        const s = filteredStrategies[activeStrategyIndex];
+        if (!s || filteredStrategies.length === 0) {
+            els.stratName.textContent = `No strategies found for "${selectedAsset}"`;
+            ['provider', 'since', 'currency', 'risk', 'aum', 'period', 'mBestDay', 'mWorstDay', 'mPosDays', 'mNegDays', 'mWinRateDays', 'mAvgDaily', 'stratDesc'].forEach(key => {
+                if (els[key]) els[key].textContent = '—';
+            });
+            drawChart([], []);
+            updateNavButtons(0, 0);
+            markActive();
+            return; 
+        }
+        
+        const { series, dates } = filterByPeriod(s);
+
+        els.stratName.textContent = s.name;
+        els.provider.textContent = s.provider;
+        els.since.textContent = s.since ? `Live since ${s.since}` : '—';
+        els.risk.textContent = s.risk ? `Risk ${s.risk}` : '—';
+        const riskLower = (s.risk || '').toLowerCase();
+        els.risk.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px]';
+        if (riskLower.includes('medium') || riskLower.includes('mod')) {
+            els.risk.classList.add('bg-amber-50', 'text-amber-700');
+        } else if (riskLower.includes('high')) {
+            els.risk.classList.add('bg-red-50', 'text-red-700');
+        } else {
+             els.risk.classList.add('bg-slate-50', 'text-slate-700');
+        }
+        
+        els.currency.textContent = s.currency;
+        els.aum.textContent = s.aum || '—';
+        
+        els.mBestDay.textContent = s.bestDay;
+        els.mWorstDay.textContent = s.worstDay;
+        els.mPosDays.textContent = s.posDays;
+        els.mNegDays.textContent = s.negDays;
+        els.mWinRateDays.textContent = s.winRateDays;
+        els.mAvgDaily.textContent = s.avgDaily;
+        els.stratDesc.textContent = s.desc;
+        
+        els.period.textContent = selectedPeriod === 'ALL' ? 'All time' : selectedPeriod;
+        
+        drawChart(series, dates);
+
+        els.leftCard.classList.remove('swap-in');
+        void els.leftCard.offsetWidth;
+        els.leftCard.classList.add('swap-in');
+        
+        updateNavButtons(activeStrategyIndex, filteredStrategies.length);
+        markActive();
+    }
+
+    function renderAssetFilters() {
+        const assets = ['All', ...new Set(STRATEGIES.map(s => s.asset).filter(Boolean))];
+        els.assetFilters.innerHTML = assets.map(asset => `
+            <button class="asset-tag px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-asset="${asset}">${asset}</button>
+        `).join('');
+        
+        $$('.asset-tag').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedAsset = btn.dataset.asset;
+                activeStrategyIndex = 0; 
+                render();
+            });
+        });
+    }
+
+    function updateNavButtons(currentIndex, total) {
+        els.prevStratBtn.disabled = currentIndex <= 0;
+        els.nextStratBtn.disabled = currentIndex >= total - 1;
+    }
+
+    function markActive() {
+        $$('.asset-tag').forEach(b => b.classList.toggle('tag-active', b.dataset.asset === selectedAsset));
+        els.periodButtons.forEach(b => b.classList.toggle('prd-active', b.dataset.period === selectedPeriod));
+    }
+
+    // --- Event Listeners & Initialization ---
+    async function main() {
+        STRATEGIES = await fetchStrategies();
+        selectedPeriod = 'ALL';
+        
+        if (STRATEGIES.length > 0) {
+            renderAssetFilters();
+            render(); 
+        } else {
+            els.stratName.textContent = 'No strategies available.';
+            updateNavButtons(0, 0);
+        }
+
+        els.periodButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedPeriod = btn.dataset.period || 'ALL';
+                render();
+            });
+        });
+
+        els.nextStratBtn.addEventListener('click', () => {
+             const filteredStrategies = STRATEGIES.filter(s => selectedAsset === 'All' || s.asset === selectedAsset);
+             if (activeStrategyIndex < filteredStrategies.length - 1) {
+                 activeStrategyIndex++;
+                 render();
+             }
+        });
+
+        els.prevStratBtn.addEventListener('click', () => {
+            if (activeStrategyIndex > 0) {
+                activeStrategyIndex--;
+                render();
+            }
+        });
+    }
+
+    main();
+</script>
+
+</body>
+</html>
