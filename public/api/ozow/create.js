@@ -15,29 +15,44 @@ function sha512LowerHex(s) {
   return crypto.createHash("sha512").update(s.toLowerCase(), "utf8").digest("hex");
 }
 
+// ISO8601 without milliseconds, always UTC (e.g. 2025-10-16T15:20:00Z)
+function utcIsoNoMillis(date) {
+  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
     const { amount, customerName } = req.body || {};
+
+    // 10 minutes from now (UTC)
+    const expiryDateUtc = utcIsoNoMillis(new Date(Date.now() + 10 * 60 * 1000));
+
     const body = {
       siteCode: OZOW.siteCode,
       countryCode: "ZA",
       currencyCode: "ZAR",
       amount: Number(amount || 0),
       transactionReference: `AH-${Date.now()}`,
-      bankReference: `ALGOHIVE-${Math.random().toString(36).slice(2,8).toUpperCase()}`,
-      optional1: "", optional2: "", optional3: "", optional4: "", optional5: "",
-      customer: (customerName || "AlgoHive User").slice(0,100),
+      bankReference: `ALGOHIVE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      optional1: "",
+      optional2: "",
+      optional3: "",
+      optional4: "",
+      optional5: "",
+      customer: (customerName || "AlgoHive User").slice(0, 100),
       cancelUrl: OZOW.cancelUrl,
       errorUrl: OZOW.errorUrl,
       successUrl: OZOW.successUrl,
       notifyUrl: OZOW.notifyUrl,
       isTest: false,
       selectedBankId: "",
-      bankAccountNumber: "", branchCode: "",
-      bankAccountName: "", payeeDisplayName: "",
-      expiryDateUtc: "",
+      bankAccountNumber: "",
+      branchCode: "",
+      bankAccountName: "",
+      payeeDisplayName: "",
+      expiryDateUtc,              // <<— set here
       customerIdentifier: "",
     };
 
