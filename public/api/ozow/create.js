@@ -94,12 +94,13 @@ export default async function handler(req, res) {
       customerIdentifier: "",
     };
 
-    // The order array is now simplified to match your working example's required fields 
-    // for the HASH calculation (11 fields + Private Key).
+    // The order array now includes all fields in the required order for the HASH calculation (17 fields + Private Key).
     const order = [
-      "siteCode","countryCode","currencyCode","amount",
-      "transactionReference","bankReference",
-      "cancelUrl","errorUrl","successUrl","notifyUrl",
+      "siteCode", "countryCode", "currencyCode", "amount",
+      "transactionReference", "bankReference",
+      "optional1", "optional2", "optional3", "optional4", "optional5",
+      "customer",
+      "cancelUrl", "errorUrl", "successUrl", "notifyUrl",
       "isTest"
     ];
 
