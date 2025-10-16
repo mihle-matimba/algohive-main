@@ -73,6 +73,7 @@ export default async function handler(req, res) {
       amount: formattedAmount, // ✅ USING FORMATTED AMOUNT STRING
       transactionReference: `AH-${Date.now()}`,
       bankReference: `ALGOHIVE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      // Setting these to empty strings ensures they don't break the concatenation logic if the API requires them in the body
       optional1: "",
       optional2: "",
       optional3: "",
@@ -93,18 +94,17 @@ export default async function handler(req, res) {
       customerIdentifier: "",
     };
 
-    // The order array MUST match the required order for Ozow's hash calculation
+    // The order array is now simplified to match your working example's required fields 
+    // for the HASH calculation (11 fields + Private Key).
     const order = [
       "siteCode","countryCode","currencyCode","amount",
       "transactionReference","bankReference",
-      "optional1","optional2","optional3","optional4","optional5",
-      "customer","cancelUrl","errorUrl","successUrl","notifyUrl",
-      "isTest","selectedBankId","bankAccountNumber","branchCode",
-      "bankAccountName","payeeDisplayName","expiryDateUtc",
-      "customerIdentifier"
+      "cancelUrl","errorUrl","successUrl","notifyUrl",
+      "isTest"
     ];
 
     // Build the concatenation string using the specified order and current body values
+    // NOTE: If any of these fields are null/undefined, String(body[k] ?? "") ensures they become empty strings.
     const concat = order.map(k => String(body[k] ?? "")).join("") + OZOW.privateKey;
     body.hashCheck = sha512LowerHex(concat);
 
