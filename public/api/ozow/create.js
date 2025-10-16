@@ -1,127 +1,111 @@
-// ozow_dynamic_request.js
-// Node 18+ (global fetch). CommonJS. Keeps original hash order.
-// Env needed: OZOW_API_KEY, OZOW_PRIVATE_KEY, OZOW_SITE_CODE, OZOW_NOTIFY_URL, OZOW_SUCCESS_URL, OZOW_CANCEL_URL, OZOW_ERROR_URL
-
+// ozow.request.cjs (drop-in replacement for handler)
 const crypto = require("crypto");
 
-// ---- Config (from env) ----
 const OZOW = {
-  apiUrl: process.env.OZOW_API_URL || "https://api.ozow.com/postpaymentrequest",
+  api: process.env.OZOW_API_URL || "https://api.ozow.com/PostPaymentRequest",
   apiKey: process.env.OZOW_API_KEY,
-  privateKey: process.env.OZOW_PRIVATE_KEY, // CRITICAL: real env value, not a string literal
+  privateKey: process.env.OZOW_PRIVATE_KEY,
   siteCode: process.env.OZOW_SITE_CODE,
   notifyUrl: process.env.OZOW_NOTIFY_URL,
   successUrl: process.env.OZOW_SUCCESS_URL,
   cancelUrl: process.env.OZOW_CANCEL_URL,
   errorUrl: process.env.OZOW_ERROR_URL,
+  isTest: String(process.env.OZOW_IS_TEST ?? "false").toLowerCase() === "true",
 };
 
-// ---- Helpers ----
-const formatAmount = (n) => Number(n || 0).toFixed(2);
+const str = (v) => (v === null || v === undefined ? "" : String(v));
+const fmtAmount = (n) => Number(n || 0).toFixed(2);
 const sha512LowerHex = (s) => crypto.createHash("sha512").update(s.toLowerCase(), "utf8").digest("hex");
 
-// IMPORTANT: Keep EXACT order from your first code
-const HASH_ORDER = [
-  "siteCode",
-  "countryCode",
-  "currencyCode",
-  "amount",
-  "transactionReference",
-  "bankReference",
-  "cancelUrl",
-  "errorUrl",
-  "successUrl",
-  "notifyUrl",
-  "isTest",
-];
+async function handler(req, res) {
+  try {
+    if (req.method && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-function buildHashCheck(body) {
-  const concatenated = HASH_ORDER.map((k) => String(body[k] ?? "")).join("") + OZOW.privateKey;
-  return sha512LowerHex(concatenated);
-}
-
-function assertConfig() {
-  const missing = [];
-  if (!OZOW.apiKey) missing.push("OZOW_API_KEY");
-  if (!OZOW.privateKey) missing.push("OZOW_PRIVATE_KEY");
-  if (!OZOW.siteCode) missing.push("OZOW_SITE_CODE");
-  if (!OZOW.notifyUrl) missing.push("OZOW_NOTIFY_URL");
-  if (!OZOW.successUrl) missing.push("OZOW_SUCCESS_URL");
-  if (!OZOW.cancelUrl) missing.push("OZOW_CANCEL_URL");
-  if (!OZOW.errorUrl) missing.push("OZOW_ERROR_URL");
-  if (missing.length) {
-    throw new Error(`Missing env vars: ${missing.join(", ")}`);
-  }
-}
-
-// ---- Core: build payload + fetch ----
-async function createOzowPayment({
-  amount,
-  transactionReference, // e.g. `AH-${Date.now()}`
-  bankReference,        // e.g. `ALGOHIVE-ABC123`
-  isTest = false,       // boolean
-}) {
-  assertConfig();
-
-  // Build the body with the same fields you used originally
-  const body = {
-    countryCode: "ZA",
-    amount: formatAmount(amount),
-    transactionReference,
-    bankReference,
-    cancelUrl: OZOW.cancelUrl,
-    currencyCode: "ZAR",
-    errorUrl: OZOW.errorUrl,
-    isTest, // boolean in body is fine; we stringify for the hash below using String()
-    notifyUrl: OZOW.notifyUrl,
-    siteCode: OZOW.siteCode,
-    successUrl: OZOW.successUrl,
-  };
-
-  // Compute hash using EXACT same order as original code + privateKey at the end
-  // Note: we must pass the *string representation* of isTest to match your original concatenation
-  const bodyForHash = { ...body, isTest: String(body.isTest) };
-  body.hashCheck = buildHashCheck(bodyForHash);
-
-  const res = await fetch(OZOW.apiUrl, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "ApiKey": OZOW.apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  // Some Ozow responses are text or JSON; handle both
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
-  if (!res.ok) {
-    throw new Error(`Ozow error ${res.status}: ${data?.errorMessage || data?.raw || text}`);
-  }
-
-  return data; // usually contains paymentRequestId and url
-}
-
-// ---- Example run (CLI) ----
-if (require.main === module) {
-  (async () => {
-    try {
-      const out = await createOzowPayment({
-        amount: 1, // dynamic
-        transactionReference: `AH-${Date.now()}`,
-        bankReference: `ALGOHIVE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-        isTest: false, // or true for sandbox
-      });
-      console.log("✅ Ozow response:", out);
-    } catch (e) {
-      console.error("❌ Failed:", e.message);
-      process.exit(1);
+    // Env checks
+    const missing = ["privateKey","siteCode","apiKey","notifyUrl","successUrl","cancelUrl","errorUrl"]
+      .filter(k => !OZOW[k]);
+    if (missing.length) {
+      return res.status(500).json({ error: `Missing env vars: ${missing.join(", ")}` });
     }
-  })();
+
+    const inBody = (req.body && typeof req.body === "object") ? req.body : {};
+    const amount = fmtAmount(inBody.amount);
+    const transactionReference = str(inBody.transactionReference) || `AH-${Date.now()}`;
+    const bankReference        = str(inBody.bankReference) || `ALGOHIVE-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+
+    // — Keep your original hash order —
+    const body = {
+      siteCode: OZOW.siteCode,
+      countryCode: "ZA",
+      currencyCode: "ZAR",
+      amount,
+      transactionReference,
+      bankReference,
+      cancelUrl: OZOW.cancelUrl,
+      errorUrl: OZOW.errorUrl,
+      successUrl: OZOW.successUrl,
+      notifyUrl: OZOW.notifyUrl,
+      isTest: OZOW.isTest, // boolean; becomes "true"/"false" in concat
+    };
+
+    const concat =
+      str(body.siteCode) +
+      str(body.countryCode) +
+      str(body.currencyCode) +
+      str(body.amount) +
+      str(body.transactionReference) +
+      str(body.bankReference) +
+      str(body.cancelUrl) +
+      str(body.errorUrl) +
+      str(body.successUrl) +
+      str(body.notifyUrl) +
+      str(body.isTest) +
+      str(OZOW.privateKey);
+
+    body.hashCheck = sha512LowerHex(concat);
+
+    const r = await fetch(OZOW.api, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json, application/xml",
+        "ApiKey": OZOW.apiKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const raw = await r.text();
+    let data = raw;
+    try { data = JSON.parse(raw); } catch {}
+
+    // Log everything server-side for debugging
+    console.error("[Ozow] status:", r.status);
+    console.error("[Ozow] headers:", Object.fromEntries(r.headers.entries()));
+    console.error("[Ozow] raw:", raw);
+    console.error("[Ozow] concatUsed:", concat);
+    console.error("[Ozow] hashCheck:", body.hashCheck);
+
+    if (!r.ok || !data?.url) {
+      const msg = data?.errorMessage || data?.message || data?.errors || "Ozow returned a non-OK response";
+      return res.status(400).json({
+        error: String(msg),
+        status: r.status,
+        ozow: data,
+        debug: {
+          siteCode: body.siteCode,
+          amount: body.amount,
+          isTest: body.isTest,
+          transactionReference: body.transactionReference,
+          bankReference: body.bankReference,
+        }
+      });
+    }
+
+    return res.status(200).json({ paymentRequestId: data.paymentRequestId, url: data.url });
+  } catch (e) {
+    console.error("Unexpected error:", e);
+    return res.status(500).json({ error: "Internal server error.", detail: String(e?.message || e) });
+  }
 }
 
-// Export for server usage (e.g., Express/Next API route)
-module.exports = { createOzowPayment };
+module.exports = handler;
