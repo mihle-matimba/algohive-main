@@ -763,371 +763,276 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 </script>
 
 <script type="module">
-    // --- Supabase Client Setup ---
-    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
-    const { createClient } = supabase;
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // --- Supabase ---
+  const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- DOM Element Selectors ---
-    const $ = (s) => document.querySelector(s);
-    const $$ = (s) => document.querySelectorAll(s);
+  // --- DOM helpers ---
+  const $  = (s)=>document.querySelector(s);
+  const $$ = (s)=>document.querySelectorAll(s);
 
-    const els = {
-        stratName: $('#stratName'), provider: $('#provider'), since: $('#since'), currency: $('#currency'), risk: $('#risk'), aum: $('#aum'), period: $('#period'),
-        eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
-        mBestDay: $('#mBestDay'), mWorstDay: $('#mWorstDay'), mPosDays: $('#mPosDays'), mNegDays: $('#mNegDays'), mWinRateDays: $('#mWinRateDays'), mAvgDaily: $('#mAvgDaily'),
-        axes: $('#eqAxes'), line: $('#equityLine'), fill: $('#equityFill'),
-        stratDesc: $('#stratDesc'), stratLink: $('#stratLink'),
-        leftCard: $('#leftCard'),
-        assetFilters: $('#assetFilters'),
-        periodButtons: $$('.prd'),
-        prevStratBtn: $('#prevStrat'),
-        nextStratBtn: $('#nextStrat')
+  const els = {
+    stratName: $('#stratName'), provider: $('#provider'), since: $('#since'),
+    currency: $('#currency'), risk: $('#risk'), aum: $('#aum'), period: $('#period'),
+    eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
+    mBestDay: $('#mBestDay'), mWorstDay: $('#mWorstDay'), mPosDays: $('#mPosDays'),
+    mNegDays: $('#mNegDays'), mWinRateDays: $('#mWinRateDays'), mAvgDaily: $('#mAvgDaily'),
+    axes: $('#eqAxes'), line: $('#equityLine'), fill: $('#equityFill'),
+    stratDesc: $('#stratDesc'), leftCard: $('#leftCard'),
+    assetFilters: $('#assetFilters'), periodButtons: $$('.prd'),
+    prevStratBtn: $('#prevStrat'), nextStratBtn: $('#nextStrat')
+  };
+
+  // --- State ---
+  let STRATEGIES = [];
+  let selectedAsset = 'All';
+  let selectedPeriod = 'ALL';
+  let activeStrategyIndex = 0;
+
+  const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit', day: 'numeric' });
+
+  // --- Formatters ---
+  const fmtPct = (v, dp=1) => (v==null || isNaN(+v)) ? '—' : `${+v>=0?'+':''}${(+v).toFixed(dp)}%`;
+  const fmtInt = (v) => (v==null || isNaN(+v)) ? '—' : String(+v);
+
+  // --- Fetch (matches your exact schema) ---
+  async function fetchStrategies() {
+    const { data, error } = await db
+      .from('strategies')
+      .select(`
+        id, name, creator, inception_date, risk_level, aum, currency,
+        strategy_description, asset_universe,
+        strategy_metrics:strategy_metrics!strategy_metrics_strategy_id_fkey (
+          asof_date, perf_summary, calendar_returns,
+          series_1d, series_1m, series_6m, series_1y, series_all,
+          live_equity, live_equity_ts, latest_eod_equity, latest_eod_date,
+          portfolio_holdings, asset_allocation
+        )
+      `)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error(error);
+      $('#stratName').textContent = 'Error loading strategies.';
+      return [];
+    }
+
+    return (data || []).map(s => {
+      // There’s only one metrics row per strategy_id (PK), but Supabase returns it as object already due to aliasing above.
+      const m = s.strategy_metrics || {};
+      const ps = m.perf_summary || {};
+
+      // Helpers to keep UI clean even if JSON has strings
+      const num = (x)=> (x==null || x==='') ? null : Number(x);
+      const asDate = (x)=> x ? new Date(x) : null;
+
+      return {
+        id: s.id,
+        name: s.name || 'Unnamed Strategy',
+        provider: s.creator || 'AlgoHive Quant',
+        inception_date: s.inception_date || null,
+        since: s.inception_date ? `Live since ${new Date(s.inception_date).toLocaleDateString('en-CA')}` : '—',
+        risk: s.risk_level || '',
+        aum: (num(s.aum)!=null) ? `R${(num(s.aum)/1_000_000).toFixed(1)}m` : '—',
+        currency: s.currency || 'USD',
+        desc: s.strategy_description || 'No description provided.',
+        asset: s.asset_universe || 'Other',
+
+        // Time series (jsonb arrays)
+        series_1d: Array.isArray(m.series_1d) ? m.series_1d : [],
+        series_1m: Array.isArray(m.series_1m) ? m.series_1m : [],
+        series_6m: Array.isArray(m.series_6m) ? m.series_6m : [],
+        series_1y: Array.isArray(m.series_1y) ? m.series_1y : [],
+        series_all: Array.isArray(m.series_all) ? m.series_all : [],
+
+        // Live / latest (optional UI use later)
+        live_equity: num(m.live_equity),
+        live_equity_ts: asDate(m.live_equity_ts),
+        latest_eod_equity: num(m.latest_eod_equity),
+        latest_eod_date: asDate(m.latest_eod_date),
+
+        // Holdings & allocation for future sections
+        portfolio_holdings: Array.isArray(m.portfolio_holdings) ? m.portfolio_holdings : [],
+        asset_allocation: Array.isArray(m.asset_allocation) ? m.asset_allocation : [],
+        calendar_returns: Array.isArray(m.calendar_returns) ? m.calendar_returns : [],
+
+        // perf summary (daily stats)
+        bestDay:     fmtPct(num(ps.best_day_pct), 2),
+        worstDay:    fmtPct(num(ps.worst_day_pct), 2),
+        posDays:     fmtInt(num(ps.days_positive)),
+        negDays:     fmtInt(num(ps.days_negative)),
+        winRateDays: fmtPct(num(ps.positive_days_pct), 1),
+        avgDaily:    fmtPct(num(ps.avg_daily_return_pct), 3)
+      };
+    });
+  }
+
+  // --- Chart ---
+  function drawChart(equityVals, dates){
+    const axes = els.axes, line = els.line, fill = els.fill;
+    axes.innerHTML=''; line.setAttribute('d',''); fill.setAttribute('d','');
+    if (!equityVals || equityVals.length<2){ els.eqValue.textContent='—'; els.eqDelta.textContent=''; return; }
+
+    const pct = (n,dp=1)=>`${n>=0?'+':''}${n.toFixed(dp)}%`;
+    const base = equityVals[0] || 1;
+    const rets = equityVals.map(v=> ((v/base)-1)*100 );
+
+    const W=900,H=320,P={top:16,right:24,bottom:40,left:52};
+    const innerW=W-P.left-P.right, innerH=H-P.top-P.bottom;
+    let yMin=Math.min(...rets), yMax=Math.max(...rets);
+    if (yMax===yMin){ yMax+=1; yMin-=1; }
+    const pad = Math.max(5,(yMax-yMin)*.12);
+    yMin = Math.floor((Math.min(0,yMin-pad))/5)*5;
+    yMax = Math.ceil((Math.max(0,yMax+pad))/5)*5;
+
+    const sx=i=>P.left+(i*(innerW))/Math.max(1,rets.length-1);
+    const sy=r=>P.top+(yMax-r)*(innerH)/Math.max(1,yMax-yMin);
+
+    for(let t=0;t<=5;t++){
+      const v=yMin+t*(yMax-yMin)/5, y=sy(v);
+      axes.innerHTML+=`<line x1="${P.left}" x2="${W-P.right}" y1="${y}" y2="${y}" stroke="rgba(0,0,0,.08)" stroke-dasharray="4 4"/>`;
+      axes.innerHTML+=`<text x="${P.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#64748b">${pct(v,0)}</text>`;
+    }
+    axes.innerHTML+=`<line x1="${P.left}" x2="${W-P.right}" y1="${H-P.bottom}" y2="${H-P.bottom}" stroke="rgba(0,0,0,.12)"/>`;
+
+    if (dates?.length){
+      const step=Math.max(1,Math.round((dates.length-1)/5));
+      for (let i=0,k=0; i<dates.length; i+=step,k++){
+        const x=sx(i); const ta=k===0?'start':(i+step>=dates.length?'end':'middle');
+        axes.innerHTML+=`<text x="${x}" y="${H-P.bottom+14}" text-anchor="${ta}" font-size="10" fill="#64748b">${monthFmt.format(dates[i])}</text>`;
+      }
+    }
+
+    const d='M '+rets.map((r,i)=>`${sx(i)},${sy(r)}`).join(' L ');
+    line.setAttribute('d', d);
+    fill.setAttribute('d', `${d} L ${sx(rets.length-1)},${H-P.bottom} L ${sx(0)},${H-P.bottom} Z`);
+
+    const last = rets.at(-1) || 0;
+    els.eqValue.textContent = `Growth: ${((last/100)+1).toFixed(2)}x`;
+    els.eqDelta.textContent = pct(last);
+    els.eqDelta.className = `inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${last>=0?'bg-green-50 text-green-700':'bg-rose-50 text-rose-700'}`;
+  }
+
+  // --- Series selection (works for your JSON shapes) ---
+  function periodSeries(s){
+    let raw=[];
+    switch (selectedPeriod){
+      case '1D': raw=s.series_1d; break;
+      case '1M': raw=s.series_1m; break;
+      case '6M': raw=s.series_6m; break;
+      case '1Y': raw=s.series_1y; break;
+      case 'ALL':
+      default: raw=s.series_all; break;
+    }
+    if (!Array.isArray(raw) || raw.length===0){
+      return { eq:[100], dates:[ new Date(s.inception_date || Date.now()) ] };
+    }
+
+    const first = raw[0] || {};
+    // intraday equity: { ts, equity }
+    if ('ts' in first && 'equity' in first){
+      const base = Number(first.equity)||1;
+      const eq = raw.map(p=> 100*((Number(p.equity)||0)/base) );
+      const dates = raw.map(p=> new Date(p.ts));
+      return { eq, dates };
+    }
+
+    // periodic returns: { pct, date } OR { pct, label:"Jan 2025" }
+    const labelToDate = (label)=>{
+      if (!label) return null;
+      const [mon,yr] = label.split(' ');
+      const mi = new Date(Date.parse(`${mon} 1, 2000`)).getMonth();
+      const d = new Date(Number(yr), mi+1, 0);
+      return isNaN(d.getTime()) ? null : d;
     };
 
-    // --- State Management ---
-    let STRATEGIES = [];
-    let selectedAsset = 'All';
-    let selectedPeriod = 'ALL';
-    let activeStrategyIndex = 0;
+    const rows = raw.map(r=>{
+      const d = r.date ? new Date(r.date) : labelToDate(r.label);
+      const pct = (r.pct==null)?0:(Number(r.pct)/100);
+      return d ? { d, pct } : null;
+    }).filter(Boolean);
 
-    // --- Utility Functions ---
-    const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit', day: 'numeric' });
+    if (!rows.length) return { eq:[100], dates:[ new Date(s.inception_date || Date.now()) ] };
 
-    // --- Data Fetching ---
-    async function fetchStrategies() {
-        console.log("Fetching strategies and metrics from Supabase...");
+    const eq = rows.reduce((arr, r)=>{ arr.push(arr.at(-1)*(1+(r.pct||0))); return arr; }, [100]);
+    const start = new Date(rows[0].d); start.setDate(start.getDate()-1);
+    const dates = [start, ...rows.map(r=>r.d)];
+    return { eq, dates };
+  }
 
-        const { data, error } = await supabaseClient
-            .from('strategies')
-            .select('*, strategy_metrics(*)');
-
-        if (error) {
-            console.error("Error fetching data:", error);
-            els.stratName.textContent = "Error loading data.";
-            return [];
-        }
-
-        const formatPercent = (value, dp = 1) => {
-            if (value === null || typeof value === 'undefined') return '—';
-            const num = Number(value);
-            if (isNaN(num)) return '—';
-            return (num >= 0 ? '+' : '') + (num).toFixed(dp) + '%';
-        };
-
-        const formatNumber = (value, dp = 2) => {
-            if (value === null || typeof value === 'undefined') return '—';
-            const num = Number(value);
-            if (isNaN(num)) return '—';
-            return num.toFixed(dp);
-        };
-        
-        const formatCount = (value) => {
-            if (value === null || typeof value === 'undefined') return '—';
-            const num = Number(value);
-            if (isNaN(num)) return '—';
-            return num.toString();
-        };
-
-        // Map the raw database data to a clean format for the frontend
-        return data.map(s => {
-            const metrics = s.strategy_metrics[0] || {}; 
-            const perfSummary = metrics.perf_summary || {};
-            
-            return {
-                ...s,
-                name: s.name || 'Unnamed Strategy',
-                provider: s.creator || 'AlgoHive Quant',
-                since: s.inception_date ? new Date(s.inception_date).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit' }).replace('/', '-') : '',
-                sinceMonth: s.inception_date ? s.inception_date.substring(0, 7) : null,
-                desc: s.strategy_description || 'No description provided.',
-                asset: s.asset_universe || 'Other',
-                
-                // Pass series data directly
-                series_1d: metrics.series_1d || [],
-                series_1m: metrics.series_1m || [],
-                series_6m: metrics.series_6m || [],
-                series_1y: metrics.series_1y || [],
-                series_all: metrics.series_all || [],
-
-                // New metrics from perf_summary
-                bestDay: formatPercent(perfSummary.best_day_pct, 2),
-                worstDay: formatPercent(perfSummary.worst_day_pct, 2),
-                posDays: formatCount(perfSummary.days_positive),
-                negDays: formatCount(perfSummary.days_negative),
-                winRateDays: formatPercent(perfSummary.positive_days_pct, 1),
-                avgDaily: formatPercent(perfSummary.avg_daily_return_pct, 3),
-
-                aum: s.aum ? `R${(s.aum / 1_000_000).toFixed(1)}m` : '',
-                risk: s.risk_level || '', 
-                currency: s.currency || 'USD',
-            };
-        });
+  // --- Render ---
+  function render(){
+    const list = STRATEGIES.filter(x=> selectedAsset==='All' || x.asset===selectedAsset );
+    if (!list.length){
+      els.stratName.textContent = `No strategies found for "${selectedAsset}"`;
+      ['provider','since','currency','risk','aum','period','mBestDay','mWorstDay','mPosDays','mNegDays','mWinRateDays','mAvgDaily','stratDesc'].forEach(k=>els[k]&&(els[k].textContent='—'));
+      drawChart([],[]); updateNav(0,0); markActive(); return;
     }
+    if (activeStrategyIndex>=list.length) activeStrategyIndex=0;
 
-    // --- Chart & Rendering Logic
-    function drawChart(equityVals, dates) {
-        els.axes.innerHTML = ''; 
-        els.line.setAttribute('d', '');
-        els.fill.setAttribute('d', '');
-        els.eqValue.textContent = '—';
-        els.eqDelta.textContent = '';
+    const s = list[activeStrategyIndex];
+    const { eq, dates } = periodSeries(s);
 
-        if (!equityVals || equityVals.length < 2) {
-            els.eqValue.textContent = 'Not enough data';
-            return;
-        };
+    els.stratName.textContent = s.name;
+    els.provider.textContent  = s.provider;
+    els.since.textContent     = s.since;
+    els.currency.textContent  = s.currency || 'USD';
+    els.aum.textContent       = s.aum;
+    els.stratDesc.textContent = s.desc;
 
-        const chartPct = (n, dp = 1) => (n >= 0 ? '+' : '') + n.toFixed(dp) + '%';
+    const r = (s.risk||'').toLowerCase();
+    els.risk.textContent = s.risk ? `Risk ${s.risk}` : '—';
+    els.risk.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ' +
+      (r.includes('high') ? 'bg-red-50 text-red-700' :
+       r.includes('med')  ? 'bg-amber-50 text-amber-700' :
+                            'bg-slate-50 text-slate-700');
 
-        const base = equityVals[0];
-        const rets = equityVals.map(v => ((v / base) - 1) * 100);
-        const W = 900, H = 320, P = { top: 16, right: 24, bottom: 40, left: 52 };
-        const innerW = W - P.left - P.right;
-        const innerH = H - P.top - P.bottom;
-        
-        const niceExtent = (minV, maxV) => {
-            if (minV === maxV) { minV -= 1; maxV += 1; }
-            const span = maxV - minV;
-            const pad = Math.max(5, span * 0.12);
-            let lo = Math.floor((Math.min(0, minV - pad)) / 5) * 5;
-            let hi = Math.ceil((Math.max(0, maxV + pad)) / 5) * 5;
-            if (hi === lo) { hi = lo + 5; }
-            return [lo, hi];
-        };
-        
-        const [yMin, yMax] = niceExtent(Math.min(...rets), Math.max(...rets));
-        const sx = (i) => P.left + (i * (innerW)) / Math.max(1, (rets.length - 1));
-        const sy = (r) => P.top + (yMax - r) * (innerH) / Math.max(1, yMax - yMin);
+    els.mBestDay.textContent = s.bestDay;
+    els.mWorstDay.textContent = s.worstDay;
+    els.mPosDays.textContent = s.posDays;
+    els.mNegDays.textContent = s.negDays;
+    els.mWinRateDays.textContent = s.winRateDays;
+    els.mAvgDaily.textContent = s.avgDaily;
 
-        for (let t = 0; t <= 5; t++) {
-            const val = yMin + (t * (yMax - yMin)) / 5;
-            const y = sy(val);
-            els.axes.innerHTML += `<line x1="${P.left}" x2="${W - P.right}" y1="${y}" y2="${y}" stroke="rgba(0,0,0,0.08)" stroke-dasharray="4 4" />`;
-            els.axes.innerHTML += `<text x="${P.left - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${chartPct(val, 0)}</text>`;
-        }
-        
-        els.axes.innerHTML += `<line x1="${P.left}" x2="${W - P.right}" y1="${H - P.bottom}" y2="${H - P.bottom}" stroke="rgba(0,0,0,0.12)" />`;
-        
-        if (dates.length > 0) {
-            const pickLabelIdx = (n, maxLabels = 6) => {
-                if (n <= 1) return [0];
-                const step = Math.max(1, Math.round((n - 1) / (maxLabels - 1)));
-                const idxs = [];
-                for (let i = 0; i < n; i += step) idxs.push(i);
-                if (idxs.length === 0 || idxs[idxs.length - 1] !== n - 1) idxs.push(n - 1);
-                return [...new Set(idxs)]; // Ensure unique indices
-            };
+    els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
 
-            const idxs = pickLabelIdx(dates.length, 6);
-            idxs.forEach((i, k) => {
-                const x = sx(i);
-                els.axes.innerHTML += `<text x="${x}" y="${H - P.bottom + 14}" text-anchor="${k === 0 ? 'start' : (k === idxs.length - 1 ? 'end' : 'middle')}" font-size="10" fill="#64748b">${monthFmt.format(dates[i])}</text>`;
-            });
-        }
+    drawChart(eq, dates);
 
-        const d = 'M ' + rets.map((r, i) => `${sx(i)},${sy(r)}`).join(' L ');
-        els.line.setAttribute('d', d);
-        const fillD = `${d} L ${sx(rets.length - 1)},${H - P.bottom} L ${sx(0)},${H - P.bottom} Z`;
-        els.fill.setAttribute('d', fillD);
+    els.leftCard.classList.remove('swap-in'); void els.leftCard.offsetWidth; els.leftCard.classList.add('swap-in');
 
-        const last = rets.at(-1) || 0;
-        els.eqValue.textContent = `Growth: ${((last / 100) + 1).toFixed(2)}x`;
-        els.eqDelta.textContent = chartPct(last);
-        els.eqDelta.className = `inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${last >= 0 ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`;
-    }
+    updateNav(activeStrategyIndex, list.length);
+    markActive();
+  }
 
-    function filterByPeriod(strategy) {
-        if (!strategy) return { series: [], dates: [] };
+  function renderAssetFilters(){
+    const assets = ['All', ...new Set(STRATEGIES.map(s=>s.asset).filter(Boolean))];
+    els.assetFilters.innerHTML = assets.map(a=>`
+      <button class="asset-tag px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-asset="${a}">${a}</button>
+    `).join('');
+    $$('.asset-tag').forEach(b=>{
+      b.addEventListener('click', ()=>{ selectedAsset=b.dataset.asset; activeStrategyIndex=0; render(); });
+    });
+  }
 
-        // --- Configuration: Select the correct series based on the period ---
-        let returnSeries = [];
-        switch (selectedPeriod) {
-            case '1D': returnSeries = strategy.series_1d; break;
-            case '1M': returnSeries = strategy.series_1m; break; // FIX: Added missing 1M case
-            case '6M': returnSeries = strategy.series_6m; break;
-            case '1Y': returnSeries = strategy.series_1y; break;
-            case 'ALL':
-            default: returnSeries = strategy.series_all; break;
-        }
+  function updateNav(i,n){ els.prevStratBtn.disabled = i<=0; els.nextStratBtn.disabled = i>=n-1; }
+  function markActive(){ $$('.asset-tag').forEach(b=>b.classList.toggle('tag-active', b.dataset.asset===selectedAsset));
+                         els.periodButtons.forEach(b=>b.classList.toggle('prd-active', b.dataset.period===selectedPeriod)); }
 
-        if (!Array.isArray(returnSeries) || returnSeries.length === 0) {
-            return { series: [100], dates: [new Date(strategy.inception_date || Date.now())] };
-        }
-        
-        const firstPoint = returnSeries[0];
+  // --- Init ---
+  async function main(){
+    STRATEGIES = await fetchStrategies();
+    if (STRATEGIES.length){ renderAssetFilters(); render(); }
+    else { $('#stratName').textContent = 'No strategies available.'; updateNav(0,0); }
 
-        // --- Helper for Monthly Label Conversion (e.g., "Jan 2025" -> Date object for last day of month) ---
-        function convertLabelToDate(label) {
-            if (!label) return null;
-            const [monthName, year] = label.split(' ');
-            const monthIndex = new Date(Date.parse(monthName + " 1, 2020")).getMonth(); 
-            const dateObj = new Date(year, monthIndex + 1, 0); 
-            return isNaN(dateObj.getTime()) ? null : dateObj;
-        }
-
-        // --- CHART DATA TRANSFORMATION ---
-        
-        // A) Handle Intraday Equity Series: {ts, equity}
-        if (selectedPeriod === '1D' && firstPoint.ts && typeof firstPoint.equity !== 'undefined') {
-            const firstEquity = parseFloat(firstPoint.equity);
-            if (firstEquity <= 0) return { series: [100], dates: [new Date(firstPoint.ts)] };
-            
-            // Directly normalize the equity values to a series starting at 100
-            const series = returnSeries.map(p => 100 * (parseFloat(p.equity) / firstEquity));
-            const dates = returnSeries.map(p => new Date(p.ts));
-            return { series, dates };
-        }
-
-        // B) Handle Periodic Return Series: {pct, date/label}
-        const standardizedReturns = returnSeries.map(item => {
-            const date = item.date ? new Date(item.date) : (item.label ? convertLabelToDate(item.label) : null);
-            const raw_pct = (item.pct !== null && typeof item.pct !== 'undefined') ? parseFloat(item.pct) / 100 : 0;
-            return date ? { date, raw_pct } : null;
-        }).filter(Boolean);
-
-        if (standardizedReturns.length === 0) {
-             return { series: [100], dates: [new Date(strategy.inception_date || Date.now())] };
-        }
-
-        // --- Cumulative Curve Calculation ---
-        const series = standardizedReturns.reduce((curve, ret) => {
-            curve.push(curve.at(-1) * (1 + (ret.raw_pct || 0)));
-            return curve;
-        }, [100]);
-
-        // --- Date Array Creation (add a start date for the baseline '100') ---
-        const firstReturnDate = new Date(standardizedReturns[0].date);
-        const startDate = new Date(firstReturnDate);
-        startDate.setDate(startDate.getDate() - 1); // One day before the first data point
-
-        const dates = [startDate, ...standardizedReturns.map(r => r.date)];
-
-        return { series, dates };
-    }
-
-    function render() {
-        const filteredStrategies = STRATEGIES.filter(s => selectedAsset === 'All' || s.asset === selectedAsset);
-        
-        if (activeStrategyIndex >= filteredStrategies.length) {
-            activeStrategyIndex = 0;
-        }
-        
-        const s = filteredStrategies[activeStrategyIndex];
-        if (!s || filteredStrategies.length === 0) {
-            els.stratName.textContent = `No strategies found for "${selectedAsset}"`;
-            ['provider', 'since', 'currency', 'risk', 'aum', 'period', 'mBestDay', 'mWorstDay', 'mPosDays', 'mNegDays', 'mWinRateDays', 'mAvgDaily', 'stratDesc'].forEach(key => {
-                if (els[key]) els[key].textContent = '—';
-            });
-            drawChart([], []);
-            updateNavButtons(0, 0);
-            markActive();
-            return; 
-        }
-        
-        const { series, dates } = filterByPeriod(s);
-
-        els.stratName.textContent = s.name;
-        els.provider.textContent = s.provider;
-        els.since.textContent = s.since ? `Live since ${s.since}` : '—';
-        els.risk.textContent = s.risk ? `Risk ${s.risk}` : '—';
-        const riskLower = (s.risk || '').toLowerCase();
-        els.risk.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px]';
-        if (riskLower.includes('medium') || riskLower.includes('mod')) {
-            els.risk.classList.add('bg-amber-50', 'text-amber-700');
-        } else if (riskLower.includes('high')) {
-            els.risk.classList.add('bg-red-50', 'text-red-700');
-        } else {
-             els.risk.classList.add('bg-slate-50', 'text-slate-700');
-        }
-        
-        els.currency.textContent = s.currency;
-        els.aum.textContent = s.aum || '—';
-        
-        els.mBestDay.textContent = s.bestDay;
-        els.mWorstDay.textContent = s.worstDay;
-        els.mPosDays.textContent = s.posDays;
-        els.mNegDays.textContent = s.negDays;
-        els.mWinRateDays.textContent = s.winRateDays;
-        els.mAvgDaily.textContent = s.avgDaily;
-        els.stratDesc.textContent = s.desc;
-        
-        els.period.textContent = selectedPeriod === 'ALL' ? 'All time' : selectedPeriod;
-        
-        drawChart(series, dates);
-
-        els.leftCard.classList.remove('swap-in');
-        void els.leftCard.offsetWidth;
-        els.leftCard.classList.add('swap-in');
-        
-        updateNavButtons(activeStrategyIndex, filteredStrategies.length);
-        markActive();
-    }
-
-    function renderAssetFilters() {
-        const assets = ['All', ...new Set(STRATEGIES.map(s => s.asset).filter(Boolean))];
-        els.assetFilters.innerHTML = assets.map(asset => `
-            <button class="asset-tag px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-asset="${asset}">${asset}</button>
-        `).join('');
-        
-        $$('.asset-tag').forEach(btn => {
-            btn.addEventListener('click', () => {
-                selectedAsset = btn.dataset.asset;
-                activeStrategyIndex = 0; 
-                render();
-            });
-        });
-    }
-
-    function updateNavButtons(currentIndex, total) {
-        els.prevStratBtn.disabled = currentIndex <= 0;
-        els.nextStratBtn.disabled = currentIndex >= total - 1;
-    }
-
-    function markActive() {
-        $$('.asset-tag').forEach(b => b.classList.toggle('tag-active', b.dataset.asset === selectedAsset));
-        els.periodButtons.forEach(b => b.classList.toggle('prd-active', b.dataset.period === selectedPeriod));
-    }
-
-    // --- Event Listeners & Initialization ---
-    async function main() {
-        STRATEGIES = await fetchStrategies();
-        selectedPeriod = 'ALL';
-        
-        if (STRATEGIES.length > 0) {
-            renderAssetFilters();
-            render(); 
-        } else {
-            els.stratName.textContent = 'No strategies available.';
-            updateNavButtons(0, 0);
-        }
-
-        els.periodButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                selectedPeriod = btn.dataset.period || 'ALL';
-                render();
-            });
-        });
-
-        els.nextStratBtn.addEventListener('click', () => {
-             const filteredStrategies = STRATEGIES.filter(s => selectedAsset === 'All' || s.asset === selectedAsset);
-             if (activeStrategyIndex < filteredStrategies.length - 1) {
-                 activeStrategyIndex++;
-                 render();
-             }
-        });
-
-        els.prevStratBtn.addEventListener('click', () => {
-            if (activeStrategyIndex > 0) {
-                activeStrategyIndex--;
-                render();
-            }
-        });
-    }
-
-    main();
+    els.periodButtons.forEach(b=> b.addEventListener('click', ()=>{ selectedPeriod=b.dataset.period||'ALL'; render(); }));
+    els.nextStratBtn.addEventListener('click', ()=>{ activeStrategyIndex++; render(); });
+    els.prevStratBtn.addEventListener('click', ()=>{ activeStrategyIndex--; render(); });
+  }
+  main();
 </script>
+
 
 </body>
 </html>
