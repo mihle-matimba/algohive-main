@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ozow Dynamic Payment Demo (iFrame)</title>
+  <title>Ozow Dynamic Payment Demo</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    #form-container { max-width: 400px; margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    #form-container { max-width: 420px; margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
     label { display: block; margin-top: 10px; font-weight: bold; }
     input[type="number"], input[type="text"], input[type="email"] { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
     button { padding: 10px 15px; margin-top: 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
-    #paymentContainer { border: 1px solid #000; height: 600px; width: 100%; margin-top: 20px; display: grid; place-items: center; }
+    button[disabled] { opacity: .6; cursor: not-allowed; }
     .muted { color:#666; font-size:14px }
+    .error { color:#b91c1c; }
+    .ok { color:#047857; }
   </style>
 </head>
 <body>
@@ -26,42 +28,42 @@
     <label for="reference">Transaction Reference:</label>
     <input type="text" id="reference" value="INV-456789" maxlength="50"/>
 
-    <label for="customer">Customer Email:</label>
+    <label for="customer">Customer Email (optional):</label>
     <input type="email" id="customer" value="user@example.com" maxlength="100"/>
 
     <button id="payUsingOzow">Pay with Ozow</button>
-    <button id="cancelOzowPayment" style="background-color:#dc3545;">Cancel Payment</button>
+    <button id="cancelOzowPayment" style="background-color:#dc3545;">Cancel</button>
 
-    <p class="muted">This demo loads Ozow’s secure checkout URL returned by your backend into the iFrame below.</p>
+    <p class="muted">Click “Pay with Ozow” to create a payment server-side and redirect to Ozow’s secure checkout.</p>
+    <div id="status" class="muted"></div>
   </div>
-
-  <hr/>
-
-  <h3>Ozow iFrame Loads Here:</h3>
-  <div id="paymentContainer">
-    <span class="muted">No payment started yet.</span>
-  </div>
-
-  <!-- jQuery only if you still want it (not required for this flow) -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   <script>
-    const container = document.getElementById('paymentContainer');
     const btnPay    = document.getElementById('payUsingOzow');
     const btnCancel = document.getElementById('cancelOzowPayment');
+    const statusEl  = document.getElementById('status');
 
-    function setLoading(on=true){
-      container.innerHTML = on ? '<div>Creating payment…</div>' : '<span class="muted">No payment started yet.</span>';
+    function setStatus(msg, cls = 'muted') {
+      statusEl.className = cls;
+      statusEl.textContent = msg;
     }
 
-    function loadIframe(url){
-      container.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      iframe.src = url;              // URL from /api/ozow/create (staging/live)
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = '0';
-      container.appendChild(iframe);
+    async function createPayment(amount, reference, customerEmail) {
+      const resp = await fetch('/api/ozow/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          amount,
+          reference,
+          customerName: customerEmail || 'AlgoHive User'
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data?.url) {
+        const err = data?.error || 'Unknown error';
+        throw new Error(err);
+      }
+      return data.url;
     }
 
     btnPay.addEventListener('click', async () => {
@@ -70,48 +72,29 @@
       const customer = document.getElementById('customer').value.trim();
 
       if (!amount || amount <= 0 || !reference) {
-        alert('Please enter a valid amount and transaction reference.');
+        setStatus('Please enter a valid amount and reference.', 'error');
         return;
       }
 
       try {
-        setLoading(true);
-        // Call your Vercel function that does PostPaymentRequest + hashCheck server-side
-        const resp = await fetch('/api/ozow/create', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            amount,
-            customerName: customer || 'AlgoHive User',
-            // optional: pass reference through so backend can use it for transactionReference/bankReference
-            reference
-          })
-        });
-
-        const data = await resp.json();
-        if (!resp.ok || !data?.url) {
-          console.error('Ozow create error:', data);
-          container.innerHTML = `<div style="color:#b91c1c">Failed to create payment: ${data?.error || 'Unknown error'}</div>`;
-          return;
-        }
-
-        // Load Ozow checkout URL inside the iFrame
-        window.location.href = data.url; 
-      } catch (err) {
-        console.error(err);
-        container.innerHTML = `<div style="color:#b91c1c">Unexpected error. Check console.</div>`;
+        btnPay.disabled = true;
+        setStatus('Creating payment link…');
+        const redirectUrl = await createPayment(amount, reference, customer);
+        setStatus('Redirecting to Ozow…', 'ok');
+        window.location.href = redirectUrl; // safest flow
+      } catch (e) {
+        console.error(e);
+        setStatus(`Failed to create payment: ${e.message}`, 'error');
+        btnPay.disabled = false;
       }
     });
 
     btnCancel.addEventListener('click', () => {
-      // Just clear/replace the iFrame area (there’s nothing to “cancel” client-side for the REST URL)
-      container.innerHTML = '<h2>Payment was Cancelled.</h2>';
-    });
-
-    // Optional: listen for messages if you implement postMessage on your success/error pages
-    window.addEventListener('message', (e) => {
-      // e.g., if your success page posts a message when done
-      // console.log('Message from iframe:', e.data);
+      // Just clear the UI / reset fields
+      document.getElementById('amount').value = '500.00';
+      document.getElementById('reference').value = 'INV-456789';
+      setStatus('Cancelled. Nothing was created.');
+      btnPay.disabled = false;
     });
   </script>
 </body>
