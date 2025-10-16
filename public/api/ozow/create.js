@@ -2,7 +2,7 @@
 const crypto = require("crypto");
 
 const OZOW = {
-  api: process.env.OZOW_API_URL || "https://api.ozow.com/PostPaymentRequest",
+  api: "https://api.ozow.com/PostPaymentRequest",
   apiKey: process.env.OZOW_API_KEY,
   privateKey: process.env.OZOW_PRIVATE_KEY,
   siteCode: process.env.OZOW_SITE_CODE,
@@ -10,7 +10,7 @@ const OZOW = {
   successUrl: process.env.OZOW_SUCCESS_URL,
   cancelUrl: process.env.OZOW_CANCEL_URL,
   errorUrl: process.env.OZOW_ERROR_URL,
-  isTest: String(process.env.OZOW_IS_TEST ?? "false").toLowerCase() === "true",
+  isTest: false,
 };
 
 const str = (v) => (v === null || v === undefined ? "" : String(v));
