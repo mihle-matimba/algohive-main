@@ -144,7 +144,7 @@
             <select id="fSort" class="h-9 rounded-lg border px-2 text-sm ml-auto">
               <option value="name-asc">Sort: Name (A→Z)</option>
               <option value="value-desc">Sort: My Value (High→Low)</option>
-              <option value="cagr-desc">Sort: 1Y Return (High→Low)</option>
+              <option value="return-desc">Sort: 1Y Return (High→Low)</option>
               <option value="dd-asc">Sort: Max DD (Low→High)</option>
             </select>
             <button id="clearBtn" class="h-9 px-3 rounded-lg border hover:bg-slate-50 text-sm">Clear</button>
@@ -223,7 +223,6 @@
   import { supabase } from "/js/supabase.js";
 
   // ------- helpers -------
-  const $ = (q, el=document) => el.querySelector(q);
   const moneyFmt = (ccy) => new Intl.NumberFormat(ccy==='ZAR'?'en-ZA':'en-US',{style:'currency',currency:ccy||'USD',maximumFractionDigits:0});
   const money = (n, ccy) => moneyFmt(ccy).format(n||0);
   const percent = (n) => `${(n*100).toFixed(2)}%`;
@@ -238,19 +237,19 @@
 
   // ------- fetch user's strategies from Supabase -------
   async function fetchMyStrategies(user){
-    // 1. Get the user's primary investment account.
+    // 1. Get the user's investment account ID.
     const { data: account, error: accountError } = await supabase
       .from('investment_accounts')
       .select('id')
-      .eq('profile_id', user.id)
+      .eq('profile_id', user.id) // Assumes a `profile_id` FK to `auth.users`
       .single();
 
     if (accountError || !account) {
-      console.warn('No investment account found for user. Make sure the `investment_accounts` table has a `profile_id` linking to the user.');
-      return [];
+      console.warn('No investment account found for this user.');
+      return []; // No account means no strategies
     }
     
-    // 2. Fetch all ledger entries to calculate current unit balances.
+    // 2. Fetch all ledger entries for the account to calculate current unit balances.
     const { data: ledger, error: ledgerError } = await supabase
         .from('unit_ledger')
         .select('strategy_id, tx_type, units')
@@ -258,32 +257,28 @@
     
     if (ledgerError) throw new Error(`Failed to fetch unit ledger: ${ledgerError.message}`);
 
+    // 3. Aggregate units to get a final balance for each strategy.
     const holdingsMap = new Map();
     for (const entry of ledger) {
       const currentUnits = holdingsMap.get(entry.strategy_id) || 0;
-      let change = 0;
-      
-      // ===== THE FIX IS HERE =====
-      // Handle MINT (add) and BURN/REDEMPTION (subtract)
-      if (entry.tx_type === 'MINT' || entry.tx_type === 'SUBSCRIPTION') {
-        change = Number(entry.units);
-      } else if (entry.tx_type === 'BURN' || entry.tx_type === 'REDEMPTION') {
-        change = -Number(entry.units);
-      }
-      
+      // Handle MINT/SUBSCRIPTION as additions, BURN/REDEMPTION as subtractions
+      const change = (entry.tx_type === 'MINT' || entry.tx_type === 'SUBSCRIPTION') 
+        ? Number(entry.units) 
+        : -Number(entry.units);
       holdingsMap.set(entry.strategy_id, currentUnits + change);
     }
 
+    // Convert map to an array of holdings, filtering out any with zero or negative units.
     const finalHoldings = [];
     for (const [strategy_id, total_units] of holdingsMap.entries()) {
-        if (total_units > 0.000001) { // Use epsilon to avoid floating point inaccuracies
+        if (total_units > 0.000001) { // Use a small epsilon for float precision
             finalHoldings.push({ strategy_id, total_units });
         }
     }
     
     if (finalHoldings.length === 0) return [];
 
-    // 3. Fetch details and metrics for the strategies the user holds.
+    // 4. Fetch details and metrics ONLY for the strategies the user holds.
     const strategyIds = finalHoldings.map(h => h.strategy_id);
     const { data: strategiesData, error: strategiesError } = await supabase
         .from('strategies')
@@ -295,18 +290,18 @@
     
     if (strategiesError) throw new Error(`Failed to fetch strategies: ${strategiesError.message}`);
 
-    // 4. Merge holding data with strategy data and calculate user-specific values.
+    // 5. Combine holding data with strategy data and calculate user-specific values.
     return strategiesData.map(strat => {
         const holding = finalHoldings.find(h => h.strategy_id === strat.id);
         const metrics = strat.strategy_metrics;
-        const nav = metrics?.perf_summary?.nav || 0; // NAV = Net Asset Value per unit (unit price)
+        const nav = metrics?.perf_summary?.nav || 0; // NAV is the unit price
         const myValue = (holding?.total_units || 0) * nav;
 
         return {
             id: strat.id,
             name: strat.name,
             provider: strat.creator || '—',
-            currency: strat.currency || 'ZAR',
+            currency: strat.currency || 'USD',
             risk: strat.risk_level || '—',
             style: strat.style || '—',
             universe: strat.asset_universe || '—',
@@ -394,7 +389,7 @@
     rows.sort((a,b)=>{
       if (sortVal==='name-asc') return a.name.localeCompare(b.name);
       if (sortVal==='value-desc') return b.my_value - a.my_value;
-      if (sortVal==='cagr-desc') return b.cagr_1y - a.cagr_1y;
+      if (sortVal==='return-desc') return b.cagr_1y - a.cagr_1y;
       if (sortVal==='dd-asc')   return a.max_dd - b.max_dd;
       return 0;
     });
@@ -420,7 +415,7 @@
     }
   }
 
-  // Make boot function globally accessible
+  // Make boot function globally accessible so the auth script can call it
   window.boot = boot;
 </script>
 
@@ -455,7 +450,8 @@
     const { data: { user } } = await supabase.auth.getUser();
     const row = await ensureProfile(user.id, user.email || null);
     
-    // Call the main boot function with the user object
+    // --> CRITICAL STEP <--
+    // Call the main boot function from the other script and pass the user object.
     if(window.boot) {
       window.boot(user);
     }
