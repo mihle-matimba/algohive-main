@@ -1,6 +1,7 @@
 import os, time, subprocess, psutil
 from datetime import datetime, timedelta, timezone, date
 import math
+import re
 import pandas as pd
 import MetaTrader5 as mt5
 from supabase import create_client, Client
@@ -429,7 +430,6 @@ def upsert_strategy_metrics(strategy_id: str, series_payloads: dict, perf_summar
     body = {
         "strategy_id": strategy_id,
         "asof_date": date.today().isoformat(),
-        # removed: "series_1m"
         "series_6m": series_payloads.get("series_6m", []),
         "series_1y": series_payloads.get("series_1y", []),
         "series_all": series_payloads.get("series_all", []),
@@ -443,7 +443,7 @@ def upsert_strategy_metrics(strategy_id: str, series_payloads: dict, perf_summar
     )
     safe_exec(q)
 
-# ---- Intraday (1D) helper only (1m removed) ----
+# ---- Intraday (1D) helper only ----
 def za_today(dt_utc: datetime) -> date:
     return (dt_utc + timedelta(hours=TZ_OFFSET_HOURS)).date()
 
@@ -455,7 +455,6 @@ def ensure_metrics_row(strategy_id: str):
             "strategy_id": strategy_id,
             "asof_date": date.today().isoformat(),
             "series_1d": []
-            # removed: "series_1m_money"
         }, returning="representation")
         safe_exec(q)
 
@@ -496,6 +495,186 @@ def append_series_1d_and_update_live(strategy_id: str, equity, balance=None, mar
         on_conflict="strategy_id",
         returning="representation"
     )
+    safe_exec(q)
+
+# ========= NEW: Portfolio holdings + Asset allocation =========
+# --- MT5 path -> class map (folder-first) ---
+_PATH_MAP = {
+    "forex": "FX",
+    "fx": "FX",
+    "currencies": "FX",
+    "indices": "Indices",
+    "index": "Indices",
+    "equities": "Equities",
+    "stocks": "Equities",
+    "shares": "Equities",
+    "metals": "Metals",
+    "energy": "Energies",
+    "energies": "Energies",
+    "crypto": "Crypto",
+    "bonds": "Bonds",
+    "cfd": "CFDs",
+}
+
+# --- Heuristic hints (fallbacks) ---
+_CCY = {"USD","EUR","GBP","JPY","CHF","AUD","NZD","CAD","ZAR","CNH","CNY","SEK","NOK","DKK","MXN","TRY","PLN","HUF","SGD","HKD"}
+_INDEX_HINTS = ["US30","US500","USTEC","NAS100","NDX","SPX","DJI","GER40","DE40","DAX","UK100","FTSE","FRA40","CAC","JP225","NIKKEI","HK50","HSI","CHINA50","AUS200","ESP35","IBEX","EU50","STOXX"]
+_METAL_HINTS = ["XAU","XAG","XPT","XPD"]
+_ENERGY_HINTS = ["UKOIL","USOIL","XBR","XTI","BRENT","WTI","NGAS","XNG"]
+_CRYPTO_HINTS = ["BTC","ETH","SOL","ADA","XRP","LTC","BCH","DOGE","DOT","AVAX","MATIC","BNB","LINK"]
+_BOND_HINTS = ["US10Y","US02Y","US05Y","US30Y","BUND","GILT","JGB"]
+_CFD_HINTS = [".cash","-cash","_cash","CFD"]
+
+def _strip_suffix_letters(sym: str) -> str:
+    """Remove common MT5 suffixes like 'EURUSDm', 'EURUSD.a' -> 'EURUSD'."""
+    return re.sub(r'[^A-Z]+$', '', sym.upper())
+
+def _classify_from_path(path: str) -> str | None:
+    parts = [p.strip().lower() for p in (path or "").split("\\") if p.strip()]
+    for p in parts:
+        for key, cls in _PATH_MAP.items():
+            if key in p:
+                return cls
+    return None
+
+def classify_symbol(sym: str) -> str:
+    """MT5 path/description first; then symbol heuristics."""
+    info = mt5.symbol_info(sym)
+
+    # 1) Broker folder (best signal)
+    if info and getattr(info, "path", ""):
+        cls = _classify_from_path(info.path)
+        if cls:
+            return cls
+
+    # 2) Description hints
+    desc = (getattr(info, "description", "") or "").upper()
+    if desc:
+        if any(h in desc for h in _METAL_HINTS): return "Metals"
+        if any(h in desc for h in _ENERGY_HINTS): return "Energies"
+        if "INDEX" in desc or any(h in desc for h in _INDEX_HINTS): return "Indices"
+        if "CRYPTO" in desc or any(h in desc for h in _CRYPTO_HINTS): return "Crypto"
+        if "BOND" in desc: return "Bonds"
+
+    # 3) Symbol heuristics
+    s = sym.upper()
+    core = _strip_suffix_letters(s)
+    if any(core.startswith(h) for h in _METAL_HINTS): return "Metals"
+    if any(h in core for h in _ENERGY_HINTS): return "Energies"
+    if any(h in core for h in _CRYPTO_HINTS): return "Crypto"
+    if any(h in core for h in _INDEX_HINTS): return "Indices"
+    if any(h in s for h in _CFD_HINTS): return "CFDs"
+    if "/" in core: return "FX"
+    if len(core) >= 6 and core[:3] in _CCY and core[3:6] in _CCY: return "FX"
+    if re.fullmatch(r"[A-Z\.]{2,10}", core) and not core.startswith("X"): return "Equities"
+    return "Other"
+
+def _mid_price(sym: str) -> float:
+    """Best-effort mid; fallback to last; else 0."""
+    try:
+        tick = mt5.symbol_info_tick(sym)
+        if not tick:
+            return 0.0
+        parts = [v for v in [tick.bid, tick.ask, tick.last] if v not in (None, 0)]
+        if not parts:
+            return 0.0
+        if tick.bid and tick.ask:
+            return (float(tick.bid) + float(tick.ask)) / 2.0
+        return sum(map(float, parts)) / len(parts)
+    except Exception:
+        return 0.0
+
+def compute_portfolio_holdings() -> list:
+    """
+    Build an array of {symbol, class, price, long_volume, short_volume, net_volume, value, weight_pct, updated_ts}
+    from current open positions. Value = (long+short) * price. Weights sum to 100.
+    """
+    try:
+        pos = mt5.positions_get()
+    except Exception:
+        pos = None
+    pos = pos or []
+
+    # Aggregate by symbol
+    by_sym = {}
+    for p in pos:
+        try:
+            sym = p.symbol
+            if sym not in by_sym:
+                by_sym[sym] = {"symbol": sym, "long_volume": 0.0, "short_volume": 0.0}
+            if p.type == mt5.POSITION_TYPE_BUY:
+                by_sym[sym]["long_volume"] += float(p.volume or 0)
+            else:
+                by_sym[sym]["short_volume"] += float(p.volume or 0)
+        except Exception:
+            continue
+
+    # Attach price + compute values
+    total_val = 0.0
+    rows = []
+    now_iso = datetime.now(timezone.utc).isoformat()
+    for sym, agg in by_sym.items():
+        price = _mid_price(sym)
+        long_v = float(agg["long_volume"])
+        short_v = float(agg["short_volume"])
+        net_v = long_v - short_v
+        # Exposure-style value uses total exposure (long + short)
+        value = (long_v + short_v) * price
+        total_val += value
+        rows.append({
+            "symbol": sym,
+            "class": classify_symbol(sym),
+            "price": safe_round(price, 5),
+            "long_volume": safe_round(long_v, 2),
+            "short_volume": safe_round(short_v, 2),
+            "net_volume": safe_round(net_v, 2),
+            "value": safe_round(value, 2),
+            "updated_ts": now_iso
+        })
+
+    # Weights
+    if total_val and total_val > 0:
+        for r in rows:
+            r["weight_pct"] = safe_round(100.0 * (num_or_none(r["value"]) / total_val), 2)
+    else:
+        for r in rows:
+            r["weight_pct"] = 0.0
+
+    # Sort heavy to light
+    rows.sort(key=lambda x: x.get("weight_pct", 0.0), reverse=True)
+    return jclean(rows)
+
+def compute_asset_allocation_from_holdings(holdings: list) -> list:
+    """
+    Aggregate holdings into asset classes and compute % weights.
+    Returns array of {class, value, weight_pct}.
+    """
+    total = 0.0
+    by_cls = {}
+    for h in holdings or []:
+        cls = h.get("class") or "Other"
+        val = num_or_none(h.get("value")) or 0.0
+        by_cls[cls] = by_cls.get(cls, 0.0) + val
+        total += val
+
+    order = ["FX","Indices","Equities","Metals","Energies","Crypto","Bonds","CFDs","Other"]
+    out = []
+    for cls in order:
+        v = by_cls.get(cls, 0.0)
+        w = 100.0 * (v / total) if total > 0 else 0.0
+        out.append({"class": cls, "value": safe_round(v, 2), "weight_pct": safe_round(w, 2)})
+    return jclean(out)
+
+def update_portfolio_holdings(strategy_id: str, holdings: list):
+    q = (supabase.table("strategy_metrics")
+         .update(jclean({"portfolio_holdings": holdings, "asof_date": date.today().isoformat()}))
+         .eq("strategy_id", strategy_id))
+    safe_exec(q)
+
+def update_asset_allocation(strategy_id: str, allocation: list):
+    q = (supabase.table("strategy_metrics")
+         .update(jclean({"asset_allocation": allocation, "asof_date": date.today().isoformat()}))
+         .eq("strategy_id", strategy_id))
     safe_exec(q)
 
 # ========= Main loop =========
@@ -557,7 +736,17 @@ if __name__ == "__main__":
                             ensure_metrics_row(sid)
                             append_series_1d_and_update_live(sid, equity, bal, mar, flp)
 
-                            # history & derived metrics
+                            # --- Portfolio holdings + asset allocation ---
+                            try:
+                                holdings = compute_portfolio_holdings()
+                                update_portfolio_holdings(sid, holdings)
+                                allocation = compute_asset_allocation_from_holdings(holdings)
+                                update_asset_allocation(sid, allocation)
+                                print(f"   🧺 portfolio_holdings ({len(holdings)} syms) + 🧩 asset_allocation updated")
+                            except Exception as e:
+                                print("   ⚠️ holdings/allocation update failed:", e)
+
+                            # history & derived metrics (monthlies, calendar, summary)
                             try:
                                 df = build_df_from(login, start_from)
                             except Exception as e:
@@ -570,8 +759,6 @@ if __name__ == "__main__":
                                 monthly_payloads = build_series_payloads_equity_monthlies(dr)
                                 perf_summary = build_perf_summary(dr)
                                 calendar_payload = build_calendar_returns(dr)
-
-                                # removed: closed_pct / series_1m calc
                                 upsert_strategy_metrics(sid, monthly_payloads, perf_summary, calendar_payload)
                                 print("   📈 metrics upserted")
                             else:
