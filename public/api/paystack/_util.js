@@ -1,8 +1,8 @@
 const BASE = process.env.PAYSTACK_BASE || "https://api.paystack.co";
 
-function send(res, status, data) {
+function send(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify(data));
+  res.end(JSON.stringify(body));
 }
 
 async function readJson(req) {
@@ -23,10 +23,18 @@ async function pstack(path, opts = {}) {
       ...(opts.headers || {}),
     },
   });
+
   const text = await r.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = { raw: text }; }
-  return { ok: r.ok, status: r.status, data, text };
+  let json;
+  try { json = JSON.parse(text); } catch { json = null; }
+
+  return {
+    ok: r.ok,
+    status: r.status,
+    data: json,  // may be null on HTML/text errors
+    text,        // always available
+    headers: Object.fromEntries(r.headers.entries()),
+  };
 }
 
 module.exports = { send, readJson, pstack };
