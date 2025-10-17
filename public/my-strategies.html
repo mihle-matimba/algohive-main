@@ -239,7 +239,6 @@
   // ------- fetch user's strategies from Supabase -------
   async function fetchMyStrategies(user){
     // 1. Get the user's primary investment account.
-    // Note: Assuming a 'investment_accounts' table with a 'profile_id' that links to the user's id.
     const { data: account, error: accountError } = await supabase
       .from('investment_accounts')
       .select('id')
@@ -247,7 +246,7 @@
       .single();
 
     if (accountError || !account) {
-      console.warn('No investment account found for user.');
+      console.warn('No investment account found for user. Make sure the `investment_accounts` table has a `profile_id` linking to the user.');
       return [];
     }
     
@@ -262,8 +261,16 @@
     const holdingsMap = new Map();
     for (const entry of ledger) {
       const currentUnits = holdingsMap.get(entry.strategy_id) || 0;
-      // Note: Assuming tx_type enum includes 'SUBSCRIPTION' and 'REDEMPTION'
-      const change = entry.tx_type === 'SUBSCRIPTION' ? Number(entry.units) : -Number(entry.units);
+      let change = 0;
+      
+      // ===== THE FIX IS HERE =====
+      // Handle MINT (add) and BURN/REDEMPTION (subtract)
+      if (entry.tx_type === 'MINT' || entry.tx_type === 'SUBSCRIPTION') {
+        change = Number(entry.units);
+      } else if (entry.tx_type === 'BURN' || entry.tx_type === 'REDEMPTION') {
+        change = -Number(entry.units);
+      }
+      
       holdingsMap.set(entry.strategy_id, currentUnits + change);
     }
 
@@ -412,6 +419,9 @@
       document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="py-10 text-center text-slate-500">Sorry, failed to load your strategies.</td></tr>';
     }
   }
+
+  // Make boot function globally accessible
+  window.boot = boot;
 </script>
 
   <script type="module">
@@ -446,7 +456,9 @@
     const row = await ensureProfile(user.id, user.email || null);
     
     // Call the main boot function with the user object
-    window.boot(user);
+    if(window.boot) {
+      window.boot(user);
+    }
 
     const fn = (row?.first_name || "").trim();
     const ln = (row?.last_name || "").trim();
