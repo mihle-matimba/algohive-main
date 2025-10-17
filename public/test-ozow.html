@@ -29,35 +29,46 @@
     <p id="status" class="muted"></p>
   </div>
 
-  <script>
-    const el = (id) => document.getElementById(id);
-    const setStatus = (m, cls="muted") => { const s = el("status"); s.className = cls; s.textContent = m; };
+<script>
+  const el = (id) => document.getElementById(id);
+  const setStatus = (m, cls="muted") => { const s = el("status"); s.className = cls; s.textContent = m; };
 
-    el("pay").addEventListener("click", async () => {
-      const amount = Number(el("amount").value || 0);
-      const email = el("email").value.trim();
-      const reference = el("reference").value.trim();
-
-      if (!amount || amount <= 0 || !email) { setStatus("Valid amount and email required", "error"); return; }
-
-      try {
-        setStatus("Creating Paystack session…");
-        const r = await fetch("/api/paystack/transaction-initialize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amountZar: amount, email, reference })
-        });
-        const data = await r.json();
-        if (!r.ok || !data?.authorization_url) {
-          setStatus(`Failed: ${data?.error || "Unknown error"}`, "error");
-          return;
-        }
-        setStatus("Redirecting…", "ok");
-        window.location.href = data.authorization_url;
-      } catch (e) {
-        setStatus(e.message || "Unexpected error", "error");
-      }
+  async function initPaystack(amountZar, email, reference) {
+    const r = await fetch("/api/paystack/transaction-initialize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountZar, email, reference })
     });
-  </script>
+
+    const ct = r.headers.get("content-type") || "";
+    const isJson = ct.includes("application/json");
+    const payload = isJson ? await r.json().catch(() => ({})) : { error: await r.text() };
+
+    if (!r.ok) {
+      const msg = payload?.error || payload?.message || "Server error";
+      throw new Error(`${msg} (status ${r.status})`);
+    }
+    if (!payload?.authorization_url) throw new Error("No authorization_url in response");
+    return payload.authorization_url;
+  }
+
+  el("pay").addEventListener("click", async () => {
+    const amount = Number(el("amount").value || 0);
+    const email = el("email").value.trim();
+    const reference = el("reference").value.trim();
+    if (!amount || amount <= 0 || !email) { setStatus("Valid amount and email required", "error"); return; }
+
+    try {
+      setStatus("Creating Paystack session…");
+      const url = await initPaystack(amount, email, reference);
+      setStatus("Redirecting…", "ok");
+      window.location.href = url;
+    } catch (e) {
+      console.error(e);
+      setStatus(e.message || "Unexpected error", "error");
+    }
+  });
+</script>
+
 </body>
 </html>
