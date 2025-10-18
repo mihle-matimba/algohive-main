@@ -1,19 +1,19 @@
 // /pay.js
 (function () {
-  function qs(id) { return document.getElementById(id); }
+  function qs(id){ return document.getElementById(id); }
 
   async function startPay() {
     const btn = qs('payBtn');
     const email = qs('email').value.trim();
     const amountStr = qs('amount').value.trim();
-    const reference = (qs('ref').value.trim() || undefined);
+    const reference = qs('ref').value.trim() || undefined;
 
     if (!email || !amountStr) { alert('Please enter email and amount.'); return; }
     const amountZar = Number(amountStr);
     if (Number.isNaN(amountZar) || amountZar <= 0) { alert('Enter a valid amount.'); return; }
 
     const amountCents = Math.round(amountZar * 100);
-    btn.disabled = true; btn.textContent = 'Starting…';
+    btn.disabled = true; btn.textContent = 'Redirecting…';
 
     try {
       const res = await fetch('/api/paystack/init', {
@@ -28,29 +28,23 @@
         })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to initialize');
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Failed to initialize');
 
-      const access_code = data?.data?.access_code;
-      if (!access_code) throw new Error('No access_code returned');
-
-      const popup = new PaystackPop();
-      popup.resumeTransaction(access_code);
+      // Redirect instead of popup
+      const url = json?.data?.authorization_url;
+      if (!url) throw new Error('No authorization_url returned');
+      window.location.href = url;
     } catch (err) {
       console.error(err);
       alert(err.message || 'Could not start payment. Please try again.');
-    } finally {
       btn.disabled = false; btn.textContent = 'Pay now';
     }
   }
 
-  function ready(fn){ 
+  function ready(fn){
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
   }
-
-  ready(() => {
-    const btn = qs('payBtn');
-    if (btn) btn.addEventListener('click', startPay);
-  });
+  ready(() => qs('payBtn')?.addEventListener('click', startPay));
 })();
