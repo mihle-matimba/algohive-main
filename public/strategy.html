@@ -345,10 +345,7 @@
               <i class="fa-solid fa-check mr-2"></i> Allocation submitted for <span id="toast-strat">—</span>: <span
                 id="toast-units">—</span> unit(s) @ <span id="toast-price">—</span>.
             </div>
-            <div id="fx-note" class="mt-2 text-xs text-slate-500 hidden">
-              <span id="fx-pair">USD→ZAR</span> rate: <span id="fx-rate">—</span>
-              <span class="mx-1">•</span><span id="fx-updated">—</span>
-            </div>
+
 
           </div> <!-- Asset class allocation -->
           <div class="card p-5 border border-slate-200">
@@ -1068,26 +1065,39 @@
     const unitsEl = document.getElementById('alloc-units');
     const totalEl = document.getElementById('alloc-total');
 
-    function refreshAllocTotal() {
-      const price = Math.max(1, Math.floor(Number(priceEl?.value || 0)));
-      const units = Math.max(1, Math.floor(Number(unitsEl?.value || 0)));
-      if (priceEl) priceEl.value = String(price);
-      if (unitsEl) unitsEl.value = String(units);
+    // one source of truth for totals (also used by Paystack click)
+    function calcTotals() {
+      const units = Math.max(1, Math.floor(Number(document.getElementById('alloc-units')?.value || 0)));
+      const unitPrice = Math.max(1, Math.floor(Number(document.getElementById('alloc-price')?.value || 0)));
 
-      let totalCcy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
-      let totalAmt = price * units;
+      let total = units * unitPrice;                          // in strategy currency
+      let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
 
-      // If the strategy is USD, convert the total to ZAR using live rate
       if (isUSD()) {
         const rate = Number(fx.usdzar);
-        if (Number.isFinite(rate)) {
-          totalAmt = totalAmt * rate;
-          totalCcy = 'ZAR';
+        if (!Number.isFinite(rate)) {
+          throw new Error('Live USD→ZAR rate unavailable. Please try again.');
         }
+        total = total * rate;                                  // convert to ZAR for checkout
+        ccy = 'ZAR';
       }
 
-      if (totalEl) totalEl.textContent = money(totalAmt, totalCcy);
+      // hard round to cents so UI == backend
+      const totalRounded = Math.round(total * 100) / 100;
+
+      return { units, unitPrice, totalRounded, ccy };
     }
+
+    function refreshAllocTotal() {
+      try {
+        const { totalRounded, ccy } = calcTotals();
+        if (totalEl) totalEl.textContent = money(totalRounded, ccy);
+      } catch (e) {
+        console.warn(e);
+        if (totalEl) totalEl.textContent = '—';
+      }
+    }
+
 
     if (priceEl && unitsEl) {
       ['input', 'change'].forEach(ev => {
@@ -1259,10 +1269,8 @@
     const btnAlloc = document.getElementById('alloc-btn');
     btnAlloc?.addEventListener('click', async () => {
       try {
-        const units = Math.max(1, Math.floor(Number(document.getElementById('alloc-units').value || 0)));
-        const unitPrice = Math.max(1, Math.floor(Number(document.getElementById('alloc-price').value || 0)));
-        const total = Number((units * unitPrice).toFixed(2));
-        if (!units || !unitPrice || !total) {
+        const { units, unitPrice, totalRounded, ccy } = calcTotals();
+        if (!units || !unitPrice || !totalRounded) {
           banner('Please enter a valid units amount.', 'err');
           return;
         }
@@ -1270,21 +1278,26 @@
         const email = (user?.email || '').trim();
         if (!email) { banner('No email on account. Please update your profile.', 'err'); return; }
 
-        const reference = buildRef(row?.id, strategy?.id);            // *** pipes ***
+        // Always charge Paystack in ZAR — calcTotals() already converted if needed
+        const payCurrency = 'ZAR';
+        const amountCents = Math.round(totalRounded * 100);
+
+        const reference = buildRef(row?.id, strategy?.id);
         const callback_url = currentPageCallbackUrl();
 
-        const amountCents = Math.round(total * 100);
         sessionStorage.setItem('expectedAmountCents', String(amountCents));
 
-        btnAlloc.disabled = true; btnAlloc.classList.add('opacity-60'); btnAlloc.textContent = 'Redirecting…';
+        btnAlloc.disabled = true;
+        btnAlloc.classList.add('opacity-60');
+        btnAlloc.textContent = 'Redirecting…';
 
         const resp = await fetch('/api/paystack/init', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
-            amount: amountCents,
-            currency: 'ZAR',
+            amount: amountCents,        // integer cents
+            currency: payCurrency,      // 'ZAR'
             reference,
             callback_url,
             channels: ['card'],
@@ -1293,7 +1306,10 @@
               strategy_id: strategy?.id || null,
               strategy_name: strategy?.name || null,
               units,
-              unit_price: unitPrice
+              unit_price: unitPrice,    // original unit price in strategy currency
+              fx_rate: isUSD() ? Number(fx.usdzar) || null : null,
+              shown_total: totalRounded,
+              shown_currency: ccy       // what user saw in the UI
             }
           })
         });
@@ -1308,9 +1324,12 @@
       } catch (e) {
         console.error('[allocate/paystack]', e);
         banner(e.message || 'Could not start payment.', 'err');
-        btnAlloc.disabled = false; btnAlloc.classList.remove('opacity-60'); btnAlloc.textContent = 'Allocate';
+        btnAlloc.disabled = false;
+        btnAlloc.classList.remove('opacity-60');
+        btnAlloc.textContent = 'Allocate';
       }
     });
+
 
     verifyIfReturned();
   </script>
