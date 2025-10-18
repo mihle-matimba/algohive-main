@@ -17,14 +17,17 @@ export default async function handler(req, res) {
     const { email, amount, currency = 'ZAR', reference, callback_url, metadata } = req.body || {};
     if (!email || !amount) return res.status(400).json({ error: 'email and amount (in cents) are required' });
 
-    const payload = {
-      email,
-      amount, // cents
-      currency,
-      reference,
-      callback_url,
-      metadata: { site: 'thealgohive.com', ...metadata }
-    };
+// api/paystack/init.js  (inside try, before fetch)
+const payload = {
+  email,
+  amount,                 // cents
+  currency,               // 'ZAR'
+  reference,
+  callback_url,
+  channels: ["card"],     // 👈 only show card
+  metadata: { site: 'thealgohive.com', ...metadata }
+};
+
 
     const r = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
