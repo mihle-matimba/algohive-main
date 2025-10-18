@@ -559,6 +559,9 @@
     nonce="ALGOHIVE"> (function () { const layout = document.getElementById('layout'); const aside = document.getElementById('ah-sidebar'); const btn = document.getElementById('ah-collapse'); const saved = localStorage.getItem('ah_collapsed') === 'true'; if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); } btn.addEventListener('click', () => { const isCollapsed = aside.getAttribute('data-collapsed') === 'true'; if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open')); aside.setAttribute('data-collapsed', String(!isCollapsed)); layout.classList.toggle('is-collapsed', !isCollapsed); localStorage.setItem('ah_collapsed', String(!isCollapsed)); layout.offsetHeight; window.dispatchEvent(new Event('resize')); }); })(); </script>
   <script type="module" nonce="ALGOHIVE">
     import { supabase } from "/js/supabase.js";
+    let strategy = null;   // <— hoist so other functions/handlers can see it
+    let metrics = null;
+
 
     // tiny banner
     function banner(msg, tone = "warn") {
@@ -1071,9 +1074,9 @@
 
     // ---------- boot ----------
     try {
-      const strategy = await fetchStrategy();
+      strategy = await fetchStrategy();
       if (!strategy) throw new Error('No strategy found');
-      let metrics = await fetchMetrics(strategy.id);
+      metrics = await fetchMetrics(strategy.id);
 
       // hydrate UI
       currentCCY = strategy.currency || 'ZAR';
