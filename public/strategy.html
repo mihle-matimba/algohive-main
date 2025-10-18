@@ -557,9 +557,7 @@
   <!-- Sidebar collapse memory -->
   <script
     nonce="ALGOHIVE"> (function () { const layout = document.getElementById('layout'); const aside = document.getElementById('ah-sidebar'); const btn = document.getElementById('ah-collapse'); const saved = localStorage.getItem('ah_collapsed') === 'true'; if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); } btn.addEventListener('click', () => { const isCollapsed = aside.getAttribute('data-collapsed') === 'true'; if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open')); aside.setAttribute('data-collapsed', String(!isCollapsed)); layout.classList.toggle('is-collapsed', !isCollapsed); localStorage.setItem('ah_collapsed', String(!isCollapsed)); layout.offsetHeight; window.dispatchEvent(new Event('resize')); }); })(); </script>
-
-  let strategy;
-
+  
   <script type="module" nonce="ALGOHIVE">
     import { supabase } from "/js/supabase.js";
     let strategy = null;   // <— hoist so other functions/handlers can see it
@@ -644,32 +642,6 @@
     const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
     const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
     const finite = v => Number.isFinite(Number(v));
-
-    // --- Allocation total (dynamic) ---
-    const priceEl = document.getElementById('alloc-price');
-    const unitsEl = document.getElementById('alloc-units');
-    const totalEl = document.getElementById('alloc-total');
-
-    function refreshAllocTotal() {
-      // coerce to ints and enforce minimums
-      const price = Math.max(1, Math.floor(Number(priceEl?.value || 0)));
-      const units = Math.max(1, Math.floor(Number(unitsEl?.value || 0)));
-
-      if (priceEl) priceEl.value = String(price);
-      if (unitsEl) unitsEl.value = String(units);
-
-      if (totalEl) totalEl.textContent = money(price * units, (strategy?.currency || currentCCY || 'ZAR'));
-    }
-
-    // recalc on load & whenever user changes inputs
-    if (priceEl && unitsEl) {
-      ['input', 'change'].forEach(ev => {
-        priceEl.addEventListener(ev, refreshAllocTotal);
-        unitsEl.addEventListener(ev, refreshAllocTotal);
-      });
-    }
-    refreshAllocTotal();
-
 
     // ---------- URL params ----------
     const params = new URLSearchParams(location.search);
@@ -1014,14 +986,10 @@
       document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
       document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
       document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
-
-      const allocName = document.getElementById('alloc-name');
-      if (allocName) allocName.value = strategy.name || '—';
       const ecName = document.getElementById('pf-name');
       if (ecName) ecName.textContent = strategy.name || '—';
 
       renderDescAndBullets(strategy);
-
 
       const fsDesc = document.getElementById('fsDesc');
       if (fsDesc) fsDesc.textContent =
