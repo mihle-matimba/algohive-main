@@ -1,10 +1,17 @@
 // api/paystack/init.js
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');            // lock to your origin later
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Origin', '*'); // later lock to https://thealgohive.com
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, hint: 'POST email + amount (cents) to initialize' });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
     const { email, amount, currency = 'ZAR', reference, callback_url, metadata } = req.body || {};
@@ -12,8 +19,8 @@ export default async function handler(req, res) {
 
     const payload = {
       email,
-      amount,            // cents
-      currency,          // 'ZAR'
+      amount, // cents
+      currency,
       reference,
       callback_url,
       metadata: { site: 'thealgohive.com', ...metadata }
@@ -24,16 +31,16 @@ export default async function handler(req, res) {
       headers: {
         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache'
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
 
     const json = await r.json();
     if (!r.ok || json.status !== true) {
       return res.status(400).json({ error: json?.message || 'Paystack init failed', raw: json });
     }
-    return res.status(200).json(json); // contains data.access_code
+    return res.status(200).json(json);
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Server error' });
