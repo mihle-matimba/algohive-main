@@ -1,77 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="
-  default-src 'self';
-  script-src 'self' https://js.paystack.co 'unsafe-inline';
-  connect-src 'self' https://api.paystack.co;
-  img-src 'self' data: https://*.paystack.com;
-  frame-src 'self' https://checkout.paystack.com;
-  style-src 'self' 'unsafe-inline';
-  font-src 'self' data:;
-">
 
+  <!-- Strict CSP: no inline JS, allow Paystack + your API -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://js.paystack.co;
+    connect-src 'self' https://api.paystack.co;
+    img-src 'self' data: https://*.paystack.com;
+    frame-src 'self' https://checkout.paystack.com;
+    style-src 'self' 'unsafe-inline';
+    font-src 'self' data:;
+  ">
 
   <title>AlgoHive — Pay</title>
-  <script src="https://js.paystack.co/v2/inline.js"></script>
+  <script src="https://js.paystack.co/v2/inline.js" defer></script>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <style>
-    body {
-      font-family: Inter, system-ui, Arial;
-      margin: 0;
-      padding: 24px;
-      background: #0b1220;
-      color: #e5e7eb;
-    }
-
-    .card {
-      max-width: 460px;
-      margin: 0 auto;
-      background: #0f172a;
-      border: 1px solid #1f2937;
-      border-radius: 16px;
-      padding: 20px;
-    }
-
-    label {
-      display: block;
-      margin: 12px 0 6px;
-      font-size: 14px;
-      color: #9ca3af
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #374151;
-      background: #111827;
-      color: #e5e7eb;
-    }
-
-    button {
-      margin-top: 16px;
-      width: 100%;
-      padding: 12px;
-      border: 0;
-      border-radius: 12px;
-      cursor: pointer;
-      background: #22c55e;
-      color: #06120e;
-      font-weight: 700
-    }
-
-    .muted {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 10px
-    }
+    body { font-family: Inter, system-ui, Arial; margin: 0; padding: 24px; background:#0b1220; color:#e5e7eb; }
+    .card { max-width: 460px; margin: 0 auto; background:#0f172a; border:1px solid #1f2937; border-radius:16px; padding:20px; }
+    label { display:block; margin:12px 0 6px; font-size:14px; color:#9ca3af }
+    input { width:100%; padding:12px; border-radius:10px; border:1px solid #374151; background:#111827; color:#e5e7eb; }
+    button { margin-top:16px; width:100%; padding:12px; border:0; border-radius:12px; cursor:pointer; background:#22c55e; color:#06120e; font-weight:700 }
+    .muted { font-size:12px; color:#9ca3af; margin-top:10px }
   </style>
 </head>
-
 <body>
   <div class="card">
     <h2>Pay with Paystack</h2>
@@ -89,51 +44,7 @@
     <p class="muted">Card, EFT, etc via Paystack Popup. Amount is charged in cents (ZAR).</p>
   </div>
 
-  <script>
-    const payBtn = document.getElementById('payBtn');
-
-    payBtn.addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
-      const amountStr = document.getElementById('amount').value.trim();
-      const reference = document.getElementById('ref').value.trim() || undefined;
-
-      if (!email || !amountStr) { alert('Please enter email and amount.'); return; }
-      const amountZar = Number(amountStr);
-      if (Number.isNaN(amountZar) || amountZar <= 0) { alert('Enter a valid amount.'); return; }
-
-      // Convert to cents for Paystack (ZAR)
-      const amountCents = Math.round(amountZar * 100);
-
-      try {
-        // Call your Vercel API route to initialize
-        const res = await fetch('/api/paystack/init', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            amount: amountCents,
-            currency: 'ZAR',
-            reference,
-            // Optional: override callback
-            callback_url: `${location.origin}/pay/callback`
-          })
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Failed to initialize transaction');
-
-        const access_code = data?.data?.access_code;
-        if (!access_code) throw new Error('No access_code returned');
-
-        // Launch Paystack Popup v2
-        const popup = new PaystackPop();
-        popup.resumeTransaction(access_code);
-      } catch (err) {
-        console.error(err);
-        alert(err.message || 'Could not start payment. Please try again.');
-      }
-    });
-  </script>
+  <!-- Your code (external, not inline) -->
+  <script src="/pay.js" defer></script>
 </body>
-
 </html>
