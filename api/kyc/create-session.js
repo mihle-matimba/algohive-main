@@ -40,9 +40,8 @@ export default async function handler(req, res) {
     let r = await fetch('https://api.didit.me/v1/verification-sessions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${KEY}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'X-Api-Key': `${KEY}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload),
     });
