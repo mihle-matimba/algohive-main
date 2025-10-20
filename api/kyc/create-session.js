@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     const r = await fetch('https://api.didit.me/v1/sessions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${DIDIT_API_KEY}`,
+        'X-Api-Key': DIDIT_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
