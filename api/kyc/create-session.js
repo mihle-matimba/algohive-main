@@ -1,86 +1,134 @@
-// /api/kyc/create-session.js
-export default async function handler(req, res) {
-  // CORS (optional)
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+// Vercel Edge Function: Create KYC Session
+// Path: /api/kyc/create-session
+// Completely serverless - no Node.js dependencies
 
-  const KEY = process.env.DIDIT_API_KEY;
-  const WORKFLOW = process.env.DIDIT_WORKFLOW_ID;
+export const config = {
+  runtime: 'edge',
+}
 
-  const { userId, email, phone, redirect_url } = req.body || {};
-  if (!userId || !email) return res.status(400).json({ error: 'userId and email are required' });
-
-  // Test mode if envs missing
-  if (!KEY || !WORKFLOW) {
-    return res.status(200).json({
-      mode: 'TEST',
-      sessionId: `test_${Date.now()}`,
-      sessionUrl: redirect_url || '/',
-      message: 'DIDIT_API_KEY / DIDIT_WORKFLOW_ID missing — returning TEST session.',
+export default async function handler(req) {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
     });
   }
 
-  const reference = `KYC|${userId}|${Date.now()}`;
-
-  // Common payload — adjust keys if your workflow needs more fields
-  const payload = {
-    workflow_id: WORKFLOW,
-    reference,
-    applicant: { email, phone },
-    // Some tenants use `redirect_url`, others `return_url` — include both
-    redirect_url: redirect_url || undefined,
-    return_url: redirect_url || undefined,
-  };
-
-  // Helper to parse body safely
-  const safe = (t) => { try { return JSON.parse(t); } catch { return null; } };
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
 
   try {
-    // 1) Preferred: Bearer + /v1/verification-sessions
-    let r = await fetch('https://api.didit.me/v1/verification-sessions', {
+    const body = await req.json();
+    const { userId, email, phone, metadata } = body;
+
+    // Validate required fields
+    if (!userId || !email) {
+      return new Response(JSON.stringify({
+        error: 'userId and email are required'
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    console.log(`[KYC] Creating session for user: ${userId}`);
+
+    // Get environment variables
+    const API_KEY = process.env.DIDIT_API_KEY;
+    const WORKFLOW_ID = process.env.DIDIT_WORKFLOW_ID;
+    const BASE_URL = 'https://verification.didit.me';
+
+    // Check if Didit is configured
+    if (!API_KEY || !WORKFLOW_ID) {
+      console.warn('[KYC] ⚠️  Didit not configured, returning test response');
+      
+      // Return test mode response
+      return new Response(JSON.stringify({
+        mode: 'TEST',
+        success: true,
+        sessionId: `test-${Date.now()}`,
+        message: 'Test mode: Configure DIDIT_API_KEY and DIDIT_WORKFLOW_ID in Vercel environment variables',
+        userId,
+        email
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    // Create session with Didit API
+    const response = await fetch(`${BASE_URL}/v2/session/`, {
       method: 'POST',
       headers: {
-        'X-Api-Key': `${KEY}`,
+        'X-Api-Key': API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        workflow_id: WORKFLOW_ID,
+        vendor_data: userId,
+        metadata: metadata || {},
+        contact_details: {
+          email: email,
+          email_lang: 'en',
+          phone: phone || undefined
+        }
+      })
     });
 
-    let txt = await r.text();
-    let js = safe(txt);
-
-    // If not OK and looks like auth/route mismatch, try legacy path+header
-    if (!r.ok && (r.status === 401 || r.status === 403 || r.status === 404)) {
-      r = await fetch('https://api.didit.me/v1/sessions', {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': KEY,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      txt = await r.text();
-      js = safe(txt);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[KYC] ❌ Didit API error:', errorData);
+      throw new Error(errorData.message || 'Failed to create session with Didit');
     }
 
-    if (!r.ok) {
-      return res.status(r.status).json({
-        error: js?.message || 'Didit error',
-        upstream_status: r.status,
-        upstream_body: js || txt,
-      });
-    }
+    const sessionData = await response.json();
 
-    return res.status(200).json({
-      mode: 'LIVE',
-      sessionId: js?.id || js?.session_id,
-      sessionUrl: js?.url || js?.verification_url || js?.session_url,
-      redirectUrl: redirect_url || null,
-      reference,
+    console.log(`[KYC] ✅ Session created: ${sessionData.session_id}`);
+
+    // Return session data
+    return new Response(JSON.stringify({
+      success: true,
+      sessionId: sessionData.session_id,
+      sessionUrl: sessionData.url,
+      status: sessionData.status,
+      mode: 'PRODUCTION'
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
-  } catch (e) {
-    console.error('[didit/create-session]', e);
-    return res.status(500).json({ error: e.message || 'Server error' });
+
+  } catch (error) {
+    console.error('[KYC] ❌ Error creating session:', error);
+    return new Response(JSON.stringify({
+      error: 'Failed to create KYC session',
+      details: error.message
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
 }
