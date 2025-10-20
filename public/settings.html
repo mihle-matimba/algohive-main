@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoHive — Settings</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
@@ -812,12 +812,132 @@
 
 
     // ---------- KYC button handler ----------
+    // ---------- KYC return detection ----------
+    function checkKycReturn() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isKycReturn = urlParams.get('kyc_return') === 'true';
+      const sessionId = localStorage.getItem('kyc_session_id');
+      
+      if (isKycReturn && sessionId) {
+        console.log('🔄 Detected KYC return, checking status...');
+        handleKycReturn(sessionId);
+        
+        // Clean up URL
+        const cleanUrl = window.location.pathname + window.location.hash.split('?')[0];
+        history.replaceState(null, '', cleanUrl);
+      }
+    }
+
+    async function handleKycReturn(sessionId) {
+      try {
+        banner('Checking KYC verification status...', 'info');
+        
+        // Poll the API to get final status
+        let attempts = 0;
+        const maxAttempts = 10;
+        let finalStatus = null;
+
+        while (attempts < maxAttempts) {
+          try {
+            const response = await fetch(`/api/kyc/session/${sessionId}`);
+            const data = await response.json();
+            
+            console.log(`📊 KYC Status (attempt ${attempts + 1}):`, data);
+
+            if (data.status && data.status !== 'In Progress' && data.status !== 'Pending') {
+              finalStatus = data.status;
+              break;
+            }
+
+            // Wait 2 seconds before next attempt
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            attempts++;
+          } catch (error) {
+            console.error('❌ Status polling error:', error);
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+
+        // Handle final status
+        if (finalStatus === 'Approved' || finalStatus === 'approved') {
+          console.log('✅ KYC Approved!');
+          
+          // Update Supabase
+          const userId = localStorage.getItem('kyc_user_id') || user.id;
+          await supabase.from('profiles')
+            .update({ 
+              kyc_status: 'verified',
+              kyc_approved_at: new Date().toISOString(),
+              kyc_session_id: sessionId
+            })
+            .eq('id', userId);
+
+          // Update local state
+          kycDone = true;
+          setKycState(kycDone);
+          refreshGates();
+          
+          banner('🎉 KYC Verification Approved! Policy tab now unlocked!', 'ok');
+          
+          // Navigate to policies section after approval
+          location.hash = '#agreements';
+
+        } else if (finalStatus === 'Rejected' || finalStatus === 'rejected' || finalStatus === 'Declined') {
+          console.log('❌ KYC Rejected');
+          banner('❌ KYC verification was declined. Please contact support or try again.', 'err');
+          
+          // Stay on KYC tab for declined cases
+          location.hash = '#docs';
+          
+        } else {
+          console.log('⏳ KYC Still Processing');
+          banner('⏳ KYC verification is still being processed. We\'ll notify you via email once complete.', 'info');
+          
+          // Stay on KYC tab for processing cases
+          location.hash = '#docs';
+        }
+
+        // Clean up localStorage
+        try {
+          localStorage.removeItem('kyc_session_id');
+          localStorage.removeItem('kyc_user_id');
+          localStorage.removeItem('kyc_started_at');
+        } catch (e) { /* ignore */ }
+
+      } catch (error) {
+        console.error('❌ KYC return handling error:', error);
+        banner('Error checking KYC status. Please refresh the page or contact support.', 'err');
+      }
+    }
+
+    // ---------- KYC Session Management ----------
+    // Clean up any existing KYC session when navigating away or closing
+    function cleanupKycSession() {
+      try {
+        sessionStorage.removeItem('lastKycSessionId');
+        localStorage.removeItem('kyc_session_id');
+        localStorage.removeItem('kyc_user_id');
+        localStorage.removeItem('kyc_started_at');
+        console.log('KYC session cleaned up');
+      } catch (e) {
+        console.warn('Error cleaning up KYC session:', e);
+      }
+    }
+    
+    // Add beforeunload listener to cleanup if user navigates away without completing KYC
+    window.addEventListener('beforeunload', cleanupKycSession);
+
     // ---------- KYC button handler (REDIRECT FLOW) ----------
     const btnKycStart = document.getElementById("btn-kyc-start");
     btnKycStart?.addEventListener("click", async () => {
       try {
         btnKycStart.disabled = true;
         btnKycStart.textContent = "Starting…";
+        
+        // Clear any existing KYC session data to start fresh
+        cleanupKycSession();
+        console.log("Starting fresh KYC session...");
 
         // When user returns, we’ll read ?kyc_session=... from URL and check status
         const returnUrl = `${location.origin}/settings.html#docs`;
@@ -856,8 +976,27 @@
         // Either way, keep our own “state” locally in case we need to poll after return.
         sessionStorage.setItem('lastKycSessionId', data.sessionId);
 
+        // Store session info for return handling
+        try { 
+          localStorage.setItem('kyc_session_id', data.sessionId); 
+          localStorage.setItem('kyc_user_id', user.id);
+          localStorage.setItem('kyc_started_at', Date.now().toString());
+        } catch (e) { 
+          console.warn('Could not persist KYC session to localStorage', e); 
+        }
+
+        // Create return URL pointing back to settings.html after KYC completion
+        const kycReturnUrl = encodeURIComponent(`${window.location.origin}/settings.html#docs?kyc_return=true`);
+        
+        // Append return URL to verification URL if Didit supports it
+        const finalUrl = data.sessionUrl.includes('?') 
+          ? `${data.sessionUrl}&return_url=${kycReturnUrl}`
+          : `${data.sessionUrl}?return_url=${kycReturnUrl}`;
+
+        banner('Redirecting to KYC verification...', 'info');
+        
         // Off you go 🚀
-        window.location.href = data.sessionUrl;
+        window.location.href = finalUrl;
 
       } catch (e) {
         console.error(e);
@@ -868,47 +1007,21 @@
     });
 
 
-    function openKycModal() {
-      const modal = document.getElementById("kyc-modal");
-      if (modal) {
-        modal.classList.remove("hidden");
-      }
-    }
 
-    function closeKycModal() {
-      const modal = document.getElementById("kyc-modal");
-      if (modal) {
-        modal.classList.add("hidden");
-      }
-    }
 
-    window.closeKycModal = closeKycModal;
 
-    // Listen for KYC approval message from iframe
-    window.addEventListener('message', async (event) => {
-      if (event.data?.type === 'KYC_APPROVED') {
-        console.log('🎉 KYC Approved! Refreshing gates...');
-
-        // Refresh user profile data from Supabase
-        const { data: updatedProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (updatedProfile) {
-          kycDone = resolveKycBoolean(updatedProfile);
-          setKycState(kycDone);
-          refreshGates();
-
-          banner('🎉 KYC Approved! All features unlocked!', 'ok');
-          closeKycModal();
-        }
-      }
-    });
 
     const allowedTabsWhenGated = new Set(["extra", "docs"]);
-    function isGated() { return !(profileComplete && kycDone); }
+    function isGated() { 
+      // When KYC is done, allow access to agreements (policy) tab
+      return !(profileComplete && kycDone);
+    }
+    
+    function isTabAllowed(tabName) {
+      if (!isGated()) return true; // All tabs allowed when not gated
+      if (kycDone && tabName === "agreements") return true; // Policy allowed when KYC done
+      return allowedTabsWhenGated.has(tabName); // Default allowed tabs
+    }
     function gateReason() {
       if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
       if (!profileComplete) return "Please finish Additional Info first.";
@@ -939,7 +1052,7 @@
       if (!isGated()) return;
       const hash = (location.hash || "#basic").toLowerCase();
       const wanted = hash.replace(/^#/, "");
-      if (!allowedTabsWhenGated.has(wanted)) {
+      if (!isTabAllowed(wanted)) {
         const target = !profileComplete ? "#extra" : "#kyc";
         if (hash !== target) { banner(gateReason(), "warn"); location.hash = target; }
       }
@@ -948,6 +1061,9 @@
     lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
     const _origSetKycState = setKycState;
     setKycState = (isDone) => { _origSetKycState(isDone); kycDone = !!isDone; refreshGates(); };
+
+    // Check for KYC return after page setup
+    checkKycReturn();
 
     // ---------- profile modal ----------
     const profileModal = document.getElementById("profile-modal");
@@ -1334,22 +1450,7 @@
     </div>
   </div>
 
-  <!-- im just going to add modal iframe here for now -->
-  <div id="kyc-modal" class="fixed inset-0 z-[150] hidden">
-    <div class="absolute inset-0 bg-black/60" onclick="closeKycModal()"></div>
-    <div class="absolute inset-4 md:inset-8 lg:inset-12 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <h3 class="text-lg font-semibold text-slate-900">KYC Verification</h3>
-        <button onclick="closeKycModal()" class="btn h-9 w-9 p-0 hover:bg-slate-100" title="Close">
-          <i class="fa-solid fa-times"></i>
-        </button>
-      </div>
-      <!-- iframe Content -->
-      <iframe src="/Kycwindow.html" class="flex-1 w-full border-0" title="KYC Verification"
-        allow="camera; microphone; geolocation"></iframe>
-    </div>
-  </div>
+
 
 
 </body>
