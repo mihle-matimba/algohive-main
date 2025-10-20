@@ -157,7 +157,7 @@
           <div class="ml-8 mt-1 flex flex-col sub">
             <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#"><i
                 class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">My Strategies</span></a>
-           </div>
+          </div>
         </details>
 
         <details class="group mt-1">
@@ -176,8 +176,8 @@
           </div>
         </details>
 
-        
-       
+
+
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i
             class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i
@@ -241,10 +241,11 @@
             <nav id="settings-nav" class="space-y-1">
               <a href="#basic" data-tab="basic"
                 class="w-full block text-left px-4 py-2 rounded-lg text-slate-800 bg-slate-100">Basic Info</a>
-                            <a href="#extra" data-tab="extra"
+              <a href="#extra" data-tab="extra"
                 class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Additional Info</a>
-                            <a href="#docs" data-tab="docs"
-                class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">KYC Verification</a>
+              <a href="#docs" data-tab="docs"
+                class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">KYC
+                Verification</a>
               <a href="#manage" data-tab="manage"
                 class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Manage Accounts</a>
 
@@ -323,7 +324,7 @@
                 <button id="btn-kyc-start"
                   class="btn-olive inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold">
                   <i class="fa-solid fa-id-card"></i>
-                  Get Started mate
+                  Get Started
                 </button>
                 <span id="kyc-error" class="hidden ml-3 text-sm text-rose-700">Sorry, couldn’t start KYC. Try
                   again.</span>
@@ -768,11 +769,104 @@
     setKycState(kycDone);
     let profileComplete = computeProfileComplete(row);
 
+    // ---------- When returning from KYC, auto-check status ----------
+    (async function handleKycReturn() {
+      const url = new URL(location.href);
+      const sessionId =
+        url.searchParams.get('kyc_session') ||
+        sessionStorage.getItem('lastKycSessionId');
+
+      // Only do this on the KYC tab
+      const onDocsTab = (location.hash.toLowerCase().replace('#', '') || 'basic') === 'docs';
+      if (!sessionId || !onDocsTab) return;
+
+      try {
+        banner('Checking KYC status…');
+        const r = await fetch(`/api/kyc/session/${encodeURIComponent(sessionId)}`);
+        const j = await r.json();
+
+        if (j.status?.toLowerCase() === 'approved') {
+          // Mark in Supabase (idempotent)
+          await supabase.from('profiles')
+            .update({ kyc_status: 'verified', kyc_approved_at: new Date().toISOString() })
+            .eq('id', user.id);
+
+          setKycState(true);
+          refreshGates();
+          banner('🎉 KYC Approved! All features unlocked.', 'ok');
+        } else if (['rejected', 'declined'].includes((j.status || '').toLowerCase())) {
+          banner('❌ KYC was declined. Please contact support.', 'err');
+        } else {
+          banner(`KYC status: ${j.status || 'pending'}`);
+        }
+      } catch (e) {
+        console.error(e);
+        banner('Could not check KYC status', 'err');
+      } finally {
+        // Clean URL params (keep the #docs anchor)
+        url.searchParams.delete('kyc_session');
+        history.replaceState({}, '', url.toString());
+        sessionStorage.removeItem('lastKycSessionId');
+      }
+    })();
+
+
     // ---------- KYC button handler ----------
+    // ---------- KYC button handler (REDIRECT FLOW) ----------
     const btnKycStart = document.getElementById("btn-kyc-start");
-    btnKycStart?.addEventListener("click", () => {
-      openKycModal();
+    btnKycStart?.addEventListener("click", async () => {
+      try {
+        btnKycStart.disabled = true;
+        btnKycStart.textContent = "Starting…";
+
+        // When user returns, we’ll read ?kyc_session=... from URL and check status
+        const returnUrl = `${location.origin}/settings.html#docs`;
+
+        // Call our server to create the Didit session (and embed the redirect back)
+        const resp = await fetch('/api/kyc/create-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email,
+            phone: row?.phone || undefined,
+            redirect_url: returnUrl
+          })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data?.error || 'Could not start KYC');
+
+        // TEST mode → just show message
+        if (data.mode === 'TEST') {
+          banner('Server OK (TEST mode). Configure DIDIT_API_KEY & DIDIT_WORKFLOW_ID for live.', 'ok');
+          btnKycStart.disabled = false;
+          btnKycStart.textContent = "Get Started";
+          return;
+        }
+
+        if (!data.sessionUrl) throw new Error('No session URL from KYC provider');
+
+        // Best practice: add sessionId to the return URL as a query (so we can poll when we land back)
+        const back = new URL(data.redirectUrl || returnUrl);
+        back.searchParams.set('kyc_session', data.sessionId);
+
+        // If Didit respects redirect_url we already sent, great.
+        // Some providers accept extra params; if not, we’ll still land on returnUrl from their side.
+        // Either way, keep our own “state” locally in case we need to poll after return.
+        sessionStorage.setItem('lastKycSessionId', data.sessionId);
+
+        // Off you go 🚀
+        window.location.href = data.sessionUrl;
+
+      } catch (e) {
+        console.error(e);
+        banner(e.message || 'Could not start KYC', 'err');
+        btnKycStart.disabled = false;
+        btnKycStart.textContent = "Get Started";
+      }
     });
+
 
     function openKycModal() {
       const modal = document.getElementById("kyc-modal");
@@ -788,25 +882,25 @@
       }
     }
 
-     window.closeKycModal = closeKycModal;
-    
+    window.closeKycModal = closeKycModal;
+
     // Listen for KYC approval message from iframe
     window.addEventListener('message', async (event) => {
       if (event.data?.type === 'KYC_APPROVED') {
         console.log('🎉 KYC Approved! Refreshing gates...');
-        
+
         // Refresh user profile data from Supabase
         const { data: updatedProfile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
-        
+
         if (updatedProfile) {
           kycDone = resolveKycBoolean(updatedProfile);
           setKycState(kycDone);
           refreshGates();
-          
+
           banner('🎉 KYC Approved! All features unlocked!', 'ok');
           closeKycModal();
         }
@@ -1252,12 +1346,8 @@
         </button>
       </div>
       <!-- iframe Content -->
-      <iframe 
-        src="/Kycwindow.html" 
-        class="flex-1 w-full border-0"
-        title="KYC Verification"
-        allow="camera; microphone; geolocation"
-      ></iframe>
+      <iframe src="/Kycwindow.html" class="flex-1 w-full border-0" title="KYC Verification"
+        allow="camera; microphone; geolocation"></iframe>
     </div>
   </div>
 

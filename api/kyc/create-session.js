@@ -1,95 +1,73 @@
-// retrying to see if vercel will detect enviroment variables 
-
+// /api/kyc/create-session.js
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  const DIDIT_API_KEY = process.env.DIDIT_API_KEY;
+  const DIDIT_WORKFLOW_ID = process.env.DIDIT_WORKFLOW_ID;
+
+  const {
+    userId,
+    email,
+    phone,
+    // where Didit should send the user back after completion
+    redirect_url,
+  } = req.body || {};
+
+  if (!userId || !email) {
+    return res.status(400).json({ error: 'userId and email are required' });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  // If you haven’t configured DIDIT env vars yet, run in TEST mode
+  if (!DIDIT_API_KEY || !DIDIT_WORKFLOW_ID) {
+    const testId = `test_${Date.now()}`;
+    return res.status(200).json({
+      mode: 'TEST',
+      sessionId: testId,
+      // In test we “redirect” right back
+      sessionUrl: redirect_url || '/',
+      message: 'DIDIT keys missing; returning TEST session so the client flow can continue.',
+    });
   }
 
   try {
-    const { userId, email, phone, metadata } = req.body;
+    // Build a stable reference (handy for webhooks / audits)
+    const reference = `KYC|${userId}|${Date.now()}`;
 
-    // Validate required fields
-    if (!userId || !email) {
-      return res.status(400).json({
-        error: 'userId and email are required'
-      });
-    }
+    // NOTE: Shape matches Didit’s “create session” style.
+    // If their API uses slightly different field names, adjust here.
+    const payload = {
+      workflow_id: DIDIT_WORKFLOW_ID,
+      reference,
+      applicant: { email, phone },
+      // Didit supports redirect on completion; this brings the user back.
+      redirect_url: redirect_url,
+    };
 
-    console.log(`[KYC] Creating session for user: ${userId}`);
-
-    // Get environment variables
-    const API_KEY = process.env.DIDIT_API_KEY;
-    const WORKFLOW_ID = process.env.DIDIT_WORKFLOW_ID;
-    const BASE_URL = 'https://verification.didit.me';
-
-    // Check if Didit is configured
-    if (!API_KEY || !WORKFLOW_ID) {
-      console.warn('[KYC] ⚠️  Didit not configured, returning test response');
-      
-      // Return test mode response
-      return res.status(200).json({
-        mode: 'TEST',
-        success: true,
-        sessionId: `test-${Date.now()}`,
-        message: 'Test mode: Configure DIDIT_API_KEY and DIDIT_WORKFLOW_ID in Vercel environment variables',
-        userId,
-        email
-      });
-    }
-
-    // Create session with Didit API
-    const response = await fetch(`${BASE_URL}/v2/session/`, {
+    const r = await fetch('https://api.didit.me/v1/sessions', {
       method: 'POST',
       headers: {
-        'X-Api-Key': API_KEY,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${DIDIT_API_KEY}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        workflow_id: WORKFLOW_ID,
-        vendor_data: userId,
-        metadata: metadata || {},
-        contact_details: {
-          email: email,
-          email_lang: 'en',
-          phone: phone || undefined
-        }
-      })
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('[KYC] ❌ Didit API error:', errorData);
-      throw new Error(errorData.message || 'Failed to create session with Didit');
+    const data = await r.json();
+    if (!r.ok) {
+      return res.status(r.status).json({ error: data?.message || 'Didit error', upstream: data });
     }
 
-    const sessionData = await response.json();
-
-    console.log(`[KYC] ✅ Session created: ${sessionData.session_id}`);
-
-    // Return session data
-    res.status(200).json({
-      success: true,
-      sessionId: sessionData.session_id,
-      sessionUrl: sessionData.url,
-      status: sessionData.status,
-      mode: 'PRODUCTION'
+    // Return the essentials for the client to redirect
+    return res.status(200).json({
+      mode: 'LIVE',
+      sessionId: data.id || data.session_id,
+      sessionUrl: data.url || data.session_url, // Didit usually returns one of these
+      redirectUrl: payload.redirect_url,
+      reference,
     });
-
-  } catch (error) {
-    console.error('[KYC] ❌ Error creating session:', error);
-    res.status(500).json({
-      error: 'Failed to create KYC session',
-      details: error.message
-    });
+  } catch (e) {
+    console.error('[didit/create-session]', e);
+    return res.status(500).json({ error: e.message || 'Server error' });
   }
 }
-
