@@ -84,7 +84,7 @@ export default async function handler(req) {
     const payload = {
       workflow_id: WORKFLOW_ID,
       vendor_data: vendorData,
-      callback: "thealgohive.com/settings.html#kyc",
+      callback: 'https://www.thealgohive.com/settings.html#kyc',
       metadata: {
         ...(metadata || {}),
         baseUserId: userId,
