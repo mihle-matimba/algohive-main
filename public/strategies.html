@@ -17,9 +17,36 @@
     .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
     .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
     .topbar{ height:52px }
-    #layout{ --sb:220px; display:grid; grid-template-columns:var(--sb) 1fr; min-height:100vh }
-    #layout.is-collapsed{ --sb:64px }
-    #ah-sidebar{ transition: width .2s ease; width:var(--sb) }
+    
+    /* UPDATED FOR RESPONSIVENESS */
+    #layout{ --sb:220px; display:grid; grid-template-columns:1fr; min-height:100vh } /* Mobile-first: 1 column */
+    #ah-sidebar{ 
+      transition: transform .3s ease, width .2s ease; /* Add transform transition */
+      width: 280px; /* Mobile width */
+      max-width: 85vw;
+      position: fixed; /* Mobile overlay */
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%); /* Hidden by default */
+    }
+    #ah-sidebar.is-open {
+      transform: translateX(0); /* Show sidebar */
+    }
+    
+    /* Desktop styles */
+    @media (min-width: 768px) {
+      #layout{ grid-template-columns:var(--sb) 1fr } /* 2-col grid on desktop */
+      #layout.is-collapsed{ --sb:64px }
+      #ah-sidebar {
+        position: sticky; /* Back to sticky */
+        width: var(--sb); /* Use variable width */
+        max-width: none;
+        transform: translateX(0); /* Always visible */
+        z-index: auto;
+      }
+    }
+    /* END RESPONSIVE UPDATES */
+    
     #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
     #ah-sidebar details .sub{ transition: height .2s ease }
     #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
@@ -28,6 +55,12 @@
     #ah-sidebar .footer{ transition:all .2s ease }
     #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
     #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+    
+    /* Hide desktop collapse button on mobile */
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) {
+      #ah-collapse { display: inline-flex; } /* Show on desktop */
+    }
 
     /* table styles */
     .tbl-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden }
@@ -42,9 +75,10 @@
 
 <body class="min-h-screen overflow-x-hidden">
   <div id="layout">
-       <!-- ===== Sidebar ===== -->
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <!-- ===== Sidebar ===== -->
     <aside id="ah-sidebar" data-collapsed="false"
-      class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
       <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
         <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
           alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
@@ -74,7 +108,7 @@
            </div>
         </details>
 
-        <details class="group mt-1">
+        <details class="group mt-1" open>
           <summary
             class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
             <span class="flex items-center gap-3">
@@ -83,15 +117,13 @@
             <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
           </summary>
           <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="strategies.html"><i
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100 font-semibold" href="strategies.html"><i
                 class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
             <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="funds.html"><i
                 class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
           </div>
         </details>
 
-        
-       
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="support.html"><i
             class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="legal.html"><i
@@ -113,14 +145,12 @@
     <!-- ===== Main ===== -->
     <main class="flex-1 min-w-0">
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
         <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[560px]">
-          <div class="relative w-full">
-            <input id="q" class="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]" placeholder="Search strategies, styles, providers…"/>
-            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-            </svg>
-          </div>
+           <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h1 class="text-xl font-bold text-slate-800">Open Strategies</h1>
         </div>
 
         <div class="flex items-center gap-3">
@@ -136,9 +166,10 @@
 
       <!-- Filters -->
       <div class="max-w-7xl mx-auto px-6">
-        <section class="sticky top-0 z-10 bg-white/70 backdrop-blur border-b border-slate-200 px-0 py-3">
-          <div class="flex flex-wrap items-center gap-3">
+        <section class="sticky top-[69px] z-20 bg-white/70 backdrop-blur border-b border-slate-200 px-0 py-3">
+          <div class="hidden md:flex flex-wrap items-center gap-3">
             <div class="text-sm font-semibold">Filters</div>
+             <input id="q" class="h-9 w-full sm:w-64 pl-3 pr-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--olive)] text-sm" placeholder="Search strategies…"/>
             <select id="fRisk" class="h-9 rounded-lg border px-2 text-sm">
               <option value="">Risk: Any</option>
               <option>Low</option>
@@ -162,12 +193,19 @@
             </select>
             <button id="clearBtn" class="h-9 px-3 rounded-lg border hover:bg-slate-50 text-sm">Clear</button>
           </div>
+          
+           <div class="md:hidden">
+            <button id="mobile-filter-btn" class="btn w-full bg-white">
+              <i class="fa-solid fa-filter"></i>
+              <span>Filters & Sort</span>
+            </button>
+          </div>
         </section>
 
         <!-- Results summary -->
         <div class="flex items-center justify-between py-4">
           <div id="resultCount" class="text-sm text-slate-500">Showing 0 strategies</div>
-          <div class="text-xs text-slate-400">* Metrics are simulated from monthly returns (net of TIF).</div>
+          <div class="text-xs text-slate-400 hidden sm:block">* Metrics are simulated from monthly returns (net of TIF).</div>
         </div>
 
         <!-- Table -->
@@ -178,12 +216,12 @@
                 <tr>
                   <th class="th-min">#</th>
                   <th>Name</th>
-                  <th>Provider</th>
-                  <th class="th-min">Ccy</th>
-                  <th class="th-min">Risk</th>
-                  <th class="th-min">AUM</th>
-                  <th>Style</th>
-                  <th>Universe</th>
+                  <th class="hidden md:table-cell">Provider</th>
+                  <th class="th-min hidden md:table-cell">Ccy</th>
+                  <th class="th-min hidden md:table-cell">Risk</th>
+                  <th class="hidden md:table-cell">AUM</th>
+                  <th class="hidden md:table-cell">Style</th>
+                  <th class="hidden lg:table-cell">Universe</th>
                   <th class="th-min">Actions</th>
                 </tr>
               </thead>
@@ -219,8 +257,98 @@
       </div>
     </div>
   </div>
+  
+  <!-- Filter Modal -->
+  <div id="filter-modal" class="fixed inset-0 z-[60] p-4 hidden">
+      <div id="filter-overlay" class="absolute inset-0 bg-black/40"></div>
+      <div class="relative w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-6 mt-10">
+          <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">Filters & Sort</h3>
+              <button id="filter-close-btn" class="btn h-9 w-9 p-0 rounded-lg border-0 bg-slate-100 hover:bg-slate-200">
+                  <i class="fa-solid fa-times"></i>
+              </button>
+          </div>
+          
+          <div class="space-y-4">
+              <div>
+                  <label for="q-m" class="block text-sm font-medium text-slate-600 mb-1">Search</label>
+                  <input id="q-m" class="h-10 w-full pl-3 pr-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--olive)] text-sm" placeholder="Search strategies…"/>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                  <div>
+                      <label for="fRisk-m" class="block text-sm font-medium text-slate-600 mb-1">Risk</label>
+                      <select id="fRisk-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                          <option value="">Any</option>
+                          <option>Low</option>
+                          <option>Moderate</option>
+                          <option>High</option>
+                      </select>
+                  </div>
+                  <div>
+                      <label for="fCur-m" class="block text-sm font-medium text-slate-600 mb-1">Currency</label>
+                      <select id="fCur-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                          <option value="">Any</option>
+                          <option>ZAR</option>
+                          <option>USD</option>
+                          <option>EUR</option>
+                      </select>
+                  </div>
+              </div>
+               <div>
+                  <label for="fStyle-m" class="block text-sm font-medium text-slate-600 mb-1">Style</label>
+                  <select id="fStyle-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                       <option value="">Any</option>
+                  </select>
+              </div>
+              <div>
+                  <label for="fSort-m" class="block text-sm font-medium text-slate-600 mb-1">Sort by</label>
+                  <select id="fSort-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                      <option value="name-asc">Name (A→Z)</option>
+                      <option value="cagr-desc">1Y CAGR (High→Low)</option>
+                      <option value="aum-desc">AUM (High→Low)</option>
+                      <option value="dd-asc">Max DD (Low→High)</option>
+                  </select>
+              </div>
+          </div>
+          
+          <div class="flex items-center justify-between mt-6">
+              <button id="clearBtn-m" class="btn h-10 text-sm">Clear</button>
+              <button id="filter-apply-btn" class="btn h-10 text-sm bg-[var(--olive)] text-white border-none hover:opacity-90">
+                  Apply Filters
+              </button>
+          </div>
+      </div>
+  </div>
+
+
+<script nonce="ALGOHIVE">
+  // SCRIPT FOR MOBILE SIDEBAR
+  (function () {
+    const btn = document.getElementById('ah-mobile-menu-btn');
+    const overlay = document.getElementById('ah-overlay');
+    const sidebar = document.getElementById('ah-sidebar');
+
+    function openMenu() {
+      sidebar.classList.add('is-open');
+      overlay.classList.remove('hidden');
+    }
+    function closeMenu() {
+      sidebar.classList.remove('is-open');
+      overlay.classList.add('hidden');
+    }
+
+    btn?.addEventListener('click', openMenu);
+    overlay?.addEventListener('click', closeMenu);
+    
+    // Also close mobile menu on nav link click
+    sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
+        link.addEventListener('click', closeMenu);
+    });
+  })();
+</script>
+
 <script nonce="ALGOHIVE"> 
-  // Sidebar collapse memory
+  // Sidebar collapse memory (This controls the DESKTOP collapse)
     (function () {
       const layout = document.getElementById('layout');
       const aside = document.getElementById('ah-sidebar');
@@ -235,6 +363,76 @@
         localStorage.setItem('ah_collapsed', String(!isCollapsed));
       });
     })();
+</script>
+
+<script nonce="ALGOHIVE">
+  // SCRIPT FOR FILTER MODAL
+  (function () {
+    // Desktop filters
+    const $q = document.getElementById('q');
+    const $risk = document.getElementById('fRisk');
+    const $cur = document.getElementById('fCur');
+    const $style = document.getElementById('fStyle');
+    const $sort = document.getElementById('fSort');
+
+    // Mobile modal and its filters
+    const $modal = document.getElementById('filter-modal');
+    const $mobileBtn = document.getElementById('mobile-filter-btn');
+    const $closeBtn = document.getElementById('filter-close-btn');
+    const $overlay = document.getElementById('filter-overlay');
+    const $applyBtn = document.getElementById('filter-apply-btn');
+    const $clearMobileBtn = document.getElementById('clearBtn-m');
+    
+    const $q_m = document.getElementById('q-m');
+    const $risk_m = document.getElementById('fRisk-m');
+    const $cur_m = document.getElementById('fCur-m');
+    const $style_m = document.getElementById('fStyle-m');
+    const $sort_m = document.getElementById('fSort-m');
+
+    function openModal() {
+      // Sync desktop values to mobile modal
+      $q_m.value = $q.value;
+      $risk_m.value = $risk.value;
+      $cur_m.value = $cur.value;
+      $style_m.value = $style.value;
+      $sort_m.value = $sort.value;
+      $modal.classList.remove('hidden');
+    }
+    
+    function closeModal() {
+      $modal.classList.add('hidden');
+    }
+
+    function applyModalFilters() {
+      // Sync mobile modal values to desktop filters
+      $q.value = $q_m.value;
+      $risk.value = $risk_m.value;
+      $cur.value = $cur_m.value;
+      $style.value = $style_m.value;
+      $sort.value = $sort_m.value;
+      
+      closeModal();
+      
+      // Manually trigger the 'input' event on a desktop filter to run applyFilters()
+      $q.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    function clearModalFilters() {
+      // Only clear the modal's inputs
+      $q_m.value = '';
+      $risk_m.value = '';
+      $cur_m.value = '';
+      $style_m.value = '';
+      $sort_m.value = 'name-asc';
+    }
+    
+    $mobileBtn?.addEventListener('click', openModal);
+    $closeBtn?.addEventListener('click', closeModal);
+    $overlay?.addEventListener('click', closeModal);
+    $applyBtn?.addEventListener('click', applyModalFilters);
+    $clearMobileBtn?.addEventListener('click', clearModalFilters);
+    
+  })();
 </script>
   <!-- Scripts -->
 <script type="module" nonce="ALGOHIVE">
@@ -288,35 +486,27 @@
                      : 'bg-amber-50 text-amber-700';
 
       tr.innerHTML = `
-        <td class="text-slate-400">${idx+1}</td>
+        <td class="text-slate-400 text-center">${idx+1}</td>
         <td class="cell-name">
           <div class="flex items-center gap-2">
-            <span class="truncate" title="${s.name}">${s.name}</span>
+            <a href="strategy.html?strategy=${encodeURIComponent(s.id)}" class="truncate hover:underline" title="${s.name}">${s.name}</a>
           </div>
         </td>
-        <td class="text-slate-600">${s.provider}</td>
-        <td class="text-slate-600">${s.currency}</td>
-        <td>
+        <td class="text-slate-600 hidden md:table-cell">${s.provider}</td>
+        <td class="text-slate-600 hidden md:table-cell">${s.currency}</td>
+        <td class="hidden md:table-cell">
           <span class="chip ${riskChip}">${s.risk}</span>
         </td>
-        <td class="font-semibold">${money(s.aum, s.currency)}</td>
-        <td class="text-slate-600">${s.style}</td>
-        <td class="text-slate-600 truncate max-w-[360px]" title="${s.universe}">${s.universe}</td>
+        <td class="font-semibold hidden md:table-cell">${money(s.aum, s.currency)}</td>
+        <td class="text-slate-600 hidden md:table-cell">${s.style}</td>
+        <td class="text-slate-600 truncate max-w-[200px] hidden lg:table-cell" title="${s.universe}">${s.universe}</td>
         <td>
           <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm"
              href="strategy.html?strategy=${encodeURIComponent(s.id)}">
-            <i class="fa-regular fa-note-sticky"></i>
+            <i class="fa-regular fa-note-sticky mr-1.5"></i>
             Factsheet
           </a>
         </td>`;
-
-      // make entire row clickable (optional)
-      tr.classList.add('cursor-pointer');
-      tr.addEventListener('click', (e)=>{
-        // ignore clicks on the button itself
-        if(e.target.closest('a')) return;
-        window.location.href = `strategy.html?strategy=${encodeURIComponent(s.id)}`;
-      });
 
       tbody.appendChild(tr);
     });
@@ -360,9 +550,18 @@
 
   // ------- init style dropdown from DB values -------
   function initStyleOptions(items){
-    const sel = document.getElementById('fStyle');
+    const desktopSel = document.getElementById('fStyle');
+    const mobileSel = document.getElementById('fStyle-m');
     const styles = [...new Set(items.map(s => s.style).filter(Boolean))].sort();
-    styles.forEach(st => { const o=document.createElement('option'); o.value=st; o.textContent=st; sel.appendChild(o); });
+    
+    // Clear existing options except the first "Any" option
+    desktopSel.options.length = 1;
+    mobileSel.options.length = 1;
+
+    styles.forEach(st => { 
+      const o1=document.createElement('option'); o1.value=st; o1.textContent=st; desktopSel.appendChild(o1); 
+      const o2=document.createElement('option'); o2.value=st; o2.textContent=st; mobileSel.appendChild(o2);
+    });
   }
 
   // clear button
@@ -457,7 +656,6 @@
     if (String(e?.message).toLowerCase() !== "redirecting") console.error(e);
   }
 </script>
-
 
 </body>
 </html>
