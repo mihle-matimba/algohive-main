@@ -249,8 +249,7 @@
               <a href="#manage" data-tab="manage"
                 class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Manage Accounts</a>
 
-              <a href="#agreements" data-tab="agreements"
-                class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Agreements</a>
+
               <a href="#security" data-tab="security"
                 class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Security</a>
             </nav>
@@ -519,11 +518,7 @@
               </div>
             </div>
 
-            <!-- AGREEMENTS -->
-            <div id="agreements" data-panel="agreements" class="hidden card border border-slate-200 rounded-2xl p-6">
-              <h2 class="text-xl font-semibold text-slate-900">Agreements</h2>
-              <p class="mt-4 text-sm text-slate-500">Your signed agreements will show here.</p>
-            </div>
+
 
             <!-- SECURITY -->
             <div id="security" data-panel="security" class="hidden card border border-slate-200 rounded-2xl p-6">
@@ -917,10 +912,10 @@ await handleDiditCallbackAfterAuth();
           setKycState(kycDone);
           refreshGates();
           
-          banner('🎉 KYC Verification Approved! Policy tab now unlocked!', 'ok');
+          banner('🎉 KYC Verification Approved! Account setup now unlocked!', 'ok');
           
-          // Navigate to policies section after approval
-          location.hash = '#agreements';
+          // Navigate to account setup section after approval
+          location.hash = '#manage';
 
         } else if (finalStatus === 'Rejected' || finalStatus === 'rejected' || finalStatus === 'Declined') {
           console.log('❌ KYC Rejected');
@@ -1052,9 +1047,9 @@ await handleDiditCallbackAfterAuth();
 
     const allowedTabsWhenGated = new Set(["extra", "docs"]);
     function isGated() { 
-      // Always gated until both profile and KYC are done AND agreements are completed
-      // For now, we keep users gated even after KYC to force them through agreements
-      return !(profileComplete && kycDone && false); // Keep locked for now
+      // Users are gated until profile AND KYC are complete
+      // After KYC, only "Manage Accounts" is unlocked, everything else stays locked
+      return !(profileComplete && kycDone);
     }
     
     function isTabAllowed(tabName) {
@@ -1065,7 +1060,7 @@ await handleDiditCallbackAfterAuth();
         return allowedTabsWhenGated.has(tabName); // Only extra and docs allowed
       }
       if (profileComplete && kycDone) {
-        return ["extra", "docs", "agreements"].includes(tabName); // Add agreements when KYC done
+        return ["extra", "docs", "manage"].includes(tabName); // Add manage when KYC done
       }
       return false;
     }
@@ -1073,8 +1068,7 @@ await handleDiditCallbackAfterAuth();
       if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
       if (!profileComplete) return "Please finish Additional Info first.";
       if (!kycDone) return "Please complete KYC first.";
-      if (profileComplete && kycDone) return "Please review and accept the agreements to continue.";
-      return "";
+      return "Please set up your account in Manage Accounts to continue.";
     }
     function lockMainNav() {
       const mainNav = document.getElementById("main-nav");
@@ -1088,7 +1082,7 @@ await handleDiditCallbackAfterAuth();
         } else if (!kycDone) {
           location.hash = "#kyc";
         } else if (profileComplete && kycDone) {
-          location.hash = "#agreements";
+          location.hash = "#manage";
         }
       }
       mainNav.querySelectorAll('a[href]').forEach(a => {
@@ -1096,7 +1090,7 @@ await handleDiditCallbackAfterAuth();
         const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
         if (isGated() && !isSettings) {
           a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
-          a.title = "Locked until profile + KYC + agreements are complete";
+          a.title = "Locked until profile + KYC are complete and account is set up";
           a.addEventListener("click", preventNav, { passive: false });
         } else {
           a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
@@ -1111,7 +1105,7 @@ await handleDiditCallbackAfterAuth();
             } else if (!kycDone) {
               location.hash = "#kyc";
             } else if (profileComplete && kycDone) {
-              location.hash = "#agreements";
+              location.hash = "#manage";
             }
           }, 0); 
         }
@@ -1129,7 +1123,7 @@ await handleDiditCallbackAfterAuth();
         } else if (!kycDone) {
           target = "#kyc";
         } else if (profileComplete && kycDone) {
-          target = "#agreements";
+          target = "#manage";
         } else {
           target = "#extra"; // fallback
         }
@@ -1144,11 +1138,11 @@ await handleDiditCallbackAfterAuth();
       kycDone = !!isDone; 
       refreshGates(); 
       
-      // Redirect to agreements when KYC is completed
+      // Redirect to accounts when KYC is completed
       if (isDone && profileComplete) {
         setTimeout(() => {
-          location.hash = "#agreements";
-          banner("KYC completed! Please review and accept the agreements to continue.", "ok");
+          location.hash = "#manage";
+          banner("KYC completed! Please set up your account to continue.", "ok");
         }, 500);
       }
     };
@@ -1540,9 +1534,6 @@ await handleDiditCallbackAfterAuth();
       </div>
     </div>
   </div>
-
-
-
 
 </body>
 
