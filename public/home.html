@@ -770,6 +770,29 @@
     setupChart(); renderFlatEquity(0, null);
   });
 
+  // 1) Quick existence test
+const { data: { user } } = await supabase.auth.getUser();
+const { data: hasAny, error } = await supabase.rpc('has_units', { uid: user.id });
+
+if (error || !hasAny) {
+  toggleEmptyOverlay(true);        // 🟩 show “Browse strategies” overlay
+  // (optional) skip the rest, or render your flat-zero chart
+  setupChart();
+  renderFlatEquity(0, null);
+  return;
+}
+
+// 2) Otherwise proceed as normal
+toggleEmptyOverlay(false);
+await pickActiveAccount(user);
+await loadHoldingsFromUnitLedger();
+await hydrateStrategyMeta();
+await hydrateLatestPrices();
+wireStrategiesCard();
+setupChart();
+renderFromSelection();
+
+
   // ================== header (name only, no email) ==================
   async function setHeaderNameAndAvatar(user){
     let profile = null;
