@@ -47,20 +47,61 @@
       padding: 0 .75rem
     }
 
+    /* UPDATED FOR RESPONSIVENESS */
     #layout {
       --sb: 220px;
       display: grid;
-      grid-template-columns: var(--sb) 1fr;
+      grid-template-columns: 1fr;
+      /* Mobile-first: 1 column */
       min-height: 100vh
     }
 
-    #layout.is-collapsed {
-      --sb: 64px
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 280px;
+      /* Mobile width */
+      max-width: 85vw;
+      position: fixed;
+      /* Mobile overlay */
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%);
+      /* Hidden by default */
     }
 
-    #ah-sidebar {
-      transition: width .2s ease;
-      width: var(--sb)
+    #ah-sidebar.is-open {
+      transform: translateX(0);
+      /* Show sidebar */
+    }
+
+    /* Desktop styles */
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr
+          /* 2-col grid on desktop */
+      }
+
+      #layout.is-collapsed {
+        --sb: 64px
+      }
+
+      #ah-sidebar {
+        position: sticky;
+        /* Back to sticky */
+        top: 0;
+        width: var(--sb);
+        /* Use variable width */
+        max-width: none;
+        transform: translateX(0);
+        /* Always visible */
+        z-index: auto;
+      }
+    }
+
+    /* END RESPONSIVE UPDATES */
+
+    #layout.is-collapsed {
+      --sb: 64px
     }
 
     #ah-sidebar[data-collapsed="true"] .label,
@@ -96,6 +137,19 @@
       transform: rotate(180deg)
     }
 
+    /* Hide desktop collapse button on mobile */
+    #ah-collapse {
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      #ah-collapse {
+        display: inline-flex;
+      }
+
+      /* Show on desktop */
+    }
+
     .btn-olive {
       background: var(--olive);
       color: #fff;
@@ -128,9 +182,9 @@
 
 <body class="min-h-screen overflow-x-hidden">
   <div id="layout">
-    <!-- ===== Sidebar ===== -->
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false"
-      class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
       <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
         <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
           alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
@@ -142,7 +196,7 @@
 
       <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900"
-          href="/home.html" title="Home">
+          href="home.html" title="Home">
           <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
         </a>
 
@@ -155,7 +209,7 @@
             <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
           </summary>
           <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#"><i
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="my-investments.html"><i
                 class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">My Strategies</span></a>
           </div>
         </details>
@@ -169,18 +223,18 @@
             <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
           </summary>
           <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="strategies.html"><i
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="my-strategies.html"><i
                 class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#"><i
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="fund.html"><i
                 class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
           </div>
         </details>
 
 
 
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="support.html"><i
             class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="#"><i
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="legal.html"><i
             class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
       </nav>
 
@@ -197,12 +251,13 @@
       </div>
     </aside>
 
-    <!-- ===== Main ===== -->
     <main class="flex-1 min-w-0">
-      <!-- Top Header Bar -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
-          <div class="relative w-full">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="relative w-full hidden md:block max-w-[460px]">
             <input class="input w-full pl-9" placeholder="Search" />
             <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -212,7 +267,6 @@
           </div>
         </div>
 
-        <!-- Profile cluster -->
         <div class="flex items-center gap-3">
           <button
             class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
@@ -230,13 +284,11 @@
         </div>
       </div>
 
-      <!-- ===== Settings ===== -->
       <section id="settings" class="px-6 py-8">
         <h1 class="text-2xl font-semibold text-slate-900">Profile Settings</h1>
         <hr class="mt-6 mb-8 border-slate-200" />
 
         <div class="grid grid-cols-12 gap-8">
-          <!-- Left: tabs -->
           <aside class="col-span-12 md:col-span-3">
             <nav id="settings-nav" class="space-y-1">
               <a href="#basic" data-tab="basic"
@@ -255,9 +307,7 @@
             </nav>
           </aside>
 
-          <!-- Right: panels -->
           <div class="col-span-12 md:col-span-9">
-            <!-- BASIC INFO -->
             <div id="basic" data-panel="basic" class="card border border-slate-200 rounded-2xl p-6">
               <h2 class="text-xl font-semibold text-slate-900">Details</h2>
 
@@ -283,7 +333,6 @@
               </div>
             </div>
 
-            <!-- MANAGE ACCOUNTS -->
             <div id="manage" data-panel="manage" class="hidden card border border-slate-200 rounded-2xl p-6">
               <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold text-slate-900">Manage Accounts</h2>
@@ -293,19 +342,16 @@
                 </div>
               </div>
 
-              <!-- states -->
               <div id="accounts-loading" class="mt-6 text-sm text-slate-500">Loading accounts…</div>
               <div id="accounts-empty" class="mt-6 hidden rounded-xl border border-slate-200 p-6">
                 <div class="font-medium text-slate-900 mb-1">No accounts yet</div>
                 <div class="text-sm text-slate-500">Click “Add Account” to connect one.</div>
               </div>
 
-              <!-- list -->
               <div id="accounts-wrap" class="mt-6 space-y-8"></div>
             </div>
 
 
-            <!-- ACCOUNT DOCUMENTS (KYC via external flow) -->
             <div id="docs" data-panel="docs" class="hidden card border border-slate-200 rounded-2xl p-6">
               <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold text-slate-900">KYC Verification</h2>
@@ -318,7 +364,6 @@
                 We’ll take you to our verification partner. It takes ~3–5 minutes.
               </p>
 
-              <!-- Start KYC CTA (auto-hidden when KYC is done) -->
               <div id="kyc-start-wrap" class="mt-6">
                 <button id="btn-kyc-start"
                   class="btn-olive inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold">
@@ -329,7 +374,6 @@
                   again.</span>
               </div>
 
-              <!-- Done message (shown when verified) -->
               <div id="kyc-done-msg"
                 class="hidden mt-6 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 p-4">
                 <div class="font-medium">You’re all set 🎉</div>
@@ -338,12 +382,10 @@
             </div>
 
 
-            <!-- ADDITIONAL INFO -->
             <div id="extra" data-panel="extra" class="hidden card border border-slate-200 rounded-2xl p-6">
               <h2 class="text-xl font-semibold text-slate-900">Additional Info</h2>
               <p class="mt-2 text-sm text-slate-500">Update your personal details, avatar and KYC suitability.</p>
 
-              <!-- Names -->
               <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label class="block">
                   <span class="text-sm text-slate-600">First name</span>
@@ -355,7 +397,6 @@
                 </label>
               </div>
 
-              <!-- Avatar -->
               <div class="mt-6">
                 <div class="flex items-center gap-4">
                   <img id="avatar-preview"
@@ -372,7 +413,6 @@
                 </div>
               </div>
 
-              <!-- Contact -->
               <div class="mt-8">
                 <div class="font-semibold text-slate-900">Contact</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
@@ -384,7 +424,6 @@
                 </div>
               </div>
 
-              <!-- Identity -->
               <div class="mt-8">
                 <div class="font-semibold text-slate-900">Identity</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
@@ -407,7 +446,6 @@
                 </div>
               </div>
 
-              <!-- Employment & suitability -->
               <div class="mt-8">
                 <div class="font-semibold text-slate-900">Employment & suitability</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
@@ -520,7 +558,6 @@
 
 
 
-            <!-- SECURITY -->
             <div id="security" data-panel="security" class="hidden card border border-slate-200 rounded-2xl p-6">
               <h2 class="text-xl font-semibold text-slate-900">Security</h2>
               <div class="mt-6 space-y-4">
@@ -541,13 +578,11 @@
               </div>
             </div>
 
-            <!-- CONNECTED APPS -->
             <div id="apps" data-panel="apps" class="hidden card border border-slate-200 rounded-2xl p-6">
               <h2 class="text-xl font-semibold text-slate-900">Connected Apps</h2>
               <p class="mt-4 text-sm text-slate-500">No apps connected.</p>
             </div>
 
-            <!-- IP ALLOWLIST -->
             <div id="ip" data-panel="ip" class="hidden card border border-slate-200 rounded-2xl p-6">
               <h2 class="text-xl font-semibold text-slate-900">IP Allowlist</h2>
               <p class="mt-4 text-sm text-slate-500">Add IPs to restrict API access.</p>
@@ -558,7 +593,6 @@
     </main>
   </div>
 
-  <!-- ===== Profile Modal ===== -->
   <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
@@ -580,8 +614,6 @@
     </div>
   </div>
 
-  <!-- ===== Behavior ===== -->
-  <!-- ===== Behavior (non-module) ===== -->
   <script nonce="ALGOHIVE">
     // Sidebar collapse memory
     (function () {
@@ -630,6 +662,30 @@
 
       window.addEventListener('hashchange', () => show(parseHash()));
       show(parseHash());
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const btn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+      const sidebar = document.getElementById('ah-sidebar');
+
+      function openMenu() {
+        sidebar.classList.add('is-open');
+        overlay.classList.remove('hidden');
+      }
+      function closeMenu() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.add('hidden');
+      }
+
+      btn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+
+      sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
+        link.addEventListener('click', closeMenu);
+      });
     })();
   </script>
 
@@ -1500,7 +1556,6 @@ await handleDiditCallbackAfterAuth();
   </script>
 
 
-  <!-- Add Account Modal -->
   <div id="add-account-modal" class="fixed inset-0 z-[120] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div
