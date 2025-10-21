@@ -673,47 +673,6 @@
       return up.data;
     }
 
-    // 🔁 Handle Didit callback: ?verificationSessionId=...&status=Approved
-  (async function handleDiditCallback() {
-    const url = new URL(location.href);
-    const diditId = url.searchParams.get('verificationSessionId');
-    const diditStatus = (url.searchParams.get('status') || '').toLowerCase();
-
-    if (!diditId) return; // nothing to do
-
-    // Show KYC tab
-    if (!location.hash || location.hash.toLowerCase() === '#basic') {
-      location.hash = '#docs';
-    }
-
-    try {
-      if (diditStatus === 'approved') {
-        await supabase.from('profiles')
-          .update({
-            kyc_status: 'verified',
-            kyc_approved_at: new Date().toISOString(),
-            kyc_session_id: diditId
-          })
-          .eq('id', user.id);
-
-        setKycState(true);
-        banner('🎉 KYC Approved! All features unlocked.', 'ok');
-      } else if (['declined', 'rejected'].includes(diditStatus)) {
-        banner('❌ KYC was declined. Please contact support.', 'err');
-        setKycState(false);
-      } else {
-        banner(`KYC status: ${diditStatus || 'pending'}`);
-      }
-    } catch (e) {
-      console.error(e);
-      banner('Could not update your KYC status', 'err');
-    } finally {
-      // Clean the URL (keep the #docs)
-      url.searchParams.delete('verificationSessionId');
-      url.searchParams.delete('status');
-      history.replaceState({}, '', url.toString());
-    }
-  })();
 
     // ---------- KYC helpers ----------
     function resolveKycBoolean(row) {
@@ -810,6 +769,46 @@
     let kycDone = resolveKycBoolean(row);
     setKycState(kycDone);
     let profileComplete = computeProfileComplete(row);
+
+    // DIDIT callback handler (runs after auth/user + setKycState exist)
+async function handleDiditCallbackAfterAuth() {
+  const url = new URL(location.href);
+  const diditId = url.searchParams.get('verificationSessionId');
+  const diditStatus = (url.searchParams.get('status') || '').toLowerCase();
+  if (!diditId) return;
+
+  // land on the KYC tab
+  if (!location.hash || location.hash.toLowerCase() === '#basic') location.hash = '#docs';
+
+  try {
+    if (diditStatus === 'approved') {
+      await supabase.from('profiles')
+        .update({
+          kyc_status: 'verified',
+          kyc_approved_at: new Date().toISOString(),
+          kyc_session_id: diditId
+        })
+        .eq('id', user.id);
+
+      setKycState(true);
+      banner('🎉 KYC Approved! All features unlocked.', 'ok');
+    } else if (['declined', 'rejected'].includes(diditStatus)) {
+      setKycState(false);
+      banner('❌ KYC was declined. Please contact support.', 'err');
+    } else {
+      banner(`KYC status: ${diditStatus || 'pending'}`);
+    }
+  } catch (e) {
+    console.error(e);
+    banner('Could not update your KYC status', 'err');
+  } finally {
+    // clean the URL, keep #docs
+    url.searchParams.delete('verificationSessionId');
+    url.searchParams.delete('status');
+    history.replaceState({}, '', url.toString());
+  }
+}
+await handleDiditCallbackAfterAuth();
 
     // ---------- When returning from KYC, auto-check status ----------
     (async function handleKycReturn() {
