@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoHive – Dashboard (Dynamic)</title>
 
-  <!-- Tailwind + Fonts + Icons (fine for dev) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
@@ -65,22 +64,42 @@
       color: #fff
     }
 
-    /* Layout / Sidebar */
+    /* UPDATED FOR RESPONSIVENESS */
     #layout {
       --sb: 220px;
       display: grid;
-      grid-template-columns: var(--sb) 1fr;
+      grid-template-columns: 1fr; /* Mobile-first: 1 column */
       min-height: 100vh
     }
-
-    #layout.is-collapsed {
-      --sb: 64px
-    }
-
     #ah-sidebar {
-      transition: width .2s ease;
-      width: var(--sb)
+      transition: transform .3s ease, width .2s ease;
+      width: 280px; /* Mobile width */
+      max-width: 85vw;
+      position: fixed; /* Mobile overlay */
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%); /* Hidden by default */
     }
+    #ah-sidebar.is-open {
+      transform: translateX(0); /* Show sidebar */
+    }
+
+    /* Desktop styles */
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr /* 2-col grid on desktop */
+      }
+      #layout.is-collapsed { --sb: 64px }
+      #ah-sidebar {
+        position: sticky; /* Back to sticky */
+        width: var(--sb); /* Use variable width */
+        max-width: none;
+        transform: translateX(0); /* Always visible */
+        z-index: auto;
+      }
+    }
+    /* END RESPONSIVE UPDATES */
+
 
     #ah-sidebar[data-collapsed="true"] .label,
     #ah-sidebar[data-collapsed="true"] .chevron {
@@ -117,6 +136,12 @@
 
     #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
       transform: rotate(180deg)
+    }
+
+    /* Hide desktop collapse button on mobile */
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) {
+      #ah-collapse { display: inline-flex; } /* Show on desktop */
     }
 
     /* Perf tiles */
@@ -181,9 +206,9 @@
 
 <body class="min-h-screen overflow-x-hidden">
   <div id="layout">
-    <!-- ===== Sidebar ===== -->
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false"
-      class="border-r border-slate-200 h-[100vh] sticky top-0 bg-white flex flex-col overflow-hidden">
+      class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
       <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
         <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
           alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
@@ -250,12 +275,13 @@
       </div>
     </aside>
 
-    <!-- ===== Main ===== -->
     <main class="flex-1 min-w-0">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[460px]">
-          <div class="relative w-full">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+              <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="relative w-full hidden md:block max-w-[460px]">
             <input class="input w-full pl-9" placeholder="Search" />
             <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -263,9 +289,9 @@
               <path d="m21 21-4.3-4.3" />
             </svg>
           </div>
+          <h1 class="text-xl font-bold text-slate-800 md:hidden truncate">Dashboard</h1>
         </div>
 
-        <!-- Profile (dynamic) -->
         <div class="flex items-center gap-3">
           <button
             class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
@@ -285,9 +311,7 @@
         </div>
       </div>
 
-      <!-- GRID -->
-      <div class="px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
-        <!-- Portfolio -->
+      <div class="px-4 md:px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
         <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-9 min-w-0">
           <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
             <div>
@@ -320,9 +344,7 @@
           </div>
         </section>
 
-        <!-- Right column -->
         <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-          <!-- 6 months earnings -->
           <div class="card p-5 border border-slate-200">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-medium text-slate-900">6 months earnings</h3>
@@ -333,7 +355,6 @@
             </div>
           </div>
 
-          <!-- Strategies -->
           <div class="card p-5 border border-slate-200">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-medium text-slate-900">Strategies</h3>
@@ -348,7 +369,6 @@
           </div>
 
 
-          <!-- Asset class allocation -->
           <div class="card p-5 border border-slate-200">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-medium text-slate-900">Asset class allocation</h3>
@@ -358,12 +378,10 @@
           </div>
         </aside>
 
-        <!-- Performance Summary -->
         <section class="col-span-12 lg:col-span-9 min-w-0">
           <div class="card p-6 rounded-2xl border border-slate-200">
             <h3 class="text-lg font-medium text-slate-900 mb-5">Performance Summary</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              <!-- Performance Summary tiles -->
               <div class="ps-tile"><div class="ps-label">Best Day</div><div id="ps-best" class="ps-value text-slate-800">—</div></div>
               <div class="ps-tile"><div class="ps-label">Worst Day</div><div id="ps-worst" class="ps-value text-slate-800">—</div></div>
               <div class="ps-tile"><div class="ps-label">Avg Daily Return</div><div id="ps-avg" class="ps-value text-slate-800">—</div></div>
@@ -375,7 +393,6 @@
           </div>
         </section>
 
-        <!-- Current holdings -->
         <section class="col-span-12 lg:col-span-9 min-w-0">
           <div class="card p-6 rounded-2xl border border-slate-200">
             <div class="flex items-center justify-between mb-5">
@@ -397,7 +414,6 @@
           </div>
         </section>
 
-        <!-- Top Positions -->
         <section class="col-span-12 lg:col-span-9 min-w-0">
           <div class="card rounded-2xl border border-slate-200 p-6">
             <div class="flex items-center justify-between">
@@ -447,7 +463,7 @@
                     <td class="py-3">301</td>
                     <td class="py-3">$53,635.19</td>
                     <td class="py-3 text-red-600">-$343.50</td>
-                    <td class="py-3 text-center"></td>
+                    <td classs="py-3 text-center"></td>
                   </tr>
                 </tbody>
               </table>
@@ -455,7 +471,6 @@
           </div>
         </section>
 
-        <!-- Recent Orders -->
         <section class="col-span-12 lg:col-span-9 min-w-0">
           <div class="card rounded-2xl border border-slate-200 p-6">
             <div class="flex items-center justify-between">
@@ -544,7 +559,6 @@
           </div>
         </section>
 
-        <!-- helpers -->
         <style>
           .scrollbar-hide::-webkit-scrollbar {
             display: none
@@ -557,7 +571,6 @@
         </style>
       </div>
 
-      <!-- Charts -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" nonce="ALGOHIVE"></script>
       <script nonce="ALGOHIVE">
         // Holdings + Allocation demo
@@ -653,7 +666,6 @@
     </main>
   </div>
 
-  <!-- ===== Profile Modal ===== -->
   <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
@@ -676,10 +688,32 @@
     </div>
   </div>
 
-  <!-- Font Awesome runtime -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
 
-  <!-- Sidebar collapse memory -->
+  <script>
+    (function () {
+      const btn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+      const sidebar = document.getElementById('ah-sidebar');
+
+      function openMenu() {
+        sidebar.classList.add('is-open');
+        overlay.classList.remove('hidden');
+      }
+      function closeMenu() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.add('hidden');
+      }
+
+      btn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+      
+      sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
+          link.addEventListener('click', closeMenu);
+      });
+    })();
+  </script>
+
   <script nonce="ALGOHIVE">
     (function () {
       const layout = document.getElementById('layout');
@@ -1177,9 +1211,7 @@
 
 
 
-<!-- ===== Empty State Overlay ===== -->
 <div id="empty-overlay" class="fixed inset-0 z-[500] hidden p-6 grid place-items-center backdrop-blur-lg bg-black/30">
-  <!-- card -->
   <div class="relative w-full max-w-md rounded-2xl border border-white/15 bg-gradient-to-br from-[var(--olive)] to-green-700 text-center text-white p-8 shadow-2xl">
     <img
       src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
