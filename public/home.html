@@ -701,41 +701,35 @@
 <script type="module" nonce="ALGOHIVE">
   import { supabase } from "/js/supabase.js";
 
-    function toggleEmptyOverlay(show) {
+  // Overlay toggler
+  function toggleEmptyOverlay(show) {
     const el = document.getElementById('empty-overlay');
     if (!el) return;
     el.classList.toggle('hidden', !show);
-    // prevent background scroll when overlay is open
     document.body.classList.toggle('overflow-hidden', show);
   }
 
-  // ================== tiny utils ==================
+  // ===== tiny utils =====
   const $ = (q, el = document) => el.querySelector(q);
   const symFor = (ccy) => (ccy === 'USD' ? '$' : 'R');
-  const fmtMoney = (sym, v) =>
-    `${sym} ${Number(v || 0).toLocaleString('en-ZA', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+  const fmtMoney = (sym, v) => `${sym} ${Number(v || 0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
   const maskId = (uuid) => (uuid ? `••• ${String(uuid).slice(-4)}` : '—');
 
-  // DOM (Strategies card)
+  // DOM refs
   const stratSel = $('#strat-select');
   const stratMeta = $('#strat-meta');
   const stratEmpty = $('#strat-empty');
   const stratLbl = document.querySelector('label[for="strat-select"]');
   const badge = $('#sidebar-acc');
 
-  // Portfolio header + chart
-  let chart = null, elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
-
   // state
+  let chart = null, elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
   let currentAccount = null;
-  let holdings = [];                    // [{strategy_id, units, last_ts, currency, account_id}]
-  const metaByStrategy = new Map();     // strategies meta
-  const priceByStrategy = new Map();    // latest nav
+  let holdings = [];
+  const metaByStrategy = new Map();
+  const priceByStrategy = new Map();
 
-  // ---- auth guard (avoid loops) ----
+  // auth guard
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -743,27 +737,54 @@
     }
   });
 
-  // ================== boot ==================
+  // ===== boot =====
   (async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
       location.replace(`/auth.html?tab=in&redirect=${next}`);
-      return;
+      return; // ✅ inside IIFE — allowed
     }
     const { data: { user } } = await supabase.auth.getUser();
 
     await setHeaderNameAndAvatar(user);
-    wireProfileMenu(); // dropdown + logout
+    wireProfileMenu();
+
+    // ---- existence gate (INSIDE the IIFE) ----
+    let hasAny = false;
+    try {
+      const { data, error } = await supabase.rpc('has_units', { uid: user.id });
+      if (error) throw error;
+      hasAny = !!data;
+    } catch {
+      // fallback: join-based count
+      const { count } = await supabase
+        .from('unit_ledger')
+        .select('id, investment_accounts!inner(profile_id)', { count: 'exact', head: true })
+        .eq('investment_accounts.profile_id', user.id)
+        .limit(1);
+      hasAny = (count || 0) > 0;
+    }
+
+    if (!hasAny) {
+      toggleEmptyOverlay(true);
+      setupChart();
+      renderFlatEquity(0, null);
+      return; // ✅ inside IIFE — allowed
+    } else {
+      toggleEmptyOverlay(false);
+    }
+    // -----------------------------------------
 
     await pickActiveAccount(user);
-    await loadHoldingsFromUnitLedger();    // <-- client-side aggregate (no .group())
+    await loadHoldingsFromUnitLedger();
 
     if (!holdings.length) {
+      toggleEmptyOverlay(true);
       showEmptyStrategiesCard();
       setupChart();
       renderFlatEquity(0, null);
-      return;
+      return; // ✅ inside IIFE — allowed
     }
 
     await hydrateStrategyMeta();
@@ -774,45 +795,21 @@
     renderFromSelection();
   })().catch(err => {
     console.error(err);
+    toggleEmptyOverlay(true);
     showEmptyStrategiesCard(`Failed to load strategies: ${err?.message || err}`);
-    setupChart(); renderFlatEquity(0, null);
+    setupChart();
+    renderFlatEquity(0, null);
   });
 
-  // 1) Quick existence test
-const { data: { user } } = await supabase.auth.getUser();
-const { data: hasAny, error } = await supabase.rpc('has_units', { uid: user.id });
-
-if (error || !hasAny) {
-  toggleEmptyOverlay(true);        // 🟩 show “Browse strategies” overlay
-  // (optional) skip the rest, or render your flat-zero chart
-  setupChart();
-  renderFlatEquity(0, null);
-  return;
-}
-
-// 2) Otherwise proceed as normal
-toggleEmptyOverlay(false);
-await pickActiveAccount(user);
-await loadHoldingsFromUnitLedger();
-await hydrateStrategyMeta();
-await hydrateLatestPrices();
-wireStrategiesCard();
-setupChart();
-renderFromSelection();
-
-
-  // ================== header (name only, no email) ==================
+  // ===== header =====
   async function setHeaderNameAndAvatar(user){
     let profile = null;
     try {
-      const { data, error } = await supabase
-        .from('profiles')
+      const { data } = await supabase.from('profiles')
         .select('full_name, first_name, last_name, avatar_url')
-        .eq('id', user.id)
-        .single();
-      if (!error) profile = data || null;
+        .eq('id', user.id).single();
+      profile = data || null;
     } catch {}
-
     const bestName = [
       profile?.full_name,
       [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
@@ -820,22 +817,13 @@ renderFromSelection();
       [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(' '),
       user?.user_metadata?.name
     ].find(s => s && String(s).trim()) || '—';
-
-    // top-right name
-    const hdrName = $('#hdr-name');
-    if (hdrName) hdrName.textContent = bestName;
-
-    // modal subheader: show the name (not the email)
-    const pmLabel = $('#pm-email');
-    if (pmLabel) pmLabel.textContent = bestName;
-
-    // avatar
+    const hdrName = $('#hdr-name'); if (hdrName) hdrName.textContent = bestName;
+    const pmLabel = $('#pm-email'); if (pmLabel) pmLabel.textContent = bestName;
     const hdrImg = $('#hdr-avatar');
     const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
     if (hdrImg) {
-      if (avatarUrl) {
-        hdrImg.src = avatarUrl;
-      } else {
+      if (avatarUrl) hdrImg.src = avatarUrl;
+      else {
         const initial = (bestName.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
         const svg = encodeURIComponent(
           `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
@@ -858,7 +846,7 @@ renderFromSelection();
     logoutBtn?.addEventListener('click', async () => { await supabase.auth.signOut(); });
   }
 
-  // ================== pick active account ==================
+  // ===== account pick =====
   async function pickActiveAccount(user) {
     const { data, error } = await supabase
       .from('investment_accounts')
@@ -868,21 +856,18 @@ renderFromSelection();
       .order('updated_at', { ascending: false });
     if (error) throw error;
     currentAccount = data?.find(a => a.status === 'ACTIVE') || data?.[0] || null;
-
     if (badge) { badge.textContent = maskId(currentAccount?.id); badge.title = currentAccount?.id || ''; }
   }
 
-  // ================== holdings FROM unit_ledger ==================
+  // ===== holdings from unit_ledger =====
   async function loadHoldingsFromUnitLedger() {
     if (!currentAccount) { holdings = []; return; }
-
     const { data, error } = await supabase
       .from('unit_ledger')
       .select('strategy_id, units, ts, account_id')
       .eq('account_id', currentAccount.id);
     if (error) throw error;
 
-    // reduce per strategy_id (client-side aggregate)
     const map = new Map();
     (data || []).forEach(r => {
       const k = r.strategy_id;
@@ -892,26 +877,24 @@ renderFromSelection();
       map.set(k, { units, last_ts, account_id: r.account_id });
     });
 
-    holdings = Array.from(map.entries())
-      .map(([strategy_id, v]) => ({
-        strategy_id,
-        units: Number(v.units || 0),
-        last_ts: v.last_ts || null,
-        account_id: v.account_id || currentAccount.id,
-        currency: currentAccount?.currency || 'USD'
-      }))
-      .filter(h => h.units > 0); // only positive net positions
+    holdings = Array.from(map.entries()).map(([strategy_id, v]) => ({
+      strategy_id,
+      units: Number(v.units || 0),
+      last_ts: v.last_ts || null,
+      account_id: v.account_id || currentAccount.id,
+      currency: currentAccount?.currency || 'USD'
+    })).filter(h => h.units > 0);
   }
 
-  // ================== meta + latest price ==================
+  // ===== meta + prices =====
   async function hydrateStrategyMeta() {
     const ids = [...new Set(holdings.map(h => h.strategy_id))];
     if (!ids.length) return;
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('strategies')
       .select('id,name,symbol,currency')
       .in('id', ids);
-    if (!error) data?.forEach(r => metaByStrategy.set(r.id, r));
+    (data || []).forEach(r => metaByStrategy.set(r.id, r));
     holdings.forEach(h => {
       const m = metaByStrategy.get(h.strategy_id);
       if (m?.currency) h.currency = m.currency;
@@ -920,17 +903,17 @@ renderFromSelection();
   async function hydrateLatestPrices() {
     const ids = [...new Set(holdings.map(h => h.strategy_id))];
     if (!ids.length) return;
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('v_strategy_latest_price')
       .select('strategy_id, nav, price, updated_at')
       .in('strategy_id', ids);
-    if (!error) data?.forEach(r => {
+    (data || []).forEach(r => {
       const nav = Number(r.nav ?? r.price ?? 0);
       priceByStrategy.set(r.strategy_id, { nav, updated_at: r.updated_at });
     });
   }
 
-  // ================== strategies card UI ==================
+  // ===== strategies card UI =====
   function showEmptyStrategiesCard(message) {
     if (stratSel) {
       stratSel.innerHTML = `<option>—</option>`;
@@ -938,24 +921,21 @@ renderFromSelection();
       stratSel.classList.add('hidden');
     }
     stratLbl?.classList.add('hidden');
-
     if (stratMeta) stratMeta.textContent = '—';
     if (stratEmpty){
       stratEmpty.classList.remove('hidden');
       stratEmpty.innerHTML = `
         ${message ? `<div class="text-rose-600 mb-1">${message}</div>` : ``}
         Invest in a strategy to see your allocation here.
-        <a class="ml-1 text-olive-600 hover:underline" href="/strategies.html">Browse strategies</a>
+        <a class="ml-1 text-olive-600 hover:underline" href="/strategies">Browse strategies</a>
       `;
     }
   }
-
   function labelStrategy(id) {
     const m = metaByStrategy.get(id) || {};
     if (m.symbol && m.name) return `${m.name} • ${m.symbol}`;
     return m.name || m.symbol || `Strategy ${String(id).slice(0, 6)}…`;
   }
-
   function equityOf(h) {
     const p = priceByStrategy.get(h.strategy_id);
     const nav = Number(p?.nav || 0);
@@ -963,7 +943,6 @@ renderFromSelection();
     const ts = p?.updated_at || h.last_ts || null;
     return { nav, equity: eq, ts };
   }
-
   function updateStrategyMeta(h) {
     const { nav, equity, ts } = equityOf(h);
     const ccy = metaByStrategy.get(h.strategy_id)?.currency || h.currency || 'USD';
@@ -974,50 +953,37 @@ renderFromSelection();
           <span class="font-medium text-slate-900">${fmtMoney(symFor(ccy), equity)}</span>
         </div>
         <div class="text-[11px] text-slate-400 mt-0.5">
-          Last NAV ${fmtMoney(symFor(ccy), nav)}${ts ? ` · ${new Date(ts).toLocaleString('en-ZA', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
-        </div>
-      `;
+          Last NAV ${fmtMoney(symFor(ccy), nav)}${ts ? ` · ${new Date(ts).toLocaleString('en-ZA',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})}` : ''}
+        </div>`;
     }
   }
-
   function wireStrategiesCard() {
     stratSel?.classList.remove('hidden');
     stratLbl?.classList.remove('hidden');
     stratEmpty?.classList.add('hidden');
-
     if (stratSel) {
       stratSel.disabled = false;
       stratSel.innerHTML = holdings
         .map(h => `<option value="${String(h.strategy_id)}">${labelStrategy(h.strategy_id)}</option>`)
         .join('');
     }
-
     const first = holdings[0];
     updateStrategyMeta(first);
-    if (stratSel) {
-      stratSel.value = String(first.strategy_id);
-      stratSel.addEventListener('change', () => {
-        const chosen = holdings.find(h => String(h.strategy_id) === String(stratSel.value)) || first;
-        updateStrategyMeta(chosen);
-        renderFromSelection();
-      });
-    }
+    stratSel?.addEventListener('change', () => {
+      const chosen = holdings.find(h => String(h.strategy_id) === String(stratSel.value)) || first;
+      updateStrategyMeta(chosen);
+      renderFromSelection();
+    });
   }
 
-  // ================== chart (flat equity) ==================
+  // ===== chart =====
   function setupChart() {
-    elUpdated = $('#pf-updated');
-    elVal = $('#pf-value');
-    elChg = $('#pf-change');
-    refreshBtn = $('#pf-refresh');
-
-    const ctxEl = document.getElementById('pf-chart');
-    if (!ctxEl) return;
+    elUpdated = $('#pf-updated'); elVal = $('#pf-value'); elChg = $('#pf-change'); refreshBtn = $('#pf-refresh');
+    const ctxEl = document.getElementById('pf-chart'); if (!ctxEl) return;
     const ctx = ctxEl.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 260);
     gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
     gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
-
     chart = new window.Chart(ctx, {
       type: 'line',
       data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
@@ -1027,30 +993,25 @@ renderFromSelection();
         scales: { x: { display: false }, y: { display: true, ticks: { color: '#94a3b8', maxTicksLimit: 3 } } }
       }
     });
-
     document.querySelectorAll('#portfolio-card .tab')
       .forEach(btn => btn.addEventListener('click', () => renderFromSelection()));
-
     refreshBtn?.addEventListener('click', () => {
       refreshBtn.classList.add('spin');
       setTimeout(() => { refreshBtn.classList.remove('spin'); renderFromSelection(); }, 600);
     });
   }
-
   function renderFlatEquity(equityValue, ts) {
     if (!chart) return;
     const N = 30;
     chart.data.labels = Array.from({ length: N }, (_, i) => String(i + 1));
     chart.data.datasets[0].data = Array.from({ length: N }, () => Number(equityValue || 0));
     chart.update();
-
     const sym = symFor(currentAccount?.currency || 'USD');
     if (elVal) elVal.textContent = fmtMoney(sym, equityValue || 0);
     if (elChg) { elChg.textContent = '+0.00%'; elChg.style.color = '#16a34a'; }
     if (elUpdated) elUpdated.textContent =
-      `${new Date(ts || Date.now()).toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' })} SAST`;
+      `${new Date(ts || Date.now()).toLocaleString('en-ZA',{month:'long',day:'2-digit',hour:'2-digit',minute:'2-digit'})} SAST`;
   }
-
   function renderFromSelection() {
     if (!holdings.length) { renderFlatEquity(0, null); return; }
     const sel = holdings.find(h => String(h.strategy_id) === String(stratSel?.value)) || holdings[0];
