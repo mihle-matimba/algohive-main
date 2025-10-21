@@ -671,22 +671,19 @@
     // Check if user has at least one investment account
     async function checkUserHasAccount(userId) {
       try {
-        console.log('🔍 Checking if user has accounts:', userId);
         const { count, error } = await supabase
           .from('investment_accounts')
           .select('id', { count: 'exact', head: true })
           .eq('profile_id', userId);
         
         if (error) {
-          console.warn('❌ Failed to check user accounts:', error);
+          console.warn('Failed to check user accounts:', error);
           return false;
         }
         
-        const hasAccounts = (count || 0) > 0;
-        console.log(`📊 User has ${count || 0} accounts:`, hasAccounts);
-        return hasAccounts;
+        return (count || 0) > 0;
       } catch (error) {
-        console.warn('❌ Error checking user accounts:', error);
+        console.warn('Error checking user accounts:', error);
         return false;
       }
     }
@@ -1406,7 +1403,6 @@ await handleDiditCallbackAfterAuth();
     }
 
     async function loadAccounts() {
-      console.log('🔄 Loading accounts for user:', user.id);
       const loading = document.getElementById('accounts-loading');
       const empty = document.getElementById('accounts-empty');
       const list = document.getElementById('accounts-wrap');
@@ -1423,27 +1419,20 @@ await handleDiditCallbackAfterAuth();
           .order('status', { ascending: true })
           .order('updated_at', { ascending: false });
 
-        if (error) {
-          console.error('❌ Account loading error:', error);
-          throw error;
-        }
-
-        console.log('📊 Loaded accounts:', data);
+        if (error) throw error;
 
         if (!data || data.length === 0) { 
-          console.log('📭 No accounts found');
           empty?.classList.remove('hidden'); 
           hasAccount = false;
           updateTabsAndRedirect();
           return; 
         }
         
-        console.log(`✅ Found ${data.length} accounts`);
         data.forEach(row => list.appendChild(renderAccountCard(row)));
         hasAccount = true;
         updateTabsAndRedirect();
       } catch (e) {
-        console.error('❌ loadAccounts error:', e);
+        console.error(e);
         banner(e.message || 'Could not load accounts', 'err');
       } finally {
         loading?.classList.add('hidden');
