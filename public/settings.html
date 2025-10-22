@@ -876,118 +876,7 @@
             el.textContent = msg;
             clearTimeout(el._t);
             el._t = setTimeout(() => el.remove(), 4000);
-        }
-
-        // ===== Paystack Inline (PLAN) =====
-const PAYSTACK_PUBLIC_KEY = "pk_live_1cbfba656265cbb275483c8f953bc356dd5869d2";   // <-- your PUBLIC key
-const PAYSTACK_PLAN_CODE  = "PLN_593y3qi25x1u1pu";             // <-- your plan_code (Gold)
-const CURRENCY            = "ZAR";
-
-// Keep your toast
-const say = (m, t="warn") => banner(m, t);
-
-// Optional: still use your waiting modal (works for modal flow too)
-function openGoldModal(){ document.getElementById("gold-wait-modal")?.classList.remove("hidden"); }
-function closeGoldModal(){ document.getElementById("gold-wait-modal")?.classList.add("hidden"); }
-
-function randRef(prefix="AHG") {
-  // unique-ish reference (prefix_userId_timestamp)
-  return `${prefix}_${(user?.id||"anon").slice(0,8)}_${Date.now()}`;
-}
-
-async function verifyAndActivate(reference) {
-  // Hit your server to verify the charge and mark Gold
-  const r = await fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`);
-  if (!r.ok) throw new Error("Verify failed");
-  const j = await r.json();
-  // Expect { ok: true, paid: true, subscription: { status, plan, ... } }
-  if (!j.ok || !j.paid) throw new Error("Payment not confirmed yet");
-  // Optional: mark in Supabase immediately (you also do this via webhook)
-  await supabase.from("profiles")
-    .upsert({ id: user.id, subscription_tier: "gold", subscription_updated_at: new Date().toISOString() }, { onConflict: "id" });
-}
-
-function startGoldInline() {
-  if (!window.PaystackPop) return say("Paystack SDK not loaded", "err");
-  if (!user?.email) return say("You must be signed in to upgrade.", "err");
-
-  const reference = randRef();
-
-  const handler = PaystackPop.setup({
-    key: PAYSTACK_PUBLIC_KEY,
-    email: user.email,
-    // Subscribe to a plan — amount is ignored when plan is present
-    plan: PAYSTACK_PLAN_CODE,
-    currency: CURRENCY,
-    ref: reference,
-    // nice to have
-    channels: ["card"],
-    metadata: {
-      custom_fields: [
-        { display_name: "Profile ID", variable_name: "profile_id", value: user.id },
-        { display_name: "Tier", variable_name: "tier", value: "gold" }
-      ]
-    },
-    // Called when user closes the Paystack dialog
-    onClose: function () {
-      say("Checkout closed. If you paid, click “I’ve paid” to re-check.", "warn");
-      openGoldModal();
-      document.getElementById("gold-wait-hint").textContent = "If you completed payment, click “I’ve paid”.";
-      // stash ref so the manual button can verify the exact attempt
-      localStorage.setItem("ah_last_gold_ref", reference);
-    },
-    // Called on successful authorization; STILL verify server-side!
-    callback: async function (resp) {
-      try {
-        // resp.reference === our ref
-        openGoldModal();
-        document.getElementById("gold-wait-hint").textContent = "Confirming payment…";
-        await verifyAndActivate(resp.reference);
-        closeGoldModal();
-        say("🎉 Gold active! Thanks for upgrading.", "ok");
-        location.hash = "#subs";
-      } catch (e) {
-        // If verify isn’t ready yet, keep the modal so they can click “I’ve paid”
-        document.getElementById("gold-wait-hint").textContent = "We’re still confirming with Paystack… try “I’ve paid” in a moment.";
-        localStorage.setItem("ah_last_gold_ref", reference);
-      }
-    }
-  });
-
-  handler.openIframe();
-}
-
-// Wire the button
-document.getElementById("btn-buy-gold")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  startGoldInline();
-});
-
-// “I’ve paid” manual re-check
-document.getElementById("gold-wait-done")?.addEventListener("click", async () => {
-  const reference = localStorage.getItem("ah_last_gold_ref");
-  if (!reference) return say("No pending payment to confirm.", "warn");
-  document.getElementById("gold-wait-hint").textContent = "Checking…";
-  try {
-    await verifyAndActivate(reference);
-    closeGoldModal();
-    say("🎉 Gold active! Thanks for upgrading.", "ok");
-    location.hash = "#subs";
-  } catch {
-    say("Not confirmed yet. If you just paid, please wait a bit and try again.", "warn");
-  }
-});
-
-// Cancel
-document.getElementById("gold-wait-cancel")?.addEventListener("click", () => {
-  closeGoldModal();
-  say("Upgrade cancelled.", "warn");
-});
-
-
-        
-
-
+        }    
         // ---------- profile helpers ----------
         const REQUIRED_FIELDS = ["first_name", "last_name", "phone", "dob", "id_number", "nationality", "country_residence"];
         function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
@@ -1862,21 +1751,7 @@ document.getElementById("gold-wait-cancel")?.addEventListener("click", () => {
         </div>
     </div>
 
-    <div id="gold-wait-modal" class="fixed inset-0 z-[130] hidden">
-        <div class="absolute inset-0 bg-black/40"></div>
-        <div
-            class="absolute left-1/2 top-24 -translate-x-1/2 w-[480px] max-w-[95vw] rounded-2xl bg-white shadow-xl border border-slate-200 p-6">
-            <h3 class="text-lg font-semibold text-slate-900">Complete your Gold upgrade</h3>
-            <p class="mt-2 text-sm text-slate-600">
-                A Paystack tab is open. Once payment is complete, come back here.
-            </p>
-            <div class="mt-4 text-xs text-slate-500" id="gold-wait-hint">Waiting for confirmation…</div>
-            <div class="mt-6 flex justify-end gap-2">
-                <button id="gold-wait-cancel" class="btn">Cancel</button>
-                <button id="gold-wait-done" class="btn btn-olive">I’ve paid</button>
-            </div>
-        </div>
-    </div>
+
 
 
 </body>
