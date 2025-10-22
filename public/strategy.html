@@ -339,7 +339,8 @@
           </div>
           <div class="px-5 pt-4">
             <div class="flex items-baseline gap-3">
-              <div class="text-2xl font-bold" id="pf-value">Growth: 5.53x</div>
+              <!-- MODIFIED: Set to currency placeholder, JS will control content -->
+              <div class="text-2xl font-bold" id="pf-value">R 0.00</div>
               <div class="text-lg font-normal" id="pf-change" data-sign="-"></div>
             </div>
           </div>
@@ -496,7 +497,8 @@
               </li>
               <li class="flex flex-col sm:flex-row items-start gap-x-2">
                 <span class="font-semibold text-slate-900 sm:min-w-[160px]">Performance fee</span>
-                <span><strong>10%</strong> over High-Water Mark (example — adjust per strategy
+                <!-- MODIFIED: Changed 10% to 30% -->
+                <span><strong>30%</strong> over High-Water Mark (example — adjust per strategy
                   T&Cs)</span>
               </li>
               <li class="flex flex-col sm:flex-row items-start gap-x-2">
@@ -505,7 +507,8 @@
               </li>
               <li class="flex flex-col sm:flex-row items-start gap-x-2">
                 <span class="font-semibold text-slate-900 sm:min-w-[160px]">Withdrawals</span>
-                <span>algohive withdrawal fees may apply.</span>
+                <!-- MODIFIED: Professional wording -->
+                <span>AlgoHive withdrawal processing fees and/or third-party banking charges may apply.</span>
               </li>
             </ul>
             <p class="text-xs text-slate-500 mt-3">Exact fees are strategy-specific. Always review the
@@ -940,19 +943,20 @@
       return out;
     }
 
+    // MODIFIED: This function now ONLY handles currency display (for 1D)
+    // It also resets the chart Y-axis and tooltip to currency format
     function setCurve(seriesVals, ccy) {
       if (!chart) return;
       chart.data.labels = currentLabels;
       chart.data.datasets[0].data = seriesVals;
+      
+      // *** ADDED: Ensure Y-axis is in CURRENCY format ***
+      chart.options.scales.y.ticks.callback = v => money(v, ccy);
+      chart.options.plugins.tooltip.callbacks.label = c => money(c.raw, currentCCY);
       chart.update();
 
-      // *** MODIFIED: Don't update price/change if it's set to Growth ***
+      // *** MODIFIED: This block is now standard, no 'Growth' check ***
       const pfValueEl = $('#pf-value');
-      if (pfValueEl.textContent.startsWith('Growth:')) {
-        $('#pf-change').textContent = ''; // Clear change text
-        return;
-      }
-
       if (!seriesVals.length) {
         pfValueEl.textContent = money(0, ccy);
         $('#pf-change').textContent = '—';
@@ -1030,11 +1034,10 @@
       document.getElementById('fs-title').textContent = strategy.name || '—';
       document.getElementById('fs-provider').textContent = strategy.creator || '—';
       document.getElementById('fs-since').textContent = strategy.inception_date
-        ? new Date(strategy.inception_date).toLocaleDateString('en-ZA') : '—';
+        ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
       document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
       document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-      // *** DELETED AUM hydration ***
-      // document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
+      // *** DELETED AUM hydration (already gone in this file) ***
       const ecName = document.getElementById('pf-name');
       if (ecName) ecName.textContent = strategy.name || '—';
 
@@ -1089,29 +1092,25 @@
     }
     function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
+    // MODIFIED: This function now splits logic:
+    // - 1D shows currency (calls setCurve)
+    // - 6M, 1Y, ALL show Growth %/Multiplier (calculates and sets text directly)
     function selectRangeAndRender(rangeKey, metrics, strategy) {
-      // *** MODIFICATION: If 'Growth' is set, don't change it back to currency ***
+      // *** MODIFICATION: Logic split between 1D (currency) and other ranges (growth) ***
+      
       const pfValueEl = $('#pf-value');
-      const isGrowth = pfValueEl.textContent.startsWith('Growth:');
+      const chgEl = $('#pf-change');
 
       if (rangeKey === '1D') {
         const s1d = metrics?.series_1d || [];
         const vals = s1d.map(p => Number(p?.equity)).filter(v => Number.isFinite(v));
         currentLabels = makeLabels1D(s1d);
-        // *** Don't update curve if set to Growth mode ***
-        if (!isGrowth) {
-          setCurve(vals, strategy.currency || 'ZAR');
-        } else {
-          // Still update chart, but not the text
-          if (chart) {
-            chart.data.labels = currentLabels;
-            chart.data.datasets[0].data = vals;
-            chart.update();
-          }
-          $('#pf-change').textContent = '';
-        }
+        // 1D always shows currency
+        setCurve(vals, strategy.currency || 'ZAR');
         return;
       }
+      
+      // 6M, 1Y, ALL will show Growth Multiplier
       let src = [];
       if (rangeKey === '6M') {
         src = metrics?.series_6m || [];
@@ -1120,29 +1119,46 @@
         src = metrics?.series_1y || [];
         currentLabels = makeLabelsMonthly(src);
       } else {
+        // Default to ALL
         src = metrics?.series_all || [];
         currentLabels = makeLabelsMonthly(src);
       }
+      
       const pcts = src.map(x => ({ pct: Number(x?.pct) }));
-      let curve = curveFromPct(pcts, 100);
+      let curve = curveFromPct(pcts, 100); // base 100 percentage curve
 
-      // *** Don't update curve if set to Growth mode ***
-      if (!isGrowth) {
-        const aum = Number(strategy?.aum);
-        if (Number.isFinite(aum) && aum > 0 && curve.length) {
-          const scale = aum / curve.at(-1);
-          curve = curve.map(v => Number((v * scale).toFixed(2)));
-        }
-        setCurve(curve, strategy.currency || 'ZAR');
-      } else {
-        // Still update chart with % curve, but not the text
-        if (chart) {
-          chart.data.labels = currentLabels;
-          chart.data.datasets[0].data = curve;
-          chart.update();
-        }
-        $('#pf-change').textContent = '';
+      // Update chart
+      if (chart) {
+        chart.data.labels = currentLabels;
+        chart.data.datasets[0].data = curve;
+        
+        // *** ADDED: Ensure Y-axis is in PERCENT format ***
+        chart.options.scales.y.ticks.callback = v => v + '%'; // Change Y-axis to %
+        // *** MODIFIED: Tooltip shows % change (e.g. +453.4%) not level (e.g. 553.4%)
+        chart.options.plugins.tooltip.callbacks.label = c => {
+          const pctChg = c.raw - 100;
+          return `${pctChg >= 0 ? '+' : ''}${pctChg.toFixed(2)}%`;
+        };
+        chart.update();
       }
+
+      if (!curve.length) {
+        pfValueEl.textContent = 'Growth: —';
+        chgEl.textContent = '—';
+        chgEl.style.color = '#64748b'; // slate color
+        return;
+      }
+
+      const lastVal = curve.at(-1);
+      const multiplier = (lastVal / 100).toFixed(2);
+      const percentage = (lastVal - 100).toFixed(1); // Use 1 decimal for % as per user's 453.4%
+
+      pfValueEl.textContent = `Growth: ${multiplier}x`;
+      chgEl.textContent = `${percentage >= 0 ? '+' : ''}${percentage}%`;
+      chgEl.style.color = percentage >= 0 ? '#16a34a' : '#dc2626';
+      
+      $('#pf-updated').textContent =
+        new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
     }
 
     // ---------- Allocation: dynamic total ----------
@@ -1250,6 +1266,7 @@
 
 
       // render initial curve + tiles + calendar + holdings + allocation
+      // MODIFIED: 1D is active by default, so it will correctly show currency on load
       selectRangeAndRender('1D', metrics || {}, strategy);
       fillPerfSummary(metrics?.perf_summary || null);
       renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
@@ -1279,6 +1296,7 @@
         try {
           const fresh = await fetchMetrics(strategy.id);
           metrics = fresh || {};
+          // MODIFIED: Re-render based on the *currently active* tab
           selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1D', metrics, strategy);
           fillPerfSummary(metrics?.perf_summary || null);
           renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
@@ -1318,6 +1336,7 @@
           currentCCY = activeStrategy.currency || 'ZAR';
 
           const range = document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '1D';
+          // MODIFIED: Re-render based on the *currently active* tab
           selectRangeAndRender(range, metrics, activeStrategy);
 
           fillPerfSummary(metrics?.perf_summary || null);
@@ -1342,12 +1361,10 @@
 
     } catch (err) {
       console.error('[factsheet init] ', err);
-      // *** MODIFIED: Don't overwrite if it's set to Growth ***
+      // *** MODIFIED: Default to currency display on error ***
       const pfValueEl = $('#pf-value');
-      if (!pfValueEl.textContent.startsWith('Growth:')) {
-        pfValueEl.textContent = money(0);
-        $('#pf-change').textContent = '—';
-      }
+      pfValueEl.textContent = money(0);
+      $('#pf-change').textContent = '—';
       $('#calendarReturns').textContent = 'No data.';
       renderPortfolioHoldingsFromMetrics({});
       renderAssetAllocationFromMetrics({});
