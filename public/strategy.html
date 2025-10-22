@@ -528,20 +528,50 @@
             </div> <div class="mt-6">
               <div class="flex items-center justify-between mb-2">
                 <div class="text-sm font-semibold text-slate-900">Calendar Returns</div>
-                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"> <span
-                    class="inline-block w-5 h-3 rounded" id="legNeg"></span><span
-                    class="text-slate-500">Negative</span> <span class="inline-block w-5 h-3 rounded"
-                    id="legNeu"></span><span class="text-slate-500">Flat</span>
-                  <span class="inline-block w-5 h-3 rounded" id="legPos"></span><span
-                    class="text-slate-500">Positive</span>
+                  <span class="text-slate-500">Positive</span>
                 </div>
               </div>
-              <!-- ADDED: Year Filter -->
-              <div class="flex items-center justify-end mb-2">
-                <label for="calendar-year-filter" class="text-sm font-medium text-slate-700 mr-2">Year:</label>
-                <select id="calendar-year-filter" class="input h-9 py-0 text-sm w-32"></select>
+              <!-- ADDED: Year and Month Filter Row -->
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end mb-2 gap-4">
+                <!-- Year Filter -->
+                <div class="flex items-center justify-end">
+                  <label for="calendar-year-filter" class="text-sm font-medium text-slate-700 mr-2">Year:</label>
+                  <select id="calendar-year-filter" class="input h-9 py-0 text-sm w-32"></select>
+                </div>
+                <!-- Month Filter (New) -->
+                <div class="relative flex items-center justify-end">
+                  <label class="text-sm font-medium text-slate-700 mr-2">Months:</label>
+                  <button id="month-filter-btn" class="input h-9 py-0 text-sm w-32 text-left flex justify-between items-center">
+                    <span id="month-filter-label" class="truncate">All Months</span>
+                    <i class="fa-solid fa-chevron-down text-xs mr-1"></i>
+                  </button>
+                  <div id="month-filter-popover" class="hidden absolute right-0 top-10 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 p-4">
+                    <div class="space-y-2">
+                      <div>
+                        <input type="checkbox" id="month-all" class="month-filter-cb" data-month="All" checked>
+                        <label for="month-all" class="ml-2 text-sm font-medium">All Months</label>
+                      </div>
+                      <hr class="my-2"/>
+                      <div class="grid grid-cols-2 gap-2">
+                        <div><input type="checkbox" id="month-Jan" class="month-filter-cb-ind" data-month="Jan"><label for="month-Jan" class="ml-2 text-sm">Jan</label></div>
+                        <div><input type="checkbox" id="month-Feb" class="month-filter-cb-ind" data-month="Feb"><label for="month-Feb" class="ml-2 text-sm">Feb</label></div>
+                        <div><input type="checkbox" id="month-Mar" class="month-filter-cb-ind" data-month="Mar"><label for="month-Mar" class="ml-2 text-sm">Mar</label></div>
+                        <div><input type="checkbox" id="month-Apr" class="month-filter-cb-ind" data-month="Apr"><label for="month-Apr" class="ml-2 text-sm">Apr</label></div>
+                        <div><input type="checkbox" id="month-May" class="month-filter-cb-ind" data-month="May"><label for="month-May" class="ml-2 text-sm">May</label></div>
+                        <div><input type="checkbox" id="month-Jun" class="month-filter-cb-ind" data-month="Jun"><label for="month-Jun" class="ml-2 text-sm">Jun</label></div>
+                        <div><input type="checkbox" id="month-Jul" class="month-filter-cb-ind" data-month="Jul"><label for="month-Jul" class="ml-2 text-sm">Jul</label></div>
+                        <div><input type="checkbox" id="month-Aug" class="month-filter-cb-ind" data-month="Aug"><label for="month-Aug" class="ml-2 text-sm">Aug</label></div>
+                        <div><input type="checkbox" id="month-Sep" class="month-filter-cb-ind" data-month="Sep"><label for="month-Sep" class="ml-2 text-sm">Sep</label></div>
+                        <div><input type="checkbox" id="month-Oct" class="month-filter-cb-ind" data-month="Oct"><label for="month-Oct" class="ml-2 text-sm">Oct</label></div>
+                        <div><input type="checkbox" id="month-Nov" class="month-filter-cb-ind" data-month="Nov"><label for="month-Nov" class="ml-2 text-sm">Nov</label></div>
+                        <div><input type="checkbox" id="month-Dec" class="month-filter-cb-ind" data-month="Dec"><label for="month-Dec" class="ml-2 text-sm">Dec</label></div>
+                      </div>
+                      <button id="month-filter-apply" class="btn w-full bg-slate-800 text-white border-none h-8 text-sm mt-3 hover:bg-slate-700">Apply</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <!-- END ADDED: Year Filter -->
+              <!-- END ADDED: Year and Month Filter Row -->
               <div class="overflow-x-auto">
                 <div id="calendarReturns" class="cal-grid"></div>
               </div>
@@ -751,6 +781,98 @@
     document.getElementById('daily-modal-close')?.addEventListener('click', closeDailyModal);
     document.getElementById('daily-modal-overlay')?.addEventListener('click', closeDailyModal);
     // *** END ADDED ***
+
+    // *** ADDED: Month Filter Popover Logic ***
+    const monthFilterBtn = document.getElementById('month-filter-btn');
+    const monthFilterPopover = document.getElementById('month-filter-popover');
+    const monthFilterApply = document.getElementById('month-filter-apply');
+    const monthAllCb = document.getElementById('month-all');
+    const monthIndCbs = document.querySelectorAll('.month-filter-cb-ind');
+    const monthFilterLabel = document.getElementById('month-filter-label');
+
+    function closeMonthPopover() {
+      monthFilterPopover?.classList.add('hidden');
+    }
+
+    function getSelectedMonths() {
+      if (monthAllCb.checked) {
+        return MONTH_NAMES; // Returns all 12
+      }
+      const selected = [...monthIndCbs]
+        .filter(cb => cb.checked)
+        .map(cb => cb.dataset.month);
+      
+      // If no individuals are selected, default back to All
+      return selected.length > 0 ? selected : MONTH_NAMES;
+    }
+
+    function updateMonthFilterLabel() {
+      if (monthAllCb.checked) {
+        monthFilterLabel.textContent = 'All Months';
+        return;
+      }
+      const selected = [...monthIndCbs]
+        .filter(cb => cb.checked)
+        .map(cb => cb.dataset.month);
+      
+      if (selected.length === 0) {
+        monthFilterLabel.textContent = 'All Months'; // Fallback
+      } else if (selected.length === 1) {
+        monthFilterLabel.textContent = selected[0];
+      } else if (selected.length === 12) {
+        monthFilterLabel.textContent = 'All Months';
+      } else {
+        monthFilterLabel.textContent = `${selected.length} Months`;
+      }
+    }
+    
+    monthFilterBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      monthFilterPopover?.classList.toggle('hidden');
+    });
+
+    monthFilterApply?.addEventListener('click', () => {
+      // If no individuals are checked, re-check 'All'
+      const anyIndChecked = [...monthIndCbs].some(cb => cb.checked);
+      if (!anyIndChecked) {
+        monthAllCb.checked = true;
+      }
+      
+      const selectedYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
+      const selectedMonths = getSelectedMonths();
+      const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
+      renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear, selectedMonths);
+      
+      updateMonthFilterLabel();
+      closeMonthPopover();
+    });
+
+    monthAllCb?.addEventListener('click', () => {
+      if (monthAllCb.checked) {
+        monthIndCbs.forEach(cb => cb.checked = false);
+      }
+    });
+
+    monthIndCbs?.forEach(cb => {
+      cb.addEventListener('click', () => {
+        if (cb.checked) {
+          monthAllCb.checked = false;
+        }
+        // If all individuals are unchecked, check 'All'
+        const anyIndChecked = [...monthIndCbs].some(c => c.checked);
+        if (!anyIndChecked) {
+          monthAllCb.checked = true;
+        }
+      });
+    });
+
+    window.addEventListener('click', (e) => {
+      if (!monthFilterPopover?.contains(e.target) && !monthFilterBtn?.contains(e.target)) {
+        closeMonthPopover();
+      }
+    });
+    // *** END ADDED ***
+
 
     // tiny banner
     function banner(msg, tone = "warn") {
@@ -1132,18 +1254,20 @@
     }
 
     // *** ADDED: New function to render the monthly calendar grid from aggregated data ***
-    function renderMonthlyCalendarGrid(container, aggregatedData, filterYear) {
+    function renderMonthlyCalendarGrid(container, aggregatedData, filterYear, filterMonths) {
       const grid = container;
       if (!grid) return;
 
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD'];
+      // MODIFIED: Use filterMonths, but always add YTD
+      const monthsToRender = [...filterMonths, 'YTD'];
       // Get all years, but filter based on the dropdown
       const allYears = Object.keys(aggregatedData).map(Number).sort((a, b) => a - b);
       const yearsToRender = (filterYear === 'ALL' || !filterYear) ? allYears : allYears.filter(y => y == filterYear);
 
 
       grid.innerHTML = '';
-      grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px, 1fr))`;
+      // MODIFIED: Use monthsToRender.length
+      grid.style.gridTemplateColumns = `120px repeat(${monthsToRender.length}, minmax(72px, 1fr))`;
 
       const color = (v) => v == null ? '#f8fafc' // Use a lighter bg for null
         : v >= 1.5 ? '#bbf7d0'
@@ -1156,7 +1280,8 @@
       const corner = document.createElement('div');
       corner.className = 'cal-head cal-sticky';
       grid.appendChild(corner);
-      months.forEach(m => {
+      // MODIFIED: Use monthsToRender
+      monthsToRender.forEach(m => {
         const h = document.createElement('div');
         h.className = 'cal-head justify-center';
         h.textContent = m;
@@ -1170,7 +1295,8 @@
         yr.textContent = y;
         grid.appendChild(yr);
 
-        months.forEach(m => {
+        // MODIFIED: Use monthsToRender
+        monthsToRender.forEach(m => {
           const v = aggregatedData[y]?.[m];
           const c = document.createElement('div');
           c.className = 'cal-cell';
@@ -1222,8 +1348,10 @@
       if (!select.dataset.listener) {
         select.addEventListener('change', () => {
           const selectedYear = select.value;
+          // MODIFIED: Get selected months
+          const selectedMonths = getSelectedMonths();
           const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-          renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear);
+          renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear, selectedMonths);
         });
         select.dataset.listener = 'true';
       }
@@ -1529,7 +1657,9 @@
       const aggregatedMonthlyData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
       populateYearFilter(aggregatedMonthlyData);
       const defaultYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-      renderMonthlyCalendarGrid($('#calendarReturns'), aggregatedMonthlyData, defaultYear);
+      // MODIFIED: Get default months
+      const defaultMonths = getSelectedMonths();
+      renderMonthlyCalendarGrid($('#calendarReturns'), aggregatedMonthlyData, defaultYear, defaultMonths);
       
       selectRangeAndRender('1D', metrics || {}, strategy);
       fillPerfSummary(metrics?.perf_summary || null);
@@ -1566,7 +1696,9 @@
           const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
           populateYearFilter(aggData); // Repopulate in case new years are added
           const currentYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-          renderMonthlyCalendarGrid($('#calendarReturns'), aggData, currentYear);
+          // MODIFIED: Get current months
+          const currentMonths = getSelectedMonths();
+          renderMonthlyCalendarGrid($('#calendarReturns'), aggData, currentYear, currentMonths);
           
           selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1D', metrics, strategy);
           fillPerfSummary(metrics?.perf_summary || null);
@@ -1614,7 +1746,9 @@
           const aggDataRefresh = aggregateDailyToMonthly(metrics?.calendar_returns || []);
           populateYearFilter(aggDataRefresh); // Repopulate in case new years are added
           const currentYearRefresh = document.getElementById('calendar-year-filter')?.value || 'ALL';
-          renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearRefresh);
+          // MODIFIED: Get current months
+          const currentMonthsRefresh = getSelectedMonths();
+          renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearRefresh, currentMonthsRefresh);
           
           selectRangeAndRender(range, metrics, activeStrategy);
 
@@ -1727,5 +1861,6 @@
 </body>
 
 </html>
+
 
 
