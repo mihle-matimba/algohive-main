@@ -1,937 +1,593 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investor Onboarding | AlgoHive</title>
-<!-- keep Tailwind CDN -->
-<script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Investor Onboarding | AlgoHive</title>
 
-<!-- REMOVE the <script> tailwind.config = { colors.primary... } block -->
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
 
-<style>
-  :root{
-    --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0;
-  }
-  /* helpers that mirror your settings page vibe */
-  .btn-olive{ background:var(--olive); color:#fff }
-  .btn-olive:hover{ filter:brightness(.92) }
-  .text-ink{ color:var(--ink) }
-  .text-muted{ color:var(--muted) }
-  .border-line{ border-color:var(--line) }
-  .hero-bg{ background: linear-gradient(135deg, #f1f5ef 0%, #c4d7bd 100%); } /* keep your original hero */
-  .progress-bar{ height:6px; transition:width .5s ease }
-</style>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-      /* Hide scrollbar for all browsers */
-        html, body {
-            overflow: auto; /* Keep content scrollable */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* Internet Explorer and Edge */
-        }
+  <style>
+    :root{
+      --page:#0b1220; --bg:#ffffff; --muted:#64748b; --ink:#0f172a; --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0;
+    }
 
-        /* Hide scrollbar for WebKit browsers (Chrome, Safari, etc.) */
-        html::-webkit-scrollbar, body::-webkit-scrollbar {
-            display: none;
-        }
-        .hero-bg {
-            background: linear-gradient(135deg, #f1f5ef 0%, #c4d7bd 100%);
-        }
-        
-        .form-step {
-            display: none;
-        }
-        
-        .form-step.active {
-            display: block;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .progress-bar {
-            height: 6px;
-            transition: width 0.5s ease;
-        }
-        
-        .bank-details {
-            background: linear-gradient(135deg, #f8faf7 0%, #e2ebde 100%);
-        }
-        
-        .error-message {
-            color: #ef4444;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-        
-        .error-input {
-            border-color: #ef4444;
-        }
-        
-        .success-toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #10b981;
-            color: white;
-            padding: 16px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-        
-        .loading-spinner {
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid white;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .feature-card {
-            transition: all 0.3s ease;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        
-        .hero-pattern {
-            background-image: radial-gradient(circle at 10% 20%, rgba(118, 151, 107, 0.1) 0%, rgba(118, 151, 107, 0.05) 90%);
-        }
-        
-        .investment-summary {
-            background-color: #f8faf7;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-        
-        .summary-label {
-            font-weight: 600;
-            color: #4b5563;
-        }
-        
-        .summary-value {
-            font-weight: 700;
-            color: #76976b;
-        }
-        
-        .premium-badge {
-            background-color: #f59e0b;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: bold;
-            margin-left: 0.5rem;
-        }
-        
-        .confirmation-code {
-            letter-spacing: 0.5rem;
-            font-family: monospace;
-            font-size: 1.5rem;
-            padding: 1rem;
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
-            text-align: center;
-            margin: 1rem 0;
-        }
-        
-        /* Document link styling */
-        .document-link-container {
-            margin: 2rem 0;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            background-color: #f9fafb;
-        }
-        
-        .document-link-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .document-link-icon {
-            background-color: #76976b;
-            color: white;
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-        }
-        
-        .document-link-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #111827;
-        }
-        
-        .document-link-box {
-            display: flex;
-            align-items: center;
-            margin-top: 1rem;
-        }
-        
-        .document-link {
-            flex-grow: 1;
-            padding: 0.75rem 1rem;
-            background-color: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem 0 0 0.375rem;
-            font-family: monospace;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .copy-button {
-            background-color: #76976b;
-            color: white;
-            border: none;
-            padding: 0.75rem 1rem;
-            border-radius: 0 0.375rem 0.375rem 0;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .copy-button:hover {
-            background-color: #5a7a51;
-        }
-        
-        .copy-button:active {
-            background-color: #476040;
-        }
-        
-        /* New styles for better document signing UX */
-        .signing-instructions {
-            background-color: #f0fdf4;
-            border-left: 4px solid #10b981;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 0 0.375rem 0.375rem 0;
-        }
-        
-        .signing-steps {
-            list-style-type: none;
-            padding-left: 0;
-            margin-top: 0.5rem;
-        }
-        
-        .signing-steps li {
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: flex-start;
-        }
-        
-        .signing-steps li:before {
-            content: "•";
-            color: #10b981;
-            font-weight: bold;
-            display: inline-block;
-            width: 1em;
-            margin-right: 0.5rem;
-        }
-    </style>
+    /* Hide scrollbars, keep scrollable */
+    html, body{ overflow:auto; scrollbar-width:none; -ms-overflow-style:none; }
+    html::-webkit-scrollbar, body::-webkit-scrollbar{ display:none; }
+
+    .text-ink{ color:var(--ink) }
+    .text-muted{ color:var(--muted) }
+    .border-line{ border-color:var(--line) }
+    .btn-olive{ background:var(--olive); color:#fff }
+    .btn-olive:hover{ filter:brightness(.92) }
+
+    .hero-bg{ background:linear-gradient(135deg,#f1f5ef 0%,#c4d7bd 100%) }
+    .hero-pattern{ background-image:radial-gradient(circle at 10% 20%, rgba(118,151,107,.10) 0%, rgba(118,151,107,.05) 90%) }
+
+    .form-step{ display:none }
+    .form-step.active{ display:block; animation:fadeIn .5s ease-in-out }
+    @keyframes fadeIn{ from{opacity:0; transform:translateY(20px)} to{opacity:1; transform:translateY(0)} }
+
+    .progress-bar{ height:6px; transition:width .5s ease }
+
+    .bank-details{ background:linear-gradient(135deg,#f8faf7 0%,#e2ebde 100%) }
+
+    .error-message{ color:#ef4444; font-size:.875rem; margin-top:.25rem }
+    .error-input{ border-color:#ef4444 }
+
+    .success-toast{ position:fixed; bottom:20px; right:20px; background:#10b981; color:#fff; padding:16px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,.1); display:flex; align-items:center; z-index:1000; animation:slideIn .3s ease-out }
+    @keyframes slideIn{ from{ transform:translateX(100%) } to{ transform:translateX(0) } }
+
+    .loading-spinner{ border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top:3px solid #fff; width:20px; height:20px; animation:spin 1s linear infinite; margin-right:8px }
+    @keyframes spin{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    .feature-card{ transition:all .3s ease }
+    .feature-card:hover{ transform:translateY(-5px); box-shadow:0 10px 20px rgba(0,0,0,.1) }
+
+    .investment-summary{ background:#f8faf7; border-radius:.5rem; padding:1.5rem; margin-bottom:2rem }
+    .summary-row{ display:flex; justify-content:space-between; margin-bottom:.5rem }
+    .summary-label{ font-weight:600; color:#4b5563 }
+    .summary-value{ font-weight:700; color:var(--olive) }
+    .premium-badge{ background:#f59e0b; color:#fff; padding:.25rem .5rem; border-radius:.25rem; font-size:.75rem; font-weight:700; margin-left:.5rem }
+
+    .confirmation-code{ letter-spacing:.5rem; font-family:monospace; font-size:1.5rem; padding:1rem; background:#f3f4f6; border-radius:.5rem; text-align:center; margin:1rem 0 }
+
+    .document-link-container{ margin:2rem 0; border:1px solid #e5e7eb; border-radius:.5rem; padding:1.5rem; background:#f9fafb }
+    .document-link-header{ display:flex; align-items:center; margin-bottom:1rem }
+    .document-link-icon{ background:var(--olive); color:#fff; width:2.5rem; height:2.5rem; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:1rem }
+    .document-link-title{ font-size:1.25rem; font-weight:600; color:#111827 }
+    .document-link-box{ display:flex; align-items:center; margin-top:1rem }
+    .document-link{ flex-grow:1; padding:.75rem 1rem; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:.375rem 0 0 .375rem; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+    .copy-button{ background:var(--olive); color:#fff; border:0; padding:.75rem 1rem; border-radius:0 .375rem .375rem 0; cursor:pointer; transition:filter .2s }
+    .copy-button:hover{ filter:brightness(.92) }
+
+    .signing-instructions{ background:#f0fdf4; border-left:4px solid #10b981; padding:1rem; margin:1rem 0; border-radius:0 .375rem .375rem 0 }
+    .signing-steps{ list-style:none; padding-left:0; margin-top:.5rem }
+    .signing-steps li{ margin-bottom:.5rem; display:flex; align-items:flex-start }
+    .signing-steps li:before{ content:"•"; color:#10b981; font-weight:700; display:inline-block; width:1em; margin-right:.5rem }
+  </style>
 </head>
 <body class="font-sans bg-gray-50">
-    <!-- Progress Bar -->
-    <div class="fixed top-0 left-0 right-0 z-50">
-        <div class="h-1 w-full bg-gray-200">
-            <div id="progressBar" class="progress-bar bg-primary-600" style="width: 25%"></div>
+
+  <!-- Progress Bar -->
+  <div class="fixed top-0 left-0 right-0 z-50">
+    <div class="h-1 w-full bg-gray-200">
+      <div id="progressBar" class="progress-bar bg-[var(--olive)]" style="width:25%"></div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <img src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive Logo" class="w-8 h-8 mr-2">
+            <span class="text-xl font-bold text-ink">AlgoHive Investor Portal</span>
+          </div>
         </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Step 1 -->
+  <div id="step1" class="form-step active">
+    <div class="hero-bg hero-pattern py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+          <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style="background:color-mix(in oklab, var(--olive) 12%, white);">
+            <i class="fas fa-seedling text-[var(--olive)] text-3xl"></i>
+          </div>
+          <h1 class="text-4xl md:text-5xl font-bold text-ink mb-6">
+            Welcome to <span class="text-[var(--olive)]">AlgoHive's</span> Future
+          </h1>
+          <p class="text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
+            Thank you for choosing to invest with us! We're excited to have you on board as a shareholder and partner in our growth journey. Get started to seal the deal.
+          </p>
+          <button data-next class="btn-olive font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
+            Get Started <i class="fas fa-arrow-right ml-2"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 flex items-center">
-                        <img src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg"
-                            alt="AlgoHive Logo" class="w-8 h-8 mr-2">
-                        <span class="text-xl font-bold text-gray-900">AlgoHive Investor Portal</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-ink mb-2">Why People Choose Us</h2>
+      </div>
 
-    <!-- Step 1: Company Introduction -->
-    <div id="step1" class="form-step active">
-        <div class="hero-bg hero-pattern py-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center">
-                    <div class="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-seedling text-primary-600 text-3xl"></i>
-                    </div>
-                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Welcome to <span
-                            class="text-primary-600">AlgoHive's</span> Future</h1>
-                    <p class="text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
-                        ​Thank you for choosing to invest with us! We're excited to have you on board as a shareholder
-                        and partner in our growth journey. 
-                        Get started to seal the deal.
-                    </p>
-                    <button onclick="nextStep()"
-                        class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
-                        Get Started <i class="fas fa-arrow-right ml-2"></i>
-                    </button>
-                </div>
-            </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="feature-card bg-white p-8 rounded-lg shadow-md text-center">
+          <div class="bg-[var(--olive)]/10 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-shield-alt text-[var(--olive)] text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2 text-ink">Secure Process</h3>
+          <p class="text-muted">Bank-grade security for all transactions and investor data protection.</p>
         </div>
-
-        <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">Why People Choose Us</h2>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="feature-card bg-white p-8 rounded-lg shadow-md text-center">
-                    <div class="bg-primary-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-shield-alt text-primary-600 text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Secure Process</h3>
-                    <p class="text-gray-600">Bank-grade security for all transactions and investor data protection.</p>
-                </div>
-                <div class="feature-card bg-white p-8 rounded-lg shadow-md text-center">
-                    <div class="bg-primary-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-chart-line text-primary-600 text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Proven Performance</h3>
-                    <p class="text-gray-600">Consistent returns with our listed investment strategies.</p>
-                </div>
-                <div class="feature-card bg-white p-8 rounded-lg shadow-md text-center">
-                    <div class="bg-primary-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-headset text-primary-600 text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Dedicated Support</h3>
-                    <p class="text-gray-600">Personal investor relations manager for all your queries.</p>
-                </div>
-            </div>
+        <div class="feature-card bg-white p-8 rounded-lg shadow-md text-center">
+          <div class="bg-[var(--olive)]/10 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-chart-line text-[var(--olive)] text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2 text-ink">Proven Performance</h3>
+          <p class="text-muted">Consistent returns with our listed investment strategies.</p>
         </div>
+        <div class="feature-card bg-white p-8 rounded-lg shadow-md text-center">
+          <div class="bg-[var(--olive)]/10 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-headset text-[var(--olive)] text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2 text-ink">Dedicated Support</h3>
+          <p class="text-muted">Personal investor relations manager for all your queries.</p>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Step 2: Investment Form -->
-    <div id="step2" class="form-step">
-        <div class="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">Investment Details</h2>
-                <p class="text-gray-600">Complete your investment application below</p>
-            </div>
-            
-            <form id="investmentForm" class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="fullName">
-                        Full Name <span class="text-red-500">*</span>
-                    </label>
-                    <input class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-primary-500"
-                            id="fullName" type="text" placeholder="John Smith" required>
-                    <div id="fullNameError" class="error-message hidden">Please enter your full name</div>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
-                        Email Address <span class="text-red-500">*</span>
-                    </label>
-                    <input class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-primary-500"
-                            id="email" type="email" placeholder="john@example.com" required>
-                    <div id="emailError" class="error-message hidden">Please enter a valid email address</div>
-                </div>
-                
-                <!-- Investment Amount Input -->
-                <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="investmentAmount">
-                        Investment Amount (ZAR) <span class="text-red-500">*</span>
-                    </label>
-                    <div class="flex items-center">
-                        <span class="bg-gray-200 text-gray-700 px-4 py-3 rounded-l">R</span>
-                        <input class="shadow appearance-none border rounded-r w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-primary-500"
-                                id="investmentAmount" type="number" min="300000" step="300000" value="300000" placeholder="1000.00" required>
-                    </div>
-                    <div id="amountError" class="error-message hidden">Minimum investment is R4.12</div>
-                    <p class="text-sm text-gray-500 mt-2">Current share price: <span class="font-bold">R4.12</span> per share</p>
-                </div>
-                
-                <!-- Investment Summary -->
-                <div class="investment-summary mb-8">
-                    <h3 class="text-lg font-bold mb-4 text-gray-800">Investment Summary</h3>
-                    <div class="summary-row">
-                        <span class="summary-label">Investment Amount:</span>
-                        <span id="summaryAmount" class="summary-value">R4.12</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Number of Shares:</span>
-                        <span id="summaryShares" class="summary-value">1</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Risk Premium Shares:</span>
-                        <span id="summaryPremiumShares" class="summary-value">70,929 <span class="premium-badge">FREE</span></span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Total Shares:</span>
-                        <span id="summaryTotalShares" class="summary-value">70,930</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Share Price:</span>
-                        <span class="summary-value">R4.12</span>
-                    </div>
-                </div>
-                
-                <!-- Document Signing Section -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-bold mb-4 text-gray-800">Document Signing</h3>
-                    
-                    <div class="signing-instructions">
-                        <p class="font-medium text-gray-800">How to sign your documents:</p>
-                        <ul class="signing-steps">
-                            <li>Copy the DocuSeal link below</li>
-                            <li>Open it in a new tab or window</li>
-                            <li>Complete all required signatures</li>
-                            <li>Return here to confirm</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="document-link-container">
-                        <div class="document-link-header">
-                            <div class="document-link-icon">
-                                <i class="fas fa-file-signature"></i>
-                            </div>
-                            <div class="document-link-title">Sign Investment Agreement</div>
-                        </div>
-                        <p class="text-gray-600 mb-4">Please copy the link below to sign your investment documents. After signing, return to this page to confirm.</p>
-                        
-                        <div class="document-link-box">
-                            <div class="document-link" id="documentLink">https://docuseal.com/s/ZpCdfN4CnyQQrU</div>
-                            <button type="button" class="copy-button" id="copyLinkButton">
-                                <i class="fas fa-copy mr-2"></i> Copy
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gray-50 rounded-lg p-6 mt-4">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input id="docConfirmation" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 rounded">
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="docConfirmation" class="font-medium text-gray-700">
-                                    I confirm that I have completed signing the Investment Agreements
-                                </label>
-                                <p class="text-gray-500 mt-1">Please complete the signing process before proceeding</p>
-                            </div>
-                        </div>
-                        <div id="docError" class="error-message hidden mt-2">You must confirm the documents to proceed</div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <button type="button" onclick="prevStep()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline">
-                        <i class="fas fa-arrow-left mr-2"></i> Back
-                    </button>
-                    <button type="button" id="proceedBtn" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-8 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
-                        Proceed to Payment <i class="fas fa-arrow-right ml-2"></i>
-                    </button>
-                </div>
-            </form>
+  <!-- Step 2 -->
+  <div id="step2" class="form-step">
+    <div class="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-ink mb-2">Investment Details</h2>
+        <p class="text-muted">Complete your investment application below</p>
+      </div>
+
+      <form id="investmentForm" class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
+        <div class="mb-4">
+          <label class="block text-ink text-sm font-bold mb-2" for="fullName">Full Name <span class="text-red-500">*</span></label>
+          <input id="fullName" type="text" placeholder="John Smith"
+                 class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-[var(--olive)]" required>
+          <div id="fullNameError" class="error-message hidden">Please enter your full name</div>
         </div>
-    </div>
 
-    <!-- Step 3: Bank Transfer -->
-    <div id="step3" class="form-step">
-        <div class="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">Bank Transfer Details</h2>
-                <p class="text-gray-600">Complete your investment via bank transfer</p>
-            </div>
-            
-            <div class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-6">
-                <div class="bg-primary-50 rounded-lg p-4 mb-8">
-                    <div class="flex justify-between items-center">
-                        <span class="text-lg font-bold text-gray-700">Total Amount Due:</span>
-                        <span id="paymentTotal" class="text-2xl font-bold text-primary-600">R300,000</span>
-                    </div>
-                </div>
-                
-                <h3 class="text-xl font-bold mb-4 text-gray-800">Bank Transfer Instructions</h3>
-                
-                <div class="bank-details rounded-lg p-6 mb-8">
-                    <div class="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Bank Name</p>
-                            <p class="font-bold">Capitec Bank</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Account Name</p>
-                            <p class="font-bold">AlgoHive Business Account</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Account Number</p>
-                            <p class="font-bold">1053 0458 83</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Branch Code</p>
-                            <p class="font-bold">470010</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 mb-1">Reference</p>
-                            <p id="bankReference" class="font-bold">INV-<span id="emailRef">[Your Full Name]</span></p>
-                        </div>
-                    </div>
-                    <p class="text-sm text-gray-600">
-                        Please use the reference above when making your transfer. Payments typically take 1-2 business days to process.
-                    </p>
-                </div>
-                
-                <button onclick="generatePDF()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline mb-4 transition duration-300 transform hover:scale-105">
-                    <i class="fas fa-download mr-2"></i> Download Bank Confirmation PDF
-                </button>
-                
-                <div class="flex items-center justify-between mt-8">
-                    <button type="button" onclick="prevStep()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline">
-                        <i class="fas fa-arrow-left mr-2"></i> Back
-                    </button>
-                    <button type="button" id="completePaymentBtn" onclick="completeBankPayment()" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-8 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
-                        I've Completed Payment <i class="fas fa-check ml-2"></i>
-                    </button>
-                </div>
-            </div>
+        <div class="mb-4">
+          <label class="block text-ink text-sm font-bold mb-2" for="email">Email Address <span class="text-red-500">*</span></label>
+          <input id="email" type="email" placeholder="john@example.com"
+                 class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-[var(--olive)]" required>
+          <div id="emailError" class="error-message hidden">Please enter a valid email address</div>
         </div>
-    </div>
 
-    <!-- Step 4: Confirmation -->
-    <div id="step4" class="form-step">
-        <div class="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <div class="bg-green-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-check text-green-600 text-4xl"></i>
-                </div>
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">Thank You for Your Investment!</h2>
-                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    Your investment of <span id="confirmationAmount" class="font-bold text-primary-600">R4.12</span> for 
-                    <span id="confirmationShares" class="font-bold text-primary-600">1</span> shares plus 
-                    <span id="confirmationPremiumShares" class="font-bold text-primary-600">70,929</span> Risk Premium shares has been received.
-                </p>
-                <p class="text-lg text-gray-700 mt-4">
-                    Total shares: <span id="confirmationTotalShares" class="font-bold text-primary-600">70,930</span>
-                </p>
-                
-                <div class="mt-8 bg-gray-50 rounded-lg p-6 max-w-md mx-auto">
-                    <h3 class="text-lg font-bold mb-2">Your Transaction ID</h3>
-                    <div class="confirmation-code" id="finalTransactionId">INV-ABC123</div>
-                    <p class="text-sm text-gray-600">Keep this ID for your records. You'll need it for future reference.</p>
-                </div>
-            </div>
-            
-            <div class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-6">
-                <div class="text-center mb-8">
-                    <p class="mb-6">We've sent a confirmation email to <span id="confirmationEmail" class="font-bold">john@example.com</span> with all the details.</p>
-                    <p class="text-gray-600 mb-6">Your investor dashboard will be activated within 24 hours after payment clearance.</p>
-                    
-                    <div class="flex flex-col sm:flex-row justify-center gap-4">
-                        <button onclick="generatePDF()" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
-                            <i class="fas fa-download mr-2"></i> Download PDF Again
-                        </button>
-                        <button onclick="resetForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
-                            <i class="fas fa-home mr-2"></i> Return to Homepage
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="border-t border-gray-200 pt-6">
-                    <h3 class="text-lg font-bold mb-4">Next Steps</h3>
-                    <div class="space-y-4">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 bg-primary-100 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1">
-                                <span class="text-primary-600 font-bold">1</span>
-                            </div>
-                            <div>
-                                <p class="font-medium">Payment Processing</p>
-                                <p class="text-sm text-gray-600">We'll notify you once your payment has been processed (1-2 business days).</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 bg-primary-100 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1">
-                                <span class="text-primary-600 font-bold">2</span>
-                            </div>
-                            <div>
-                                <p class="font-medium">Investor Welcome Pack</p>
-                                <p class="text-sm text-gray-600">You'll receive an email with your investor credentials and access to our portal.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 bg-primary-100 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1">
-                                <span class="text-primary-600 font-bold">3</span>
-                            </div>
-                            <div>
-                                <p class="font-medium">Quarterly Updates</p>
-                                <p class="text-sm text-gray-600">Expect regular updates on company performance and investment growth.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Investment Amount -->
+        <div class="mb-6">
+          <label class="block text-ink text-sm font-bold mb-2" for="investmentAmount">Investment Amount (ZAR) <span class="text-red-500">*</span></label>
+          <div class="flex items-center">
+            <span class="bg-gray-200 text-gray-700 px-4 py-3 rounded-l">R</span>
+            <input id="investmentAmount" type="number" min="300000" step="300000" value="300000" placeholder="1000.00"
+                   class="shadow appearance-none border rounded-r w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-[var(--olive)]" required>
+          </div>
+          <div id="amountError" class="error-message hidden">Minimum investment is R4.12</div>
+          <p class="text-sm text-muted mt-2">Current share price: <span class="font-bold">R4.12</span> per share</p>
         </div>
-    </div>
 
-<script>
-    // Current step tracking
+        <!-- Summary -->
+        <div class="investment-summary mb-8">
+          <h3 class="text-lg font-bold mb-4 text-ink">Investment Summary</h3>
+          <div class="summary-row"><span class="summary-label">Investment Amount:</span><span id="summaryAmount" class="summary-value">R4.12</span></div>
+          <div class="summary-row"><span class="summary-label">Number of Shares:</span><span id="summaryShares" class="summary-value">1</span></div>
+          <div class="summary-row"><span class="summary-label">Risk Premium Shares:</span><span id="summaryPremiumShares" class="summary-value">70,929 <span class="premium-badge">FREE</span></span></div>
+          <div class="summary-row"><span class="summary-label">Total Shares:</span><span id="summaryTotalShares" class="summary-value">70,930</span></div>
+          <div class="summary-row"><span class="summary-label">Share Price:</span><span class="summary-value">R4.12</span></div>
+        </div>
+
+        <!-- Doc Signing -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold mb-4 text-ink">Document Signing</h3>
+
+          <div class="signing-instructions">
+            <p class="font-medium text-ink">How to sign your documents:</p>
+            <ul class="signing-steps">
+              <li>Copy the DocuSeal link below</li>
+              <li>Open it in a new tab or window</li>
+              <li>Complete all required signatures</li>
+              <li>Return here to confirm</li>
+            </ul>
+          </div>
+
+          <div class="document-link-container">
+            <div class="document-link-header">
+              <div class="document-link-icon"><i class="fas fa-file-signature"></i></div>
+              <div class="document-link-title">Sign Investment Agreement</div>
+            </div>
+            <p class="text-muted mb-4">Please copy the link below to sign your investment documents. After signing, return to this page to confirm.</p>
+
+            <div class="document-link-box">
+              <div class="document-link" id="documentLink">https://docuseal.com/s/ZpCdfN4CnyQQrU</div>
+              <button type="button" class="copy-button" id="copyLinkButton">
+                <i class="fas fa-copy mr-2"></i> Copy
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg p-6 mt-4">
+            <div class="flex items-start">
+              <div class="flex items-center h-5">
+                <input id="docConfirmation" type="checkbox" class="h-4 w-4 text-[var(--olive)] border-gray-300 rounded focus:ring-[var(--olive)]">
+              </div>
+              <div class="ml-3 text-sm">
+                <label for="docConfirmation" class="font-medium text-ink">I confirm that I have completed signing the Investment Agreements</label>
+                <p class="text-muted mt-1">Please complete the signing process before proceeding</p>
+              </div>
+            </div>
+            <div id="docError" class="error-message hidden mt-2">You must confirm the documents to proceed</div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <button type="button" data-prev class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline">
+            <i class="fas fa-arrow-left mr-2"></i> Back
+          </button>
+          <button type="button" id="proceedBtn" class="btn-olive text-white font-bold py-3 px-8 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
+            Proceed to Payment <i class="fas fa-arrow-right ml-2"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div id="step3" class="form-step">
+    <div class="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-ink mb-2">Bank Transfer Details</h2>
+        <p class="text-muted">Complete your investment via bank transfer</p>
+      </div>
+
+      <div class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-6">
+        <div class="bg-[var(--olive)]/10 rounded-lg p-4 mb-8">
+          <div class="flex justify-between items-center">
+            <span class="text-lg font-bold text-ink">Total Amount Due:</span>
+            <span id="paymentTotal" class="text-2xl font-bold text-[var(--olive)]">R300,000</span>
+          </div>
+        </div>
+
+        <h3 class="text-xl font-bold mb-4 text-ink">Bank Transfer Instructions</h3>
+
+        <div class="bank-details rounded-lg p-6 mb-8">
+          <div class="grid md:grid-cols-2 gap-4 mb-4">
+            <div><p class="text-sm text-muted mb-1">Bank Name</p><p class="font-bold text-ink">Capitec Bank</p></div>
+            <div><p class="text-sm text-muted mb-1">Account Name</p><p class="font-bold text-ink">AlgoHive Business Account</p></div>
+            <div><p class="text-sm text-muted mb-1">Account Number</p><p class="font-bold text-ink">1053 0458 83</p></div>
+            <div><p class="text-sm text-muted mb-1">Branch Code</p><p class="font-bold text-ink">470010</p></div>
+            <div><p class="text-sm text-muted mb-1">Reference</p><p id="bankReference" class="font-bold text-ink">INV-<span id="emailRef">[Your Full Name]</span></p></div>
+          </div>
+          <p class="text-sm text-muted">Please use the reference above when making your transfer. Payments typically take 1–2 business days to process.</p>
+        </div>
+
+        <button id="downloadPdfBtn" class="w-full btn-olive text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline mb-4 transition duration-300 transform hover:scale-105">
+          <i class="fas fa-download mr-2"></i> Download Bank Confirmation PDF
+        </button>
+
+        <div class="flex items-center justify-between mt-8">
+          <button type="button" data-prev class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline">
+            <i class="fas fa-arrow-left mr-2"></i> Back
+          </button>
+          <button type="button" id="completePaymentBtn" class="btn-olive text-white font-bold py-3 px-8 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
+            I've Completed Payment <i class="fas fa-check ml-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div id="step4" class="form-step">
+    <div class="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <div class="bg-green-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+          <i class="fas fa-check text-green-600 text-4xl"></i>
+        </div>
+        <h2 class="text-3xl font-bold text-ink mb-2">Thank You for Your Investment!</h2>
+        <p class="text-xl text-muted max-w-2xl mx-auto">
+          Your investment of <span id="confirmationAmount" class="font-bold text-[var(--olive)]">R4.12</span> for
+          <span id="confirmationShares" class="font-bold text-[var(--olive)]">1</span> shares plus
+          <span id="confirmationPremiumShares" class="font-bold text-[var(--olive)]">70,929</span> Risk Premium shares has been received.
+        </p>
+        <p class="text-lg text-ink mt-4">
+          Total shares: <span id="confirmationTotalShares" class="font-bold text-[var(--olive)]">70,930</span>
+        </p>
+
+        <div class="mt-8 bg-gray-50 rounded-lg p-6 max-w-md mx-auto">
+          <h3 class="text-lg font-bold mb-2 text-ink">Your Transaction ID</h3>
+          <div class="confirmation-code" id="finalTransactionId">INV-ABC123</div>
+          <p class="text-sm text-muted">Keep this ID for your records. You'll need it for future reference.</p>
+        </div>
+      </div>
+
+      <div class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-6">
+        <div class="text-center mb-8">
+          <p class="mb-6 text-ink">We've sent a confirmation email to <span id="confirmationEmail" class="font-bold">john@example.com</span> with all the details.</p>
+          <p class="text-muted mb-6">Your investor dashboard will be activated within 24 hours after payment clearance.</p>
+
+          <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <button id="downloadPdfBtn2" class="btn-olive text-white font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
+              <i class="fas fa-download mr-2"></i> Download PDF Again
+            </button>
+            <button id="resetBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
+              <i class="fas fa-home mr-2"></i> Return to Homepage
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-line pt-6">
+          <h3 class="text-lg font-bold mb-4 text-ink">Next Steps</h3>
+          <div class="space-y-4">
+            <div class="flex items-start">
+              <div class="flex-shrink-0 bg-[var(--olive)]/10 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1">
+                <span class="text-[var(--olive)] font-bold">1</span>
+              </div>
+              <div>
+                <p class="font-medium text-ink">Payment Processing</p>
+                <p class="text-sm text-muted">We'll notify you once your payment has been processed (1–2 business days).</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="flex-shrink-0 bg-[var(--olive)]/10 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1">
+                <span class="text-[var(--olive)] font-bold">2</span>
+              </div>
+              <div>
+                <p class="font-medium text-ink">Investor Welcome Pack</p>
+                <p class="text-sm text-muted">You'll receive an email with your investor credentials and access to our portal.</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="flex-shrink-0 bg-[var(--olive)]/10 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1">
+                <span class="text-[var(--olive)] font-bold">3</span>
+              </div>
+              <div>
+                <p class="font-medium text-ink">Quarterly Updates</p>
+                <p class="text-sm text-muted">Expect regular updates on company performance and investment growth.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logic (CSP-safe) -->
+  <script nonce="ALGOHIVE">
+    // Step state
     let currentStep = 1;
     const totalSteps = 4;
     const sharePrice = 4.12;
     const riskPremiumShares = 70929;
-    
-    // Form data storage
+
+    // Form state
     const formData = {
-        fullName: '',
-        email: '',
-        investmentAmount: sharePrice,
-        shares: 1,
-        totalShares: 1 + riskPremiumShares,
-        transactionId: generateTransactionId(),
-        documentsConfirmed: false
+      fullName: '',
+      email: '',
+      investmentAmount: sharePrice,
+      shares: 1,
+      totalShares: 1 + riskPremiumShares,
+      transactionId: generateTransactionId(),
+      documentsConfirmed: false
     };
 
-    // Initialize the form
-    document.addEventListener('DOMContentLoaded', function() {
-        // Update investment summary when amount changes
-        document.getElementById('investmentAmount').addEventListener('input', updateInvestmentSummary);
-        
-        // Document confirmation checkbox
-        document.getElementById('docConfirmation').addEventListener('change', function() {
-            formData.documentsConfirmed = this.checked;
-        });
-        
-        // Form submission handlers
-        document.getElementById('proceedBtn').addEventListener('click', validateForm);
-        
-        // Copy link button event listener
-        document.getElementById('copyLinkButton').addEventListener('click', copyDocumentLink);
-        
-        // Initial summary update
-        updateInvestmentSummary();
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      // listeners for nav buttons
+      document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', nextStep));
+      document.querySelectorAll('[data-prev]').forEach(b => b.addEventListener('click', prevStep));
+
+      // form interactions
+      document.getElementById('investmentAmount').addEventListener('input', updateInvestmentSummary);
+      document.getElementById('docConfirmation').addEventListener('change', function(){ formData.documentsConfirmed = this.checked; });
+      document.getElementById('proceedBtn').addEventListener('click', validateForm);
+      document.getElementById('copyLinkButton').addEventListener('click', copyDocumentLink);
+      document.getElementById('downloadPdfBtn').addEventListener('click', () => generatePDF(document.getElementById('downloadPdfBtn')));
+      document.getElementById('downloadPdfBtn2').addEventListener('click', () => generatePDF(document.getElementById('downloadPdfBtn2')));
+      document.getElementById('completePaymentBtn').addEventListener('click', () => completeBankPayment(document.getElementById('completePaymentBtn')));
+      document.getElementById('resetBtn').addEventListener('click', resetForm);
+
+      // initial summary
+      updateInvestmentSummary();
     });
 
-    // Navigation functions
-    function nextStep() {
-        if (currentStep < totalSteps) {
-            document.getElementById(`step${currentStep}`).classList.remove('active');
-            currentStep++;
-            document.getElementById(`step${currentStep}`).classList.add('active');
-            updateProgressBar();
-            updateNavigation();
-            
-            // Update form data when moving to step 3
-            if (currentStep === 3) {
-                updatePaymentPage();
-            }
-            
-            // Update confirmation page when moving to step 4
-            if (currentStep === 4) {
-                updateConfirmationPage();
-            }
-        }
-    }
-
-    function prevStep() {
-        if (currentStep > 1) {
-            document.getElementById(`step${currentStep}`).classList.remove('active');
-            currentStep--;
-            document.getElementById(`step${currentStep}`).classList.add('active');
-            updateProgressBar();
-            updateNavigation();
-        }
-    }
-
-    function updateProgressBar() {
-        const progressPercentage = (currentStep / totalSteps) * 100;
-        document.getElementById('progressBar').style.width = `${progressPercentage}%`;
-    }
-
-    function updateNavigation() {
-        for (let i = 1; i <= totalSteps; i++) {
-            const navElement = document.getElementById(`step${i}Nav`);
-            if (i < currentStep) {
-                navElement.classList.remove('text-gray-500');
-                navElement.classList.add('text-green-500');
-            } else if (i === currentStep) {
-                navElement.classList.remove('text-gray-500', 'text-green-500');
-                navElement.classList.add('text-primary-600');
-            } else {
-                navElement.classList.remove('text-primary-600', 'text-green-500');
-                navElement.classList.add('text-gray-500');
-            }
-        }
-    }
-
-    // Update investment summary based on amount entered
-    function updateInvestmentSummary() {
-        const amountInput = document.getElementById('investmentAmount');
-        let amount = parseFloat(amountInput.value);
-        
-        // Validate minimum investment
-        if (isNaN(amount) || amount < sharePrice) {
-            amount = sharePrice;
-            amountInput.value = sharePrice.toFixed(2);
-        }
-        
-        // Calculate number of shares (rounded down to whole shares)
-        const shares = Math.floor(amount / sharePrice);
-        const actualAmount = shares * sharePrice;
-        const totalShares = shares + riskPremiumShares;
-        
-        // Update summary display
-        document.getElementById('summaryAmount').textContent = `R${actualAmount.toFixed(2)}`;
-        document.getElementById('summaryShares').textContent = shares;
-        document.getElementById('summaryTotalShares').textContent = totalShares.toLocaleString();
-        
-        // Store in form data
-        formData.investmentAmount = actualAmount;
-        formData.shares = shares;
-        formData.totalShares = totalShares;
-    }
-
-    // Form validation
-    function validateForm() {
-        const fullName = document.getElementById('fullName').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const amount = parseFloat(document.getElementById('investmentAmount').value);
-        const documentsConfirmed = document.getElementById('docConfirmation').checked;
-        
-        let isValid = true;
-        
-        // Validate full name
-        if (!fullName) {
-            document.getElementById('fullNameError').classList.remove('hidden');
-            document.getElementById('fullName').classList.add('error-input');
-            isValid = false;
-        } else {
-            document.getElementById('fullNameError').classList.add('hidden');
-            document.getElementById('fullName').classList.remove('error-input');
-        }
-        
-        // Validate email
-        if (!email || !validateEmail(email)) {
-            document.getElementById('emailError').classList.remove('hidden');
-            document.getElementById('email').classList.add('error-input');
-            isValid = false;
-        } else {
-            document.getElementById('emailError').classList.add('hidden');
-            document.getElementById('email').classList.remove('error-input');
-        }
-        
-        // Validate amount
-        if (!amount || amount < sharePrice) {
-            document.getElementById('amountError').classList.remove('hidden');
-            document.getElementById('investmentAmount').classList.add('error-input');
-            isValid = false;
-        } else {
-            document.getElementById('amountError').classList.add('hidden');
-            document.getElementById('investmentAmount').classList.remove('error-input');
-        }
-        
-        // Validate documents confirmation
-        if (!documentsConfirmed) {
-            document.getElementById('docError').classList.remove('hidden');
-            isValid = false;
-        } else {
-            document.getElementById('docError').classList.add('hidden');
-        }
-        
-        if (isValid) {
-            // Store form data
-            formData.fullName = fullName;
-            formData.email = email;
-            formData.investmentAmount = amount;
-            formData.shares = Math.floor(amount / sharePrice);
-            formData.totalShares = formData.shares + riskPremiumShares;
-            formData.documentsConfirmed = documentsConfirmed;
-            
-            nextStep();
-        }
-    }
-
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-
-    // Copy document link to clipboard
-    function copyDocumentLink(event) {
-        event.preventDefault();
-        const link = document.getElementById('documentLink').textContent;
-        const button = document.getElementById('copyLinkButton');
-        const originalText = button.innerHTML;
-        
-        // Create a temporary textarea to copy from
-        const textarea = document.createElement('textarea');
-        textarea.value = link;
-        document.body.appendChild(textarea);
-        textarea.select();
-        
-        try {
-            // Execute the copy command
-            const successful = document.execCommand('copy');
-            if (successful) {
-                showSuccessToast('Link copied to clipboard!');
-                
-                // Change button temporarily to show success
-                button.innerHTML = '<i class="fas fa-check mr-2"></i> Copied!';
-                button.style.backgroundColor = '#10b981';
-                
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.style.backgroundColor = '';
-                }, 2000);
-            } else {
-                showSuccessToast('Failed to copy link. Please try again.');
-            }
-        } catch (err) {
-            console.error('Failed to copy: ', err);
-            showSuccessToast('Failed to copy link. Please try again.');
-        }
-        
-        // Clean up
-        document.body.removeChild(textarea);
-    }
-
-    // Update payment page with form data
-    function updatePaymentPage() {
-        document.getElementById('paymentTotal').textContent = `R${formData.investmentAmount.toFixed(2)}`;
-        document.getElementById('emailRef').textContent = formData.email;
-    }
-
-    // Complete bank payment (simulated)
-    function completeBankPayment() {
-        showLoading('We are confirming transfer...');
-        
-        setTimeout(() => {
-            hideLoading();
-            showSuccessToast('Bank transfer confirmed!');
-            nextStep();
-        }, 2000);
-    }
-
-    // Update confirmation page
-    function updateConfirmationPage() {
-        document.getElementById('confirmationAmount').textContent = `R${formData.investmentAmount.toFixed(2)}`;
-        document.getElementById('confirmationShares').textContent = formData.shares;
-        document.getElementById('confirmationPremiumShares').textContent = riskPremiumShares.toLocaleString();
-        document.getElementById('confirmationTotalShares').textContent = formData.totalShares.toLocaleString();
-        document.getElementById('confirmationEmail').textContent = formData.email;
-        document.getElementById('finalTransactionId').textContent = formData.transactionId;
-    }
-
-    // Generate transaction ID
-    function generateTransactionId() {
-        return 'INV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    }
-
-    function generatePDF() {
-        showLoading('Generating PDF...');
-        window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
-    }
-
-    // Reset form and return to homepage
-    function resetForm() {
-        // Reset form data
-        formData.fullName = '';
-        formData.email = '';
-        formData.investmentAmount = sharePrice;
-        formData.shares = 1;
-        formData.totalShares = 1 + riskPremiumShares;
-        formData.transactionId = generateTransactionId();
-        formData.documentsConfirmed = false;
-        
-        // Reset form fields
-        document.getElementById('fullName').value = '';
-        document.getElementById('email').value = '';
-        document.getElementById('investmentAmount').value = sharePrice.toFixed(2);
-        document.getElementById('docConfirmation').checked = false;
-        
-        // Clear error states
-        document.getElementById('fullNameError').classList.add('hidden');
-        document.getElementById('emailError').classList.add('hidden');
-        document.getElementById('amountError').classList.add('hidden');
-        document.getElementById('docError').classList.add('hidden');
-        document.getElementById('fullName').classList.remove('error-input');
-        document.getElementById('email').classList.remove('error-input');
-        document.getElementById('investmentAmount').classList.remove('error-input');
-        
-        // Update summary
-        updateInvestmentSummary();
-        
-        // Reset to step 1
+    // Step nav
+    function nextStep(){
+      if(currentStep < totalSteps){
         document.getElementById(`step${currentStep}`).classList.remove('active');
-        currentStep = 1;
+        currentStep++;
         document.getElementById(`step${currentStep}`).classList.add('active');
         updateProgressBar();
-        updateNavigation();
+        if(currentStep === 3) updatePaymentPage();
+        if(currentStep === 4) updateConfirmationPage();
+      }
+    }
+    function prevStep(){
+      if(currentStep > 1){
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        currentStep--;
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        updateProgressBar();
+      }
+    }
+    function updateProgressBar(){
+      const pct = (currentStep / totalSteps) * 100;
+      document.getElementById('progressBar').style.width = `${pct}%`;
     }
 
-    // Show loading state
-    function showLoading(message) {
-        const button = event.currentTarget;
-        const originalText = button.innerHTML;
-        
-        button.disabled = true;
-        button.innerHTML = `<div class="loading-spinner"></div>${message}`;
-        
-        // Store original text so we can restore it later
-        button.dataset.originalText = originalText;
+    // Summary
+    function updateInvestmentSummary(){
+      const amountInput = document.getElementById('investmentAmount');
+      let amount = parseFloat(amountInput.value);
+      if(isNaN(amount) || amount < sharePrice){
+        amount = sharePrice;
+        amountInput.value = sharePrice.toFixed(2);
+      }
+      const shares = Math.floor(amount / sharePrice);
+      const actualAmount = shares * sharePrice;
+      const totalShares = shares + riskPremiumShares;
+
+      document.getElementById('summaryAmount').textContent = `R${actualAmount.toFixed(2)}`;
+      document.getElementById('summaryShares').textContent = shares;
+      document.getElementById('summaryTotalShares').textContent = totalShares.toLocaleString();
+
+      formData.investmentAmount = actualAmount;
+      formData.shares = shares;
+      formData.totalShares = totalShares;
     }
 
-    // Hide loading state
-    function hideLoading() {
-        const button = event.currentTarget;
-        button.disabled = false;
-        button.innerHTML = button.dataset.originalText;
+    // Validate
+    function validateForm(){
+      const fullName = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const amount = parseFloat(document.getElementById('investmentAmount').value);
+      const documentsConfirmed = document.getElementById('docConfirmation').checked;
+
+      let ok = true;
+      // name
+      if(!fullName){ document.getElementById('fullNameError').classList.remove('hidden'); document.getElementById('fullName').classList.add('error-input'); ok = false; }
+      else { document.getElementById('fullNameError').classList.add('hidden'); document.getElementById('fullName').classList.remove('error-input'); }
+      // email
+      if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ document.getElementById('emailError').classList.remove('hidden'); document.getElementById('email').classList.add('error-input'); ok = false; }
+      else { document.getElementById('emailError').classList.add('hidden'); document.getElementById('email').classList.remove('error-input'); }
+      // amount
+      if(!amount || amount < sharePrice){ document.getElementById('amountError').classList.remove('hidden'); document.getElementById('investmentAmount').classList.add('error-input'); ok = false; }
+      else { document.getElementById('amountError').classList.add('hidden'); document.getElementById('investmentAmount').classList.remove('error-input'); }
+      // docs
+      if(!documentsConfirmed){ document.getElementById('docError').classList.remove('hidden'); ok = false; }
+      else { document.getElementById('docError').classList.add('hidden'); }
+
+      if(ok){
+        formData.fullName = fullName;
+        formData.email = email;
+        formData.investmentAmount = amount;
+        formData.shares = Math.floor(amount / sharePrice);
+        formData.totalShares = formData.shares + riskPremiumShares;
+        formData.documentsConfirmed = documentsConfirmed;
+        nextStep();
+      }
     }
 
-    // Show success toast
-    function showSuccessToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'success-toast';
-        toast.innerHTML = `
-            <i class="fas fa-check-circle mr-2"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.remove();
-        }, 3000);
+    // Copy Doc link
+    function copyDocumentLink(e){
+      e.preventDefault();
+      const link = document.getElementById('documentLink').textContent;
+      const button = document.getElementById('copyLinkButton');
+      const original = button.innerHTML;
+
+      const ta = document.createElement('textarea');
+      ta.value = link; document.body.appendChild(ta); ta.select();
+
+      try{
+        const ok = document.execCommand('copy');
+        if(ok){
+          showSuccessToast('Link copied to clipboard!');
+          button.innerHTML = '<i class="fas fa-check mr-2"></i> Copied!';
+          button.style.backgroundColor = '#10b981';
+          setTimeout(() => { button.innerHTML = original; button.style.backgroundColor = ''; }, 2000);
+        }else{
+          showSuccessToast('Failed to copy link. Please try again.');
+        }
+      }catch(err){
+        console.error(err);
+        showSuccessToast('Failed to copy link. Please try again.');
+      }
+      document.body.removeChild(ta);
     }
-</script>
+
+    // Step-specific updates
+    function updatePaymentPage(){
+      document.getElementById('paymentTotal').textContent = `R${formData.investmentAmount.toFixed(2)}`;
+      document.getElementById('emailRef').textContent = formData.email;
+    }
+    function updateConfirmationPage(){
+      document.getElementById('confirmationAmount').textContent = `R${formData.investmentAmount.toFixed(2)}`;
+      document.getElementById('confirmationShares').textContent = formData.shares;
+      document.getElementById('confirmationPremiumShares').textContent = riskPremiumShares.toLocaleString();
+      document.getElementById('confirmationTotalShares').textContent = formData.totalShares.toLocaleString();
+      document.getElementById('confirmationEmail').textContent = formData.email;
+      document.getElementById('finalTransactionId').textContent = formData.transactionId;
+    }
+
+    // Helpers
+    function generateTransactionId(){ return 'INV-' + Math.random().toString(36).substr(2,9).toUpperCase(); }
+
+    function generatePDF(btn){
+      showLoading(btn,'Generating PDF...');
+      // simple redirect to your PDF
+      window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
+      setTimeout(() => hideLoading(btn), 1000);
+    }
+
+    function completeBankPayment(btn){
+      showLoading(btn,'We are confirming transfer...');
+      setTimeout(() => { hideLoading(btn); showSuccessToast('Bank transfer confirmed!'); nextStep(); }, 2000);
+    }
+
+    function resetForm(){
+      formData.fullName = '';
+      formData.email = '';
+      formData.investmentAmount = sharePrice;
+      formData.shares = 1;
+      formData.totalShares = 1 + riskPremiumShares;
+      formData.transactionId = generateTransactionId();
+      formData.documentsConfirmed = false;
+
+      document.getElementById('fullName').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('investmentAmount').value = sharePrice.toFixed(2);
+      document.getElementById('docConfirmation').checked = false;
+
+      document.getElementById('fullNameError').classList.add('hidden');
+      document.getElementById('emailError').classList.add('hidden');
+      document.getElementById('amountError').classList.add('hidden');
+      document.getElementById('docError').classList.add('hidden');
+      document.getElementById('fullName').classList.remove('error-input');
+      document.getElementById('email').classList.remove('error-input');
+      document.getElementById('investmentAmount').classList.remove('error-input');
+
+      updateInvestmentSummary();
+
+      document.getElementById(`step${currentStep}`).classList.remove('active');
+      currentStep = 1;
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      updateProgressBar();
+    }
+
+    // Loading / toast (button-aware, CSP-safe)
+    function showLoading(button, message){
+      if(!button) return;
+      if(!button.dataset.originalText){ button.dataset.originalText = button.innerHTML; }
+      button.disabled = true;
+      button.innerHTML = `<div class="loading-spinner"></div>${message}`;
+    }
+    function hideLoading(button){
+      if(!button) return;
+      button.disabled = false;
+      button.innerHTML = button.dataset.originalText || 'Done';
+    }
+    function showSuccessToast(message){
+      const toast = document.createElement('div');
+      toast.className = 'success-toast';
+      toast.innerHTML = `<i class="fas fa-check-circle mr-2"></i><span>${message}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
 </body>
 </html>
