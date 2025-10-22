@@ -222,6 +222,75 @@
       border-radius: 9999px;
       display: inline-block
     }
+
+    /* --- ADDED: Modal Styles --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      display: none;
+    }
+
+    .modal-content {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      z-index: 101;
+      width: 90vw;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .modal-content.is-open,
+    .modal-overlay.is-open {
+      display: block;
+    }
+
+    .day-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+
+    .day-grid-header {
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: #64748b;
+      padding-bottom: 8px;
+    }
+
+    .day-grid-cell {
+      font-size: 0.875rem;
+      min-height: 48px;
+      padding: 4px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+    }
+
+    .day-grid-cell.is-empty {
+      background: #f8fafc;
+      border-color: transparent;
+    }
+
+    .day-grid-cell .day-num {
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .day-grid-cell .day-pct {
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* --- END ADDED: Modal Styles --- */
   </style>
 </head>
 
@@ -576,6 +645,21 @@
               c.className = 'cal-cell';
               c.style.background = color(v);
               c.textContent = (v || v === 0) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—';
+
+              // *** ADDED: Click handler for modal ***
+              if (m !== 'YTD' && (v || v === 0)) {
+                c.style.cursor = 'pointer';
+                c.title = `Click to view daily returns for ${m} ${y}`;
+                c.addEventListener('click', () => {
+                  if (window.showDailyModal) {
+                    window.showDailyModal(y, m);
+                  } else {
+                    console.error('Daily modal function not found');
+                  }
+                });
+              }
+              // *** END ADDED ***
+
               grid.appendChild(c);
             });
           });
@@ -587,7 +671,32 @@
       </script>
 
     </main>
-  </div> <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+  </div> 
+  
+  <!-- Daily Returns Modal -->
+  <div id="daily-modal-overlay" class="modal-overlay"></div>
+  <div id="daily-modal-content" class="modal-content">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="daily-modal-title" class="text-lg font-medium text-slate-900">Daily Returns</h3>
+      <button id="daily-modal-close" class="h-8 w-8 rounded-full grid place-items-center hover:bg-slate-100 text-slate-500">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <div class="day-grid mb-2">
+      <div class="day-grid-header">Sun</div>
+      <div class="day-grid-header">Mon</div>
+      <div class="day-grid-header">Tue</div>
+      <div class="day-grid-header">Wed</div>
+      <div class="day-grid-header">Thu</div>
+      <div class="day-grid-header">Fri</div>
+      <div class="day-grid-header">Sat</div>
+    </div>
+    <div id="daily-modal-grid" class="day-grid">
+      <!-- Daily cells will be injected here -->
+    </div>
+  </div>
+  
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
       <div class="px-4 py-3 border-b border-slate-200">
@@ -633,6 +742,81 @@
     import { supabase } from "/js/supabase.js";
     let strategy = null;   // <— keep hoisted so handlers can see it
     let metrics = null;
+    const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // *** ADDED: Daily Modal Function ***
+    window.showDailyModal = function(year, monthName) {
+      if (!metrics || !metrics.calendar_returns) {
+        banner('Daily performance data is not available.', 'err');
+        return;
+      }
+
+      const modalOverlay = document.getElementById('daily-modal-overlay');
+      const modalContent = document.getElementById('daily-modal-content');
+      const modalTitle = document.getElementById('daily-modal-title');
+      const modalGrid = document.getElementById('daily-modal-grid');
+      if (!modalOverlay || !modalContent || !modalTitle || !modalGrid) return;
+
+      const monthNumber = MONTH_NAMES.indexOf(monthName) + 1;
+      if (monthNumber === 0) return;
+
+      modalTitle.textContent = `Daily Returns: ${monthName} ${year}`;
+      
+      // Get daily data for this month
+      const dailyData = {};
+      metrics.calendar_returns.forEach(d => {
+        if (d.year === year && d.month === monthNumber) {
+          dailyData[d.day] = Number(d.pct);
+        }
+      });
+
+      const daysInMonth = new Date(year, monthNumber, 0).getDate();
+      const firstDayOfWeek = new Date(year, monthNumber - 1, 1).getDay(); // 0=Sun, 1=Mon...
+
+      modalGrid.innerHTML = '';
+
+      // Add empty cells for padding
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        modalGrid.insertAdjacentHTML('beforeend', '<div class="day-grid-cell is-empty"></div>');
+      }
+
+      // Add day cells
+      for (let day = 1; day <= daysInMonth; day++) {
+        const v = dailyData[day];
+        let pctHtml = '—';
+        let color = '#f1f5f9'; // Flat
+        
+        if (v != null) {
+          const vNum = Number(v);
+          pctHtml = `${vNum >= 0 ? '+' : ''}${vNum.toFixed(2)}%`;
+          color = vNum >= 1.5 ? '#bbf7d0' // Strong pos
+                : vNum > 0 ? '#dcfce7'     // Pos
+                : vNum === 0 ? '#f1f5f9'   // Flat
+                : vNum > -1 ? '#fee2e2'    // Neg
+                : '#fecaca';            // Strong neg
+        }
+
+        modalGrid.insertAdjacentHTML('beforeend', `
+          <div class="day-grid-cell" style="background-color: ${color};">
+            <div class="day-num">${day}</div>
+            <div class="day-pct">${pctHtml}</div>
+          </div>
+        `);
+      }
+      
+      // Show modal
+      modalOverlay.classList.add('is-open');
+      modalContent.classList.add('is-open');
+    }
+
+    function closeDailyModal() {
+      document.getElementById('daily-modal-overlay')?.classList.remove('is-open');
+      document.getElementById('daily-modal-content')?.classList.remove('is-open');
+    }
+    
+    document.getElementById('daily-modal-close')?.addEventListener('click', closeDailyModal);
+    document.getElementById('daily-modal-overlay')?.addEventListener('click', closeDailyModal);
+    // *** END ADDED ***
 
     // tiny banner
     function banner(msg, tone = "warn") {
@@ -973,6 +1157,8 @@
     }
 
     // ---------- calendar (daily returns) ----------
+    // THIS FUNCTION IS NO LONGER USED, but we leave it in case it's needed elsewhere
+    // The new modal logic in showDailyModal() handles daily rendering.
     function renderCalendarDaily(container, daily) {
       container.innerHTML = '';
       if (!daily?.length) { container.textContent = 'No daily data yet.'; return; }
@@ -1269,7 +1455,8 @@
       // MODIFIED: 1D is active by default, so it will correctly show currency on load
       selectRangeAndRender('1D', metrics || {}, strategy);
       fillPerfSummary(metrics?.perf_summary || null);
-      renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
+      // NOTE: We no longer call renderCalendarDaily here. The other script handles the monthly grid.
+      // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
       renderPortfolioHoldingsFromMetrics(metrics || {});
       renderAssetAllocationFromMetrics(metrics || {});
 
@@ -1299,7 +1486,7 @@
           // MODIFIED: Re-render based on the *currently active* tab
           selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1D', metrics, strategy);
           fillPerfSummary(metrics?.perf_summary || null);
-          renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
+          // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // Keep this commented
           renderPortfolioHoldingsFromMetrics(metrics || {});
           renderAssetAllocationFromMetrics(metrics || {});
           $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
@@ -1340,7 +1527,7 @@
           selectRangeAndRender(range, metrics, activeStrategy);
 
           fillPerfSummary(metrics?.perf_summary || null);
-          renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []);
+          // renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []); // Keep this commented
           renderPortfolioHoldingsFromMetrics(metrics || {});
           renderAssetAllocationFromMetrics(metrics || {});
 
@@ -1446,3 +1633,4 @@
 </body>
 
 </html>
+
