@@ -312,7 +312,55 @@
                 class="w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Security</a>
             </nav>
           </aside>
-          <div id="subs" data-panel="subs" class="hidden card border border-slate-200 rounded-2xl p-0 overflow-hidden">
+      
+
+          <div class="col-span-12 md:col-span-9">
+            <div id="basic" data-panel="basic" class="card border border-slate-200 rounded-2xl p-6">
+              <h2 class="text-xl font-semibold text-slate-900">Details</h2>
+
+              <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
+                <label class="text-slate-600">Account Number</label>
+                <div class="sm:col-span-2 text-slate-600 font-medium" id="acc-number">—</div>
+              </div>
+
+              <h3 class="mt-10 text-xl font-semibold text-slate-900">Update Details</h3>
+
+              <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
+                <label for="email" class="text-slate-600">Email</label>
+                <div class="sm:col-span-2">
+                  <input id="email" class="input w-full" type="email" placeholder="name@domain.com" disabled />
+                  <p id="email-note" class="mt-2 text-sm text-slate-500">Please contact support to change the email for
+                    business accounts.</p>
+                </div>
+              </div>
+
+              <div class="mt-8">
+                <button id="save-basic" class="btn btn-olive cursor-not-allowed opacity-60" disabled>Save
+                  changes</button>
+              </div>
+            </div>
+
+            <div id="manage" data-panel="manage" class="hidden card border border-slate-200 rounded-2xl p-6">
+              <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-slate-900">Manage Accounts</h2>
+                <div class="flex gap-2">
+                  <button id="btn-refresh-accounts" class="btn hover:bg-slate-50">Refresh</button>
+                  <button id="btn-add-account" class="btn btn-olive">Add Account</button>
+                </div>
+              </div>
+
+              <div id="accounts-loading" class="mt-6 text-sm text-slate-500">Loading accounts…</div>
+              <div id="accounts-empty" class="mt-6 hidden rounded-xl border border-slate-200 p-6">
+                <div class="font-medium text-slate-900 mb-1">No accounts yet</div>
+                <div class="text-sm text-slate-500">Click “Add Account” to connect one.</div>
+              </div>
+
+              <div id="accounts-wrap" class="mt-6 space-y-8"></div>
+            </div>
+            <!-- RIGHT COLUMN STARTS SOMEWHERE ABOVE:
+<div class="col-span-12 md:col-span-9"> -->
+
+<div id="subs" data-panel="subs" class="hidden card border border-slate-200 rounded-2xl p-0 overflow-hidden">
   <div class="relative p-6 sm:p-10">
     <div class="pointer-events-none absolute -top-64 left-1/2 -translate-x-1/2 w-[140%] h-[420px]
       bg-[radial-gradient(120%_140%_at_50%_0%,rgba(126,141,82,0.20),rgba(126,141,82,0.10)_40%,transparent_70%)]"></div>
@@ -400,50 +448,8 @@
     </div>
   </div>
 </div>
+<!-- keep the rest: #docs, #extra, #security, etc., all inside this right column -->
 
-          <div class="col-span-12 md:col-span-9">
-            <div id="basic" data-panel="basic" class="card border border-slate-200 rounded-2xl p-6">
-              <h2 class="text-xl font-semibold text-slate-900">Details</h2>
-
-              <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
-                <label class="text-slate-600">Account Number</label>
-                <div class="sm:col-span-2 text-slate-600 font-medium" id="acc-number">—</div>
-              </div>
-
-              <h3 class="mt-10 text-xl font-semibold text-slate-900">Update Details</h3>
-
-              <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
-                <label for="email" class="text-slate-600">Email</label>
-                <div class="sm:col-span-2">
-                  <input id="email" class="input w-full" type="email" placeholder="name@domain.com" disabled />
-                  <p id="email-note" class="mt-2 text-sm text-slate-500">Please contact support to change the email for
-                    business accounts.</p>
-                </div>
-              </div>
-
-              <div class="mt-8">
-                <button id="save-basic" class="btn btn-olive cursor-not-allowed opacity-60" disabled>Save
-                  changes</button>
-              </div>
-            </div>
-
-            <div id="manage" data-panel="manage" class="hidden card border border-slate-200 rounded-2xl p-6">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold text-slate-900">Manage Accounts</h2>
-                <div class="flex gap-2">
-                  <button id="btn-refresh-accounts" class="btn hover:bg-slate-50">Refresh</button>
-                  <button id="btn-add-account" class="btn btn-olive">Add Account</button>
-                </div>
-              </div>
-
-              <div id="accounts-loading" class="mt-6 text-sm text-slate-500">Loading accounts…</div>
-              <div id="accounts-empty" class="mt-6 hidden rounded-xl border border-slate-200 p-6">
-                <div class="font-medium text-slate-900 mb-1">No accounts yet</div>
-                <div class="text-sm text-slate-500">Click “Add Account” to connect one.</div>
-              </div>
-
-              <div id="accounts-wrap" class="mt-6 space-y-8"></div>
-            </div>
 
 
             <div id="docs" data-panel="docs" class="hidden card border border-slate-200 rounded-2xl p-6">
@@ -1197,26 +1203,20 @@ await handleDiditCallbackAfterAuth();
 
 
 
-    const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
+const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
     function isGated() { 
       // Users are gated until profile AND KYC are complete
       // After KYC, only "Manage Accounts" is unlocked, everything else stays locked
       return !(profileComplete && kycDone);
     }
     
-    function isTabAllowed(tabName) {
-      if (tabName === "subs") return true;
-      if (!profileComplete) {
-        return allowedTabsWhenGated.has(tabName); // Only extra and docs allowed
-      }
-      if (profileComplete && !kycDone) {
-        return allowedTabsWhenGated.has(tabName); // Only extra and docs allowed
-      }
-      if (profileComplete && kycDone) {
-        return ["extra", "docs", "manage", subs].includes(tabName); // Add manage when KYC done
-      }
-      return false;
-    }
+function isTabAllowed(tabName) {
+  if (tabName === "subs") return true; // always allow viewing plans
+  if (!profileComplete) return allowedTabsWhenGated.has(tabName);
+  if (profileComplete && !kycDone) return allowedTabsWhenGated.has(tabName);
+  if (profileComplete && kycDone) return ["extra", "docs", "manage", "subs"].includes(tabName);
+  return false;
+}
     function gateReason() {
       if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
       if (!profileComplete) return "Please finish Additional Info first.";
