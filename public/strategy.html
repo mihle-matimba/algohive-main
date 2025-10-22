@@ -536,6 +536,12 @@
                     class="text-slate-500">Positive</span>
                 </div>
               </div>
+              <!-- ADDED: Year Filter -->
+              <div class="flex items-center justify-end mb-2">
+                <label for="calendar-year-filter" class="text-sm font-medium text-slate-700 mr-2">Year:</label>
+                <select id="calendar-year-filter" class="input h-9 py-0 text-sm w-32"></select>
+              </div>
+              <!-- END ADDED: Year Filter -->
               <div class="overflow-x-auto">
                 <div id="calendarReturns" class="cal-grid"></div>
               </div>
@@ -597,79 +603,7 @@
         </section>
 
       </div> <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-      <script nonce="ALGOHIVE">
-        (function () {
-          const R = {
-            2019: { Jan: .5, Feb: .3, Mar: .8, Apr: 1.1, May: -.9, Jun: .6, Jul: .8, Aug: .9, Sep: -.4, Oct: 1.0, Nov: .7, Dec: .9, YTD: 6.0 },
-            2020: { Jan: .4, Feb: -2.2, Mar: -6.3, Apr: 3.7, May: 2.1, Jun: 1.0, Jul: 1.1, Aug: 1.4, Sep: .7, Oct: .9, Nov: 1.1, Dec: 1.2, YTD: 4.8 },
-            2021: { Jan: .9, Feb: .7, Mar: .8, Apr: 1.2, May: .5, Jun: .4, Jul: .8, Aug: 1.0, Sep: .9, Oct: -.8, Nov: 1.0, Dec: .9, YTD: 8.0 },
-            2022: { Jan: 1.0, Feb: -.9, Mar: .8, Apr: 1.2, May: .5, Jun: -2.2, Jul: .9, Aug: 2.1, Sep: -.5, Oct: 1.5, Nov: .6, Dec: 1.1, YTD: 5.8 },
-            2023: { Jan: .7, Feb: .9, Mar: -.7, Apr: 1.3, May: 2.0, Jun: .4, Jul: 1.2, Aug: .8, Sep: 1.5, Oct: -.8, Nov: 1.1, Dec: .9, YTD: 9.0 },
-            2024: { Jan: 1.0, Feb: .6, Mar: .5, Apr: .9, May: .8, Jun: .9, Jul: .3, Aug: .5, Sep: 1.0, Oct: .7, Nov: .8, Dec: .9, YTD: 8.6 }
-          };
-          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD'];
-          const years = Object.keys(R).map(Number).sort((a, b) => a - b);
-          const grid = document.getElementById('calendarReturns');
-          if (!grid) return;
-
-          grid.innerHTML = '';
-          grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px, 1fr))`;
-
-          const color = (v) => v == null ? '#e5e7eb'
-            : v >= 1.5 ? '#bbf7d0'
-              : v > 0 ? '#dcfce7'
-                : v === 0 ? '#f1f5f9'
-                  : v > -1 ? '#fee2e2'
-                    : '#fecaca';
-
-          const corner = document.createElement('div');
-          corner.className = 'cal-head cal-sticky';
-          grid.appendChild(corner);
-
-          months.forEach(m => {
-            const h = document.createElement('div');
-            h.className = 'cal-head justify-center';
-            h.textContent = m;
-            grid.appendChild(h);
-          });
-
-          years.forEach(y => {
-            const yr = document.createElement('div');
-            yr.className = 'cal-head cal-sticky';
-            yr.textContent = y;
-            grid.appendChild(yr);
-
-            months.forEach(m => {
-              const v = R[y]?.[m];
-              const c = document.createElement('div');
-              c.className = 'cal-cell';
-              c.style.background = color(v);
-              c.textContent = (v || v === 0) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—';
-
-              // *** ADDED: Click handler for modal ***
-              if (m !== 'YTD' && (v || v === 0)) {
-                c.style.cursor = 'pointer';
-                c.title = `Click to view daily returns for ${m} ${y}`;
-                c.addEventListener('click', () => {
-                  if (window.showDailyModal) {
-                    window.showDailyModal(y, m);
-                  } else {
-                    console.error('Daily modal function not found');
-                  }
-                });
-              }
-              // *** END ADDED ***
-
-              grid.appendChild(c);
-            });
-          });
-
-          document.getElementById('legNeg').style.background = '#fecaca';
-          document.getElementById('legNeu').style.background = '#f1f5f9';
-          document.getElementById('legPos').style.background = '#dcfce7';
-        })();
-      </script>
-
+      <!-- DELETED: Old hardcoded script for calendar 'R' object -->
     </main>
   </div> 
   
@@ -1157,6 +1091,145 @@
     }
 
     // ---------- calendar (daily returns) ----------
+    
+    // *** ADDED: New function to aggregate daily returns to monthly ***
+    function aggregateDailyToMonthly(dailyReturns) {
+      const monthlyData = {};
+      const byYearMonth = {};
+
+      // Group daily returns by year and month
+      for (const d of (dailyReturns || [])) {
+        if (!finite(d.pct)) continue;
+        const year = d.year;
+        const month = d.month; // 1-indexed
+        byYearMonth[year] ??= {};
+        byYearMonth[year][month] ??= [];
+        byYearMonth[year][month].push(Number(d.pct) / 100);
+      }
+
+      const years = Object.keys(byYearMonth).sort((a, b) => a - b);
+      
+      for (const year of years) {
+        monthlyData[year] = {};
+        let yearTotalReturn = 1;
+        
+        for (let m = 1; m <= 12; m++) {
+          const monthName = MONTH_NAMES[m - 1];
+          const dailyPcts = byYearMonth[year]?.[m];
+          
+          if (dailyPcts && dailyPcts.length > 0) {
+            const monthTotalReturn = dailyPcts.reduce((acc, r) => acc * (1 + r), 1);
+            const monthPct = (monthTotalReturn - 1) * 100;
+            monthlyData[year][monthName] = monthPct;
+            yearTotalReturn *= monthTotalReturn;
+          } else {
+            monthlyData[year][monthName] = null; // No data for this month
+          }
+        }
+        monthlyData[year]['YTD'] = (yearTotalReturn - 1) * 100;
+      }
+      return monthlyData;
+    }
+
+    // *** ADDED: New function to render the monthly calendar grid from aggregated data ***
+    function renderMonthlyCalendarGrid(container, aggregatedData, filterYear) {
+      const grid = container;
+      if (!grid) return;
+
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD'];
+      // Get all years, but filter based on the dropdown
+      const allYears = Object.keys(aggregatedData).map(Number).sort((a, b) => a - b);
+      const yearsToRender = (filterYear === 'ALL' || !filterYear) ? allYears : allYears.filter(y => y == filterYear);
+
+
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `120px repeat(${months.length}, minmax(72px, 1fr))`;
+
+      const color = (v) => v == null ? '#f8fafc' // Use a lighter bg for null
+        : v >= 1.5 ? '#bbf7d0'
+        : v > 0 ? '#dcfce7'
+        : v === 0 ? '#f1f5f9'
+        : v > -1 ? '#fee2e2'
+        : '#fecaca';
+
+      // Render Header
+      const corner = document.createElement('div');
+      corner.className = 'cal-head cal-sticky';
+      grid.appendChild(corner);
+      months.forEach(m => {
+        const h = document.createElement('div');
+        h.className = 'cal-head justify-center';
+        h.textContent = m;
+        grid.appendChild(h);
+      });
+
+      // Render Rows
+      yearsToRender.forEach(y => {
+        const yr = document.createElement('div');
+        yr.className = 'cal-head cal-sticky';
+        yr.textContent = y;
+        grid.appendChild(yr);
+
+        months.forEach(m => {
+          const v = aggregatedData[y]?.[m];
+          const c = document.createElement('div');
+          c.className = 'cal-cell';
+          c.style.background = color(v);
+          c.textContent = (v != null) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—';
+
+          if (m !== 'YTD' && v != null) {
+            c.style.cursor = 'pointer';
+            c.title = `Click to view daily returns for ${m} ${y}`;
+            c.addEventListener('click', () => {
+              if (window.showDailyModal) {
+                window.showDailyModal(y, m);
+              } else {
+                console.error('Daily modal function not found');
+              }
+            });
+          }
+          grid.appendChild(c);
+        });
+      });
+
+      document.getElementById('legNeg').style.background = '#fecaca';
+      document.getElementById('legNeu').style.background = '#f1f5f9';
+      document.getElementById('legPos').style.background = '#dcfce7';
+    }
+    
+    // *** ADDED: New function to populate the year filter dropdown ***
+    function populateYearFilter(aggregatedData) {
+      const select = document.getElementById('calendar-year-filter');
+      if (!select) return;
+      
+      const years = Object.keys(aggregatedData).map(Number).sort((a, b) => b - a); // Newest first
+      
+      let currentVal = select.value;
+      
+      select.innerHTML = '<option value="ALL">All Years</option>';
+      years.forEach(y => {
+        select.innerHTML += `<option value="${y}">${y}</option>`;
+      });
+      
+      // Default to most recent year if nothing is selected
+      if (!currentVal && years.length > 0) {
+        currentVal = years[0];
+      }
+      
+      select.value = currentVal; // Set default or preserve selection
+
+      // Add event listener (only once)
+      if (!select.dataset.listener) {
+        select.addEventListener('change', () => {
+          const selectedYear = select.value;
+          const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
+          renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear);
+        });
+        select.dataset.listener = 'true';
+      }
+    }
+
+
     // THIS FUNCTION IS NO LONGER USED, but we leave it in case it's needed elsewhere
     // The new modal logic in showDailyModal() handles daily rendering.
     function renderCalendarDaily(container, daily) {
@@ -1451,14 +1524,19 @@
       }
 
 
+      // *** MODIFIED: Boot sequence for new calendar ***
       // render initial curve + tiles + calendar + holdings + allocation
-      // MODIFIED: 1D is active by default, so it will correctly show currency on load
+      const aggregatedMonthlyData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
+      populateYearFilter(aggregatedMonthlyData);
+      const defaultYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
+      renderMonthlyCalendarGrid($('#calendarReturns'), aggregatedMonthlyData, defaultYear);
+      
       selectRangeAndRender('1D', metrics || {}, strategy);
       fillPerfSummary(metrics?.perf_summary || null);
-      // NOTE: We no longer call renderCalendarDaily here. The other script handles the monthly grid.
-      // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []);
+      // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
       renderPortfolioHoldingsFromMetrics(metrics || {});
       renderAssetAllocationFromMetrics(metrics || {});
+      // *** END MODIFIED ***
 
       // timestamp
       $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
@@ -1483,11 +1561,19 @@
         try {
           const fresh = await fetchMetrics(strategy.id);
           metrics = fresh || {};
-          // MODIFIED: Re-render based on the *currently active* tab
+          
+          // *** MODIFIED: Refresh handler for new calendar ***
+          const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
+          populateYearFilter(aggData); // Repopulate in case new years are added
+          const currentYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
+          renderMonthlyCalendarGrid($('#calendarReturns'), aggData, currentYear);
+          
           selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '1D', metrics, strategy);
           fillPerfSummary(metrics?.perf_summary || null);
-          // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // Keep this commented
+          // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
           renderPortfolioHoldingsFromMetrics(metrics || {});
+          // *** END MODIFIED ***
+
           renderAssetAllocationFromMetrics(metrics || {});
           $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
             day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -1523,12 +1609,20 @@
           currentCCY = activeStrategy.currency || 'ZAR';
 
           const range = document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '1D';
-          // MODIFIED: Re-render based on the *currently active* tab
+          
+          // *** MODIFIED: Auto-refresh handler for new calendar ***
+          const aggDataRefresh = aggregateDailyToMonthly(metrics?.calendar_returns || []);
+          populateYearFilter(aggDataRefresh); // Repopulate in case new years are added
+          const currentYearRefresh = document.getElementById('calendar-year-filter')?.value || 'ALL';
+          renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearRefresh);
+          
           selectRangeAndRender(range, metrics, activeStrategy);
 
           fillPerfSummary(metrics?.perf_summary || null);
-          // renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []); // Keep this commented
+          // renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
           renderPortfolioHoldingsFromMetrics(metrics || {});
+          // *** END MODIFIED ***
+          
           renderAssetAllocationFromMetrics(metrics || {});
 
           document.getElementById('fs-updated').textContent =
@@ -1633,4 +1727,5 @@
 </body>
 
 </html>
+
 
