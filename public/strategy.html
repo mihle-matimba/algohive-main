@@ -265,9 +265,9 @@
           <div class="ml-8 mt-1 flex flex-col sub"> <a
               class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="strategies.html"
               title="OpenStrategies"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span
-                class="label">OpenStrategies</span></a> 
-           
-          </div>
+                class="label">OpenStrategies</span></a> <a
+              class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="funds.html" title="Funds"><i
+                class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a> </div>
         </details>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="support.html" title="Support"><i
             class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a> <a
@@ -315,9 +315,8 @@
                 class="mx-1 text-slate-400">•</span>
               <span id="fs-currency">ZAR</span> <span class="badge bg-amber-50 border-amber-200 text-amber-700"
                 id="fs-risk">Risk
-                Moderate</span> <span class="badge bg-emerald-50 border-emerald-200 text-emerald-700" id="fs-aum">AUM
-                -</span>
-            </div>
+                Moderate</span>
+              </div>
           </div>
           <div
             class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-y-3 sm:gap-y-0 px-5 py-4 border-t border-b border-slate-200">
@@ -340,8 +339,8 @@
           </div>
           <div class="px-5 pt-4">
             <div class="flex items-baseline gap-3">
-              <div class="text-2xl font-bold" id="pf-value">R 0.00</div>
-              <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+              <div class="text-2xl font-bold" id="pf-value">Growth: 5.53x</div>
+              <div class="text-lg font-normal" id="pf-change" data-sign="-"></div>
             </div>
           </div>
           <div class="px-2 pb-4 pt-2">
@@ -506,7 +505,7 @@
               </li>
               <li class="flex flex-col sm:flex-row items-start gap-x-2">
                 <span class="font-semibold text-slate-900 sm:min-w-[160px]">Withdrawals</span>
-                <span>No AlgoHive withdrawal fee; bank charges may apply.</span>
+                <span>algohive withdrawal fees may apply.</span>
               </li>
             </ul>
             <p class="text-xs text-slate-500 mt-3">Exact fees are strategy-specific. Always review the
@@ -947,14 +946,21 @@
       chart.data.datasets[0].data = seriesVals;
       chart.update();
 
+      // *** MODIFIED: Don't update price/change if it's set to Growth ***
+      const pfValueEl = $('#pf-value');
+      if (pfValueEl.textContent.startsWith('Growth:')) {
+        $('#pf-change').textContent = ''; // Clear change text
+        return;
+      }
+
       if (!seriesVals.length) {
-        $('#pf-value').textContent = money(0, ccy);
+        pfValueEl.textContent = money(0, ccy);
         $('#pf-change').textContent = '—';
         return;
       }
       const first = seriesVals[0], last = seriesVals.at(-1);
       const chg = ((last - first) / first) * 100;
-      $('#pf-value').textContent = money(last, ccy);
+      pfValueEl.textContent = money(last, ccy);
       const chgEl = $('#pf-change');
       chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
       chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
@@ -1027,7 +1033,8 @@
         ? new Date(strategy.inception_date).toLocaleDateString('en-ZA') : '—';
       document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
       document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-      document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
+      // *** DELETED AUM hydration ***
+      // document.getElementById('fs-aum').textContent = `AUM ${money(strategy.aum || 0, strategy.currency || 'ZAR')}`;
       const ecName = document.getElementById('pf-name');
       if (ecName) ecName.textContent = strategy.name || '—';
 
@@ -1083,11 +1090,26 @@
     function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
     function selectRangeAndRender(rangeKey, metrics, strategy) {
+      // *** MODIFICATION: If 'Growth' is set, don't change it back to currency ***
+      const pfValueEl = $('#pf-value');
+      const isGrowth = pfValueEl.textContent.startsWith('Growth:');
+
       if (rangeKey === '1D') {
         const s1d = metrics?.series_1d || [];
         const vals = s1d.map(p => Number(p?.equity)).filter(v => Number.isFinite(v));
         currentLabels = makeLabels1D(s1d);
-        setCurve(vals, strategy.currency || 'ZAR');
+        // *** Don't update curve if set to Growth mode ***
+        if (!isGrowth) {
+          setCurve(vals, strategy.currency || 'ZAR');
+        } else {
+          // Still update chart, but not the text
+          if (chart) {
+            chart.data.labels = currentLabels;
+            chart.data.datasets[0].data = vals;
+            chart.update();
+          }
+          $('#pf-change').textContent = '';
+        }
         return;
       }
       let src = [];
@@ -1104,12 +1126,23 @@
       const pcts = src.map(x => ({ pct: Number(x?.pct) }));
       let curve = curveFromPct(pcts, 100);
 
-      const aum = Number(strategy?.aum);
-      if (Number.isFinite(aum) && aum > 0 && curve.length) {
-        const scale = aum / curve.at(-1);
-        curve = curve.map(v => Number((v * scale).toFixed(2)));
+      // *** Don't update curve if set to Growth mode ***
+      if (!isGrowth) {
+        const aum = Number(strategy?.aum);
+        if (Number.isFinite(aum) && aum > 0 && curve.length) {
+          const scale = aum / curve.at(-1);
+          curve = curve.map(v => Number((v * scale).toFixed(2)));
+        }
+        setCurve(curve, strategy.currency || 'ZAR');
+      } else {
+        // Still update chart with % curve, but not the text
+        if (chart) {
+          chart.data.labels = currentLabels;
+          chart.data.datasets[0].data = curve;
+          chart.update();
+        }
+        $('#pf-change').textContent = '';
       }
-      setCurve(curve, strategy.currency || 'ZAR');
     }
 
     // ---------- Allocation: dynamic total ----------
@@ -1309,8 +1342,12 @@
 
     } catch (err) {
       console.error('[factsheet init] ', err);
-      $('#pf-value').textContent = money(0);
-      $('#pf-change').textContent = '—';
+      // *** MODIFIED: Don't overwrite if it's set to Growth ***
+      const pfValueEl = $('#pf-value');
+      if (!pfValueEl.textContent.startsWith('Growth:')) {
+        pfValueEl.textContent = money(0);
+        $('#pf-change').textContent = '—';
+      }
       $('#calendarReturns').textContent = 'No data.';
       renderPortfolioHoldingsFromMetrics({});
       renderAssetAllocationFromMetrics({});
