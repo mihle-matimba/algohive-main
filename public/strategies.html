@@ -8,6 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{ --page:#0b1220; --bg:#f9fafb; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e5e7ef }
@@ -70,12 +71,15 @@
     .th-min { width:1%; white-space:nowrap }
     .cell-name { font-weight:600 }
 
-    /* --- ADDED: Mobile Carousel Styles --- */
+    /* --- MODIFIED: Mobile Carousel Styles --- */
     .mobile-carousel {
       display: flex;
-      gap: 1rem;
+      /* MODIFIED: Wider gap for bigger cards */
+      gap: 1.25rem; 
       overflow-x: auto;
       padding: 1rem;
+      /* Add padding to the end */
+      padding-right: 2rem;
       /* Hide scrollbar */
       -ms-overflow-style: none;  /* IE and Edge */
       scrollbar-width: none;  /* Firefox */
@@ -84,7 +88,8 @@
       display: none; /* Safari and Chrome */
     }
     .mobile-strat-card {
-      width: 260px;
+      /* MODIFIED: Wider card */
+      width: 300px;
       flex-shrink: 0;
       border: 1px solid #e5e7eb;
       border-radius: 14px;
@@ -92,7 +97,7 @@
       padding: 1rem;
       box-shadow: 0 1px 3px rgba(0,0,0,.05);
     }
-    /* --- END ADDED --- */
+    /* --- END MODIFIED --- */
   </style>
 </head>
 
@@ -231,7 +236,7 @@
             </div>
         </section>
 
-        <section class="tbl-wrap hidden md:block">
+        <section id="tbl-wrap" class="tbl-wrap hidden md:block">
           <div class="overflow-x-auto">
             <table id="tbl">
               <thead>
@@ -451,12 +456,12 @@
     
   })();
 </script>
+
   <script type="module" nonce="ALGOHIVE">
   import { supabase } from "/js/supabase.js";
 
   // ------- helpers -------
   const $ = (q, el=document) => el.querySelector(q);
-  const ZA = new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:0});
   const moneyFmt = (ccy) => new Intl.NumberFormat(ccy==='ZAR'?'en-ZA':'en-US',{style:'currency',currency:ccy||'USD',maximumFractionDigits:0});
   const money = (n, ccy) => moneyFmt(ccy).format(n||0);
 
@@ -467,36 +472,131 @@
   const $style = document.getElementById('fStyle');
   const $sort  = document.getElementById('fSort');
   const $clear = document.getElementById('clearBtn');
+  
+  // Chart objects cache to prevent re-rendering
+  let chartInstances = {};
 
-  // ------- fetch strategies from Supabase -------
-  async function fetchStrategies(){
-    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description';
-    const { data, error } = await supabase.from('strategies').select(cols).order('name', { ascending: true });
-    if (error) {
-      console.error('[strategies]', error);
-      return [];
+  // --- ADDED: Helper function to calculate growth curve (from strategy.html) ---
+  function curveFromPct(points, base = 100) {
+    const out = []; let lvl = base;
+    for (const p of points) {
+      const r = Number(p?.pct);
+      if (Number.isFinite(r)) lvl *= (1 + r / 100);
+      out.push(Number(lvl.toFixed(2)));
     }
-    return (data||[]).map(r => ({
-      id: r.id,
-      name: r.name,
-      provider: r.creator || '—',
-      currency: r.currency || 'ZAR',
-      risk: r.risk_level || '—',
-      aum: Number(r.aum || 0),
-      style: r.style || '—',
-      universe: r.asset_universe || '—',
-      inception: r.inception_date || null,
-      desc: r.strategy_description || '—'
-    }));
+    return out;
   }
 
-  // ------- MODIFIED: Render both table and carousel -------
+  // --- ADDED: Helper function to draw a mini-chart ---
+  function drawCardChart(canvasId, seriesData) {
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    
+    // If a chart already exists on this canvas, destroy it
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].destroy();
+    }
+
+    const pcts = (seriesData || []).map(x => ({ pct: Number(x?.pct) }));
+    const curve = curveFromPct(pcts, 100); // base 100 percentage curve
+    const labels = (seriesData || []).map(x => x.label || '');
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 100);
+    gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+    gradient.addColorStop(1, 'rgba(85,107,47,0.01)');
+
+    chartInstances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: { 
+        labels: labels,
+        datasets: [{ 
+          data: curve, 
+          tension: .35, 
+          borderWidth: 2, 
+          borderColor: '#556B2F', 
+          backgroundColor: gradient, 
+          fill: true, 
+          pointRadius: 0 
+        }] 
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false, // Disable animation for faster rendering
+        plugins: {
+          legend: { display: false },
+          tooltip: { display: false } // Disable tooltips for mini-charts
+        },
+        scales: {
+          x: { display: false }, // Hide X-axis
+          y: { display: false }  // Hide Y-axis
+        }
+      }
+    });
+  }
+
+  // --- MODIFIED: Fetch strategies AND their metrics ---
+  async function fetchStrategiesAndMetrics(){
+    console.log("Fetching strategies...");
+    // 1. Fetch all strategies
+    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description';
+    const { data: strategiesData, error: strategiesError } = await supabase
+      .from('strategies')
+      .select(cols)
+      .order('name', { ascending: true });
+      
+    if (strategiesError) {
+        console.error("Error fetching strategies:", strategiesError);
+        throw strategiesError;
+    }
+    
+    console.log(`Fetched ${strategiesData.length} strategies. Now fetching metrics...`);
+
+    // 2. Prepare to fetch metrics (6M only) for each strategy
+    const metricPromises = strategiesData.map(s => 
+      supabase.from('strategy_metrics')
+        .select('strategy_id, series_6m') // Only get what we need
+        .eq('strategy_id', s.id)
+        .maybeSingle()
+    );
+    
+    // Wait for all metric fetches to complete
+    const metricsResults = await Promise.all(metricPromises);
+    
+    console.log("Fetched all metrics. Combining data...");
+
+    // 3. Combine the data
+    return strategiesData.map(strategy => {
+      const metricsResult = metricsResults.find(m => m.data && m.data.strategy_id === strategy.id);
+      return {
+        // Strategy info
+        id: strategy.id,
+        name: strategy.name,
+        provider: strategy.creator || '—',
+        currency: strategy.currency || 'ZAR',
+        risk: strategy.risk_level || '—',
+        aum: Number(strategy.aum || 0),
+        style: strategy.style || '—',
+        universe: strategy.asset_universe || '—',
+        inception: strategy.inception_date || null,
+        desc: strategy.strategy_description || '—',
+        // Metrics info
+        metrics: metricsResult?.data || null // Attach the metrics
+      };
+    });
+  }
+
+  // --- MODIFIED: Render both table and carousel ---
   function renderStrategies(items){
     const tbody = document.getElementById('tbody');
-    const carouselContainer = document.getElementById('mobile-carousel-container'); // Get new container
+    const carouselContainer = document.getElementById('mobile-carousel-container');
     
     tbody.innerHTML = '';
-    carouselContainer.innerHTML = ''; // Clear new container
+    carouselContainer.innerHTML = '';
+
+    // Clear old chart instances
+    Object.values(chartInstances).forEach(chart => chart.destroy());
+    chartInstances = {};
 
     items.forEach((s, idx) => {
       const riskChip = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
@@ -529,18 +629,53 @@
         </td>`;
       tbody.appendChild(tr);
 
-      // --- 2. Mobile Carousel Card (new logic) ---
+      // --- 2. Mobile Carousel Card (MODIFIED logic) ---
       const card = document.createElement('div');
       card.className = 'mobile-strat-card flex flex-col';
+      
+      // Calculate 6M Growth Stats
+      let growthX = '—';
+      let growthPct = '—';
+      let growthColor = 'text-slate-600';
+      let chartId = `chart-${s.id}`;
+      let hasChart = false;
+
+      if (s.metrics && s.metrics.series_6m && s.metrics.series_6m.length > 0) {
+        hasChart = true;
+        const pcts = s.metrics.series_6m.map(x => ({ pct: Number(x?.pct) }));
+        const curve = curveFromPct(pcts, 100);
+        const lastVal = curve.at(-1);
+        
+        if (lastVal) {
+          const multiplier = (lastVal / 100);
+          const percentage = (lastVal - 100);
+          growthX = `${multiplier.toFixed(2)}x`;
+          growthPct = `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
+          growthColor = percentage >= 0 ? 'text-green-600' : 'text-red-600';
+        }
+      }
+
       card.innerHTML = `
-        <div class="flex-1">
+        <div>
           <h3 class="font-bold text-lg text-slate-900 truncate" title="${s.name}">${s.name}</h3>
           <p class="text-sm text-slate-600 truncate mt-1">${s.provider}</p>
+          
+          <div class="mt-3">
+            <div class="flex items-baseline gap-2">
+              <span class="text-xl font-bold text-slate-900">Growth: ${growthX}</span>
+              <span class="font-semibold ${growthColor}">${growthPct}</span>
+            </div>
+            <div class="h-[100px] mt-2">
+              ${hasChart ? `<canvas id="${chartId}"></canvas>` : '<div class="h-full grid place-items-center text-sm text-slate-400">No chart data</div>'}
+            </div>
+          </div>
+
           <div class="flex items-center gap-3 mt-3">
             <span class="chip bg-slate-100 text-slate-700 !px-3">${s.currency}</span>
             <span class="chip ${riskChip}">${s.risk}</span>
           </div>
         </div>
+        
         <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm mt-4"
            href="strategy.html?strategy=${encodeURIComponent(s.id)}">
           <i class="fa-regular fa-note-sticky mr-1.5"></i>
@@ -548,19 +683,25 @@
         </a>
       `;
       carouselContainer.appendChild(card);
+      
+      // --- 3. Draw the chart (after element is in DOM) ---
+      if (hasChart) {
+        // Use a tiny timeout to let the DOM update before drawing
+        setTimeout(() => {
+          drawCardChart(chartId, s.metrics.series_6m);
+        }, 0);
+      }
     });
 
     document.getElementById('resultCount').textContent =
       `Showing ${items.length} ${items.length===1?'strategy':'strategies'}`;
     
-    // Toggle visibility of the 'empty' message
     const emptyEl = document.getElementById('empty');
     emptyEl.classList.toggle('hidden', items.length !== 0);
 
-    // Also hide the containers if empty (responsive)
     const isMobile = window.innerWidth < 768;
-    document.getElementById('tbl-wrap').classList.toggle('hidden', items.length === 0 && !isMobile);
-    document.getElementById('mobile-carousel-section').classList.toggle('hidden', items.length === 0 && isMobile);
+    document.getElementById('tbl-wrap').classList.toggle('hidden', items.length === 0 || isMobile);
+    document.getElementById('mobile-carousel-section').classList.toggle('hidden', items.length === 0 || !isMobile);
   }
 
   // ------- filtering/sorting -------
@@ -591,7 +732,7 @@
       return 0;
     });
 
-    renderStrategies(rows); // <-- MODIFIED: Call new render function
+    renderStrategies(rows);
   }
 
   // ------- init style dropdown from DB values -------
@@ -600,7 +741,6 @@
     const mobileSel = document.getElementById('fStyle-m');
     const styles = [...new Set(items.map(s => s.style).filter(Boolean))].sort();
     
-    // Clear existing options except the first "Any" option
     desktopSel.options.length = 1;
     mobileSel.options.length = 1;
 
@@ -613,20 +753,21 @@
   // clear button
   document.getElementById('clearBtn').addEventListener('click', ()=>{
     $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
-    applyFilters(); // This now calls renderStrategies
+    applyFilters();
   });
-  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters)); // This now calls renderStrategies
+  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters));
 
   // ------- boot -------
   try{
-    ALL = await fetchStrategies();
+    // MODIFIED: Call the new function
+    ALL = await fetchStrategiesAndMetrics(); 
     initStyleOptions(ALL);
-    applyFilters(); // This now calls renderStrategies
+    applyFilters();
   }catch(e){
     console.error(e);
-    // MODIFIED: Show error in the 'empty' div
+    // This is the error message you are seeing
     const emptyEl = document.getElementById('empty');
-    emptyEl.textContent = 'Sorry, failed to load strategies.';
+    emptyEl.textContent = 'Sorry, failed to load strategies. Please ensure you are running this on a web server.';
     emptyEl.classList.remove('hidden');
     document.getElementById('tbl-wrap').classList.add('hidden');
     document.getElementById('mobile-carousel-section').classList.add('hidden');
@@ -694,7 +835,7 @@
     });
     window.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
 
-    btnLogout?.addEventListener("click", async () => {
+    btnLogout?.addEventListener('click', async () => {
       try {
         await supabase.auth.signOut();
         location.replace("/auth.html?tab=in");
