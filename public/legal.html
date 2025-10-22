@@ -194,7 +194,8 @@
           <div class="ml-8 mt-1 flex flex-col sub">
             <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="strategies.html"><i
                 class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
-           
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="funds.html"><i
+                class="fa-solid fa-coins w-4 text-slate-500"></i><span class="label">Funds</span></a>
           </div>
         </details>
 
@@ -368,36 +369,37 @@
   </script>
 
   <script type="module" nonce="ALGOHIVE">
-    // MOCK SCRIPT to prevent errors. Replace with your actual Supabase logic.
-    const supabase = {
-        auth: {
-            getSession: async () => ({ data: { session: { user: { id: 'mock_user' } } } }),
-            getUser: async () => ({ data: { user: { id: 'mock_user', email: 'user@example.com' } } }),
-            onAuthStateChange: () => {},
-            signOut: async () => {}
-        },
-        from: () => ({
-            select: () => ({
-                eq: () => ({
-                    maybeSingle: async () => ({ data: {
-                        first_name: 'John',
-                        last_name: 'Doe',
-                        avatar_url: null
-                    }, error: null })
-                }),
-            }),
-            upsert: () => ({
-                select: () => ({
-                    single: async () => ({ data: {}, error: null })
-                })
-            })
-        })
-    };
-    
-    // --- Mock Profile Modal Logic ---
-     const { data: { user } } = await supabase.auth.getUser();
-     document.getElementById("hdr-name").textContent = "John Doe";
-     document.getElementById("pm-email").textContent = user.email;
+    import { supabase } from "/js/supabase.js";
+
+    // ===== Authentication Guard =====
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    }
+
+    // ===== Get User Data =====
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // ===== Helper function to ensure profile exists =====
+    async function ensureProfile(userId, email) {
+      let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      if (data) return data;
+      const up = await supabase.from("profiles").upsert({ id: userId, email, updated_at: new Date().toISOString() }, { onConflict: "id" }).select("*").single();
+      if (up.error) throw up.error;
+      return up.data;
+    }
+
+    // ===== Load User Profile =====
+    const profile = await ensureProfile(user.id, user.email || null);
+
+    // ===== Header Profile Info =====
+    const displayName = profile.first_name && profile.last_name 
+      ? `${profile.first_name} ${profile.last_name}` 
+      : user.email?.split('@')[0] || "User";
+    document.getElementById("hdr-name").textContent = displayName;
+    document.getElementById("pm-email").textContent = user.email;
 
     const profileModal = document.getElementById("profile-modal");
     const hdrProfileBtn = document.getElementById("hdr-profile-btn");
@@ -407,7 +409,15 @@
     hdrProfileBtn?.addEventListener("click", (e) => { e.preventDefault(); openProfileModal(); });
     profileModal.addEventListener("click", (e) => { if (e.target === profileModal || e.target.classList.contains("bg-black/40")) closeProfileModal(); });
     window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeProfileModal(); });
-    btnLogout?.addEventListener("click", () => alert("Logout clicked"));
+    btnLogout?.addEventListener("click", async () => {
+      try {
+        await supabase.auth.signOut();
+        location.replace("/auth.html?tab=in");
+      } catch (error) {
+        console.error("Logout failed:", error);
+        alert("Sorry, logout failed. Please try again.");
+      }
+    });
   </script>
 
 </body>
