@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AlgoHive – OpenStrategies</title>
 
-  <!-- Tailwind + Fonts + Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
@@ -70,13 +69,36 @@
     tbody tr:hover { background:#f8fafc }
     .th-min { width:1%; white-space:nowrap }
     .cell-name { font-weight:600 }
+
+    /* --- ADDED: Mobile Carousel Styles --- */
+    .mobile-carousel {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding: 1rem;
+      /* Hide scrollbar */
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    .mobile-carousel::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+    .mobile-strat-card {
+      width: 260px;
+      flex-shrink: 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    /* --- END ADDED --- */
   </style>
 </head>
 
 <body class="min-h-screen overflow-x-hidden">
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
-    <!-- ===== Sidebar ===== -->
     <aside id="ah-sidebar" data-collapsed="false"
       class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
       <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
@@ -142,9 +164,7 @@
           </button>
       </div>
     </aside>
-    <!-- ===== Main ===== -->
     <main class="flex-1 min-w-0">
-      <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
         <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[560px]">
            <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
@@ -164,7 +184,6 @@
         </div>
       </div>
 
-      <!-- Filters -->
       <div class="max-w-7xl mx-auto px-6">
         <section class="sticky top-[69px] z-20 bg-white/70 backdrop-blur border-b border-slate-200 px-0 py-3">
           <div class="hidden md:flex flex-wrap items-center gap-3">
@@ -202,14 +221,17 @@
           </div>
         </section>
 
-        <!-- Results summary -->
         <div class="flex items-center justify-between py-4">
           <div id="resultCount" class="text-sm text-slate-500">Showing 0 strategies</div>
           <div class="text-xs text-slate-400 hidden sm:block">* Metrics are simulated from monthly returns (net of TIF).</div>
         </div>
 
-        <!-- Table -->
-        <section class="tbl-wrap">
+        <section id="mobile-carousel-section" class="block md:hidden -mx-6">
+          <div id="mobile-carousel-container" class="mobile-carousel !px-6">
+            </div>
+        </section>
+
+        <section class="tbl-wrap hidden md:block">
           <div class="overflow-x-auto">
             <table id="tbl">
               <thead>
@@ -225,8 +247,7 @@
                 </tr>
               </thead>
               <tbody id="tbody">
-                <!-- rows injected here -->
-              </tbody>
+                </tbody>
             </table>
           </div>
         </section>
@@ -236,7 +257,6 @@
     </main>
   </div>
 
-  <!-- Simple profile dropdown -->
   <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
@@ -257,7 +277,6 @@
     </div>
   </div>
   
-  <!-- Filter Modal -->
   <div id="filter-modal" class="fixed inset-0 z-[60] p-4 hidden">
       <div id="filter-overlay" class="absolute inset-0 bg-black/40"></div>
       <div class="relative w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-6 mt-10">
@@ -432,8 +451,7 @@
     
   })();
 </script>
-  <!-- Scripts -->
-<script type="module" nonce="ALGOHIVE">
+  <script type="module" nonce="ALGOHIVE">
   import { supabase } from "/js/supabase.js";
 
   // ------- helpers -------
@@ -472,17 +490,21 @@
     }));
   }
 
-  // ------- render table -------
-  function renderTable(items){
+  // ------- MODIFIED: Render both table and carousel -------
+  function renderStrategies(items){
     const tbody = document.getElementById('tbody');
+    const carouselContainer = document.getElementById('mobile-carousel-container'); // Get new container
+    
     tbody.innerHTML = '';
+    carouselContainer.innerHTML = ''; // Clear new container
 
     items.forEach((s, idx) => {
-      const tr = document.createElement('tr');
       const riskChip = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
                      : s.risk==='High' ? 'bg-rose-50 text-rose-700'
                      : 'bg-amber-50 text-amber-700';
 
+      // --- 1. Desktop Table Row (existing logic) ---
+      const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="text-slate-400 text-center">${idx+1}</td>
         <td class="cell-name">
@@ -505,14 +527,40 @@
             Factsheet
           </a>
         </td>`;
-
       tbody.appendChild(tr);
+
+      // --- 2. Mobile Carousel Card (new logic) ---
+      const card = document.createElement('div');
+      card.className = 'mobile-strat-card flex flex-col';
+      card.innerHTML = `
+        <div class="flex-1">
+          <h3 class="font-bold text-lg text-slate-900 truncate" title="${s.name}">${s.name}</h3>
+          <p class="text-sm text-slate-600 truncate mt-1">${s.provider}</p>
+          <div class="flex items-center gap-3 mt-3">
+            <span class="chip bg-slate-100 text-slate-700 !px-3">${s.currency}</span>
+            <span class="chip ${riskChip}">${s.risk}</span>
+          </div>
+        </div>
+        <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm mt-4"
+           href="strategy.html?strategy=${encodeURIComponent(s.id)}">
+          <i class="fa-regular fa-note-sticky mr-1.5"></i>
+          View Factsheet
+        </a>
+      `;
+      carouselContainer.appendChild(card);
     });
 
     document.getElementById('resultCount').textContent =
       `Showing ${items.length} ${items.length===1?'strategy':'strategies'}`;
+    
+    // Toggle visibility of the 'empty' message
+    const emptyEl = document.getElementById('empty');
+    emptyEl.classList.toggle('hidden', items.length !== 0);
 
-    document.getElementById('empty').classList.toggle('hidden', items.length!==0);
+    // Also hide the containers if empty (responsive)
+    const isMobile = window.innerWidth < 768;
+    document.getElementById('tbl-wrap').classList.toggle('hidden', items.length === 0 && !isMobile);
+    document.getElementById('mobile-carousel-section').classList.toggle('hidden', items.length === 0 && isMobile);
   }
 
   // ------- filtering/sorting -------
@@ -543,7 +591,7 @@
       return 0;
     });
 
-    renderTable(rows);
+    renderStrategies(rows); // <-- MODIFIED: Call new render function
   }
 
   // ------- init style dropdown from DB values -------
@@ -565,18 +613,23 @@
   // clear button
   document.getElementById('clearBtn').addEventListener('click', ()=>{
     $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
-    applyFilters();
+    applyFilters(); // This now calls renderStrategies
   });
-  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters));
+  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters)); // This now calls renderStrategies
 
   // ------- boot -------
   try{
     ALL = await fetchStrategies();
     initStyleOptions(ALL);
-    applyFilters();
+    applyFilters(); // This now calls renderStrategies
   }catch(e){
     console.error(e);
-    document.getElementById('tbody').innerHTML = '<tr><td colspan="9" class="py-10 text-center text-slate-500">Sorry, failed to load strategies.</td></tr>';
+    // MODIFIED: Show error in the 'empty' div
+    const emptyEl = document.getElementById('empty');
+    emptyEl.textContent = 'Sorry, failed to load strategies.';
+    emptyEl.classList.remove('hidden');
+    document.getElementById('tbl-wrap').classList.add('hidden');
+    document.getElementById('mobile-carousel-section').classList.add('hidden');
   }
 </script>
 
