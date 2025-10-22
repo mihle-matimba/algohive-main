@@ -502,10 +502,9 @@
     if (!btn) return;
     btn.addEventListener('click', function () {
       // new tab:
-      window.open('https://paystack.shop/pay/eo1b1n9h45');
 
       // or same tab:
-      // window.location.href = 'https://paystack.com/pay/your-payment-link';
+       window.location.href = 'https://paystack.shop/pay/eo1b1n9h45' ;
     });
   });
 </script>
@@ -1379,6 +1378,65 @@
 
         // Check for KYC return after page setup
         checkKycReturn();
+
+        // ---- Paystack return → set subscription=gold ----
+(async function handleSubscriptionReturn() {
+  try {
+    // Normalize the common mistake "...?substatus=approved?reference=..."
+    // by converting the 2nd "?" to "&" (idempotent if already correct).
+    if (location.search.includes('substatus=') && location.search.includes('?reference=')) {
+      const fixed = location.href.replace('?reference=', '&reference=');
+      if (fixed !== location.href) history.replaceState({}, '', fixed);
+    }
+
+    const url = new URL(location.href);
+    const substatus = (url.searchParams.get('substatus') || '').toLowerCase();
+    const reference = (url.searchParams.get('reference') || '').trim();
+
+    // Only proceed on explicit approval
+    if (substatus !== 'approved') return;
+
+    // Optional: guard so we don’t spam DB on reloads
+    const alreadyHandledRef = sessionStorage.getItem('ah_last_sub_ref');
+    if (alreadyHandledRef && alreadyHandledRef === reference) return;
+
+    // Update only if not already gold
+    if (row?.subscription !== 'gold') {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription: 'gold',
+          updated_at: new Date().toISOString(),
+          // If you later add these columns, you can persist them too:
+          // subscription_status: 'active',
+          // paystack_reference: reference,
+          // subscription_started_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Subscription update failed', error);
+        banner('Sorry, could not activate Gold. Please contact support.', 'err');
+        return;
+      }
+    }
+
+    banner('✅ Gold activated. Welcome!', 'ok');
+    sessionStorage.setItem('ah_last_sub_ref', reference || `gold-${Date.now()}`);
+
+    // Clean noisy params from URL but keep the current hash
+    url.searchParams.delete('substatus');
+    url.searchParams.delete('reference');
+    history.replaceState({}, '', url.toString());
+    // Optionally jump to the Subscriptions tab:
+    if (!location.hash || location.hash === '#basic') location.hash = '#subs';
+
+  } catch (e) {
+    console.error(e);
+    banner('Could not finalize your subscription.', 'err');
+  }
+})();
+
 
         // ---------- profile modal ----------
         const profileModal = document.getElementById("profile-modal");
