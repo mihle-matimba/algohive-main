@@ -1078,31 +1078,51 @@
             }
         })();
 
-        // ---- Plan button renderer ----
-function renderGoldButton(currentTier) {
-  const btn = document.getElementById('btn-buy-gold');
-  if (!btn) return;
+function renderPlanButtons(currentTier) {
+  // --- GOLD button ---
+  const goldBtn = document.getElementById('btn-buy-gold');
+  if (goldBtn) {
+    goldBtn.disabled = false;
+    goldBtn.textContent = 'Choose Gold';
+    goldBtn.classList.remove('opacity-60','cursor-not-allowed');
 
-  // reset baseline state
-  btn.disabled = false;
-  btn.textContent = 'Choose Gold';
-  btn.classList.remove('opacity-60','cursor-not-allowed');
+    if (currentTier === 'gold') {
+      goldBtn.textContent = 'Current Plan';
+      goldBtn.disabled = true;
+      goldBtn.classList.add('opacity-60','cursor-not-allowed');
+      goldBtn.replaceWith(goldBtn.cloneNode(true)); // remove any previous listeners
+    } else {
+      const freshGoldBtn = goldBtn.cloneNode(true);
+      goldBtn.parentNode.replaceChild(freshGoldBtn, goldBtn);
+      freshGoldBtn.addEventListener('click', () => {
+        window.location.href = 'https://paystack.shop/pay/eo1b1n9h45';
+      }, { once: true });
+    }
+  }
 
-  if (currentTier === 'gold') {
-    btn.textContent = 'Current Plan';
-    btn.disabled = true;
-    btn.classList.add('opacity-60','cursor-not-allowed');
-  } else {
-    // only bind click if NOT gold
-    btn.onclick = null; // clear any accidental inline
-    btn.addEventListener('click', () => {
-      window.location.href = 'https://paystack.shop/pay/eo1b1n9h45';
-    }, { once: true });
+  // --- SILVER button (free plan) ---
+  const silverEl = document.getElementById('btn-silver');
+  if (silverEl) {
+    // baseline
+    silverEl.textContent = 'Choose Silver';
+    silverEl.classList.remove('opacity-60','cursor-not-allowed','pointer-events-none');
+    silverEl.setAttribute('href', 'auth.html');
+    silverEl.removeAttribute('aria-disabled');
+    silverEl.tabIndex = 0;
+
+    if (currentTier === 'free' || currentTier === 'silver') {
+      silverEl.textContent = 'Current Plan';
+      silverEl.classList.add('opacity-60','cursor-not-allowed','pointer-events-none');
+      silverEl.removeAttribute('href');
+      silverEl.setAttribute('aria-disabled', 'true');
+      silverEl.tabIndex = -1;
+    }
   }
 }
 
-// initial paint from loaded profile
-renderGoldButton(row?.subscription || 'free');
+// initial paint
+renderPlanButtons(row?.subscription || 'free');
+
 
 
 
