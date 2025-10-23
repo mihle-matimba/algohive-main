@@ -1,560 +1,494 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Investor Onboarding | AlgoHive</title>
 
-  <!-- Tailwind (light) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
-  <script nonce="ALGOHIVE">
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            ink: "#0f172a",
-            muted: "#64748b",
-            olive: "#7e8d52",
-            line: "#e5e7eb",
-            soft: "#f8fafc"
-          },
-          boxShadow: {
-            soft: "0 10px 30px rgba(2,12,27,.06)"
-          }
-        }
-      }
-    }
-  </script>
 
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
-  <!-- Leaflet map (Address picker) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" nonce="ALGOHIVE"></script>
+  <!-- Leaflet (CSP-allowed via cdnjs) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+
+  <!-- Confetti -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js" defer></script>
 
   <style>
-    .tab-btn{ border:1px solid transparent }
-    .tab-btn[aria-current="step"]{ background:#f1f5f9; border-color:#cbd5e1 }
-    .inp{ border:1px solid #e2e8f0; }
-    .inp:focus{ outline: none; box-shadow: 0 0 0 3px rgba(126,141,82,.25); border-color:#7e8d52; }
-    .error{ border-color:#ef4444 !important; }
-    .dropzone--active{ border-color:#7e8d52; background:#f7fbe8 }
+    :root{
+      --ink:#0f172a; --muted:#64748b; --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0; --panel:#ffffff; --bg:#f8fafc;
+    }
+    html,body{ background:var(--bg); color:var(--ink) }
+    .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:0 10px 30px rgba(2,12,27,0.06) }
+    .btn-olive{ background:var(--olive); color:#fff }
+    .btn-olive:hover{ filter:brightness(.95) }
+    .muted{ color:var(--muted) }
+    .step-dot{ width:28px; height:28px; border-radius:999px; display:grid; place-items:center; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--muted) }
+    .step-dot.active{ background:var(--olive); color:#fff; border-color:var(--olive) }
+    .divider{ height:1px; background:linear-gradient(90deg, transparent, var(--line), transparent) }
+    .inp{ border:1px solid var(--line); border-radius:12px; padding:.65rem .9rem; width:100% }
+    .inp:focus{ outline:none; border-color:var(--olive); box-shadow:0 0 0 4px rgba(126,141,82,.15) }
+    .error{ border-color:#ef4444 !important }
+    .tab-btn{ padding:.5rem .75rem; border-radius:10px; border:1px solid var(--line); background:#fff; font-weight:600; color:var(--muted) }
+    .tab-btn.active{ color:var(--ink); border-color:var(--olive); box-shadow:0 0 0 3px rgba(126,141,82,.15) }
+    #map{ height: 260px; border-radius:12px; border:1px solid var(--line) }
   </style>
 </head>
-<body class="bg-soft text-ink">
-
-  <!-- Header -->
-  <header class="bg-white shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+<body class="min-h-screen">
+  <!-- Top -->
+  <header class="bg-white border-b border-[var(--line)]">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <img class="w-8 h-8" alt="AlgoHive" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg"/>
-        <div class="font-semibold">AlgoHive Investor Portal</div>
+        <img class="w-8 h-8" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
+        <div class="font-bold">AlgoHive Investor Onboarding</div>
       </div>
-      <div class="hidden sm:flex items-center gap-3 text-sm text-muted">
-        <span>Secure</span><span>•</span><span>Bank verified</span><span>•</span><span>No hidden fees</span>
+      <div class="hidden sm:flex items-center gap-3 text-sm text-[var(--muted)]">
+        <span>Secure</span><span>•</span><span>No hidden fees</span>
       </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Step tabs -->
-    <nav class="flex items-center gap-3 text-sm">
-      <button class="tab-btn px-3 py-2 rounded-lg font-medium" data-step-tab="1" aria-current="step"><span class="text-muted mr-1">1</span>Intro</button>
-      <button class="tab-btn px-3 py-2 rounded-lg font-medium" data-step-tab="2"><span class="text-muted mr-1">2</span>Details</button>
-      <button class="tab-btn px-3 py-2 rounded-lg font-medium" data-step-tab="3"><span class="text-muted mr-1">3</span>Bank Transfer</button>
-      <button class="tab-btn px-3 py-2 rounded-lg font-medium" data-step-tab="4"><span class="text-muted mr-1">4</span>Confirmation</button>
-    </nav>
-
-    <!-- Progress -->
-    <div class="mt-3 h-1 w-full bg-white rounded shadow-inner">
-      <div id="progressBar" class="h-1 rounded bg-olive" style="width:25%"></div>
+  <!-- Stepper + Tabs -->
+  <div class="max-w-6xl mx-auto px-4 mt-6">
+    <div class="card p-4">
+      <div class="flex items-center gap-2">
+        <div id="s1" class="step-dot active">1</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
+        <div id="s2" class="step-dot">2</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
+        <div id="s3" class="step-dot">3</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
+        <div id="s4" class="step-dot">4</div>
+      </div>
+      <div class="mt-3 h-1 w-full bg-[var(--line)] rounded">
+        <div id="progressBar" class="h-1 rounded bg-[var(--olive)]" style="width:25%"></div>
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button data-goto="1" class="tab-btn active">Intro</button>
+        <button data-goto="2" class="tab-btn">Details</button>
+        <button data-goto="3" class="tab-btn">Payment</button>
+        <button data-goto="4" class="tab-btn">Complete</button>
+      </div>
     </div>
+  </div>
 
-    <!-- STEP 1: Intro -->
-    <section id="step1" class="mt-8">
-      <div class="bg-white rounded-2xl shadow-soft p-8">
-        <div class="grid lg:grid-cols-2 gap-8 items-center">
-          <div>
-            <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded bg-[#f6f8f2] text-olive border border-[#dfe6cf]">
-              <i class="fa-solid fa-seedling"></i> Welcome
-            </span>
-            <h1 class="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight">Invest in the <span class="text-olive">hive</span> that builds better portfolios.</h1>
-            <p class="mt-3 text-lg text-muted">Thank you for choosing to invest with AlgoHive. Follow the quick steps to complete your application.</p>
-
-            <div class="mt-8 flex gap-3">
-              <button class="bg-olive text-white rounded-xl px-5 py-3 font-semibold shadow-soft hover:brightness-95" data-next>
-                Get Started <i class="fa-solid fa-arrow-right ml-2"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Right card (kept simple, removed stats) -->
-          <div class="bg-soft rounded-2xl p-6 border border-[#e9eedc]">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-[#eff5e3] text-olive grid place-items-center border border-[#dfe6cf]">
-                <i class="fa-solid fa-shield-halved"></i>
-              </div>
-              <div class="font-semibold">Bank-grade security</div>
-            </div>
-            <p class="text-muted mt-2 text-sm">Your information is encrypted and stored securely.</p>
-
-            <div class="mt-5 flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-[#eff5e3] text-olive grid place-items-center border border-[#dfe6cf]">
-                <i class="fa-solid fa-file-signature"></i>
-              </div>
-              <div class="font-semibold">Clear, simple paperwork</div>
-            </div>
-            <p class="text-muted mt-2 text-sm">Sign your agreement online and keep a PDF for your records.</p>
-          </div>
+  <!-- Step 1 -->
+  <section id="step1" class="max-w-6xl mx-auto px-4 mt-8">
+    <div class="grid lg:grid-cols-2 gap-8 items-center">
+      <div class="card p-8">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+          <i class="fa-solid fa-seedling"></i> Welcome to AlgoHive
+        </div>
+        <h1 class="mt-4 text-4xl font-extrabold">Own a stake in the hive.</h1>
+        <p class="mt-2 text-lg muted">
+          Join as a shareholder and partner in our growth journey. Clean process, clear docs, bank-grade security.
+        </p>
+        <div class="mt-6 flex gap-3">
+          <button data-next class="btn-olive rounded-xl px-6 py-3 font-semibold">Get Started <i class="fa-solid fa-arrow-right ml-2"></i></button>
+          <a class="rounded-xl px-6 py-3 border border-[var(--line)]" href="#">Learn more</a>
+        </div>
+        <div class="mt-6 divider"></div>
+        <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+          <div><div class="text-2xl font-bold">R0</div><div class="muted text-sm">AUM fees</div></div>
+          <div><div class="text-2xl font-bold">Bank</div><div class="muted text-sm">integrations</div></div>
+          <div><div class="text-2xl font-bold">24/7</div><div class="muted text-sm">Support</div></div>
         </div>
       </div>
-    </section>
-
-    <!-- STEP 2: Details -->
-    <section id="step2" class="mt-8 hidden">
-      <div class="bg-white rounded-2xl shadow-soft p-8">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h2 class="text-2xl font-bold">Investment Details</h2>
-            <p class="text-muted mt-1">Please fill in your details. Address uses a map so we capture it correctly.</p>
-          </div>
-          <div class="hidden sm:flex items-center gap-2 text-xs text-muted">
-            ~5–7 min
-          </div>
-        </div>
-
-        <form id="investmentForm" class="mt-8 grid gap-6">
-          <!-- Basics -->
-          <div class="grid sm:grid-cols-2 gap-5">
-            <div>
-              <label class="text-sm text-muted">Full Name *</label>
-              <input id="fullName" class="inp rounded-xl w-full px-4 py-3" placeholder="John Smith" required>
-              <div id="fullNameError" class="hidden text-sm mt-1 text-red-600">Please enter your full name</div>
-            </div>
-            <div>
-              <label class="text-sm text-muted">Email Address *</label>
-              <input id="email" type="email" class="inp rounded-xl w-full px-4 py-3" placeholder="john@example.com" required>
-              <div id="emailError" class="hidden text-sm mt-1 text-red-600">Please enter a valid email</div>
-            </div>
-          </div>
-
-          <div class="grid sm:grid-cols-3 gap-5">
-            <div>
-              <label class="text-sm text-muted">SA ID / Passport *</label>
-              <input id="idNumber" class="inp rounded-xl w-full px-4 py-3" placeholder="910101..." required>
-              <div id="idError" class="hidden text-sm mt-1 text-red-600">ID/Passport is required</div>
-            </div>
-            <div>
-              <label class="text-sm text-muted">Cell Number *</label>
-              <input id="cell" class="inp rounded-xl w-full px-4 py-3" placeholder="+27 82 123 4567" inputmode="tel" required>
-              <div id="cellError" class="hidden text-sm mt-1 text-red-600">Cell number is required</div>
-            </div>
-            <div>
-              <label class="text-sm text-muted">Investment Amount (ZAR) *</label>
-              <div class="flex">
-                <span class="px-4 py-3 rounded-l-xl border border-r-0 border-slate-200 bg-slate-50">R</span>
-                <input id="investmentAmount" class="inp rounded-r-xl w-full px-4 py-3" type="number" min="80000" step="1000" value="80000" required>
-              </div>
-              <div id="amountError" class="hidden text-sm mt-1 text-red-600">Minimum investment is R80,000</div>
-              <p class="text-xs text-muted mt-1">Share price: <span class="font-semibold">R1,000</span> per share</p>
-            </div>
-          </div>
-
-          <!-- Address with Map -->
-          <div class="grid lg:grid-cols-3 gap-5">
-            <div class="lg:col-span-2">
-              <label class="text-sm text-muted">Search Address *</label>
-              <input id="addressSearch" class="inp rounded-xl w-full px-4 py-3" placeholder="Start typing your address…" autocomplete="off">
-              <div id="addressError" class="hidden text-sm mt-1 text-red-600">Please select an address</div>
-              <div id="addressList" class="mt-2 hidden bg-white border border-slate-200 rounded-lg overflow-hidden"></div>
-
-              <input type="hidden" id="addrLine" />
-              <input type="hidden" id="addrLat" />
-              <input type="hidden" id="addrLng" />
-            </div>
-            <div>
-              <label class="text-sm text-muted">Confirm on Map</label>
-              <div id="map" class="rounded-xl border border-slate-200" style="height: 220px;"></div>
-            </div>
-          </div>
-
-          <!-- Summary card -->
-          <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold">Investment Summary</h3>
-                <span class="text-xs px-2 py-1 rounded bg-olive/10 text-olive border border-olive/30">Live</span>
-              </div>
-              <dl class="mt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><dt class="text-muted">Amount</dt><dd id="summaryAmount" class="font-semibold text-ink">R80,000.00</dd></div>
-                <div class="flex justify-between"><dt class="text-muted">Share Price</dt><dd class="font-semibold">R1,000.00</dd></div>
-                <div class="flex justify-between"><dt class="text-muted">Number of Shares</dt><dd id="summaryShares" class="font-semibold">80</dd></div>
-              </dl>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between pt-2">
-            <button type="button" data-prev class="rounded-xl px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50">
-              <i class="fa-solid fa-arrow-left mr-2"></i> Back
-            </button>
-            <button type="button" id="proceedBtn" class="bg-olive text-white rounded-xl px-6 py-3 font-semibold shadow-soft hover:brightness-95">
-              Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i>
-            </button>
-          </div>
-        </form>
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div class="card p-6"><div class="w-10 h-10 rounded bg-emerald-50 text-emerald-700 grid place-items-center"><i class="fa-solid fa-shield-halved"></i></div><div class="mt-2 font-semibold">Secure Process</div><p class="muted text-sm mt-1">Bank-grade security and controls.</p></div>
+        <div class="card p-6"><div class="w-10 h-10 rounded bg-blue-50 text-blue-700 grid place-items-center"><i class="fa-solid fa-chart-line"></i></div><div class="mt-2 font-semibold">Proven</div><p class="muted text-sm mt-1">Listed strategies with track records.</p></div>
+        <div class="card p-6"><div class="w-10 h-10 rounded bg-purple-50 text-purple-700 grid place-items-center"><i class="fa-solid fa-headset"></i></div><div class="mt-2 font-semibold">Human Support</div><p class="muted text-sm mt-1">Actual people, not a maze.</p></div>
+        <div class="card p-6"><div class="w-10 h-10 rounded bg-amber-50 text-amber-700 grid place-items-center"><i class="fa-solid fa-lock"></i></div><div class="mt-2 font-semibold">Transparent</div><p class="muted text-sm mt-1">Clear steps and pricing.</p></div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- STEP 3: Bank Transfer -->
-    <section id="step3" class="mt-8 hidden">
-      <div class="bg-white rounded-2xl shadow-soft p-8">
-        <div class="flex items-start justify-between">
+  <!-- Step 2: Details -->
+  <section id="step2" class="max-w-6xl mx-auto px-4 mt-8 hidden">
+    <div class="card p-8">
+      <h2 class="text-2xl font-bold">Your Details</h2>
+      <p class="muted">Minimum investment <strong>R80,000</strong>. Share price <strong>R1,000</strong> (no bonus shares).</p>
+
+      <form id="detailsForm" class="mt-6 grid gap-6">
+        <div class="grid sm:grid-cols-2 gap-4">
           <div>
-            <h2 class="text-2xl font-bold">Bank Transfer Details</h2>
-            <p class="text-muted">Complete your investment via bank transfer</p>
+            <label class="block text-sm muted mb-1">Full name *</label>
+            <input id="fullName" class="inp" placeholder="e.g. John Smith" required/>
+            <div id="fullNameError" class="hidden text-sm text-red-600 mt-1">Please enter your full name</div>
           </div>
-          <div class="text-right">
-            <div class="text-sm text-muted">Total Amount</div>
-            <div id="paymentTotal" class="text-2xl font-extrabold text-ink">R80,000</div>
+          <div>
+            <label class="block text-sm muted mb-1">Email *</label>
+            <input id="email" type="email" class="inp" placeholder="you@domain.com" required/>
+            <div id="emailError" class="hidden text-sm text-red-600 mt-1">Please enter a valid email</div>
           </div>
         </div>
 
-        <div class="bg-slate-50 rounded-2xl p-6 mt-6 border border-slate-200">
-          <div class="grid sm:grid-cols-2 gap-6">
-            <div><div class="text-xs text-muted mb-1">Bank Name</div><div class="font-semibold">Capitec Bank</div></div>
-            <div><div class="text-xs text-muted mb-1">Account Name</div><div class="font-semibold">AlgoHive Business Account</div></div>
-            <div><div class="text-xs text-muted mb-1">Account Number</div><div class="font-semibold">1053 0458 83</div></div>
-            <div><div class="text-xs text-muted mb-1">Branch Code</div><div class="font-semibold">470010</div></div>
-            <div class="sm:col-span-2"><div class="text-xs text-muted mb-1">Reference</div><div class="font-semibold">INV-<span id="emailRef">[your email]</span></div></div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm muted mb-1">ID number *</label>
+            <input id="idNumber" class="inp" placeholder="e.g. 910101..." required/>
+            <div id="idError" class="hidden text-sm text-red-600 mt-1">ID required</div>
           </div>
-          <p class="text-sm text-muted mt-3">Use the reference above. EFTs typically clear in 1–2 business days.</p>
+          <div>
+            <label class="block text-sm muted mb-1">Cell number *</label>
+            <input id="phone" class="inp" placeholder="+27 ..." inputmode="tel" required/>
+            <div id="phoneError" class="hidden text-sm text-red-600 mt-1">Phone required</div>
+          </div>
+          <div>
+            <label class="block text-sm muted mb-1">Investment amount (ZAR) *</label>
+            <div class="flex">
+              <span class="px-3 grid place-items-center border border-[var(--line)] rounded-l-md bg-gray-50">R</span>
+              <input id="investmentAmount" type="number" min="80000" step="1000" value="80000" class="inp rounded-l-none" required/>
+            </div>
+            <div id="amountError" class="hidden text-sm text-red-600 mt-1">Minimum is R80,000</div>
+            <div class="text-xs muted mt-1">Share price: R1,000</div>
+          </div>
         </div>
 
-        <div class="mt-6 flex flex-col sm:flex-row gap-3">
-          <button id="downloadPdfBtn" class="w-full sm:w-auto bg-olive text-white rounded-xl px-4 py-3 font-semibold shadow-soft hover:brightness-95">
-            <i class="fa-solid fa-download mr-2"></i> Download Bank Confirmation PDF
-          </button>
-          <button type="button" id="completePaymentBtn" class="w-full sm:w-auto bg-olive text-white rounded-xl px-4 py-3 font-semibold shadow-soft hover:brightness-95">
-            I’ve Completed Payment <i class="fa-solid fa-check ml-2"></i>
+        <!-- Address -->
+        <div class="grid lg:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm muted mb-1">Search address *</label>
+            <input id="addrSearch" class="inp" placeholder="Type an address…"/>
+            <div class="text-xs muted mt-1">We’ll pin it on the map.</div>
+          </div>
+          <div>
+            <label class="block text-sm muted mb-1">Selected address</label>
+            <input id="addressText" class="inp" placeholder="—" readonly/>
+          </div>
+        </div>
+
+        <div id="map" class="mt-2"></div>
+
+        <!-- Summary -->
+        <div class="grid sm:grid-cols-3 gap-4 mt-6">
+          <div class="card p-4">
+            <div class="muted text-sm">Amount</div>
+            <div id="summaryAmount" class="text-xl font-bold">R80,000.00</div>
+          </div>
+          <div class="card p-4">
+            <div class="muted text-sm">Share price</div>
+            <div class="text-xl font-bold">R1,000</div>
+          </div>
+          <div class="card p-4">
+            <div class="muted text-sm">Shares</div>
+            <div id="summaryShares" class="text-xl font-bold">80</div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-4">
+          <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
+          <button type="button" id="toPayment" class="btn-olive rounded-xl px-6 py-3 font-semibold">Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i></button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Step 3: Payment -->
+  <section id="step3" class="max-w-6xl mx-auto px-4 mt-8 hidden">
+    <div class="card p-8">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold">Bank Transfer</h2>
+          <p class="muted">Transfer the amount below and then upload your POP (PDF).</p>
+        </div>
+        <div class="text-right">
+          <div class="text-sm muted">Total Amount</div>
+          <div id="paymentTotal" class="text-2xl font-extrabold text-[var(--olive)]">R80,000.00</div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6 mt-6">
+        <div class="card p-5">
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div><div class="muted text-xs mb-1">Bank</div><div class="font-semibold">Capitec Bank</div></div>
+            <div><div class="muted text-xs mb-1">Account Name</div><div class="font-semibold">AlgoHive Business Account</div></div>
+            <div><div class="muted text-xs mb-1">Account Number</div><div class="font-semibold">1053 0458 83</div></div>
+            <div><div class="muted text-xs mb-1">Branch Code</div><div class="font-semibold">470010</div></div>
+            <div class="sm:col-span-2"><div class="muted text-xs mb-1">Reference</div><div class="font-semibold">INV-<span id="emailRef">your@email</span></div></div>
+          </div>
+          <p class="muted text-sm mt-3">Use the exact reference. EFTs usually clear in 1–2 business days.</p>
+
+          <button id="downloadPdfBtn" class="mt-4 w-full btn-olive rounded-xl px-4 py-3 font-semibold">
+            <i class="fa-solid fa-download mr-2"></i> Download Confirmation PDF
           </button>
         </div>
 
-        <!-- Proof of payment upload (hidden until “Completed Payment”) -->
-        <div id="proofWrap" class="mt-8 hidden">
-          <h3 class="font-semibold mb-2">Upload Proof of Payment (PDF)</h3>
-          <p class="text-sm text-muted mb-3">Please upload your bank’s confirmation PDF so we can reconcile faster.</p>
-
-          <div id="dropzone" class="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-            <input id="proofFile" type="file" accept="application/pdf" class="hidden">
-            <p class="text-sm text-muted">Drag & drop your PDF here, or</p>
-            <button id="browseBtn" class="mt-2 px-4 py-2 rounded-lg border border-slate-300 hover:bg-white">Browse files</button>
-            <div id="fileInfo" class="mt-3 text-sm"></div>
-          </div>
-
-          <div class="mt-4 flex items-center justify-end">
-            <button id="uploadBtn" class="bg-olive text-white rounded-xl px-5 py-2.5 font-semibold shadow-soft hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              Upload Proof & Continue
-            </button>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between mt-8">
-          <button type="button" data-prev class="rounded-xl px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50">
-            <i class="fa-solid fa-arrow-left mr-2"></i> Back
-          </button>
+        <div class="card p-5">
+          <h3 class="font-semibold">Upload Proof of Payment (PDF)</h3>
+          <p class="muted text-sm">After your transfer, upload your POP here.</p>
+          <input id="popFile" type="file" accept="application/pdf" class="mt-3"/>
+          <button id="uploadPopBtn" class="mt-3 btn-olive rounded-xl px-4 py-2 font-semibold">Upload POP</button>
+          <div id="popMsg" class="mt-2 text-sm"></div>
         </div>
       </div>
-    </section>
 
-    <!-- STEP 4: Confirmation -->
-    <section id="step4" class="mt-8 hidden">
-      <div class="bg-white rounded-2xl shadow-soft p-8">
-        <div class="text-center">
-          <div class="w-20 h-20 mx-auto rounded-full grid place-items-center bg-olive/10 text-olive border border-olive/30">
-            <i class="fa-solid fa-check text-3xl"></i>
-          </div>
-          <h2 class="mt-6 text-3xl font-extrabold">Thank you for your investment!</h2>
-          <p class="mt-2 text-muted">We’ve received your details. We’ll notify you once payment clears.</p>
-
-          <div class="bg-slate-50 rounded-2xl p-6 mt-8 max-w-md mx-auto border border-slate-200">
-            <div class="grid grid-cols-2 gap-y-2 text-sm">
-              <div class="text-muted">Amount</div><div id="confirmationAmount" class="text-right font-semibold">R80,000.00</div>
-              <div class="text-muted">Share Price</div><div class="text-right font-semibold">R1,000.00</div>
-              <div class="text-muted">Shares</div><div id="confirmationShares" class="text-right font-semibold">80</div>
-            </div>
-            <div class="mt-5">
-              <div class="text-sm text-muted">Transaction ID</div>
-              <div id="finalTransactionId" class="mt-1 font-mono tracking-[.35em] text-center text-lg px-3 py-3 rounded-lg bg-white border border-slate-200">INV-ABC123</div>
-            </div>
-            <p class="text-sm text-muted mt-4">Confirmation sent to <span id="confirmationEmail" class="font-semibold">you@example.com</span>.</p>
-          </div>
-
-          <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <button id="downloadPdfBtn2" class="bg-olive text-white rounded-xl px-6 py-3 font-semibold shadow-soft hover:brightness-95">
-              <i class="fa-solid fa-download mr-2"></i> Download PDF Again
-            </button>
-            <button id="resetBtn" class="rounded-xl px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50">
-              <i class="fa-solid fa-home mr-2"></i> Return to Homepage
-            </button>
-          </div>
-        </div>
+      <div class="flex items-center justify-between mt-6">
+        <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
+        <button type="button" id="toComplete" class="rounded-xl px-6 py-3 border border-[var(--line)]">Skip & Finish</button>
       </div>
-    </section>
-  </main>
+    </div>
+  </section>
 
-  <!-- Scripts -->
-  <script nonce="ALGOHIVE">
-    // ---------- State ----------
+  <!-- Step 4: Complete -->
+  <section id="step4" class="max-w-6xl mx-auto px-4 mt-8 hidden">
+    <div class="card p-10 text-center" id="completeCard">
+      <div class="w-24 h-24 rounded-full mx-auto grid place-items-center bg-emerald-100">
+        <i class="fa-solid fa-check text-4xl text-emerald-700"></i>
+      </div>
+      <h2 class="mt-6 text-3xl font-extrabold">Welcome to AlgoHive 🎉</h2>
+      <p class="mt-2 muted">We’ve received your details. We’ll review your POP and activate your dashboard shortly.</p>
+      <div class="mt-8">
+        <a href="/home.html" class="btn-olive inline-flex rounded-xl px-6 py-3 font-semibold">Go to Dashboard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Supabase + App Logic -->
+  <script type="module" nonce="ALGOHIVE">
+    // ======= Supabase init (fill these) =======
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/+esm";
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"; // TODO
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";                // TODO
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ======= State =======
     let currentStep = 1;
     const totalSteps = 4;
-    const sharePrice = 1000;             // R1,000
-    const minInvestment = 80000;         // R80,000
-    const formData = {
-      fullName: '', email: '', idNumber: '', cell: '',
-      address: '', lat: null, lng: null,
-      investmentAmount: minInvestment,
+    const minInvestment = 80000;
+    const sharePrice = 1000;
+
+    const state = {
+      fullName: "",
+      email: "",
+      idNumber: "",
+      phone: "",
+      addressText: "",
+      lat: null,
+      lng: null,
+      amount: minInvestment,
       shares: Math.floor(minInvestment / sharePrice),
-      transactionId: genTxn(),
-      proofFile: null
+      user: null,
+      popPath: null
     };
 
-    // ---------- Init ----------
-    document.addEventListener('DOMContentLoaded', () => {
-      // tabs
-      document.querySelectorAll('[data-step-tab]').forEach(btn => {
-        btn.addEventListener('click', () => goToStep(Number(btn.dataset.stepTab)));
-      });
+    // ======= Auth guard (assumes you use Supabase Auth) =======
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // send to your sign-in; keep simple here
+      // location.href = "/auth.html?tab=in&redirect=" + encodeURIComponent(location.pathname);
+    } else {
+      const me = await supabase.auth.getUser();
+      state.user = me.data.user;
+    }
 
-      // next/prev
-      document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', nextStep));
-      document.querySelectorAll('[data-prev]').forEach(b => b.addEventListener('click', prevStep));
-
-      // inputs
-      byId('investmentAmount').addEventListener('input', updateSummary);
-      byId('proceedBtn').addEventListener('click', validateStep2);
-      byId('downloadPdfBtn').addEventListener('click', () => downloadPDF());
-      byId('downloadPdfBtn2').addEventListener('click', () => downloadPDF());
-      byId('completePaymentBtn').addEventListener('click', showProofUpload);
-      byId('resetBtn').addEventListener('click', resetAll);
-
-      // Proof upload
-      initDropzone();
-
-      // Map + address search
-      initMap();
-
-      // initial
-      updateSummary();
-      updateTabs();
+    // ======= UI bindings =======
+    document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', nextStep));
+    document.querySelectorAll('[data-prev]').forEach(b => b.addEventListener('click', prevStep));
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => gotoStep(Number(btn.dataset.goto)));
     });
 
-    // ---------- Helpers ----------
-    const byId = id => document.getElementById(id);
-    function genTxn(){ return 'INV-' + Math.random().toString(36).substr(2,9).toUpperCase(); }
-
-    function updateProgress(){
-      const pct = (currentStep / totalSteps) * 100;
-      byId('progressBar').style.width = pct + '%';
-    }
-    function updateTabs(){
-      document.querySelectorAll('[data-step-tab]').forEach((btn,i)=>{
-        btn.setAttribute('aria-current', (i+1)===currentStep ? 'step' : 'false');
-      });
-      updateProgress();
-    }
-    function goToStep(k){
-      if(k<1||k>totalSteps) return;
-      for(let i=1;i<=totalSteps;i++){
-        const sec = byId('step'+i);
-        sec.classList.toggle('hidden', i!==k);
-      }
-      currentStep = k; updateTabs();
-    }
-    function nextStep(){ goToStep(currentStep+1); }
-    function prevStep(){ goToStep(currentStep-1); }
-
-    // ---------- Summary calc ----------
-    function updateSummary(){
-      let amt = parseFloat(byId('investmentAmount').value);
-      if (isNaN(amt) || amt < minInvestment){
+    // Details inputs
+    const amtEl = document.getElementById('investmentAmount');
+    amtEl.addEventListener('input', () => {
+      let amt = parseFloat(amtEl.value || "0");
+      if (isNaN(amt) || amt < minInvestment) {
         amt = minInvestment;
-        byId('investmentAmount').value = minInvestment.toFixed(0);
+        amtEl.value = String(minInvestment);
       }
-      const shares = Math.floor(amt / sharePrice);
-      formData.investmentAmount = shares * sharePrice; // round down
-      formData.shares = shares;
+      state.amount = amt;
+      state.shares = Math.floor(amt / sharePrice);
+      document.getElementById('summaryAmount').textContent = `R${amt.toFixed(2)}`;
+      document.getElementById('summaryShares').textContent = state.shares;
+    });
 
-      byId('summaryAmount').textContent = 'R' + formData.investmentAmount.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-      byId('summaryShares').textContent = shares.toLocaleString();
+    document.getElementById('toPayment').addEventListener('click', validateDetails);
+
+    // Payment actions
+    document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+      window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
+    });
+    document.getElementById('uploadPopBtn').addEventListener('click', uploadPOP);
+    document.getElementById('toComplete').addEventListener('click', finishFlow);
+
+    // Stepper visuals
+    function updateStepper(){
+      const pct = (currentStep / totalSteps) * 100;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+      for (let i=1;i<=4;i++){
+        document.getElementById(`s${i}`).classList.toggle('active', i<=currentStep);
+        document.querySelector(`[data-goto="${i}"]`)?.classList.toggle('active', i===currentStep);
+      }
     }
+    function gotoStep(n){
+      if (n<1 || n>totalSteps) return;
+      document.getElementById(`step${currentStep}`).classList.add('hidden');
+      currentStep = n;
+      document.getElementById(`step${currentStep}`).classList.remove('hidden');
+      updateStepper();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function nextStep(){ gotoStep(currentStep+1); }
+    function prevStep(){ gotoStep(currentStep-1); }
 
-    // ---------- Validate step 2 ----------
-    function validateStep2(){
-      const name = byId('fullName').value.trim();
-      const email = byId('email').value.trim();
-      const idNum = byId('idNumber').value.trim();
-      const cell = byId('cell').value.trim();
-      const addrOK = !!byId('addrLine').value;
-
-      // reset
-      ['fullName','email','idNumber','cell','investmentAmount','addressSearch'].forEach(id => byId(id).classList.remove('error'));
-      ['fullNameError','emailError','idError','cellError','amountError','addressError'].forEach(id => byId(id).classList.add('hidden'));
+    // ======= Validate step 2 =======
+    function validateDetails(){
+      const fullName = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const idNumber = document.getElementById('idNumber').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const amt = parseFloat(document.getElementById('investmentAmount').value);
 
       let ok = true;
-      if(!name){ ok=false; byId('fullName').classList.add('error'); byId('fullNameError').classList.remove('hidden'); }
-      if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ ok=false; byId('email').classList.add('error'); byId('emailError').classList.remove('hidden'); }
-      const amt = parseFloat(byId('investmentAmount').value)||0;
-      if(amt < minInvestment){ ok=false; byId('investmentAmount').classList.add('error'); byId('amountError').classList.remove('hidden'); }
-      if(!idNum){ ok=false; byId('idNumber').classList.add('error'); byId('idError').classList.remove('hidden'); }
-      if(!cell){ ok=false; byId('cell').classList.add('error'); byId('cellError').classList.remove('hidden'); }
-      if(!addrOK){ ok=false; byId('addressSearch').classList.add('error'); byId('addressError').classList.remove('hidden'); }
+      const setErr = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
 
-      if(!ok) return;
+      if (!fullName){ setErr('fullNameError', true); ok=false; } else setErr('fullNameError', false);
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ setErr('emailError', true); ok=false; } else setErr('emailError', false);
+      if (!idNumber){ document.getElementById('idError').classList.remove('hidden'); ok=false; } else document.getElementById('idError').classList.add('hidden');
+      if (!phone){ document.getElementById('phoneError').classList.remove('hidden'); ok=false; } else document.getElementById('phoneError').classList.add('hidden');
+      if (!amt || amt < minInvestment){ document.getElementById('amountError').classList.remove('hidden'); ok=false; } else document.getElementById('amountError').classList.add('hidden');
+      if (!state.addressText || state.lat===null || state.lng===null){ alert('Please pick an address on the map.'); ok=false; }
 
-      // store & move
-      formData.fullName = name;
-      formData.email = email;
-      formData.idNumber = idNum;
-      formData.cell = cell;
-      formData.address = byId('addrLine').value;
-      byId('paymentTotal').textContent = 'R' + formData.investmentAmount.toLocaleString();
-      byId('emailRef').textContent = formData.email;
+      if (!ok) return;
+
+      // save to state
+      state.fullName = fullName;
+      state.email = email;
+      state.idNumber = idNumber;
+      state.phone = phone;
+
+      // hydrate payment
+      document.getElementById('paymentTotal').textContent = `R${state.amount.toFixed(2)}`;
+      document.getElementById('emailRef').textContent = state.email || '—';
+
       nextStep();
     }
 
-    // ---------- Bank step: proof upload ----------
-    function showProofUpload(){
-      const wrap = byId('proofWrap');
-      wrap.classList.remove('hidden');
-      wrap.scrollIntoView({behavior:'smooth', block:'start'});
+    // ======= POP upload =======
+    async function uploadPOP(){
+      const file = document.getElementById('popFile').files?.[0];
+      const msg = document.getElementById('popMsg');
+      msg.textContent = '';
+      if (!file) { msg.textContent = 'Please select a PDF first.'; return; }
+      if (file.type !== 'application/pdf'){ msg.textContent = 'PDF only, please.'; return; }
+
+      try {
+        // ensure session
+        let userId = state.user?.id;
+        if (!userId) {
+          const me = await supabase.auth.getUser();
+          userId = me.data.user?.id;
+          if (!userId) throw new Error('Not signed in');
+        }
+
+        const ts = Date.now();
+        const path = `pop/${userId}/pop_${ts}.pdf`;
+
+        msg.textContent = 'Uploading…';
+        const { error: upErr } = await supabase.storage.from('documents').upload(path, file, {
+          upsert: true, contentType: 'application/pdf'
+        });
+        if (upErr) throw upErr;
+
+        // Insert (or upsert) application row
+        const payload = {
+          user_id: userId,
+          full_name: state.fullName,
+          email: state.email,
+          amount: state.amount,
+          share_price: sharePrice,
+          shares: state.shares,
+          id_number: state.idNumber,
+          phone: state.phone,
+          address_text: state.addressText,
+          address_lat: state.lat,
+          address_lng: state.lng,
+          pop_path: path,
+          status: 'received',
+          updated_at: new Date().toISOString()
+        };
+
+        // If you want a single app per user, use upsert on user_id:
+        const { error: dbErr } = await supabase
+          .from('investment_applications')
+          .upsert(payload, { onConflict: 'user_id' });
+        if (dbErr) throw dbErr;
+
+        state.popPath = path;
+        msg.textContent = 'POP uploaded. Thank you!';
+        confetti({ particleCount: 140, spread: 70, origin: { y: 0.6 } });
+      } catch (e) {
+        console.error(e);
+        msg.textContent = e.message || 'Upload failed. Please try again.';
+      }
     }
 
-    function initDropzone(){
-      const dz = byId('dropzone');
-      const fileInput = byId('proofFile');
-      const info = byId('fileInfo');
-      const browse = byId('browseBtn');
-      const uploadBtn = byId('uploadBtn');
-
-      const acceptFile = f => {
-        if(!f) return;
-        if(f.type !== 'application/pdf'){ info.textContent = 'Please upload a PDF.'; uploadBtn.disabled = true; return; }
-        if(f.size > 15 * 1024 * 1024){ info.textContent = 'File is too large (max 15MB).'; uploadBtn.disabled = true; return; }
-        formData.proofFile = f;
-        info.textContent = `Selected: ${f.name} (${(f.size/1024/1024).toFixed(2)} MB)`;
-        uploadBtn.disabled = false;
-      };
-
-      browse.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', () => acceptFile(fileInput.files[0]));
-
-      ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dz.classList.add('dropzone--active'); }));
-      ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); dz.classList.remove('dropzone--active'); }));
-      dz.addEventListener('drop', e => { const f = e.dataTransfer.files?.[0]; acceptFile(f); });
-
-      uploadBtn.addEventListener('click', uploadProof);
+    // ======= Finish =======
+    function finishFlow(){
+      gotoStep(4);
+      setTimeout(() => confetti({ particleCount: 220, spread: 80, origin: { y: 0.6 } }), 250);
     }
 
-    async function uploadProof(){
-      // Hook this to your backend later:
-      // const fd = new FormData(); fd.append('proof', formData.proofFile); await fetch('/api/upload-proof', {method:'POST', body: fd});
-      // For now, pretend success:
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = 'Uploading…';
-      await new Promise(r => setTimeout(r, 900));
-      uploadBtn.textContent = 'Uploaded ✓';
-      // Move to confirmation
-      updateConfirmation();
-      nextStep();
-    }
-
-    // ---------- Confirmation ----------
-    function updateConfirmation(){
-      byId('confirmationAmount').textContent = 'R' + formData.investmentAmount.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-      byId('confirmationShares').textContent = formData.shares.toLocaleString();
-      byId('confirmationEmail').textContent = formData.email;
-      byId('finalTransactionId').textContent = formData.transactionId;
-    }
-
-    // ---------- PDF ----------
-    function downloadPDF(){
-      window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
-    }
-
-    // ---------- Map + address ----------
+    // ======= Leaflet map + search =======
     let map, marker;
     function initMap(){
-      // Wait for Leaflet
-      const ready = () => typeof L !== 'undefined';
-      const retry = setInterval(()=>{
-        if(!ready()) return;
-        clearInterval(retry);
+      map = L.map('map', { zoomControl: true }).setView([-26.2041, 28.0473], 10); // Joburg-ish
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
 
-        map = L.map('map',{ zoomControl:false }).setView([-26.2041, 28.0473], 11); // Joburg default
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(map);
-
-        marker = L.marker(map.getCenter(), { draggable:true }).addTo(map);
-        marker.on('dragend', async () => {
-          const {lat, lng} = marker.getLatLng();
-          byId('addrLat').value = lat; byId('addrLng').value = lng;
-          // reverse geocode (Nominatim)
-          try{
-            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-            const j = await r.json();
-            byId('addressSearch').value = j.display_name || '';
-            byId('addrLine').value = j.display_name || '';
-          } catch {}
-        });
-
-        // search suggest
-        const q = byId('addressSearch');
-        const list = byId('addressList');
-
-        let t; q.addEventListener('input', ()=>{
-          const v = q.value.trim();
-          byId('addrLine').value = ''; // require selection
-          if(t) clearTimeout(t);
-          if(v.length < 3){ list.classList.add('hidden'); list.innerHTML=''; return; }
-          t = setTimeout(async ()=>{
-            try{
-              const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(v)}&countrycodes=za&addressdetails=1&limit=5`);
-              const arr = await r.json();
-              list.innerHTML = arr.map(item => `
-                <button type="button" data-lat="${item.lat}" data-lon="${item.lon}" class="w-full text-left px-3 py-2 hover:bg-slate-100 border-b last:border-0">
-                  ${item.display_name}
-                </button>
-              `).join('');
-              list.classList.toggle('hidden', arr.length===0);
-              list.querySelectorAll('button').forEach(b=>{
-                b.addEventListener('click', ()=>{
-                  const lat = parseFloat(b.dataset.lat), lon = parseFloat(b.dataset.lon);
-                  map.setView([lat,lon], 16); marker.setLatLng([lat,lon]);
-                  q.value = b.textContent.trim();
-                  byId('addrLine').value = q.value; byId('addrLat').value = lat; byId('addrLng').value = lon;
-                  list.classList.add('hidden'); list.innerHTML='';
-                });
-              });
-            }catch{ /* ignore */ }
-          }, 250);
-        });
-      }, 60);
+      map.on('click', async (e) => {
+        setMarker(e.latlng.lat, e.latlng.lng);
+        reverseGeocode(e.latlng.lat, e.latlng.lng);
+      });
     }
-
-    // ---------- Reset ----------
-    function resetAll(){
-      formData.fullName=''; formData.email=''; formData.idNumber=''; formData.cell='';
-      formData.address=''; formData.lat=null; formData.lng=null;
-      formData.investmentAmount=minInvestment; formData.shares=Math.floor(minInvestment/sharePrice);
-      formData.transactionId=genTxn(); formData.proofFile=null;
-
-      byId('fullName').value=''; byId('email').value=''; byId('idNumber').value=''; byId('cell').value='';
-      byId('investmentAmount').value = String(minInvestment);
-      byId('addressSearch').value=''; byId('addrLine').value=''; byId('addrLat').value=''; byId('addrLng').value='';
-      updateSummary();
-      goToStep(1);
-      window.scrollTo({top:0, behavior:'smooth'});
+    function setMarker(lat, lng){
+      state.lat = lat; state.lng = lng;
+      if (!marker) {
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker.on('dragend', () => {
+          const ll = marker.getLatLng();
+          setMarker(ll.lat, ll.lng);
+          reverseGeocode(ll.lat, ll.lng);
+        });
+      } else {
+        marker.setLatLng([lat, lng]);
+      }
     }
+    async function reverseGeocode(lat, lng){
+      try{
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const j = await r.json();
+        const disp = j.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        state.addressText = disp;
+        document.getElementById('addressText').value = disp;
+      }catch{
+        document.getElementById('addressText').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      }
+    }
+    async function searchAddress(q){
+      if (!q || q.length < 3) return;
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&limit=1`);
+      const j = await r.json();
+      if (j?.length){
+        const { lat, lon, display_name } = j[0];
+        const latf = parseFloat(lat), lngf = parseFloat(lon);
+        map.setView([latf, lngf], 15);
+        setMarker(latf, lngf);
+        state.addressText = display_name;
+        document.getElementById('addressText').value = display_name;
+      }
+    }
+    document.getElementById('addrSearch').addEventListener('keydown', e => {
+      if (e.key === 'Enter'){ e.preventDefault(); searchAddress(e.currentTarget.value.trim()); }
+    });
+
+    // kick off
+    initMap();
+    updateStepper();
   </script>
 </body>
 </html>
