@@ -13,503 +13,544 @@
 
   <style>
     :root{
-      --page:#0b1220; --bg:#0a0f1a; --muted:#8a94a7; --ink:#0f172a; --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0;
+      --page:#0b1220; --bg:#0c111a; --panel:#0f1623; --card:#121a28;
+      --ink:#e5e7eb; --muted:#94a3b8; --olive:#7e8d52; --brand:#f59e0b; --line:#253044;
+      --ring: 0 0 0 8px color-mix(in oklab, var(--olive) 20%, transparent);
     }
 
-    /* page backdrop */
-    body{
-      background:
-        radial-gradient(1200px 800px at 10% -10%, rgba(126,141,82,.15), transparent 60%),
-        radial-gradient(1200px 800px at 100% 0%, rgba(255,255,255,.06), transparent 55%),
-        #0b1220;
-      color:#0f172a;
+    /* ====== Base ====== */
+    html,body{ height:100%; background: radial-gradient(1200px 700px at 20% -10%, #172135 0%, transparent 60%),
+                            radial-gradient(1000px 600px at 100% 10%, #192744 0%, transparent 55%),
+                            var(--bg);
+               color:var(--ink); }
+    .container-px{ padding-left:1rem; padding-right:1rem }
+    @media (min-width:640px){ .container-px{ padding-left:1.5rem; padding-right:1.5rem } }
+    @media (min-width:1024px){ .container-px{ padding-left:2rem; padding-right:2rem } }
+
+    /* ====== Glossy bits / Cards ====== */
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      backdrop-filter: saturate(140%) blur(10px);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 40px rgba(2,12,27,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
     }
-
-    /* hide scrollbars, keep scrollable */
-    html, body{ overflow:auto; scrollbar-width:none; -ms-overflow-style:none }
-    html::-webkit-scrollbar, body::-webkit-scrollbar{ display:none }
-
-    /* tokens */
-    .text-ink{ color:var(--ink) }
-    .text-muted{ color:var(--muted) }
-    .border-line{ border-color:var(--line) }
-    .btn-olive{ background:var(--olive); color:#fff }
-    .btn-olive:hover{ filter:brightness(.92) }
-
-    /* glass card */
-    .glass{
-      background:linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,.6));
-      backdrop-filter: blur(10px);
-      border:1px solid rgba(255,255,255,.4);
-      box-shadow: 0 10px 40px rgba(6,12,23,.25);
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(2,12,27,0.25);
     }
+    .ring-olive { box-shadow: var(--ring); }
 
-    /* hero */
-    .hero{
-      background:
-        radial-gradient(1200px 600px at 50% -10%, rgba(126,141,82,.25), transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+    /* ====== Fancy borders ====== */
+    .border-gradient {
+      position: relative; border-radius: 16px; overflow: hidden;
     }
+    .border-gradient:before {
+      content:""; position:absolute; inset:-2px;
+      background: conic-gradient(from 30deg,
+                 color-mix(in oklab, var(--olive) 80%, white) 0%,
+                 transparent 18% 32%,
+                 color-mix(in oklab, var(--olive) 65%, black) 50%,
+                 transparent 68% 82%,
+                 color-mix(in oklab, var(--olive) 80%, white) 100%);
+      filter: blur(8px); opacity:.45;
+    }
+    .border-gradient > * { position:relative; z-index:1 }
 
-    /* steps */
+    /* ====== Buttons / Inputs ====== */
+    .btn-olive{ background:var(--olive); color:white; }
+    .btn-olive:hover{ filter:brightness(.92); transform: translateY(-1px); }
+    .btn-soft{ background: rgba(126,141,82,0.12); color: color-mix(in oklab, var(--olive) 80%, white); border:1px solid rgba(126,141,82,0.3) }
+    .btn-soft:hover{ background: rgba(126,141,82,0.18) }
+
+    .inp {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--ink);
+      transition: .2s ease;
+    }
+    .inp:focus{ outline: none; border-color: color-mix(in oklab, var(--olive) 70%, white); box-shadow: var(--ring) }
+    .inp.error{ border-color:#ef4444; }
+
+    /* Floating labels */
+    .fl { position: relative; }
+    .fl input { padding-top: 1.4rem; }
+    .fl label {
+      position:absolute; top:.6rem; left:.9rem; font-size:.8rem; color:var(--muted);
+      transition: .15s ease;
+    }
+    .fl input:focus + label,
+    .fl input:not(:placeholder-shown)+label { transform: translateY(-.45rem); font-size:.72rem; opacity:.9 }
+
+    /* ====== Stepper ====== */
+    .stepper{ display:flex; align-items:center; gap:.5rem }
     .step-dot{
-      width:36px; height:36px; border-radius:9999px;
-      display:grid; place-items:center; font-weight:700;
-      background:rgba(255,255,255,.75); border:1px solid rgba(255,255,255,.6);
-      color:#0b1220;
+      width:26px;height:26px;border-radius:999px;display:grid;place-items:center;
+      background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:var(--muted); font-weight:700
     }
-    .step-dot.active{ background:var(--olive); color:#fff; border-color:transparent }
-    .step-line{ height:2px; background:rgba(255,255,255,.5) }
-    .step-line.filled{ background:var(--olive) }
+    .step-dot.active{ background: color-mix(in oklab, var(--olive) 18%, transparent); color:white; border-color: color-mix(in oklab, var(--olive) 70%, black) }
+    .step-line{ flex:1;height:2px;background:linear-gradient(90deg, rgba(126,141,82,.5), transparent) }
 
-    /* progress */
-    .progress-track{ height:8px; background:rgba(255,255,255,.2); border-radius:9999px; }
-    .progress-bar{ height:8px; background:var(--olive); border-radius:9999px; transition:width .45s cubic-bezier(.2,.8,.2,1) }
-
-    /* inputs */
-    .field{
-      transition: box-shadow .25s ease, transform .08s ease;
-      border:1px solid #e6e9ef; background:#fbfcfe;
+    /* ====== Blobs ====== */
+    .blob, .blob2 {
+      position: fixed; inset:auto; filter: blur(60px); opacity:.35; pointer-events:none; z-index:0;
+      background: radial-gradient(800px 400px at center, color-mix(in oklab,var(--olive) 55%, #1b283f), transparent 60%);
+      width:800px; height:400px; border-radius:100%;
+      animation: float 18s ease-in-out infinite;
     }
-    .field:focus{
-      outline: none;
-      box-shadow: 0 0 0 4px rgba(126,141,82,.15), 0 8px 24px rgba(6,12,23,.10);
-      transform: translateY(-1px);
-      border-color: var(--olive);
+    .blob{ top:-120px; left:-160px; }
+    .blob2{ bottom:-140px; right:-220px; animation-delay: -6s; }
+    @keyframes float{
+      0%,100%{ transform:translate3d(0,0,0) rotate(0deg) }
+      50%{ transform:translate3d(30px,10px,0) rotate(2deg) }
     }
-    .error-message{ color:#ef4444; font-size:.875rem; margin-top:.25rem }
-    .error-input{ border-color:#ef4444 !important; box-shadow:0 0 0 3px rgba(239,68,68,.15) }
 
-    /* cards hover */
-    .feature-card{ transition: transform .25s ease, box-shadow .25s ease }
-    .feature-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(6,12,23,.18) }
+    /* ====== Toast/Loaders ====== */
+    .success-toast{
+      position:fixed; bottom:22px; right:22px; background:#10b981; color:#fff; padding:14px 16px; border-radius:10px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25); display:flex; align-items:center; z-index:50; animation: slideIn .3s ease-out
+    }
+    @keyframes slideIn{ from{ transform:translateX(100%) } to{ transform:translateX(0) } }
+    .loading-spinner{ border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top:3px solid #fff; width:20px;height:20px; animation:spin 1s linear infinite; margin-right:8px }
+    @keyframes spin{ to{ transform:rotate(360deg) } }
 
-    /* summary */
-    .summary-row{ display:flex; justify-content:space-between; margin-bottom:.5rem }
-    .summary-label{ font-weight:600; color:#4b5563 }
-    .summary-value{ font-weight:800; color:var(--olive) }
-    .premium-badge{ background:var(--brand); color:#fff; padding:.25rem .5rem; border-radius:.375rem; font-size:.75rem; font-weight:700; margin-left:.5rem }
-
-    /* toast */
-    .success-toast{ position:fixed; bottom:20px; right:20px; background:#10b981; color:#fff; padding:14px 16px; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,.2); display:flex; align-items:center; gap:8px; z-index:1000; animation:slideIn .25s ease-out }
-    @keyframes slideIn{ from{ transform:translateX(18px); opacity:.4 } to{ transform:translateX(0); opacity:1 } }
-
-    /* loader */
-    .loading-spinner{ border:3px solid rgba(255,255,255,.35); border-radius:9999px; border-top:3px solid #fff; width:20px; height:20px; animation:spin 1s linear infinite }
-    @keyframes spin{ to{ transform: rotate(360deg) } }
-
-    /* step container visibility */
-    .form-step{ display:none }
-    .form-step.active{ display:block; animation:fadeIn .45s ease }
-    @keyframes fadeIn{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
-
-    /* doc link */
-    .document-link{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace }
+    /* Utility tweaks */
+    .muted{ color:var(--muted) }
+    .ink{ color:var(--ink) }
+    .divider{ height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent) }
+    .shadow-elev { box-shadow: 0 20px 60px rgba(1,10,23,0.35) }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <!-- Top nav -->
-  <header class="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/80 border-b border-white/60">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <!-- Animated ambient blobs -->
+  <div class="blob"></div>
+  <div class="blob2"></div>
+
+  <!-- Top Nav -->
+  <header class="glass">
+    <div class="max-w-7xl mx-auto h-16 flex items-center justify-between container-px">
       <div class="flex items-center gap-3">
-        <img src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive" class="w-8 h-8">
-        <span class="text-white/90 font-semibold tracking-tight">AlgoHive Investor Portal</span>
+        <img class="w-8 h-8" alt="AlgoHive" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg"/>
+        <div class="font-semibold tracking-tight ink">AlgoHive Investor Portal</div>
       </div>
-      <div class="hidden md:flex items-center gap-2">
-        <span class="px-2 py-1 rounded bg-white/10 text-white/80 text-xs border border-white/20">Secure</span>
-      </div>
-    </div>
-
-    <!-- Global progress -->
-    <div class="px-4 sm:px-6 lg:px-8 pb-3">
-      <div class="max-w-7xl mx-auto">
-        <div class="progress-track">
-          <div id="progressBar" class="progress-bar" style="width:25%"></div>
-        </div>
+      <div class="hidden sm:flex items-center gap-2 text-sm">
+        <span class="muted">Secure •</span>
+        <span class="muted">Bank-verified •</span>
+        <span class="muted">No hidden fees</span>
       </div>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <!-- Stepper -->
-      <div class="glass rounded-2xl p-5 md:p-6 mb-8">
-        <div class="flex items-center gap-3 md:gap-4">
-          <div id="dot1" class="step-dot active">1</div>
-          <div id="line1" class="step-line flex-1"></div>
-          <div id="dot2" class="step-dot">2</div>
-          <div id="line2" class="step-line flex-1"></div>
-          <div id="dot3" class="step-dot">3</div>
-          <div id="line3" class="step-line flex-1"></div>
-          <div id="dot4" class="step-dot">4</div>
-        </div>
+  <!-- Progress + Stepper -->
+  <div class="max-w-5xl mx-auto container-px mt-8">
+    <div class="glass rounded-2xl p-4">
+      <div class="stepper">
+        <div id="s1" class="step-dot active">1</div><div class="step-line"></div>
+        <div id="s2" class="step-dot">2</div><div class="step-line"></div>
+        <div id="s3" class="step-dot">3</div><div class="step-line"></div>
+        <div id="s4" class="step-dot">4</div>
       </div>
-
-      <!-- Step 1 -->
-      <div id="step1" class="form-step active">
-        <div class="grid lg:grid-cols-2 gap-6">
-          <div class="glass rounded-2xl p-8 md:p-10">
-            <div class="w-20 h-20 rounded-2xl grid place-items-center mb-6"
-                 style="background: color-mix(in oklab, var(--olive) 18%, white);">
-              <i class="fas fa-seedling text-white text-3xl"></i>
-            </div>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-5 leading-tight">
-              Invest in <span class="text-[var(--olive)]">AlgoHive</span>
-            </h1>
-            <p class="text-white/80 text-lg leading-relaxed">
-              Thanks for choosing to invest. A few quick steps to confirm your details, sign, and get payment instructions.
-            </p>
-
-            <div class="mt-8 flex flex-wrap items-center gap-3">
-              <button data-next class="btn-olive px-6 py-3 rounded-xl font-semibold shadow-lg shadow-[rgba(126,141,82,.25)] hover:shadow-[rgba(126,141,82,.35)] transition">
-                Get Started <i class="fas fa-arrow-right ml-2"></i>
-              </button>
-              <span class="text-white/60 text-sm">Secure &amp; encrypted • ~4 mins</span>
-            </div>
-          </div>
-
-          <div class="grid gap-6">
-            <div class="feature-card glass rounded-2xl p-6">
-              <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-lg bg-white/70 grid place-items-center">
-                  <i class="fas fa-shield-alt text-[var(--olive)]"></i>
-                </div>
-                <div>
-                  <div class="text-white font-semibold">Bank-grade security</div>
-                  <div class="text-white/70 text-sm mt-1">Your data and funds are protected with strict controls.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="feature-card glass rounded-2xl p-6">
-              <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-lg bg-white/70 grid place-items-center">
-                  <i class="fas fa-chart-line text-[var(--olive)]"></i>
-                </div>
-                <div>
-                  <div class="text-white font-semibold">Proven strategies</div>
-                  <div class="text-white/70 text-sm mt-1">Access track records and performance transparently.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="feature-card glass rounded-2xl p-6">
-              <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-lg bg-white/70 grid place-items-center">
-                  <i class="fas fa-headset text-[var(--olive)]"></i>
-                </div>
-                <div>
-                  <div class="text-white font-semibold">Human support</div>
-                  <div class="text-white/70 text-sm mt-1">Investor relations on standby if you need a hand.</div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
+      <div class="mt-3 h-1 w-full bg-[#22304a] rounded">
+        <div id="progressBar" class="h-1 rounded bg-[var(--olive)]" style="width:25%"></div>
       </div>
+    </div>
+  </div>
 
-      <!-- Step 2 -->
-      <div id="step2" class="form-step">
-        <div class="glass rounded-2xl p-8 md:p-10">
-          <div class="flex items-center justify-between gap-3">
-            <h2 class="text-2xl md:text-3xl font-bold text-white">Investment Details</h2>
-            <span class="px-3 py-1 rounded-lg bg-white/20 text-white text-xs border border-white/25">Step 2 of 4</span>
+  <!-- Step 1 -->
+  <section id="step1" class="max-w-6xl mx-auto container-px mt-10 form-step active">
+    <div class="grid lg:grid-cols-2 gap-8 items-center">
+      <!-- Left: Hero -->
+      <div class="border-gradient">
+        <div class="card rounded-2xl p-10">
+          <div class="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-[color-mix(in_oklab,var(--olive) 18%,transparent)] border border-[color-mix(in_oklab,var(--olive) 50%,#0f172a)] text-sm">
+            <i class="fa-solid fa-seedling"></i> Welcome to AlgoHive’s future
           </div>
-
-          <form id="investmentForm" class="mt-8 grid gap-6">
-            <div class="grid md:grid-cols-2 gap-6">
-              <div>
-                <label class="text-white/80 text-sm font-medium mb-2 block">Full Name <span class="text-rose-400">*</span></label>
-                <input id="fullName" type="text" placeholder="John Smith" class="field w-full rounded-xl px-4 py-3"/>
-                <div id="fullNameError" class="error-message hidden">Please enter your full name</div>
-              </div>
-              <div>
-                <label class="text-white/80 text-sm font-medium mb-2 block">Email Address <span class="text-rose-400">*</span></label>
-                <input id="email" type="email" placeholder="john@example.com" class="field w-full rounded-xl px-4 py-3"/>
-                <div id="emailError" class="error-message hidden">Please enter a valid email address</div>
-              </div>
-            </div>
-
+          <h1 class="mt-5 text-4xl md:text-5xl font-extrabold leading-tight">
+            Invest in the <span class="text-[var(--olive)]">hive</span> that’s building better portfolios.
+          </h1>
+          <p class="mt-4 text-lg muted">
+            Join as a shareholder and partner in our growth journey. Clean process, clear docs, bank-grade security.
+          </p>
+          <div class="mt-8 flex gap-3">
+            <button data-next class="btn-olive rounded-xl px-6 py-3 font-semibold shadow-elev transition-transform">
+              Get Started <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+            <a href="#" class="btn-soft rounded-xl px-6 py-3 font-semibold">
+              Learn More
+            </a>
+          </div>
+          <div class="mt-8 divider"></div>
+          <div class="mt-5 grid grid-cols-3 gap-4 text-center">
             <div>
-              <label class="text-white/80 text-sm font-medium mb-2 block">Investment Amount (ZAR) <span class="text-rose-400">*</span></label>
-              <div class="flex">
-                <span class="rounded-l-xl bg-white/70 text-ink px-4 grid place-items-center border border-r-0 border-white/70">R</span>
-                <input id="investmentAmount" type="number" min="300000" step="300000" value="300000" class="field rounded-r-xl w-full px-4 py-3"/>
-              </div>
-              <div id="amountError" class="error-message hidden">Minimum investment is R4.12</div>
-              <p class="text-white/70 text-sm mt-2">Current share price: <span class="font-semibold text-white">R4.12</span> per share</p>
+              <div class="text-2xl font-bold">R0</div>
+              <div class="muted text-sm">AUM fees</div>
             </div>
-
-            <div class="rounded-2xl bg-white/60 p-5 border border-white/70">
-              <div class="text-white font-semibold text-lg mb-3">Investment Summary</div>
-              <div class="summary-row"><span class="summary-label text-white/80">Investment Amount:</span><span id="summaryAmount" class="summary-value">R4.12</span></div>
-              <div class="summary-row"><span class="summary-label text-white/80">Number of Shares:</span><span id="summaryShares" class="summary-value">1</span></div>
-              <div class="summary-row"><span class="summary-label text-white/80">Risk Premium Shares:</span><span id="summaryPremiumShares" class="summary-value">70,929 <span class="premium-badge">FREE</span></span></div>
-              <div class="summary-row"><span class="summary-label text-white/80">Total Shares:</span><span id="summaryTotalShares" class="summary-value">70,930</span></div>
-              <div class="summary-row"><span class="summary-label text-white/80">Share Price:</span><span class="summary-value">R4.12</span></div>
+            <div>
+              <div class="text-2xl font-bold">Bank</div>
+              <div class="muted text-sm">integrations</div>
             </div>
-
-            <div class="rounded-2xl bg-white/60 p-5 border border-white/70">
-              <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-lg bg-[var(--olive)]/20 text-[var(--olive)] grid place-items-center">
-                  <i class="fas fa-file-signature"></i>
-                </div>
-                <h3 class="text-white font-semibold text-lg">Document Signing</h3>
-              </div>
-
-              <div class="rounded-lg border border-emerald-200/60 bg-emerald-50/70 p-4 mb-4">
-                <div class="text-emerald-900 font-medium">How to sign:</div>
-                <ul class="mt-2 text-emerald-900/90 text-sm space-y-1">
-                  <li>Copy the DocuSeal link</li>
-                  <li>Open it in a new tab</li>
-                  <li>Complete all signatures</li>
-                  <li>Return here and confirm</li>
-                </ul>
-              </div>
-
-              <div class="flex items-stretch">
-                <div id="documentLink" class="document-link flex-1 bg-white/80 border border-white/70 rounded-l-lg px-3 py-2 overflow-hidden text-ellipsis whitespace-nowrap">
-                  https://docuseal.com/s/ZpCdfN4CnyQQrU
-                </div>
-                <button type="button" id="copyLinkButton" class="btn-olive rounded-r-lg px-4 text-sm font-semibold">
-                  <i class="fas fa-copy mr-2"></i> Copy
-                </button>
-              </div>
-
-              <div class="mt-4 flex items-start gap-3">
-                <input id="docConfirmation" type="checkbox" class="mt-1 h-4 w-4 rounded border-white/70 text-[var(--olive)] focus:ring-[var(--olive)]"/>
-                <div>
-                  <label for="docConfirmation" class="text-white font-medium">I confirm I’ve completed signing the Investment Agreements</label>
-                  <p class="text-white/70 text-sm">Please complete signing before proceeding</p>
-                </div>
-              </div>
-              <div id="docError" class="error-message hidden mt-2">You must confirm the documents to proceed</div>
+            <div>
+              <div class="text-2xl font-bold">24/7</div>
+              <div class="muted text-sm">Support</div>
             </div>
-
-            <div class="flex items-center justify-between pt-2">
-              <button type="button" data-prev class="px-5 py-3 rounded-xl font-semibold bg-white/20 text-white hover:bg-white/30 border border-white/30 transition">
-                <i class="fas fa-arrow-left mr-2"></i> Back
-              </button>
-              <button type="button" id="proceedBtn" class="btn-olive px-6 py-3 rounded-xl font-semibold shadow-lg shadow-[rgba(126,141,82,.25)] hover:shadow-[rgba(126,141,82,.35)] transition">
-                Proceed to Payment <i class="fas fa-arrow-right ml-2"></i>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Step 3 -->
-      <div id="step3" class="form-step">
-        <div class="glass rounded-2xl p-8 md:p-10">
-          <div class="flex items-center justify-between gap-3">
-            <h2 class="text-2xl md:text-3xl font-bold text-white">Bank Transfer Details</h2>
-            <span class="px-3 py-1 rounded-lg bg-white/20 text-white text-xs border border-white/25">Step 3 of 4</span>
-          </div>
-
-          <div class="mt-6 rounded-2xl bg-white/60 p-6 border border-white/70">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <span class="text-ink font-semibold">Total Amount Due</span>
-              <span id="paymentTotal" class="text-3xl font-extrabold text-[var(--olive)]">R300,000</span>
-            </div>
-          </div>
-
-          <div class="grid md:grid-cols-2 gap-6 mt-8">
-            <div class="rounded-2xl bg-white/60 p-6 border border-white/70">
-              <h3 class="text-ink font-semibold text-lg mb-4">Bank Transfer Instructions</h3>
-              <div class="space-y-3">
-                <div class="flex items-center justify-between"><span class="text-muted text-sm">Bank Name</span><span class="text-ink font-semibold">Capitec Bank</span></div>
-                <div class="flex items-center justify-between"><span class="text-muted text-sm">Account Name</span><span class="text-ink font-semibold">AlgoHive Business Account</span></div>
-                <div class="flex items-center justify-between"><span class="text-muted text-sm">Account Number</span><span class="text-ink font-semibold">1053 0458 83</span></div>
-                <div class="flex items-center justify-between"><span class="text-muted text-sm">Branch Code</span><span class="text-ink font-semibold">470010</span></div>
-                <div class="flex items-center justify-between"><span class="text-muted text-sm">Reference</span><span id="bankReference" class="text-ink font-semibold">INV-<span id="emailRef">[Your Email]</span></span></div>
-              </div>
-              <p class="text-muted text-sm mt-4">Use the reference above. EFTs typically clear in 1–2 business days.</p>
-
-              <button id="downloadPdfBtn" class="mt-6 w-full btn-olive px-5 py-3 rounded-xl font-semibold shadow hover:shadow-lg transition">
-                <i class="fas fa-download mr-2"></i> Download Bank Confirmation PDF
-              </button>
-            </div>
-
-            <div class="rounded-2xl bg-white/40 p-6 border border-white/60">
-              <div class="h-full rounded-xl border border-dashed border-white/60 bg-gradient-to-br from-white/30 to-white/10 p-6 flex flex-col items-start justify-between">
-                <div>
-                  <div class="text-ink font-semibold mb-1">What happens next?</div>
-                  <p class="text-muted text-sm">We’ll verify your payment and email a receipt. You’ll get access within 24 hours of clearance.</p>
-                </div>
-                <div class="mt-6 flex gap-3 w-full">
-                  <button type="button" data-prev class="flex-1 px-5 py-3 rounded-xl font-semibold bg-white/50 text-ink hover:bg-white/70 transition">
-                    <i class="fas fa-arrow-left mr-2"></i> Back
-                  </button>
-                  <button type="button" id="completePaymentBtn" class="flex-1 btn-olive px-5 py-3 rounded-xl font-semibold shadow hover:shadow-lg transition">
-                    I’ve Completed Payment <i class="fas fa-check ml-2"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Step 4 -->
-      <div id="step4" class="form-step">
-        <div class="glass rounded-2xl p-8 md:p-10">
-          <div class="text-center max-w-2xl mx-auto">
-            <div class="w-24 h-24 rounded-full bg-emerald-100 grid place-items-center mx-auto mb-6">
-              <i class="fas fa-check text-emerald-600 text-4xl"></i>
-            </div>
-            <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-3">Thank You for Your Investment!</h2>
-            <p class="text-white/80 text-lg">
-              Your investment of <span id="confirmationAmount" class="font-bold text-[var(--olive)]">R4.12</span> for
-              <span id="confirmationShares" class="font-bold text-[var(--olive)]">1</span> shares plus
-              <span id="confirmationPremiumShares" class="font-bold text-[var(--olive)]">70,929</span> Risk Premium shares has been received.
-            </p>
-            <p class="text-white mt-2">Total shares: <span id="confirmationTotalShares" class="font-extrabold text-[var(--olive)]">70,930</span></p>
-
-            <div class="mt-8 rounded-2xl bg-white/70 p-6 border border-white/80">
-              <div class="text-ink font-semibold mb-2">Your Transaction ID</div>
-              <div id="finalTransactionId" class="document-link text-center text-xl bg-white/80 border border-white/80 rounded-lg px-4 py-3">INV-ABC123</div>
-              <p class="text-muted text-sm mt-2">Keep this ID for your records.</p>
-            </div>
-
-            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button id="downloadPdfBtn2" class="btn-olive px-5 py-3 rounded-xl font-semibold shadow hover:shadow-lg transition">
-                <i class="fas fa-download mr-2"></i> Download PDF Again
-              </button>
-              <button id="resetBtn" class="px-5 py-3 rounded-xl font-semibold bg-white/20 text-white hover:bg-white/30 border border-white/25 transition">
-                <i class="fas fa-home mr-2"></i> Return to Homepage
-              </button>
-            </div>
-
-            <div class="mt-10 grid md:grid-cols-3 gap-5 text-left">
-              <div class="rounded-xl bg-white/50 p-4 border border-white/70">
-                <div class="text-ink font-semibold">Payment Processing</div>
-                <p class="text-muted text-sm mt-1">We’ll confirm once funds clear (1–2 business days).</p>
-              </div>
-              <div class="rounded-xl bg-white/50 p-4 border border-white/70">
-                <div class="text-ink font-semibold">Welcome Pack</div>
-                <p class="text-muted text-sm mt-1">Credentials and portal access sent via email.</p>
-              </div>
-              <div class="rounded-xl bg-white/50 p-4 border border-white/70">
-                <div class="text-ink font-semibold">Quarterly Updates</div>
-                <p class="text-muted text-sm mt-1">We’ll keep you posted on progress and metrics.</p>
-              </div>
-            </div>
-
           </div>
         </div>
       </div>
 
+      <!-- Right: Features -->
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div class="card rounded-2xl p-6 hover:translate-y-[-2px] transition">
+          <div class="w-12 h-12 rounded-xl bg-[var(--olive)]/15 border border-[var(--olive)]/20 grid place-items-center">
+            <i class="fa-solid fa-shield-halved text-[var(--olive)]"></i>
+          </div>
+          <div class="mt-3 font-semibold">Secure Process</div>
+          <p class="muted text-sm mt-1">Bank-grade security for all transactions and investor data protection.</p>
+        </div>
+        <div class="card rounded-2xl p-6 hover:translate-y-[-2px] transition">
+          <div class="w-12 h-12 rounded-xl bg-[var(--olive)]/15 border border-[var(--olive)]/20 grid place-items-center">
+            <i class="fa-solid fa-chart-line text-[var(--olive)]"></i>
+          </div>
+          <div class="mt-3 font-semibold">Proven Performance</div>
+          <p class="muted text-sm mt-1">Consistent returns with our listed investment strategies.</p>
+        </div>
+        <div class="card rounded-2xl p-6 hover:translate-y-[-2px] transition">
+          <div class="w-12 h-12 rounded-xl bg-[var(--olive)]/15 border border-[var(--olive)]/20 grid place-items-center">
+            <i class="fa-solid fa-headset text-[var(--olive)]"></i>
+          </div>
+          <div class="mt-3 font-semibold">Dedicated Support</div>
+          <p class="muted text-sm mt-1">Get help from a real human, not a maze.</p>
+        </div>
+        <div class="card rounded-2xl p-6 hover:translate-y-[-2px] transition">
+          <div class="w-12 h-12 rounded-xl bg-[var(--olive)]/15 border border-[var(--olive)]/20 grid place-items-center">
+            <i class="fa-solid fa-lock text-[var(--olive)]"></i>
+          </div>
+          <div class="mt-3 font-semibold">Transparent</div>
+          <p class="muted text-sm mt-1">Clear fees, clear docs, clear next steps.</p>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- JS (CSP-safe) -->
-  <script nonce="ALGOHIVE">
-    // steps
-    let currentStep = 1; const totalSteps = 4;
-    const sharePrice = 4.12, riskPremiumShares = 70929;
+  <!-- Step 2 -->
+  <section id="step2" class="max-w-4xl mx-auto container-px mt-10 form-step">
+    <div class="border-gradient">
+      <div class="card rounded-2xl p-6 sm:p-10">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold">Investment Details</h2>
+            <p class="muted mt-1">Complete your investment application below</p>
+          </div>
+          <div class="hidden sm:flex items-center gap-2 text-xs">
+            <span class="px-2 py-1 rounded-md bg-[var(--olive)]/15 border border-[var(--olive)]/25 text-[var(--olive)]">Secure</span>
+            <span class="px-2 py-1 rounded-md bg-white/5 border border-white/10 muted">~5–7 min</span>
+          </div>
+        </div>
 
-    // state
+        <form id="investmentForm" class="mt-8 grid gap-6">
+          <div class="grid sm:grid-cols-2 gap-5">
+            <div class="fl">
+              <input id="fullName" placeholder=" " class="inp rounded-xl w-full px-4 py-3" type="text" required>
+              <label for="fullName">Full Name *</label>
+              <div id="fullNameError" class="hidden text-sm mt-1" style="color:#ef4444">Please enter your full name</div>
+            </div>
+            <div class="fl">
+              <input id="email" placeholder=" " class="inp rounded-xl w-full px-4 py-3" type="email" required>
+              <label for="email">Email Address *</label>
+              <div id="emailError" class="hidden text-sm mt-1" style="color:#ef4444">Please enter a valid email</div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-[320px,1fr] gap-6 items-start">
+            <div>
+              <label class="block text-sm muted mb-2">Investment Amount (ZAR) *</label>
+              <div class="flex">
+                <span class="px-4 py-3 rounded-l-xl bg-white/5 border border-white/10">R</span>
+                <input id="investmentAmount" class="inp rounded-r-xl w-full px-4 py-3" type="number" min="300000" step="300000" value="300000" required>
+              </div>
+              <div id="amountError" class="hidden text-sm mt-2" style="color:#ef4444">Minimum investment is R4.12</div>
+              <p class="text-xs muted mt-2">Current share price: <span class="font-semibold">R4.12</span> / share</p>
+            </div>
+
+            <div class="glass rounded-2xl p-5">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Investment Summary</h3>
+                <span class="px-2 py-1 text-xs rounded bg-[var(--olive)]/15 border border-[var(--olive)]/25 text-[var(--olive)]">Live</span>
+              </div>
+              <div class="mt-4 grid grid-cols-2 gap-y-2 text-sm">
+                <div class="muted">Investment Amount</div><div id="summaryAmount" class="text-right font-semibold text-[var(--olive)]">R4.12</div>
+                <div class="muted">Number of Shares</div><div id="summaryShares" class="text-right font-semibold">1</div>
+                <div class="muted">Risk Premium Shares</div>
+                <div class="text-right font-semibold text-[var(--olive)]">
+                  70,929 <span class="ml-1 align-[2px] px-1.5 py-0.5 text-[10px] rounded bg-[var(--brand)] text-black font-bold">FREE</span>
+                </div>
+                <div class="muted">Total Shares</div><div id="summaryTotalShares" class="text-right font-semibold">70,930</div>
+                <div class="muted">Share Price</div><div class="text-right font-semibold">R4.12</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="grid md:grid-cols-[1fr] gap-6">
+            <div>
+              <h3 class="text-xl font-bold">Document Signing</h3>
+              <p class="muted mt-1">Sign your investment agreement via DocuSeal</p>
+
+              <div class="mt-4 glass rounded-2xl p-5">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-lg bg-[var(--olive)]/20 border border-[var(--olive)]/30 grid place-items-center">
+                    <i class="fa-solid fa-file-signature text-[var(--olive)]"></i>
+                  </div>
+                  <div class="font-medium">Sign Investment Agreement</div>
+                </div>
+                <p class="muted text-sm mt-2">Copy the link below, sign in a new tab, then tick confirmation.</p>
+
+                <div class="mt-3 flex">
+                  <div id="documentLink" class="flex-1 px-3 py-2 rounded-l-xl bg-white/5 border border-white/10 font-mono text-sm overflow-x-auto">
+                    https://docuseal.com/s/ZpCdfN4CnyQQrU
+                  </div>
+                  <button type="button" class="btn-olive px-4 rounded-r-xl font-semibold" id="copyLinkButton">
+                    <i class="fa-solid fa-copy mr-2"></i>Copy
+                  </button>
+                </div>
+
+                <div class="mt-5 flex gap-3 items-start">
+                  <input id="docConfirmation" type="checkbox" class="mt-1.5 w-4 h-4 rounded border-white/20 bg-white/5 focus-visible:outline-none focus:ring-0">
+                  <div class="text-sm">
+                    <label for="docConfirmation" class="font-medium">I confirm I have completed the signing</label>
+                    <p class="muted">Please complete the signing process before proceeding</p>
+                    <div id="docError" class="hidden text-sm mt-2" style="color:#ef4444">You must confirm the documents to proceed</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button type="button" data-prev class="rounded-xl px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/7 transition">
+              <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+            <button type="button" id="proceedBtn" class="btn-olive rounded-xl px-6 py-3 font-semibold shadow-elev transition">
+              Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section id="step3" class="max-w-4xl mx-auto container-px mt-10 form-step">
+    <div class="border-gradient">
+      <div class="card rounded-2xl p-6 sm:p-10">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-2xl font-bold">Bank Transfer Details</h2>
+            <p class="muted">Complete your investment via bank transfer</p>
+          </div>
+          <div class="text-right">
+            <div class="text-sm muted">Total Amount</div>
+            <div id="paymentTotal" class="text-2xl font-extrabold text-[var(--olive)]">R300,000</div>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-6 mt-6">
+          <div class="grid sm:grid-cols-2 gap-6">
+            <div><div class="muted text-xs mb-1">Bank Name</div><div class="font-semibold">Capitec Bank</div></div>
+            <div><div class="muted text-xs mb-1">Account Name</div><div class="font-semibold">AlgoHive Business Account</div></div>
+            <div><div class="muted text-xs mb-1">Account Number</div><div class="font-semibold">1053 0458 83</div></div>
+            <div><div class="muted text-xs mb-1">Branch Code</div><div class="font-semibold">470010</div></div>
+            <div class="sm:col-span-2"><div class="muted text-xs mb-1">Reference</div><div class="font-semibold">INV-<span id="emailRef">[Your Full Name]</span></div></div>
+          </div>
+          <p class="muted text-sm mt-3">Use the reference above. EFTs typically clear in 1–2 business days.</p>
+        </div>
+
+        <button id="downloadPdfBtn" class="mt-6 w-full btn-olive rounded-xl px-4 py-3 font-semibold shadow-elev">
+          <i class="fa-solid fa-download mr-2"></i> Download Bank Confirmation PDF
+        </button>
+
+        <div class="flex items-center justify-between mt-8">
+          <button type="button" data-prev class="rounded-xl px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/7 transition">
+            <i class="fa-solid fa-arrow-left mr-2"></i> Back
+          </button>
+          <button type="button" id="completePaymentBtn" class="btn-olive rounded-xl px-6 py-3 font-semibold shadow-elev">
+            I've Completed Payment <i class="fa-solid fa-check ml-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 4 -->
+  <section id="step4" class="max-w-4xl mx-auto container-px mt-10 form-step">
+    <div class="border-gradient">
+      <div class="card rounded-2xl p-6 sm:p-10">
+        <div class="text-center">
+          <div class="w-24 h-24 mx-auto rounded-full grid place-items-center" style="background: color-mix(in oklab, var(--olive) 20%, transparent); border:1px solid color-mix(in oklab, var(--olive) 60%, #0f172a)">
+            <i class="fa-solid fa-check text-4xl"></i>
+          </div>
+          <h2 class="mt-6 text-3xl font-extrabold">Thank you for your investment!</h2>
+          <p class="mt-2 muted">We’ve received your details and payment confirmation.</p>
+
+          <div class="glass rounded-2xl p-6 mt-8 max-w-md mx-auto">
+            <div class="grid grid-cols-2 gap-y-2 text-sm">
+              <div class="muted">Amount</div><div id="confirmationAmount" class="text-right font-semibold text-[var(--olive)]">R4.12</div>
+              <div class="muted">Shares</div><div id="confirmationShares" class="text-right font-semibold">1</div>
+              <div class="muted">Risk Premium</div><div id="confirmationPremiumShares" class="text-right font-semibold text-[var(--olive)]">70,929</div>
+              <div class="muted">Total</div><div id="confirmationTotalShares" class="text-right font-semibold">70,930</div>
+            </div>
+            <div class="mt-5">
+              <div class="text-sm muted">Transaction ID</div>
+              <div id="finalTransactionId" class="mt-1 font-mono tracking-[.35em] text-center text-lg px-3 py-3 rounded-lg bg-white/5 border border-white/10">INV-ABC123</div>
+            </div>
+            <p class="text-sm muted mt-4">Confirmation sent to <span id="confirmationEmail" class="font-semibold">john@example.com</span>. Dashboard activates within 24 hours post clearance.</p>
+          </div>
+
+          <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+            <button id="downloadPdfBtn2" class="btn-olive rounded-xl px-6 py-3 font-semibold shadow-elev">
+              <i class="fa-solid fa-download mr-2"></i> Download PDF Again
+            </button>
+            <button id="resetBtn" class="rounded-xl px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/7">
+              <i class="fa-solid fa-home mr-2"></i> Return to Homepage
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-10 divider"></div>
+
+        <div class="mt-6 grid sm:grid-cols-3 gap-4">
+          <div class="glass rounded-xl p-4">
+            <div class="text-sm muted">Next</div>
+            <div class="font-semibold mt-1">Payment Processing</div>
+            <p class="muted text-sm mt-1">We’ll notify you once your payment has cleared (1–2 days).</p>
+          </div>
+          <div class="glass rounded-xl p-4">
+            <div class="text-sm muted">Then</div>
+            <div class="font-semibold mt-1">Welcome Pack</div>
+            <p class="muted text-sm mt-1">We’ll email your investor credentials and portal access.</p>
+          </div>
+          <div class="glass rounded-xl p-4">
+            <div class="text-sm muted">Ongoing</div>
+            <div class="font-semibold mt-1">Quarterly Updates</div>
+            <p class="muted text-sm mt-1">We share regular performance and portfolio insights.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logic -->
+  <script nonce="ALGOHIVE">
+    // State
+    let currentStep = 1;
+    const totalSteps = 4;
+    const sharePrice = 4.12;
+    const riskPremiumShares = 70929;
+
     const formData = {
-      fullName: '', email: '', investmentAmount: sharePrice,
-      shares: 1, totalShares: 1 + riskPremiumShares,
-      transactionId: genId(), documentsConfirmed: false
+      fullName: '',
+      email: '',
+      investmentAmount: sharePrice,
+      shares: 1,
+      totalShares: 1 + riskPremiumShares,
+      transactionId: generateTransactionId(),
+      documentsConfirmed: false
     };
 
+    // Init
     document.addEventListener('DOMContentLoaded', () => {
-      // bind nav
+      // nav bindings
       document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', nextStep));
       document.querySelectorAll('[data-prev]').forEach(b => b.addEventListener('click', prevStep));
 
-      // bind form
-      byId('investmentAmount').addEventListener('input', updateInvestmentSummary);
-      byId('docConfirmation').addEventListener('change', function(){ formData.documentsConfirmed = this.checked; });
-      byId('proceedBtn').addEventListener('click', validateForm);
-      byId('copyLinkButton').addEventListener('click', copyDocumentLink);
-      byId('downloadPdfBtn').addEventListener('click', () => generatePDF(byId('downloadPdfBtn')));
-      byId('downloadPdfBtn2').addEventListener('click', () => generatePDF(byId('downloadPdfBtn2')));
-      byId('completePaymentBtn').addEventListener('click', () => completeBankPayment(byId('completePaymentBtn')));
-      byId('resetBtn').addEventListener('click', resetForm);
+      // form bindings
+      document.getElementById('investmentAmount').addEventListener('input', updateInvestmentSummary);
+      document.getElementById('docConfirmation').addEventListener('change', function(){ formData.documentsConfirmed = this.checked; });
+      document.getElementById('proceedBtn').addEventListener('click', validateForm);
+      document.getElementById('copyLinkButton').addEventListener('click', copyDocumentLink);
+      document.getElementById('downloadPdfBtn').addEventListener('click', e => generatePDF(e.currentTarget));
+      document.getElementById('downloadPdfBtn2').addEventListener('click', e => generatePDF(e.currentTarget));
+      document.getElementById('completePaymentBtn').addEventListener('click', e => completeBankPayment(e.currentTarget));
+      document.getElementById('resetBtn').addEventListener('click', resetForm);
 
       updateInvestmentSummary();
-      paintStepper();
+      updateStepper();
     });
 
-    // helpers
-    const byId = (id) => document.getElementById(id);
-    function genId(){ return 'INV-' + Math.random().toString(36).substr(2,9).toUpperCase(); }
-
-    function paintStepper(){
-      const dots = [byId('dot1'),byId('dot2'),byId('dot3'),byId('dot4')];
-      const lines = [byId('line1'),byId('line2'),byId('line3')];
-      dots.forEach((d,i)=> d.classList.toggle('active', i < currentStep));
-      lines.forEach((l,i)=> l.classList.toggle('filled', i < currentStep-1));
-
-      const pct = (currentStep/totalSteps)*100;
-      byId('progressBar').style.width = pct + '%';
+    // Stepper visuals
+    function updateStepper(){
+      const pct = (currentStep / totalSteps) * 100;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+      for (let i=1;i<=4;i++){
+        document.getElementById(`s${i}`).classList.toggle('active', i<=currentStep);
+      }
     }
 
     function nextStep(){
       if(currentStep < totalSteps){
-        toggleSteps(currentStep, currentStep+1);
+        document.getElementById(`step${currentStep}`).classList.remove('active');
         currentStep++;
-        paintStepper();
+        document.getElementById(`step${currentStep}`).classList.add('active');
         if(currentStep === 3) updatePaymentPage();
         if(currentStep === 4) updateConfirmationPage();
+        updateStepper();
       }
     }
     function prevStep(){
       if(currentStep > 1){
-        toggleSteps(currentStep, currentStep-1);
+        document.getElementById(`step${currentStep}`).classList.remove('active');
         currentStep--;
-        paintStepper();
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        updateStepper();
       }
     }
-    function toggleSteps(from, to){
-      byId('step'+from).classList.remove('active');
-      byId('step'+to).classList.add('active');
-    }
 
-    // summary calc
+    // Summary live updates
     function updateInvestmentSummary(){
-      const input = byId('investmentAmount');
-      let amount = parseFloat(input.value);
-      if(isNaN(amount) || amount < sharePrice){ amount = sharePrice; input.value = sharePrice.toFixed(2); }
-
+      const amountInput = document.getElementById('investmentAmount');
+      let amount = parseFloat(amountInput.value);
+      if(isNaN(amount) || amount < sharePrice){
+        amount = sharePrice;
+        amountInput.value = sharePrice.toFixed(2);
+      }
       const shares = Math.floor(amount / sharePrice);
       const actualAmount = shares * sharePrice;
       const totalShares = shares + riskPremiumShares;
 
-      byId('summaryAmount').textContent = `R${actualAmount.toFixed(2)}`;
-      byId('summaryShares').textContent = shares;
-      byId('summaryTotalShares').textContent = totalShares.toLocaleString();
+      document.getElementById('summaryAmount').textContent = `R${actualAmount.toFixed(2)}`;
+      document.getElementById('summaryShares').textContent = shares;
+      document.getElementById('summaryTotalShares').textContent = totalShares.toLocaleString();
 
       formData.investmentAmount = actualAmount;
       formData.shares = shares;
       formData.totalShares = totalShares;
     }
 
-    // validation
+    // Validate step 2
     function validateForm(){
-      const fullName = byId('fullName').value.trim();
-      const email = byId('email').value.trim();
-      const amount = parseFloat(byId('investmentAmount').value);
-      const docs = byId('docConfirmation').checked;
+      const fullName = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const amount = parseFloat(document.getElementById('investmentAmount').value);
+      const docs = document.getElementById('docConfirmation').checked;
 
       let ok = true;
+      const nm = document.getElementById('fullName');
+      const em = document.getElementById('email');
+      const am = document.getElementById('investmentAmount');
 
-      // name
-      if(!fullName){ showErr('fullName'); ok = false; } else hideErr('fullName');
-      // email
-      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      if(!email || !emailOk){ showErr('email'); ok = false; } else hideErr('email');
-      // amount
-      if(!amount || amount < sharePrice){ showErr('investmentAmount','amountError'); ok = false; } else hideErr('investmentAmount','amountError');
-      // docs
-      if(!docs){ byId('docError').classList.remove('hidden'); ok = false; } else byId('docError').classList.add('hidden');
+      if(!fullName){ document.getElementById('fullNameError').classList.remove('hidden'); nm.classList.add('error'); ok=false; }
+      else { document.getElementById('fullNameError').classList.add('hidden'); nm.classList.remove('error'); }
+
+      if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ document.getElementById('emailError').classList.remove('hidden'); em.classList.add('error'); ok=false; }
+      else { document.getElementById('emailError').classList.add('hidden'); em.classList.remove('error'); }
+
+      if(!amount || amount < sharePrice){ document.getElementById('amountError').classList.remove('hidden'); am.classList.add('error'); ok=false; }
+      else { document.getElementById('amountError').classList.add('hidden'); am.classList.remove('error'); }
+
+      if(!docs){ document.getElementById('docError').classList.remove('hidden'); ok=false; }
+      else { document.getElementById('docError').classList.add('hidden'); }
 
       if(ok){
         formData.fullName = fullName;
@@ -521,89 +562,103 @@
         nextStep();
       }
     }
-    function showErr(fieldId, msgId){
-      byId(fieldId).classList.add('error-input');
-      if(msgId) byId(msgId).classList.remove('hidden');
-      else byId(fieldId+'Error').classList.remove('hidden');
-    }
-    function hideErr(fieldId, msgId){
-      byId(fieldId).classList.remove('error-input');
-      if(msgId) byId(msgId).classList.add('hidden');
-      else byId(fieldId+'Error').classList.add('hidden');
-    }
 
-    // copy doc link
+    // Copy link
     function copyDocumentLink(e){
       e.preventDefault();
-      const link = byId('documentLink').textContent;
-      const button = byId('copyLinkButton');
-      const original = button.innerHTML;
+      const link = document.getElementById('documentLink').textContent.trim();
+      const btn = e.currentTarget;
+      const original = btn.innerHTML;
 
       const ta = document.createElement('textarea');
       ta.value = link; document.body.appendChild(ta); ta.select();
       try{
         const ok = document.execCommand('copy');
-        if(ok){ toast('Link copied to clipboard!'); button.innerHTML = '<i class="fas fa-check mr-2"></i> Copied!'; }
-        else { toast('Failed to copy link. Please try again.'); }
-      }catch(err){ toast('Failed to copy link. Please try again.'); }
-      document.body.removeChild(ta);
-
-      setTimeout(()=> button.innerHTML = original, 1500);
+        if(ok){
+          showSuccessToast('Link copied to clipboard!');
+          btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Copied';
+          setTimeout(()=> btn.innerHTML = original, 1400);
+        } else { showSuccessToast('Failed to copy link'); }
+      } catch(err) {
+        showSuccessToast('Failed to copy link');
+      } finally {
+        document.body.removeChild(ta);
+      }
     }
 
-    // step 3 + 4
+    // Step 3 updates
     function updatePaymentPage(){
-      byId('paymentTotal').textContent = `R${formData.investmentAmount.toFixed(2)}`;
-      byId('emailRef').textContent = formData.email;
-    }
-    function updateConfirmationPage(){
-      byId('confirmationAmount').textContent = `R${formData.investmentAmount.toFixed(2)}`;
-      byId('confirmationShares').textContent = formData.shares;
-      byId('confirmationPremiumShares').textContent = riskPremiumShares.toLocaleString();
-      byId('confirmationTotalShares').textContent = formData.totalShares.toLocaleString();
-      byId('finalTransactionId').textContent = formData.transactionId;
-      // fake email echo
-      document.getElementById('confirmationEmail')?.replaceChildren?.();
+      document.getElementById('paymentTotal').textContent = `R${formData.investmentAmount.toFixed(2)}`;
+      document.getElementById('emailRef').textContent = formData.email;
     }
 
-    // PDF + payment
-    function generatePDF(btn){
-      loading(btn,'Generating PDF...');
-      window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
-      setTimeout(()=>done(btn),900);
-    }
+    // Complete payment (sim)
     function completeBankPayment(btn){
-      loading(btn,'Confirming transfer...');
-      setTimeout(()=>{ done(btn); toast('Bank transfer confirmed!'); nextStep(); },1500);
+      showLoading(btn, 'We are confirming transfer...');
+      setTimeout(()=>{ hideLoading(btn); showSuccessToast('Bank transfer confirmed!'); nextStep(); }, 1600);
     }
 
-    // reset
+    // Step 4 summary
+    function updateConfirmationPage(){
+      document.getElementById('confirmationAmount').textContent = `R${formData.investmentAmount.toFixed(2)}`;
+      document.getElementById('confirmationShares').textContent = formData.shares;
+      document.getElementById('confirmationPremiumShares').textContent = riskPremiumShares.toLocaleString();
+      document.getElementById('confirmationTotalShares').textContent = formData.totalShares.toLocaleString();
+      document.getElementById('confirmationEmail').textContent = formData.email;
+      document.getElementById('finalTransactionId').textContent = formData.transactionId;
+    }
+
+    // Helpers
+    function generateTransactionId(){ return 'INV-' + Math.random().toString(36).substr(2,9).toUpperCase(); }
+
+    function generatePDF(btn){
+      showLoading(btn,'Generating PDF...');
+      window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
+      setTimeout(()=> hideLoading(btn), 1000);
+    }
+    function showLoading(btn,msg){
+      if(!btn) return;
+      if(!btn.dataset.original){ btn.dataset.original = btn.innerHTML; }
+      btn.disabled = true; btn.innerHTML = `<div class="loading-spinner"></div>${msg}`;
+    }
+    function hideLoading(btn){
+      if(!btn) return;
+      btn.disabled = false; btn.innerHTML = btn.dataset.original || 'Done';
+    }
+    function showSuccessToast(message){
+      const t = document.createElement('div');
+      t.className = 'success-toast';
+      t.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i><span>${message}</span>`;
+      document.body.appendChild(t);
+      setTimeout(()=> t.remove(), 2200);
+    }
+
+    // Reset
     function resetForm(){
-      formData.fullName=''; formData.email=''; formData.investmentAmount=sharePrice;
-      formData.shares=1; formData.totalShares=1 + riskPremiumShares; formData.transactionId=genId(); formData.documentsConfirmed=false;
+      formData.fullName = '';
+      formData.email = '';
+      formData.investmentAmount = sharePrice;
+      formData.shares = 1;
+      formData.totalShares = 1 + riskPremiumShares;
+      formData.transactionId = generateTransactionId();
+      formData.documentsConfirmed = false;
 
-      byId('fullName').value=''; byId('email').value='';
-      byId('investmentAmount').value = sharePrice.toFixed(2);
-      byId('docConfirmation').checked=false;
+      const nm = document.getElementById('fullName');
+      const em = document.getElementById('email');
+      const am = document.getElementById('investmentAmount');
+      nm.value = ''; em.value = ''; am.value = sharePrice.toFixed(2);
+      document.getElementById('docConfirmation').checked = false;
 
-      ['fullName','email','investmentAmount'].forEach(h=> hideErr(h));
-      byId('amountError').classList.add('hidden'); byId('docError').classList.add('hidden');
+      ['fullNameError','emailError','amountError','docError'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      [nm,em,am].forEach(el => el.classList.remove('error'));
 
       updateInvestmentSummary();
-      toggleSteps(currentStep,1); currentStep=1; paintStepper();
-      window.scrollTo({top:0, behavior:'smooth'});
-    }
 
-    // ui helpers
-    function loading(btn, msg){
-      if(!btn) return; if(!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
-      btn.disabled=true; btn.innerHTML = `<div class="loading-spinner"></div><span class="ml-2">${msg}</span>`;
-    }
-    function done(btn){ if(!btn) return; btn.disabled=false; btn.innerHTML = btn.dataset.originalText || 'Done'; }
-    function toast(message){
-      const t = document.createElement('div'); t.className='success-toast';
-      t.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
-      document.body.appendChild(t); setTimeout(()=> t.remove(), 2500);
+      document.getElementById(`step${currentStep}`).classList.remove('active');
+      currentStep = 1;
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      updateStepper();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   </script>
 </body>
