@@ -68,7 +68,7 @@
     </div>
   </header>
 
-  <!-- Stepper + Tabs (now read-only, not clickable) -->
+  <!-- Stepper + Tabs -->
   <div class="max-w-6xl mx-auto px-4 mt-6">
     <div class="card p-4">
       <div class="flex items-center gap-2">
@@ -105,7 +105,6 @@
           <button data-next class="btn-olive rounded-xl px-6 py-3 font-semibold">
             Get Started <i class="fa-solid fa-arrow-right ml-2"></i>
           </button>
-          <!-- "Learn more" button removed -->
         </div>
 
         <div class="mt-6 divider"></div>
@@ -220,7 +219,7 @@
 
         <div id="map" class="mt-2"></div>
 
-        <!-- Subscription summary (professional) -->
+        <!-- Subscription summary -->
         <div class="card p-4 mt-6">
           <div class="text-sm muted mb-1">Subscription summary</div>
           <div class="text-lg font-semibold">
@@ -346,7 +345,6 @@
 
       <div class="flex items-center justify-between mt-6">
         <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
-        <!-- "Skip & Finish" removed -->
       </div>
     </div>
   </section>
@@ -395,6 +393,8 @@
       popPath: null,
       docuSealLink: "",
       hasSigned: false
+      // note: NOT storing applicationId here in this version,
+      // because we just insert on upload
     };
 
     // parse ?link= (DocuSeal)
@@ -434,7 +434,7 @@
       state.amount = amt;
       state.shares = Math.floor(amt / sharePrice);
 
-      // update summary card
+      // update summary card + step 3 payment box
       document.getElementById('summaryAmount').textContent = `R${amt.toFixed(2)}`;
       document.getElementById('summaryShares').textContent = state.shares;
     });
@@ -471,7 +471,6 @@
       for (let i=1;i<=4;i++){
         document.getElementById(`s${i}`).classList.toggle('active', i<=currentStep);
       }
-      // highlight the non-clickable tabs
       document.getElementById('tab1')?.classList.toggle('active', currentStep===1);
       document.getElementById('tab2')?.classList.toggle('active', currentStep===2);
       document.getElementById('tab3')?.classList.toggle('active', currentStep===3);
@@ -522,6 +521,8 @@
       state.email = email;
       state.idNumber = idNumber;
       state.phone = phone;
+      state.amount = amt;
+      state.shares = Math.floor(amt / 1000);
 
       // hydrate payment
       document.getElementById('paymentTotal').textContent = `R${state.amount.toFixed(2)}`;
@@ -530,7 +531,7 @@
       nextStep();
     }
 
-    // ======= POP upload =======
+    // ======= POP upload + DB insert (new row each time) =======
     async function uploadPOP(){
       const file = document.getElementById('popFile').files?.[0];
       const msg = document.getElementById('popMsg');
@@ -539,7 +540,7 @@
       if (file.type !== 'application/pdf'){ msg.textContent = 'PDF only, please.'; return; }
 
       try {
-        // ensure session
+        // make sure we have a logged in user
         let userId = state.user?.id;
         if (!userId) {
           const me = await supabase.auth.getUser();
@@ -557,13 +558,14 @@
         });
         if (upErr) throw upErr;
 
-        // Insert / upsert application row
+        // Create a brand new application row for THIS submission.
+        // No upsert. No unique conflict.
         const payload = {
           user_id: userId,
           full_name: state.fullName,
           email: state.email,
           amount: state.amount,
-          share_price: sharePrice,
+          share_price: 1000,
           shares: state.shares,
           id_number: state.idNumber,
           phone: state.phone,
@@ -575,15 +577,22 @@
           updated_at: new Date().toISOString()
         };
 
-        const { error: dbErr } = await supabase
+        const { data: insertRow, error: dbErr } = await supabase
           .from('investment_applications')
-          .upsert(payload, { onConflict: 'user_id' });
+          .insert(payload)
+          .select()
+          .single();
+
         if (dbErr) throw dbErr;
 
         state.popPath = path;
+
         msg.textContent = 'POP uploaded. Thank you.';
 
-        // go to final step automatically
+        // you could keep insertRow.id if you want
+        // state.applicationId = insertRow.id;
+
+        // go to final step
         gotoStep(4);
       } catch (e) {
         console.error(e);
