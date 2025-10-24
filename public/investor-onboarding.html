@@ -11,7 +11,7 @@
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
-  <!-- Leaflet -->
+  <!-- Leaflet (CSP-allowed via cdnjs) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 
@@ -24,7 +24,7 @@
     .btn-olive{ background:var(--olive); color:#fff }
     .btn-olive:hover{ filter:brightness(.95) }
     .muted{ color:var(--muted) }
-    .step-dot{ width:28px; height:28px; border-radius:999px; display:grid; place-items:center; font-weight:700; border:1px solid var(--line); background:#fff; color:#64748b }
+    .step-dot{ width:28px; height:28px; border-radius:999px; display:grid; place-items:center; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--muted) }
     .step-dot.active{ background:var(--olive); color:#fff; border-color:var(--olive) }
     .divider{ height:1px; background:linear-gradient(90deg, transparent, var(--line), transparent) }
     .inp{ border:1px solid var(--line); border-radius:12px; padding:.65rem .9rem; width:100% }
@@ -68,7 +68,7 @@
     </div>
   </header>
 
-  <!-- Stepper + Tabs -->
+  <!-- Stepper + Tabs (now read-only, not clickable) -->
   <div class="max-w-6xl mx-auto px-4 mt-6">
     <div class="card p-4">
       <div class="flex items-center gap-2">
@@ -105,6 +105,7 @@
           <button data-next class="btn-olive rounded-xl px-6 py-3 font-semibold">
             Get Started <i class="fa-solid fa-arrow-right ml-2"></i>
           </button>
+          <!-- "Learn more" button removed -->
         </div>
 
         <div class="mt-6 divider"></div>
@@ -219,7 +220,7 @@
 
         <div id="map" class="mt-2"></div>
 
-        <!-- Subscription summary -->
+        <!-- Subscription summary (professional) -->
         <div class="card p-4 mt-6">
           <div class="text-sm muted mb-1">Subscription summary</div>
           <div class="text-lg font-semibold">
@@ -345,6 +346,7 @@
 
       <div class="flex items-center justify-between mt-6">
         <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
+        <!-- "Skip & Finish" removed -->
       </div>
     </div>
   </section>
@@ -389,31 +391,13 @@
       lng: null,
       amount: minInvestment,
       shares: Math.floor(minInvestment / sharePrice),
-      user: null,          // Supabase user (if logged in)
-      anonId: null,        // fallback for not logged in
+      user: null,
       popPath: null,
       docuSealLink: "",
       hasSigned: false
     };
 
-    // helper to generate anon id for unauthenticated users
-    function makeAnonId(){
-      // simple random string
-      return 'anon_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-    }
-
-    // ======= Try get session, but DO NOT force login =======
-    {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const me = await supabase.auth.getUser();
-        state.user = me.data.user || null;
-      } else {
-        state.anonId = makeAnonId();
-      }
-    }
-
-    // ======= DocuSeal link from ?link=... =======
+    // parse ?link= (DocuSeal)
     {
       const urlParams = new URLSearchParams(window.location.search);
       state.docuSealLink = urlParams.get("link") || "";
@@ -423,7 +407,19 @@
       }
     }
 
+    // ======= Auth guard =======
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const redirectUrl = encodeURIComponent(window.location.href);
+      window.location.href = `/auth.html?tab=in&redirect=${redirectUrl}`;
+      throw new Error("Redirecting to auth");
+    } else {
+      const me = await supabase.auth.getUser();
+      state.user = me.data.user;
+    }
+
     // ======= UI bindings =======
+    // next/prev buttons within the flow
     document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', nextStep));
     document.querySelectorAll('[data-prev]').forEach(b => b.addEventListener('click', prevStep));
 
@@ -438,7 +434,7 @@
       state.amount = amt;
       state.shares = Math.floor(amt / sharePrice);
 
-      // update summary
+      // update summary card
       document.getElementById('summaryAmount').textContent = `R${amt.toFixed(2)}`;
       document.getElementById('summaryShares').textContent = state.shares;
     });
@@ -475,6 +471,7 @@
       for (let i=1;i<=4;i++){
         document.getElementById(`s${i}`).classList.toggle('active', i<=currentStep);
       }
+      // highlight the non-clickable tabs
       document.getElementById('tab1')?.classList.toggle('active', currentStep===1);
       document.getElementById('tab2')?.classList.toggle('active', currentStep===2);
       document.getElementById('tab3')?.classList.toggle('active', currentStep===3);
@@ -526,7 +523,7 @@
       state.idNumber = idNumber;
       state.phone = phone;
 
-      // hydrate payment summary
+      // hydrate payment
       document.getElementById('paymentTotal').textContent = `R${state.amount.toFixed(2)}`;
       document.getElementById('emailRef').textContent = state.email || '—';
 
@@ -542,30 +539,25 @@
       if (file.type !== 'application/pdf'){ msg.textContent = 'PDF only, please.'; return; }
 
       try {
-        // figure out which id to use
+        // ensure session
         let userId = state.user?.id;
         if (!userId) {
-          if (!state.anonId) state.anonId = makeAnonId();
-          userId = state.anonId;
+          const me = await supabase.auth.getUser();
+          userId = me.data.user?.id;
+          if (!userId) throw new Error('Not signed in');
         }
 
         const ts = Date.now();
         const path = `pop/${userId}/pop_${ts}.pdf`;
 
         msg.textContent = 'Uploading…';
-
-        // NOTE: this assumes your Supabase Storage bucket `documents` policy
-        // allows upload with the anon key (public or RLS that accepts anon).
-        const { error: upErr } = await supabase.storage
-          .from('documents')
-          .upload(path, file, {
-            upsert: true,
-            contentType: 'application/pdf'
-          });
+        const { error: upErr } = await supabase.storage.from('documents').upload(path, file, {
+          upsert: true,
+          contentType: 'application/pdf'
+        });
         if (upErr) throw upErr;
 
-        // Save / upsert application row
-        // Assumes RLS on 'investment_applications' lets anon insert.
+        // Insert / upsert application row
         const payload = {
           user_id: userId,
           full_name: state.fullName,
@@ -583,8 +575,6 @@
           updated_at: new Date().toISOString()
         };
 
-        // we can't "upsert on user_id" safely if anon changes each visit,
-        // but we keep it anyway so repeat uploads overwrite same investor_id
         const { error: dbErr } = await supabase
           .from('investment_applications')
           .upsert(payload, { onConflict: 'user_id' });
