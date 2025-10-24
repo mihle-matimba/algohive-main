@@ -15,9 +15,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 
-  <!-- Confetti -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js" defer></script>
-
   <style>
     :root{
       --ink:#0f172a; --muted:#64748b; --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0; --panel:#ffffff; --bg:#f8fafc;
@@ -35,7 +32,9 @@
     .error{ border-color:#ef4444 !important }
     .tab-btn{ padding:.5rem .75rem; border-radius:10px; border:1px solid var(--line); background:#fff; font-weight:600; color:var(--muted) }
     .tab-btn.active{ color:var(--ink); border-color:var(--olive); box-shadow:0 0 0 3px rgba(126,141,82,.15) }
-    #map{ height: 260px; border-radius:12px; border:1px solid var(--line) }
+    #map{ height:260px; border-radius:12px; border:1px solid var(--line); background:#f1f5f9 }
+    /* give Leaflet container a min-height so it doesn't collapse if still sizing */
+    .leaflet-container { min-height:260px }
   </style>
 </head>
 <body class="min-h-screen">
@@ -249,8 +248,8 @@
   <script type="module" nonce="ALGOHIVE">
     // ======= Supabase init (fill these) =======
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/+esm";
-    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"; // TODO
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";                // TODO
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ======= State =======
@@ -273,11 +272,14 @@
       popPath: null
     };
 
-    // ======= Auth guard (assumes you use Supabase Auth) =======
+    // ======= Auth guard =======
+    // If user not signed in, send them to auth with redirect back here.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      // send to your sign-in; keep simple here
-      // location.href = "/auth.html?tab=in&redirect=" + encodeURIComponent(location.pathname);
+      const redirectUrl = encodeURIComponent(window.location.href);
+      window.location.href = `/auth.html?tab=in&redirect=${redirectUrl}`;
+      // stop running the rest
+      throw new Error("Redirecting to auth");
     } else {
       const me = await supabase.auth.getUser();
       state.user = me.data.user;
@@ -313,7 +315,7 @@
     document.getElementById('uploadPopBtn').addEventListener('click', uploadPOP);
     document.getElementById('toComplete').addEventListener('click', finishFlow);
 
-    // Stepper visuals
+    // ======= Stepper visuals / nav =======
     function updateStepper(){
       const pct = (currentStep / totalSteps) * 100;
       document.getElementById('progressBar').style.width = `${pct}%`;
@@ -322,6 +324,7 @@
         document.querySelector(`[data-goto="${i}"]`)?.classList.toggle('active', i===currentStep);
       }
     }
+
     function gotoStep(n){
       if (n<1 || n>totalSteps) return;
       document.getElementById(`step${currentStep}`).classList.add('hidden');
@@ -329,6 +332,11 @@
       document.getElementById(`step${currentStep}`).classList.remove('hidden');
       updateStepper();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // handle map sizing when we enter step 2
+      if (currentStep === 2) {
+        ensureMapReady();
+      }
     }
     function nextStep(){ gotoStep(currentStep+1); }
     function prevStep(){ gotoStep(currentStep-1); }
@@ -418,7 +426,6 @@
 
         state.popPath = path;
         msg.textContent = 'POP uploaded. Thank you!';
-        confetti({ particleCount: 140, spread: 70, origin: { y: 0.6 } });
       } catch (e) {
         console.error(e);
         msg.textContent = e.message || 'Upload failed. Please try again.';
@@ -428,13 +435,15 @@
     // ======= Finish =======
     function finishFlow(){
       gotoStep(4);
-      setTimeout(() => confetti({ particleCount: 220, spread: 80, origin: { y: 0.6 } }), 250);
     }
 
-    // ======= Leaflet map + search =======
+    // ======= Leaflet map logic =======
     let map, marker;
+    let mapInited = false;
+
     function initMap(){
-      map = L.map('map', { zoomControl: true }).setView([-26.2041, 28.0473], 10); // Joburg-ish
+      // default view Joburg-ish
+      map = L.map('map', { zoomControl: true }).setView([-26.2041, 28.0473], 10);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
@@ -444,9 +453,29 @@
         setMarker(e.latlng.lat, e.latlng.lng);
         reverseGeocode(e.latlng.lat, e.latlng.lng);
       });
+
+      mapInited = true;
+      // make sure Leaflet recalculates after showing step2
+      setTimeout(() => {
+        try { map.invalidateSize(); } catch(_) {}
+      }, 200);
     }
+
+    function ensureMapReady(){
+      // if not yet created, create
+      if (!mapInited) {
+        initMap();
+      } else {
+        // if already created but was hidden, just fix sizing
+        setTimeout(() => {
+          try { map.invalidateSize(); } catch(_) {}
+        }, 200);
+      }
+    }
+
     function setMarker(lat, lng){
-      state.lat = lat; state.lng = lng;
+      state.lat = lat; 
+      state.lng = lng;
       if (!marker) {
         marker = L.marker([lat, lng], { draggable: true }).addTo(map);
         marker.on('dragend', () => {
@@ -458,6 +487,7 @@
         marker.setLatLng([lat, lng]);
       }
     }
+
     async function reverseGeocode(lat, lng){
       try{
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
@@ -466,9 +496,12 @@
         state.addressText = disp;
         document.getElementById('addressText').value = disp;
       }catch{
-        document.getElementById('addressText').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        state.addressText = fallback;
+        document.getElementById('addressText').value = fallback;
       }
     }
+
     async function searchAddress(q){
       if (!q || q.length < 3) return;
       const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&limit=1`);
@@ -482,13 +515,19 @@
         document.getElementById('addressText').value = display_name;
       }
     }
+
     document.getElementById('addrSearch').addEventListener('keydown', e => {
-      if (e.key === 'Enter'){ e.preventDefault(); searchAddress(e.currentTarget.value.trim()); }
+      if (e.key === 'Enter'){ 
+        e.preventDefault(); 
+        ensureMapReady(); // make sure map exists first
+        searchAddress(e.currentTarget.value.trim()); 
+      }
     });
 
-    // kick off
-    initMap();
+    // kick off initial UI
     updateStepper();
+    // we do NOT initMap() immediately,
+    // because step2 is hidden on load. We'll init on first visit to step2.
   </script>
 </body>
 </html>
