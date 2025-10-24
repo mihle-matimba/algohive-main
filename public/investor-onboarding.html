@@ -30,10 +30,9 @@
     .inp{ border:1px solid var(--line); border-radius:12px; padding:.65rem .9rem; width:100% }
     .inp:focus{ outline:none; border-color:var(--olive); box-shadow:0 0 0 4px rgba(126,141,82,.15) }
     .error{ border-color:#ef4444 !important }
-    .tab-btn{ padding:.5rem .75rem; border-radius:10px; border:1px solid var(--line); background:#fff; font-weight:600; color:var(--muted) }
+    .tab-btn{ padding:.5rem .75rem; border-radius:10px; border:1px solid var(--line); background:#fff; font-weight:600; color:#64748b }
     .tab-btn.active{ color:var(--ink); border-color:var(--olive); box-shadow:0 0 0 3px rgba(126,141,82,.15) }
     #map{ height:260px; border-radius:12px; border:1px solid var(--line); background:#f1f5f9 }
-    /* give Leaflet container a min-height so it doesn't collapse if still sizing */
     .leaflet-container { min-height:260px }
   </style>
 </head>
@@ -107,7 +106,9 @@
   <section id="step2" class="max-w-6xl mx-auto px-4 mt-8 hidden">
     <div class="card p-8">
       <h2 class="text-2xl font-bold">Your Details</h2>
-      <p class="muted">Minimum investment <strong>R80,000</strong>. Share price <strong>R1,000</strong> (no bonus shares).</p>
+      <p class="muted">
+        Minimum investment <strong>R80,000</strong>. Share price <strong>R1,000</strong> (no bonus shares).
+      </p>
 
       <form id="detailsForm" class="mt-6 grid gap-6">
         <div class="grid sm:grid-cols-2 gap-4">
@@ -176,9 +177,54 @@
           </div>
         </div>
 
+        <!-- Subscription Agreement / DocuSeal -->
+        <div class="card p-4">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex-1">
+              <div class="font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-file-signature"></i>
+                <span>Subscription Agreement</span>
+              </div>
+              <p class="muted text-sm mt-1">
+                Please sign the Subscription document. This is required for us to issue shares.
+              </p>
+
+              <div class="mt-2 text-sm">
+                <a id="docuSealOpen"
+                   class="text-[var(--olive)] underline font-semibold"
+                   target="_blank"
+                   rel="noopener">
+                  Open &amp; Sign
+                </a>
+              </div>
+
+              <div class="mt-3 flex items-start gap-2">
+                <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
+                <label for="docSigned" class="text-sm leading-snug">
+                  I have signed the Subscription document.
+                </label>
+              </div>
+              <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
+                Please confirm you’ve signed.
+              </div>
+            </div>
+
+            <div class="sm:w-40">
+              <button
+                id="copyDocuSealBtn"
+                type="button"
+                class="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold">
+                Copy link
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="flex items-center justify-between mt-4">
           <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
-          <button type="button" id="toPayment" class="btn-olive rounded-xl px-6 py-3 font-semibold">Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i></button>
+          <button type="button" id="toPayment" class="btn-olive rounded-xl px-6 py-3 font-semibold">
+            Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i>
+          </button>
         </div>
       </form>
     </div>
@@ -201,13 +247,32 @@
       <div class="grid lg:grid-cols-2 gap-6 mt-6">
         <div class="card p-5">
           <div class="grid sm:grid-cols-2 gap-4">
-            <div><div class="muted text-xs mb-1">Bank</div><div class="font-semibold">Capitec Bank</div></div>
-            <div><div class="muted text-xs mb-1">Account Name</div><div class="font-semibold">AlgoHive Business Account</div></div>
-            <div><div class="muted text-xs mb-1">Account Number</div><div class="font-semibold">1053 0458 83</div></div>
-            <div><div class="muted text-xs mb-1">Branch Code</div><div class="font-semibold">470010</div></div>
-            <div class="sm:col-span-2"><div class="muted text-xs mb-1">Reference</div><div class="font-semibold">INV-<span id="emailRef">your@email</span></div></div>
+            <div>
+              <div class="muted text-xs mb-1">Bank</div>
+              <div class="font-semibold">Capitec Bank</div>
+            </div>
+            <div>
+              <div class="muted text-xs mb-1">Account Name</div>
+              <div class="font-semibold">AlgoHive Business Account</div>
+            </div>
+            <div>
+              <div class="muted text-xs mb-1">Account Number</div>
+              <div class="font-semibold">1053 0458 83</div>
+            </div>
+            <div>
+              <div class="muted text-xs mb-1">Branch Code</div>
+              <div class="font-semibold">470010</div>
+            </div>
+            <div class="sm:col-span-2">
+              <div class="muted text-xs mb-1">Reference</div>
+              <div class="font-semibold">
+                INV-<span id="emailRef">your@email</span>
+              </div>
+            </div>
           </div>
-          <p class="muted text-sm mt-3">Use the exact reference. EFTs usually clear in 1–2 business days.</p>
+          <p class="muted text-sm mt-3">
+            Use the exact reference. EFTs usually clear in 1–2 business days.
+          </p>
 
           <button id="downloadPdfBtn" class="mt-4 w-full btn-olive rounded-xl px-4 py-3 font-semibold">
             <i class="fa-solid fa-download mr-2"></i> Download Confirmation PDF
@@ -225,7 +290,7 @@
 
       <div class="flex items-center justify-between mt-6">
         <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
-        <button type="button" id="toComplete" class="rounded-xl px-6 py-3 border border-[var(--line)]">Skip & Finish</button>
+        <!-- Removed "Skip & Finish" button -->
       </div>
     </div>
   </section>
@@ -236,8 +301,10 @@
       <div class="w-24 h-24 rounded-full mx-auto grid place-items-center bg-emerald-100">
         <i class="fa-solid fa-check text-4xl text-emerald-700"></i>
       </div>
-      <h2 class="mt-6 text-3xl font-extrabold">Welcome to AlgoHive 🎉</h2>
-      <p class="mt-2 muted">We’ve received your details. We’ll review your POP and activate your dashboard shortly.</p>
+      <h2 class="mt-6 text-3xl font-extrabold">Yo! We'll contact you.</h2>
+      <p class="mt-2 muted">
+        We’ve got your details and POP. Our team will reach out to finalise your subscription and activate your dashboard.
+      </p>
       <div class="mt-8">
         <a href="/home.html" class="btn-olive inline-flex rounded-xl px-6 py-3 font-semibold">Go to Dashboard</a>
       </div>
@@ -246,9 +313,9 @@
 
   <!-- Supabase + App Logic -->
   <script type="module" nonce="ALGOHIVE">
-    // ======= Supabase init (fill these) =======
+    // ======= Supabase init =======
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/+esm";
-    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"; 
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -269,16 +336,26 @@
       amount: minInvestment,
       shares: Math.floor(minInvestment / sharePrice),
       user: null,
-      popPath: null
+      popPath: null,
+      docuSealLink: "",
+      hasSigned: false
     };
 
+    // parse ?link=docuseal_url
+    {
+      const urlParams = new URLSearchParams(window.location.search);
+      state.docuSealLink = urlParams.get("link") || "";
+      const docLink = document.getElementById("docuSealOpen");
+      if (docLink) {
+        docLink.href = state.docuSealLink || "#";
+      }
+    }
+
     // ======= Auth guard =======
-    // If user not signed in, send them to auth with redirect back here.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       const redirectUrl = encodeURIComponent(window.location.href);
       window.location.href = `/auth.html?tab=in&redirect=${redirectUrl}`;
-      // stop running the rest
       throw new Error("Redirecting to auth");
     } else {
       const me = await supabase.auth.getUser();
@@ -292,7 +369,7 @@
       btn.addEventListener('click', () => gotoStep(Number(btn.dataset.goto)));
     });
 
-    // Details inputs
+    // Amount input live calc
     const amtEl = document.getElementById('investmentAmount');
     amtEl.addEventListener('input', () => {
       let amt = parseFloat(amtEl.value || "0");
@@ -306,14 +383,29 @@
       document.getElementById('summaryShares').textContent = state.shares;
     });
 
+    // Copy DocuSeal link button
+    const copyBtn = document.getElementById('copyDocuSealBtn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        if (!state.docuSealLink) return;
+        navigator.clipboard.writeText(state.docuSealLink).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
+        }).catch(() => {
+          copyBtn.textContent = 'Error';
+          setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
+        });
+      });
+    }
+
     document.getElementById('toPayment').addEventListener('click', validateDetails);
 
     // Payment actions
     document.getElementById('downloadPdfBtn').addEventListener('click', () => {
       window.location.href = "https://ac771e08-657e-406a-9fb7-dc82bd541742.usrfiles.com/ugd/ac771e_7f8b25db5489452b8d43cceec9e9475c.pdf";
     });
+
     document.getElementById('uploadPopBtn').addEventListener('click', uploadPOP);
-    document.getElementById('toComplete').addEventListener('click', finishFlow);
 
     // ======= Stepper visuals / nav =======
     function updateStepper(){
@@ -349,6 +441,9 @@
       const phone = document.getElementById('phone').value.trim();
       const amt = parseFloat(document.getElementById('investmentAmount').value);
 
+      const hasSigned = document.getElementById('docSigned').checked;
+      state.hasSigned = hasSigned;
+
       let ok = true;
       const setErr = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
 
@@ -358,6 +453,7 @@
       if (!phone){ document.getElementById('phoneError').classList.remove('hidden'); ok=false; } else document.getElementById('phoneError').classList.add('hidden');
       if (!amt || amt < minInvestment){ document.getElementById('amountError').classList.remove('hidden'); ok=false; } else document.getElementById('amountError').classList.add('hidden');
       if (!state.addressText || state.lat===null || state.lng===null){ alert('Please pick an address on the map.'); ok=false; }
+      if (!hasSigned){ document.getElementById('docSignedError').classList.remove('hidden'); ok=false; } else document.getElementById('docSignedError').classList.add('hidden');
 
       if (!ok) return;
 
@@ -418,7 +514,6 @@
           updated_at: new Date().toISOString()
         };
 
-        // If you want a single app per user, use upsert on user_id:
         const { error: dbErr } = await supabase
           .from('investment_applications')
           .upsert(payload, { onConflict: 'user_id' });
@@ -426,15 +521,13 @@
 
         state.popPath = path;
         msg.textContent = 'POP uploaded. Thank you!';
+
+        // go straight to Complete step
+        gotoStep(4);
       } catch (e) {
         console.error(e);
         msg.textContent = e.message || 'Upload failed. Please try again.';
       }
-    }
-
-    // ======= Finish =======
-    function finishFlow(){
-      gotoStep(4);
     }
 
     // ======= Leaflet map logic =======
@@ -442,8 +535,7 @@
     let mapInited = false;
 
     function initMap(){
-      // default view Joburg-ish
-      map = L.map('map', { zoomControl: true }).setView([-26.2041, 28.0473], 10);
+      map = L.map('map', { zoomControl: true }).setView([-26.2041, 28.0473], 10); // Joburg-ish
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
@@ -455,18 +547,15 @@
       });
 
       mapInited = true;
-      // make sure Leaflet recalculates after showing step2
       setTimeout(() => {
         try { map.invalidateSize(); } catch(_) {}
       }, 200);
     }
 
     function ensureMapReady(){
-      // if not yet created, create
       if (!mapInited) {
         initMap();
       } else {
-        // if already created but was hidden, just fix sizing
         setTimeout(() => {
           try { map.invalidateSize(); } catch(_) {}
         }, 200);
@@ -474,7 +563,7 @@
     }
 
     function setMarker(lat, lng){
-      state.lat = lat; 
+      state.lat = lat;
       state.lng = lng;
       if (!marker) {
         marker = L.marker([lat, lng], { draggable: true }).addTo(map);
@@ -517,17 +606,16 @@
     }
 
     document.getElementById('addrSearch').addEventListener('keydown', e => {
-      if (e.key === 'Enter'){ 
-        e.preventDefault(); 
-        ensureMapReady(); // make sure map exists first
-        searchAddress(e.currentTarget.value.trim()); 
+      if (e.key === 'Enter'){
+        e.preventDefault();
+        ensureMapReady();
+        searchAddress(e.currentTarget.value.trim());
       }
     });
 
-    // kick off initial UI
+    // init progress UI on load
     updateStepper();
-    // we do NOT initMap() immediately,
-    // because step2 is hidden on load. We'll init on first visit to step2.
+    // we only initMap() when step 2 is shown
   </script>
 </body>
 </html>
