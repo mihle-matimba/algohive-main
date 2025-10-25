@@ -1,1935 +1,868 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AlgoHive – OpenStrategies</title>
 
-    <title>AlgoHive – Strategy Factsheet</title>
-    <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <style>
-        :root {
-            --bg: #fff;
-            --line: #e2e8f0;
-            --ink: #0f172a;
-            --olive: #556B2F
-        }
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-        html,
-        body {
-            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--ink)
-        }
+  <style>
+    :root{ --page:#0b1220; --bg:#f9fafb; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e5e7ef }
+    html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.04) }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
+    .chip{ display:inline-flex; align-items:center; border-radius:9999px; padding:.2rem .55rem; font-size:.74rem; font-weight:600 }
+    .topbar{ height:52px }
+    
+    /* UPDATED FOR RESPONSIVENESS */
+    #layout{ --sb:220px; display:grid; grid-template-columns:1fr; min-height:100vh } /* Mobile-first: 1 column */
+    #ah-sidebar{ 
+      transition: transform .3s ease, width .2s ease; /* Add transform transition */
+      width: 280px; /* Mobile width */
+      max-width: 85vw;
+      position: fixed; /* Mobile overlay */
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%); /* Hidden by default */
+    }
+    #ah-sidebar.is-open {
+      transform: translateX(0); /* Show sidebar */
+    }
+    
+    /* Desktop styles */
+    @media (min-width: 768px) {
+      #layout{ grid-template-columns:var(--sb) 1fr } /* 2-col grid on desktop */
+      #layout.is-collapsed{ --sb:64px }
+      #ah-sidebar {
+        position: sticky; /* Back to sticky */
+        width: var(--sb); /* Use variable width */
+        max-width: none;
+        transform: translateX(0); /* Always visible */
+        z-index: auto;
+      }
+    }
+    /* END RESPONSIVE UPDATES */
+    
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
+    #ah-sidebar details .sub{ transition: height .2s ease }
+    #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
+    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
+    #ah-sidebar[data-collapsed="true"] details>summary span{ gap:0 }
+    #ah-sidebar .footer{ transition:all .2s ease }
+    #ah-sidebar[data-collapsed="true"] .footer{ justify-content:center; flex-direction:column; gap:12px }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i){ transform:rotate(180deg) }
+    
+    /* Hide desktop collapse button on mobile */
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) {
+      #ah-collapse { display: inline-flex; } /* Show on desktop */
+    }
 
-        .card {
-            background: #fff;
-            border: 1px solid var(--line);
-            border-radius: 12px
-        }
+    /* table styles */
+    .tbl-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden }
+    table { width:100%; border-collapse:separate; border-spacing:0 }
+    thead th { position:sticky; top:0; background:#fff; z-index:1; font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:#64748b; border-bottom:1px solid #e5e7eb; padding:.875rem .875rem; text-align:left }
+    tbody td { padding:1rem .875rem; border-bottom:1px solid #f1f5f9; font-size:.925rem }
+    tbody tr:hover { background:#f8fafc }
+    .th-min { width:1%; white-space:nowrap }
+    .cell-name { font-weight:600 }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: .5rem;
-            height: 40px;
-            padding: 0 .875rem;
-            border-radius: 10px;
-            border: 1px solid var(--line);
-            font-weight: 600
-        }
-
-        .input {
-            height: 40px;
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 0 .75rem
-        }
-
-        .tab {
-            height: 36px;
-            border-radius: 8px;
-            padding: 0 .75rem
-        }
-
-        .tab-active {
-            background: #111827;
-            color: #fff
-        }
-
-        /* UPDATED FOR RESPONSIVENESS */
-        #layout {
-            --sb: 220px;
-            display: grid;
-            grid-template-columns: 1fr;
-            /* Mobile-first: 1 column */
-            min-height: 100vh
-        }
-
-        #ah-sidebar {
-            transition: transform .3s ease, width .2s ease;
-            width: 280px;
-            /* Mobile width */
-            max-width: 85vw;
-            position: fixed;
-            /* Mobile overlay */
-            z-index: 50;
-            height: 100vh;
-            transform: translateX(-100%);
-            /* Hidden by default */
-        }
-
-        #ah-sidebar.is-open {
-            transform: translateX(0);
-            /* Show sidebar */
-        }
-
-        /* Desktop styles */
-        @media (min-width: 768px) {
-            #layout {
-                grid-template-columns: var(--sb) 1fr
-                    /* 2-col grid on desktop */
-            }
-
-            #layout.is-collapsed {
-                --sb: 64px
-            }
-
-            #ah-sidebar {
-                position: sticky;
-                /* Back to sticky */
-                top: 0;
-                width: var(--sb);
-                /* Use variable width */
-                max-width: none;
-                transform: translateX(0);
-                /* Always visible */
-                z-index: auto;
-            }
-        }
-
-        /* END RESPONSIVE UPDATES */
-
-        #layout.is-collapsed {
-            --sb: 64px
-        }
-
-        #ah-sidebar[data-collapsed="true"] .label,
-        #ah-sidebar[data-collapsed="true"] .chevron {
-            display: none
-        }
-
-        #ah-sidebar details .sub {
-            transition: height .2s ease
-        }
-
-        #ah-sidebar[data-collapsed="true"] details>.sub {
-            display: none !important
-        }
-
-        #ah-sidebar .footer {
-            transition: all .2s ease
-        }
-
-        #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
-            transform: rotate(180deg)
-        }
-
-        /* Hide desktop collapse button on mobile */
-        #ah-collapse {
-            display: none;
-        }
-
-        @media (min-width: 768px) {
-            #ah-collapse {
-                display: inline-flex;
-            }
-
-            /* Show on desktop */
-        }
-
-        .ps-tile {
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 14px 16px;
-            background: #fff
-        }
-
-        .ps-label {
-            color: #64748b;
-            font-weight: 500;
-            font-size: .85rem
-        }
-
-        .ps-value {
-            font-weight: 600;
-            font-size: 1rem;
-            margin-top: 2px
-        }
-
-        @keyframes ah-spin {
-            to {
-                transform: rotate(360deg)
-            }
-        }
-
-        .spin i {
-            animation: ah-spin .8s linear infinite
-        }
-
-        .cal-grid {
-            display: grid;
-            grid-auto-rows: minmax(36px, auto);
-            gap: 0;
-            border-collapse: collapse
-        }
-
-        .cal-grid>.cal-sticky {
-            border-right: 0
-        }
-
-        .cal-cell,
-        .cal-head {
-            border: 1px solid #e5e7eb;
-            margin: 0
-        }
-
-        .cal-head.cal-sticky {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            position: sticky;
-            left: 0;
-            background: var(--bg, #fff);
-            z-index: 10;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .35rem .65rem;
-            border-radius: 999px;
-            border: 1px solid #e5e7eb;
-            font-size: .75rem;
-            font-weight: 600;
-            background: #fff
-        }
-
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 9999px;
-            display: inline-block
-        }
-
-        /* --- ADDED: Modal Styles --- */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 100;
-            display: none;
-        }
-
-        .modal-content {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            z-index: 101;
-            width: 90vw;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-            display: none;
-        }
-
-        .modal-content.is-open,
-        .modal-overlay.is-open {
-            display: block;
-        }
-
-        .day-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            text-align: center;
-        }
-
-        .day-grid-header {
-            font-weight: 600;
-            font-size: 0.75rem;
-            color: #64748b;
-            padding-bottom: 8px;
-        }
-
-        .day-grid-cell {
-            font-size: 0.875rem;
-            min-height: 48px;
-            padding: 4px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-        }
-
-        .day-grid-cell.is-empty {
-            background: #f8fafc;
-            border-color: transparent;
-        }
-
-        .day-grid-cell .day-num {
-            font-weight: 600;
-            color: #334155;
-        }
-
-        .day-grid-cell .day-pct {
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        /* --- END ADDED: Modal Styles --- */
-    </style>
+    /* --- MODIFIED: Mobile Carousel Styles (with Center Snapping) --- */
+    .mobile-carousel {
+      display: flex;
+      gap: 1.25rem; /* 20px */
+      overflow-x: auto;
+      
+      /* --- NEW SNAPPING STYLES --- */
+      /* 1. Enable scroll-snapping */
+      scroll-snap-type: x mandatory;
+      
+      /* 2. Set padding to center a 300px card */
+      /* (50vw) - (half card width: 150px) */
+      /* We must use !important to override Tailwind's `!px-6` utility class on the element */
+      padding-left: calc(50vw - 150px) !important;
+      padding-right: calc(50vw - 150px) !important;
+      
+      /* 3. Keep existing vertical padding */
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+      
+      /* 4. Hide scrollbar (existing) */
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    .mobile-carousel::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+    .mobile-strat-card {
+      /* Width must be static for centering calculation */
+      width: 300px; 
+      flex-shrink: 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      
+      /* --- NEW SNAPPING STYLES --- */
+      /* Snap this item to the center */
+      scroll-snap-align: center;
+    }
+    /* --- END MODIFIED --- */
+  </style>
 </head>
 
-
 <body class="min-h-screen overflow-x-hidden">
-    <div id="layout">
-        <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
-        <aside id="ah-sidebar" data-collapsed="false"
-            class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
-            <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200"> <img
-                    src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
-                    alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
-                <div class="min-w-0">
-                    <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
-                    <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
-                </div>
-            </div>
-            <nav class="p-2 text-[14px] flex-1 overflow-y-auto"> <a
-                    class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 bg-slate-100"
-                    href="home.html" title="Home"> <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span
-                        class="label">Home</span> </a>
-                <details class="group mt-1">
-                    <summary
-                        class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-                        <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span
-                                class="label">Portfolio</span></span> <i
-                            class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-                    </summary>
-                    <div class="ml-8 mt-1 flex flex-col sub"> <a
-                            class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
-                            href="my-strategies.html" title="Positions"><i
-                                class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">My
-                                Strategies</span></a>
-                    </div>
-                </details>
-                <details class="group mt-1">
-                    <summary
-                        class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-                        <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span
-                                class="label">Invest</span></span> <i
-                            class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-                    </summary>
-                    <div class="ml-8 mt-1 flex flex-col sub"> <a
-                            class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
-                            href="strategies.html" title="OpenStrategies"><i
-                                class="fa-solid fa-chart-line w-4 text-slate-500"></i><span
-                                class="label">OpenStrategies</span></a>
-                    </div>
-                </details>
-                <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="support.html"
-                    title="Support"><i class="fa-solid fa-life-ring w-4 text-slate-500"></i><span
-                        class="label">Support</span></a> <a
-                    class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="legal.html"
-                    title="Legal"><i class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span
-                        class="label">Legal</span></a>
-            </nav>
-            <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2"> <a
-                    id="ah-settings" class="btn h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0"
-                    href="settings.html" title="Settings"><i class="fa-solid fa-gear"></i></a> <button id="ah-collapse"
-                    class="btn h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse"><i
-                        class="fa-solid fa-arrow-left"></i></button> </div>
-        </aside>
-        <main class="flex-1 min-w-0">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
-                <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0"
-                        title="Open Menu">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    
-                    <!-- MODIFIED: Search bar is now a form that submits to strategies.html -->
-                    <form action="strategies.html" method="GET" class="relative w-full hidden sm:block max-w-[460px]">
-                        <input id="header-search-input" name="q" class="input w-full pl-9" placeholder="Search strategies..." />
-                        <button type="submit" aria-label="Search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.3-4.3" />
-                            </svg>
-                        </button>
-                    </form>
-                    <!-- END MODIFIED -->
-                    
-                </div>
-                <div class="flex items-center gap-3"> <button
-                        class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
-                        aria-label="Notifications"> <i class="fa-regular fa-bell text-slate-500"></i> <span
-                            class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
-                    </button> <img id="hdr-avatar"
-                        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
-                        alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
-                    <button id="hdr-profile-btn"
-                        class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700 min-w-0"><span
-                            id="hdr-name" class="hidden sm:inline truncate">—</span><i
-                            class="fa-solid fa-chevron-down text-slate-500 text-xs"></i></button>
-                </div>
-            </div>
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false"
+      class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
+          alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">Where Smart Capital Gathers</div>
+        </div>
+      </div>
 
-            <!-- ADDED: Back to Strategies Link -->
-            <div class="px-6 pt-5">
-                <a href="strategies.html" class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[var(--olive)] transition-colors">
-                    <i class="fa-solid fa-arrow-left text-xs"></i>
-                    <span>Back to OpenStrategies</span>
-                </a>
-            </div>
-            <!-- END ADDED -->
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900"
+          href="/home.html" title="Home">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
+        </a>
 
-            <!-- MODIFIED: Added pt-2 to py-6 to reduce space from new back link -->
-            <div class="px-6 py-6 pt-2 grid grid-cols-12 gap-6 min-w-0">
-                <section id="portfolio-card"
-                    class="card border border-slate-200 shadow-none col-span-12 lg:col-span-9 min-w-0">
-                    <div class="px-5 pt-5">
-                        <div class="text-[12px] text-slate-500 font-semibold tracking-wide"> STRATEGY FACTSHEET <span
-                                class="mx-1">•</span> <span id="fs-updated">Current Time —</span> </div>
-                        <h1 class="text-2xl md:text-3xl font-extrabold mt-1 break-words" id="fs-title">-</h1>
-                        <div class="mt-2 mb-3 flex flex-wrap items-center gap-2 text-slate-600" id="fs-badges"> <span
-                                id="fs-provider">AlgoForge</span> <span class="mx-1 text-slate-400">•</span> <span>Live
-                                since <span class="font-medium" id="fs-since">01/02/2021</span></span> <span
-                                class="mx-1 text-slate-400">•</span>
-                            <span id="fs-currency">ZAR</span> <span
-                                class="badge bg-amber-50 border-amber-200 text-amber-700" id="fs-risk">Risk
-                                Moderate</span>
-                        </div>
-                    </div>
-                    <div
-                        class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-y-3 sm:gap-y-0 px-5 py-4 border-t border-b border-slate-200">
-                        <div>
-                            <h3 class="font-normal text-slate-800">Equity Curve — <span id="pf-name"
-                                    class="font-semibold">—</span>
-                            </h3>
-                            <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
-                            <button data-range="1Y" class="tab text-[13px]">1Y</button>
-                            <button data-range="ALL" class="tab text-[13px]">All</button>
-                            <button id="pf-refresh"
-                                class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
-                                title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
-                        </div>
+        <details class="group mt-1">
+          <summary
+            class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/my-strategies.html"><i
+                class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">My Strategies</span></a>
+           </div>
+        </details>
 
+        <details class="group mt-1" open>
+          <summary
+            class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100 font-semibold" href="strategies.html"><i
+                class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
+            
+     
+          </div>
+        </details>
 
-                    </div>
-                    <div class="px-5 pt-4">
-                        <div class="flex items-baseline gap-3">
-                            <div class="text-2xl font-bold" id="pf-value">R 0.00</div>
-                            <div class="text-lg font-normal" id="pf-change" data-sign="-"></div>
-                        </div>
-                    </div>
-                    <div class="px-2 pb-4 pt-2">
-                        <div class="h-[260px]">
-                            <canvas id="pf-chart" class="max-w-full"></canvas>
-                        </div>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="support.html"><i
+            class="fa-solid fa-life-ring w-4 text-slate-500"></i><span class="label">Support</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="legal.html"><i
+            class="fa-solid fa-scale-balanced w-4 text-slate-500"></i><span class="label">Legal</span></a>
+      </nav>
 
-                    </div>
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+          <a href="settings.html" id="ah-settings" aria-current="page"
+            class="btn btn-settings h-10 w-10 p-0 rounded-xl border-0" title="Settings">
+            <i class="fa-solid fa-gear"></i>
+          </a>
+      
+          <button id="ah-collapse"
+            class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+      </div>
+    </aside>
+    <main class="flex-1 min-w-0">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
+        <div class="flex items-center gap-3 flex-1 min-w-0 max-w-[560px]">
+           <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h1 class="text-xl font-bold text-slate-800">Open Strategies</h1>
+        </div>
 
-                    <section class="card mx-5 mb-5 p-6">
-                        <h3 class="text-lg font-medium text-slate-900 mb-2">Strategy Description</h3>
-                        <p class="text-sm text-slate-700" id="fs-desc">-</p>
-                        <ul class="list-disc pl-5 mt-2 text-sm text-slate-700" id="fs-desc-bullets">
-                            <li>-</li>
-                            <li>-</li>
-                            <li>-</li>
-                        </ul>
-                    </section>
-                </section>
-                <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-                    <div class="card p-5 border border-slate-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-base font-medium text-slate-900">Allocate to Strategy</h3>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="col-span-2"> <label class="block text-xs text-slate-500 mb-1.5"
-                                    for="alloc-name">Strategy</label> <input id="alloc-name"
-                                    class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50"
-                                    value="Trend Alpha" disabled /> </div>
-                            <div> <label class="block text-xs text-slate-500 mb-1.5" for="alloc-price">Unit Price
-                                    (ZAR)</label> <input id="alloc-price" type="number" step="0.01" value="1"
-                                    class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50"
-                                    disabled /> </div>
-                            <div> <label class="block text-xs text-slate-500 mb-1.5" for="alloc-units">Units</label>
-                                <input id="alloc-units" type="number" min="1" value="10"
-                                    class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
-                            </div>
-                        </div>
-                        <div class="mt-3 rounded-lg border border-slate-200 p-3 flex items-center justify-between">
-                            <div class="text-xs text-slate-500">Total</div>
-                            <div id="alloc-total" class="text-base font-semibold text-slate-900">R 1,124.00</div>
+        <div class="flex items-center gap-3">
+          <img id="hdr-avatar"
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
+               alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
+          <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
+            <span id="hdr-name">User</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
 
-
-
-                        </div>
-                        <div id="fx-note" class="mt-2 text-xs text-slate-500 hidden">
-                            <span id="fx-pair">USD→ZAR</span> rate: <span id="fx-rate">—</span>
-                            <span class="mx-1">•</span><span id="fx-updated">—</span>
-                        </div>
-                        <div class="mt-3 flex items-center justify-end gap-2"> <button id="alloc-btn"
-                                class="btn bg-[var(--olive)] text-white border-none hover:opacity-90"> <i
-                                    class="fa-solid fa-circle-plus"></i> Allocate </button> </div>
-                        <div id="alloc-toast"
-                            class="hidden mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-800 text-sm">
-                            <i class="fa-solid fa-check mr-2"></i> Allocation submitted for <span
-                                id="toast-strat">—</span>: <span id="toast-units">—</span> unit(s) @ <span
-                                id="toast-price">—</span>.
-                        </div>
-
-
-                    </div>
-                    <div class="card p-5 border border-slate-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-base font-medium text-slate-900">Asset class allocation</h3> <span
-                                class="text-xs text-slate-500">Total = 100%</span>
-                        </div>
-                        <div class="space-y-4" id="asset-allocation"></div>
-                    </div>
-                    <div class="card p-5 border border-slate-200">
-                        <div class="font-semibold mb-2">Strategy Overview</div>
-                        <p id="fsDesc" class="text-sm text-slate-700">—</p>
-                        <div class="grid grid-cols-2 gap-3 text-sm mt-3">
-                            <div class="p-3 border rounded-xl">
-                                <div class="text-slate-500 text-xs">Style</div>
-                                <div id="fsStyle" class="font-semibold">—</div>
-                            </div>
-                            <div class="p-3 border rounded-xl">
-                                <div class="text-slate-500 text-xs">Universe</div>
-                                <div id="fsUniverse" class="font-semibold">—</div>
-                            </div>
-                            <div class="p-3 border rounded-xl">
-                                <div class="text-slate-500 text-xs">Avg Holding</div>
-                                <div id="fsHold" class="font-semibold">—</div>
-                            </div>
-                            <div class="p-3 border rounded-xl">
-                                <div class="text-slate-500 text-xs">Trades / Month</div>
-                                <div id="fsTrades" class="font-semibold">—</div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
-                <section class="col-span-12 lg:col-span-9 min-w-0">
-                    <div class="card p-6 rounded-2xl border border-slate-200">
-                        <h3 class="text-lg font-medium text-slate-900 mb-5">Performance Summary</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                            <div class="ps-tile">
-                                <div class="ps-label">Best Day</div>
-                                <div id="ps-best" class="ps-value">+4.25%</div>
-                            </div>
-                            <div class="ps-tile">
-                                <div class="ps-label">Worst Day</div>
-                                <div id="ps-worst" class="ps-value">-2.67%</div>
-                            </div>
-                            <div class="ps-tile">
-                                <div class="ps-label">Avg Daily Return</div>
-                                <div id="ps-avg" class="ps-value">+0.12%</div>
-                            </div>
-                            <div class="ps-tile">
-                                <div class="ps-label">Positive Days</div>
-                                <div id="ps-pos" class="ps-value">61%</div>
-                            </div>
-                            <div class="ps-tile">
-                                <div class="ps-label">Trading Days</div>
-                                <div id="ps-days" class="ps-value">245</div>
-                            </div>
-                            <div class="ps-tile">
-                                <div class="ps-label">YTD</div>
-                                <div id="ps-ytd" class="ps-value">—</div>
-                            </div>
-
-                        </div>
-                        <div class="mt-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="text-sm font-semibold text-slate-900">Calendar Returns</div>
-                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"> <span
-                                        class="inline-block w-5 h-3 rounded" id="legNeg"></span><span
-                                        class="text-slate-500">Negative</span> <span
-                                        class="inline-block w-5 h-3 rounded" id="legNeu"></span><span
-                                        class="text-slate-500">Flat</span>
-                                    <span class="inline-block w-5 h-3 rounded" id="legPos"></span><span
-                                        class="text-slate-500">Positive</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end mb-2 gap-4">
-                                <div class="flex items-center justify-end">
-                                    <label for="calendar-year-filter"
-                                        class="text-sm font-medium text-slate-700 mr-2">Year:</label>
-                                    <select id="calendar-year-filter" class="input h-9 py-0 text-sm w-32"></select>
-                                </div>
-                                <div class="relative flex items-center justify-end">
-                                    <label class="text-sm font-medium text-slate-700 mr-2">Months:</label>
-                                    <button id="month-filter-btn"
-                                        class="input h-9 py-0 text-sm w-32 text-left flex justify-between items-center">
-                                        <span id="month-filter-label" class="truncate">All Months</span>
-                                        <i class="fa-solid fa-chevron-down text-xs mr-1"></i>
-                                    </button>
-                                    <div id="month-filter-popover"
-                                        class="hidden absolute right-0 top-10 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 p-4">
-                                        <div class="space-y-2">
-                                            <div>
-                                                <input type="checkbox" id="month-all" class="month-filter-cb"
-                                                    data-month="All" checked>
-                                                <label for="month-all" class="ml-2 text-sm font-medium">All
-                                                    Months</label>
-                                            </div>
-                                            <hr class="my-2" />
-                                            <div class="grid grid-cols-2 gap-2">
-                                                <div><input type="checkbox" id="month-Jan" class="month-filter-cb-ind"
-                                                        data-month="Jan"><label for="month-Jan"
-                                                        class="ml-2 text-sm">Jan</label></div>
-                                                <div><input type="checkbox" id="month-Feb" class="month-filter-cb-ind"
-                                                        data-month="Feb"><label for="month-Feb"
-                                                        class="ml-2 text-sm">Feb</label></div>
-                                                <div><input type="checkbox" id="month-Mar" class="month-filter-cb-ind"
-                                                        data-month="Mar"><label for="month-Mar"
-                                                        class="ml-2 text-sm">Mar</label></div>
-                                                <div><input type="checkbox" id="month-Apr" class="month-filter-cb-ind"
-                                                        data-month="Apr"><label for="month-Apr"
-                                                        class="ml-2 text-sm">Apr</label></div>
-                                                <div><input type="checkbox" id="month-May" class="month-filter-cb-ind"
-                                                        data-month="May"><label for="month-May"
-                                                        class="ml-2 text-sm">May</label></div>
-                                                <div><input type="checkbox" id="month-Jun" class="month-filter-cb-ind"
-                                                        data-month="Jun"><label for="month-Jun"
-                                                        class="ml-2 text-sm">Jun</label></div>
-                                                <div><input type="checkbox" id="month-Jul" class="month-filter-cb-ind"
-                                                        data-month="Jul"><label for="month-Jul"
-                                                        class="ml-2 text-sm">Jul</label></div>
-                                                <div><input type="checkbox" id="month-Aug" class="month-filter-cb-ind"
-                                                        data-month="Aug"><label for="month-Aug"
-                                                        class="ml-2 text-sm">Aug</label></div>
-                                                <div><input type="checkbox" id="month-Sep" class="month-filter-cb-ind"
-                                                        data-month="Sep"><label for="month-Sep"
-                                                        class="ml-2 text-sm">Sep</label></div>
-                                                <div><input type="checkbox" id="month-Oct" class="month-filter-cb-ind"
-                                                        data-month="Oct"><label for="month-Oct"
-                                                        class="ml-2 text-sm">Oct</label></div>
-                                                <div><input type="checkbox" id="month-Nov" class="month-filter-cb-ind"
-                                                        data-month="Nov"><label for="month-Nov"
-                                                        class="ml-2 text-sm">Nov</label></div>
-                                                <div><input type="checkbox" id="month-Dec" class="month-filter-cb-ind"
-                                                        data-month="Dec"><label for="month-Dec"
-                                                        class="ml-2 text-sm">Dec</label></div>
-                                            </div>
-                                            <button id="month-filter-apply"
-                                                class="btn w-full bg-slate-800 text-white border-none h-8 text-sm mt-3 hover:bg-slate-700">Apply</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <div id="calendarReturns" class="cal-grid"></div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <section class="col-span-12 lg:col-span-9 min-w-0">
-                    <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
-                        <div class="flex items-center justify-between mb-5">
-                            <h3 class="text-lg font-medium text-slate-900">Portfolio Holdings</h3>
-                            <div class="text-xs text-slate-500">Weights from factsheet</div>
-                        </div>
-                        <div class="flex flex-col md:flex-row items-center gap-6">
-                            <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
-                            <div id="ph-legend" class="text-sm grow w-full"></div>
-                        </div>
-                    </div>
-
-                    <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
-                        <h3 class="text-lg font-medium text-slate-900 mb-3">What fees can you expect</h3>
-                        <ul class="space-y-2 text-sm text-slate-700">
-                            <li class="flex flex-col sm:flex-row items-start gap-x-2">
-                                <span class="font-semibold text-slate-900 sm:min-w-[160px]">Subscription</span>
-                                <span>Intro promo: <strong>R299 / month</strong> (first 6 months)</span>
-                            </li>
-                            <li class="flex flex-col sm:flex-row items-start gap-x-2">
-                                <span class="font-semibold text-slate-900 sm:min-w-[160px]">Management / AUM</span>
-                                <span><strong>0%</strong> (we don’t charge AUM fees)</span>
-                            </li>
-                            <li class="flex flex-col sm:flex-row items-start gap-x-2">
-                                <span class="font-semibold text-slate-900 sm:min-w-[160px]">Performance fee</span>
-                                <span><strong>30%</strong> over High-Water Mark (example — adjust per strategy
-                                    T&Cs)</span>
-                            </li>
-                            <li class="flex flex-col sm:flex-row items-start gap-x-2">
-                                <span class="font-semibold text-slate-900 sm:min-w-[160px]">Funding / Payments</span>
-                                <span>Standard Ozow processing costs may apply (pass-through).</span>
-                            </li>
-                            <li class="flex flex-col sm:flex-row items-start gap-x-2">
-                                <span class="font-semibold text-slate-900 sm:min-w-[160px]">Withdrawals</span>
-                                <span>AlgoHive withdrawal processing fees and/or third-party banking charges may
-                                    apply.</span>
-                            </li>
-                        </ul>
-                        <p class="text-xs text-slate-500 mt-3">Exact fees are strategy-specific. Always review the
-                            strategy mandate before allocating.</p>
-                    </div>
-
-                    <div class="card p-6 rounded-2xl border border-slate-200">
-                        <h3 class="text-lg font-medium text-slate-900 mb-2">Regulatory Disclaimer</h3>
-                        <p class="text-sm text-slate-700">
-                            Investing involves risk. Returns are not guaranteed and past performance is not a reliable
-                            indicator of future results.
-                            Nothing on this page constitutes financial advice. Products may be offered via an authorised
-                            Financial Services Provider
-                            in South Africa.
-                        </p>
-                    </div>
-                </section>
-
-            </div>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-            </main>
-    </div>
-
-    <div id="daily-modal-overlay" class="modal-overlay"></div>
-    <div id="daily-modal-content" class="modal-content">
-        <div class="flex items-center justify-between mb-4">
-            <h3 id="daily-modal-title" class="text-lg font-medium text-slate-900">Daily Returns</h3>
-            <button id="daily-modal-close"
-                class="h-8 w-8 rounded-full grid place-items-center hover:bg-slate-100 text-slate-500">
-                <i class="fa-solid fa-times"></i>
+      <div class="max-w-7xl mx-auto px-6">
+        <section class="sticky top-[69px] z-20 bg-white/70 backdrop-blur border-b border-slate-200 px-0 py-3">
+          <div class="hidden md:flex flex-wrap items-center gap-3">
+            <div class="text-sm font-semibold">Filters</div>
+             <input id="q" class="h-9 w-full sm:w-64 pl-3 pr-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--olive)] text-sm" placeholder="Search strategies…"/>
+            <select id="fRisk" class="h-9 rounded-lg border px-2 text-sm">
+              <option value="">Risk: Any</option>
+              <option>Low</option>
+              <option>Moderate</option>
+              <option>High</option>
+            </select>
+            <select id="fCur" class="h-9 rounded-lg border px-2 text-sm">
+              <option value="">Currency: Any</option>
+              <option>ZAR</option>
+              <option>USD</option>
+              <option>EUR</option>
+            </select>
+            <select id="fStyle" class="h-9 rounded-lg border px-2 text-sm">
+              <option value="">Style: Any</option>
+            </select>
+            <select id="fSort" class="h-9 rounded-lg border px-2 text-sm ml-auto">
+              <option value="name-asc">Sort: Name (A→Z)</option>
+              <option value="cagr-desc">Sort: 1Y CAGR (High→Low)</option>
+              <option value="aum-desc">Sort: AUM (High→Low)</option>
+              <option value="dd-asc">Sort: Max DD (Low→High)</option>
+            </select>
+            <button id="clearBtn" class="h-9 px-3 rounded-lg border hover:bg-slate-50 text-sm">Clear</button>
+          </div>
+          
+           <div class="md:hidden">
+            <button id="mobile-filter-btn" class="btn w-full bg-white">
+              <i class="fa-solid fa-filter"></i>
+              <span>Filters & Sort</span>
             </button>
-        </div>
-        <div class="day-grid mb-2">
-            <div class="day-grid-header">Sun</div>
-            <div class="day-grid-header">Mon</div>
-            <div class="day-grid-header">Tue</div>
-            <div class="day-grid-header">Wed</div>
-            <div class="day-grid-header">Thu</div>
-            <div class="day-grid-header">Fri</div>
-            <div class="day-grid-header">Sat</div>
-        </div>
-        <div id="daily-modal-grid" class="day-grid">
-            </div>
-    </div>
-
-    <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-black/40"></div>
-        <div
-            class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-200">
-                <div class="text-sm font-semibold text-slate-900">Account</div>
-                <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
-            </div>
-            <div class="p-2"> <a id="pm-profile" href="/settings.html#basic"
-                    class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50"> <i
-                        class="fa-regular fa-user text-slate-500 w-4"></i><span>Profile settings</span> </a> <button
-                    id="pm-logout"
-                    class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700"> <i
-                        class="fa-solid fa-right-from-bracket w-4"></i><span>Log out</span> </button> </div>
-        </div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer
-        nonce="ALGOHIVE"></script>
-    <script
-        nonce="ALGOHIVE"> (function () { const layout = document.getElementById('layout'); const aside = document.getElementById('ah-sidebar'); const btn = document.getElementById('ah-collapse'); const saved = localStorage.getItem('ah_collapsed') === 'true'; if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); } btn.addEventListener('click', () => { const isCollapsed = aside.getAttribute('data-collapsed') === 'true'; if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open')); aside.setAttribute('data-collapsed', String(!isCollapsed)); layout.classList.toggle('is-collapsed', !isCollapsed); localStorage.setItem('ah_collapsed', String(!isCollapsed)); layout.offsetHeight; window.dispatchEvent(new Event('resize')); }); })(); </script>
-
-    <script nonce="ALGOHIVE">
-        (function () {
-            const btn = document.getElementById('ah-mobile-menu-btn');
-            const overlay = document.getElementById('ah-overlay');
-            const sidebar = document.getElementById('ah-sidebar');
-
-            function openMenu() {
-                sidebar.classList.add('is-open');
-                overlay.classList.remove('hidden');
-            }
-            function closeMenu() {
-                sidebar.classList.remove('is-open');
-                overlay.classList.add('hidden');
-            }
-
-            btn?.addEventListener('click', openMenu);
-            overlay?.addEventListener('click', closeMenu);
-
-            sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
-                link.addEventListener('click', closeMenu);
-            });
-        })();
-    </script>
-
-    <script type="module" nonce="ALGOHIVE">
-        import { supabase } from "/js/supabase.js";
-        let strategy = null;   // <— keep hoisted so handlers can see it
-        let metrics = null;
-        const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-        // *** ADDED: Daily Modal Function ***
-        window.showDailyModal = function (year, monthName) {
-            if (!metrics || !metrics.calendar_returns) {
-                banner('Daily performance data is not available.', 'err');
-                return;
-            }
-
-            const modalOverlay = document.getElementById('daily-modal-overlay');
-            const modalContent = document.getElementById('daily-modal-content');
-            const modalTitle = document.getElementById('daily-modal-title');
-            const modalGrid = document.getElementById('daily-modal-grid');
-            if (!modalOverlay || !modalContent || !modalTitle || !modalGrid) return;
-
-            const monthNumber = MONTH_NAMES.indexOf(monthName) + 1;
-            if (monthNumber === 0) return;
-
-            modalTitle.textContent = `Daily Returns: ${monthName} ${year}`;
-
-            // Get daily data for this month
-            const dailyData = {};
-            metrics.calendar_returns.forEach(d => {
-                if (d.year === year && d.month === monthNumber) {
-                    dailyData[d.day] = Number(d.pct);
-                }
-            });
-
-            const daysInMonth = new Date(year, monthNumber, 0).getDate();
-            const firstDayOfWeek = new Date(year, monthNumber - 1, 1).getDay(); // 0=Sun, 1=Mon...
-
-            modalGrid.innerHTML = '';
-
-            // Add empty cells for padding
-            for (let i = 0; i < firstDayOfWeek; i++) {
-                modalGrid.insertAdjacentHTML('beforeend', '<div class="day-grid-cell is-empty"></div>');
-            }
-
-            // Add day cells
-            for (let day = 1; day <= daysInMonth; day++) {
-                const v = dailyData[day];
-                let pctHtml = '—';
-                let color = '#f1f5f9'; // Flat
-
-                if (v != null) {
-                    const vNum = Number(v);
-                    pctHtml = `${vNum >= 0 ? '+' : ''}${vNum.toFixed(2)}%`;
-                    color = vNum >= 1.5 ? '#bbf7d0' // Strong pos
-                        : vNum > 0 ? '#dcfce7'     // Pos
-                            : vNum === 0 ? '#f1f5f9'   // Flat
-                                : vNum > -1 ? '#fee2e2'    // Neg
-                                    : '#fecaca';            // Strong neg
-                }
-
-                modalGrid.insertAdjacentHTML('beforeend', `
-          <div class="day-grid-cell" style="background-color: ${color};">
-            <div class="day-num">${day}</div>
-            <div class="day-pct">${pctHtml}</div>
           </div>
-        `);
-            }
+        </section>
 
-            // Show modal
-            modalOverlay.classList.add('is-open');
-            modalContent.classList.add('is-open');
-        }
-
-        function closeDailyModal() {
-            document.getElementById('daily-modal-overlay')?.classList.remove('is-open');
-            document.getElementById('daily-modal-content')?.classList.remove('is-open');
-        }
-
-        document.getElementById('daily-modal-close')?.addEventListener('click', closeDailyModal);
-        document.getElementById('daily-modal-overlay')?.addEventListener('click', closeDailyModal);
-        // *** END ADDED ***
-
-        // *** ADDED: Month Filter Popover Logic ***
-        const monthFilterBtn = document.getElementById('month-filter-btn');
-        const monthFilterPopover = document.getElementById('month-filter-popover');
-        const monthFilterApply = document.getElementById('month-filter-apply');
-        const monthAllCb = document.getElementById('month-all');
-        const monthIndCbs = document.querySelectorAll('.month-filter-cb-ind');
-        const monthFilterLabel = document.getElementById('month-filter-label');
-
-        function closeMonthPopover() {
-            monthFilterPopover?.classList.add('hidden');
-        }
-
-        function getSelectedMonths() {
-            if (monthAllCb.checked) {
-                return MONTH_NAMES; // Returns all 12
-            }
-            const selected = [...monthIndCbs]
-                .filter(cb => cb.checked)
-                .map(cb => cb.dataset.month);
-
-            // If no individuals are selected, default back to All
-            return selected.length > 0 ? selected : MONTH_NAMES;
-        }
-
-        function updateMonthFilterLabel() {
-            if (monthAllCb.checked) {
-                monthFilterLabel.textContent = 'All Months';
-                return;
-            }
-            const selected = [...monthIndCbs]
-                .filter(cb => cb.checked)
-                .map(cb => cb.dataset.month);
-
-            if (selected.length === 0) {
-                monthFilterLabel.textContent = 'All Months'; // Fallback
-            } else if (selected.length === 1) {
-                monthFilterLabel.textContent = selected[0];
-            } else if (selected.length === 12) {
-                monthFilterLabel.textContent = 'All Months';
-            } else {
-                monthFilterLabel.textContent = `${selected.length} Months`;
-            }
-        }
-
-        monthFilterBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            monthFilterPopover?.classList.toggle('hidden');
-        });
-
-        monthFilterApply?.addEventListener('click', () => {
-            // If no individuals are checked, re-check 'All'
-            const anyIndChecked = [...monthIndCbs].some(cb => cb.checked);
-            if (!anyIndChecked) {
-                monthAllCb.checked = true;
-            }
-
-            const selectedYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-            const selectedMonths = getSelectedMonths();
-            const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-            renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear, selectedMonths);
-
-            updateMonthFilterLabel();
-            closeMonthPopover();
-        });
-
-        monthAllCb?.addEventListener('click', () => {
-            if (monthAllCb.checked) {
-                monthIndCbs.forEach(cb => cb.checked = false);
-            }
-        });
-
-        monthIndCbs?.forEach(cb => {
-            cb.addEventListener('click', () => {
-                if (cb.checked) {
-                    monthAllCb.checked = false;
-                }
-                // If all individuals are unchecked, check 'All'
-                const anyIndChecked = [...monthIndCbs].some(c => c.checked);
-                if (!anyIndChecked) {
-                    monthAllCb.checked = true;
-                }
-            });
-        });
-
-        window.addEventListener('click', (e) => {
-            if (!monthFilterPopover?.contains(e.target) && !monthFilterBtn?.contains(e.target)) {
-                closeMonthPopover();
-            }
-        });
-        // *** END ADDED ***
-
-
-        // tiny banner
-        function banner(msg, tone = "warn") {
-            let el = document.getElementById("banner");
-            if (!el) {
-                el = document.createElement("div");
-                el.id = "banner";
-                el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-                document.body.appendChild(el);
-            }
-            el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-            el.classList.remove("bg-amber-100", "text-amber-900", "bg-emerald-100", "text-emerald-900", "bg-rose-100", "text-rose-900");
-            if (tone === "warn") { el.classList.add("bg-amber-100", "text-amber-900"); }
-            if (tone === "ok") { el.classList.add("bg-emerald-100", "text-emerald-900"); }
-            if (tone === "err") { el.classList.add("bg-rose-100", "text-rose-900"); }
-            el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 3500);
-        }
-
-        // ---- Auth guard (redirect to login if needed) ----
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            const next = encodeURIComponent(location.pathname + location.search + location.hash);
-            location.replace(`/auth.html?tab=in&redirect=${next}`);
-        }
-        const { data: { user } } = await supabase.auth.getUser();
-
-        // ---- Ensure profile row exists / fetch it ----
-        async function ensureProfile(userId, email) {
-            let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-            if (error && error.code !== "PGRST116") throw error; // ignore "no rows"
-            if (data) return data;
-            const payload = { id: userId, email, updated_at: new Date().toISOString() };
-            const up = await supabase.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
-            if (up.error) throw up.error;
-            return up.data;
-        }
-        const row = await ensureProfile(user.id, user.email || null);
-
-        // ---- Hydrate header + sidebar ----
-        const hdrName = document.getElementById("hdr-name");
-        const hdrAvatar = document.getElementById("hdr-avatar");
-        const pmEmail = document.getElementById("pm-email");
-
-        document.getElementById("sidebar-acc").textContent = row?.account_number || "—";
-
-        const fn = (row?.first_name || "").trim();
-        const ln = (row?.last_name || "").trim();
-        hdrName.textContent = (fn || ln) ? `${fn} ${ln}`.trim() : (user.email?.split("@")[0] || "User");
-
-        const blankAvatar = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
-        hdrAvatar.src = row?.avatar_url || blankAvatar;
-
-        // ---- Profile modal / routes ----
-        const profileBtn = document.getElementById("hdr-profile-btn");
-        const modal = document.getElementById("profile-modal");
-        const btnLogout = document.getElementById("pm-logout");
-        const btnGear = document.getElementById("ah-settings");
-
-        function openModal() { pmEmail.textContent = user?.email || "—"; modal.classList.remove("hidden"); }
-        function closeModal() { modal.classList.add("hidden"); }
-
-        profileBtn?.addEventListener("click", (e) => { e.preventDefault(); openModal(); });
-        modal?.addEventListener("click", (e) => {
-            if (e.target === modal || (e.target.classList && e.target.classList.contains("bg-black/40"))) closeModal();
-        });
-        window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
-        btnGear?.addEventListener("click", (e) => { e.preventDefault(); location.href = "/settings.html#basic"; });
-        btnLogout?.addEventListener("click", async () => {
-            try { await supabase.auth.signOut(); location.replace("/auth.html?tab=in"); }
-            catch { banner("Sorry, logout failed.", "err"); }
-        });
-        supabase.auth.onAuthStateChange((_ev, sess) => { if (!sess) { location.replace("/auth.html?tab=in"); } });
-
-        // ---------- tiny utils ----------
-        const $ = (q, el = document) => el.querySelector(q);
-        const $$ = (q, el = document) => Array.from(el.querySelectorAll(q));
-        const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-        const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
-        const finite = v => Number.isFinite(Number(v));
-
-        // ---------- URL params ----------
-        const params = new URLSearchParams(location.search);
-        const stratKey = params.get('id') || params.get('strategy') || params.get('code') || null;
-
-        function renderDescAndBullets(strategy) {
-            const descEl = document.getElementById('fs-desc');
-            if (descEl) descEl.textContent = strategy?.strategy_description || '—';
-
-            const wrap = document.getElementById('fs-desc-bullets');
-            if (!wrap) return;
-            const bullets = strategy?.strategy_description_bullets;
-            wrap.innerHTML = '';
-            if (!bullets || (Array.isArray(bullets) && bullets.length === 0)) {
-                wrap.classList.add('hidden'); return;
-            }
-            wrap.classList.remove('hidden');
-            (bullets || []).forEach(b => {
-                const li = document.createElement('li');
-                li.className = 'text-sm text-slate-700';
-                if (typeof b === 'string') {
-                    li.textContent = b;
-                } else if (b && typeof b === 'object') {
-                    const t = (b.title || b.label || '').toString().trim();
-                    const v = (b.text || b.value || '').toString().trim();
-                    if (t && v) li.innerHTML = `<strong>${t}:</strong> ${v}`;
-                    else li.textContent = v || t || '—';
-                } else {
-                    li.textContent = '—';
-                }
-                wrap.appendChild(li);
-            });
-        }
-
-        function pad2(n) { return String(n).padStart(2, '0'); }
-        function tsStamp(d = new Date()) {
-            const y = d.getFullYear(), m = pad2(d.getMonth() + 1), day = pad2(d.getDate()),
-                hh = pad2(d.getHours()), mm = pad2(d.getMinutes()), ss = pad2(d.getSeconds());
-            return `${y}${m}${day}${hh}${mm}${ss}`;
-        }
-
-        // *** PIPE-SEPARATED reference ***
-        function buildRef(profileId, strategyId) {
-            return `AH_${profileId || 'P'}_${strategyId || 'S'}_${tsStamp()}`;
-        }
-
-        function currentPageCallbackUrl() {
-            const url = new URL(location.href);
-            url.searchParams.set('pay_cb', '1'); // marker so we know it's a return
-            return url.toString();
-        }
-
-        // run on return from Paystack to verify
-        async function verifyIfReturned() {
-            const url = new URL(location.href);
-            const ref = url.searchParams.get('reference') || url.searchParams.get('trxref');
-            const cb = url.searchParams.get('pay_cb');
-            if (!ref || !cb) return;
-
-            try {
-                banner('Verifying payment…', 'warn');
-                const res = await fetch(`/api/paystack/verify?reference=${encodeURIComponent(ref)}`);
-                const json = await res.json();
-                if (!res.ok) throw new Error(json?.error || 'Verify failed');
-
-                const tx = json?.data;
-                const expected = Number(sessionStorage.getItem('expectedAmountCents') || '0');
-
-                if (tx?.status === 'success' && (!expected || tx?.amount === expected)) {
-                    banner('Payment successful ✅', 'ok');
-                    // TODO: mark allocation paid in your backend if needed
-                } else {
-                    banner('Payment not completed or amount mismatch ❌', 'err');
-                }
-            } catch (e) {
-                console.error('[verify]', e);
-                banner('Could not verify payment. Please contact support.', 'err');
-            } finally {
-                url.searchParams.delete('reference');
-                url.searchParams.delete('trxref');
-                url.searchParams.delete('pay_cb');
-                history.replaceState({}, '', url.toString());
-                sessionStorage.removeItem('expectedAmountCents');
-            }
-        }
-
-        // ---- Holdings donut + legend ----
-        function drawDonut(svgEl, items) {
-            const cx = 90, cy = 90, r = 62, R = 72, TAU = Math.PI * 2;
-            svgEl.innerHTML = '';
-            const sum = items.reduce((s, i) => s + (Number(i.pct) || 0), 0) || 1;
-            let a0 = -Math.PI / 2;
-
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-
-            items.forEach((it, idx) => {
-                const pct = Number(it.pct) || 0;
-                const frac = pct / sum;
-                const a1 = a0 + frac * TAU;
-                const la = (a1 - a0) > Math.PI ? 1 : 0;
-
-                const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)];
-                const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)];
-                const q0 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-                const q1 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
-
-                const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', d);
-                path.setAttribute('fill', it.color || colors[idx % colors.length]);
-                path.setAttribute('opacity', '.95');
-                svgEl.appendChild(path);
-                a0 = a1;
-            });
-
-            const tot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            tot.textContent = '100%';
-            tot.setAttribute('x', cx);
-            tot.setAttribute('y', cy + 5);
-            tot.setAttribute('text-anchor', 'middle');
-            tot.setAttribute('font-size', '16');
-            tot.setAttribute('font-weight', '700');
-            svgEl.appendChild(tot);
-        }
-
-        function renderPortfolioHoldingsFromMetrics(freshMetrics) {
-            const svg = document.getElementById('ph-donut');
-            const legend = document.getElementById('ph-legend');
-            if (!svg || !legend) return;
-
-            const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
-            const items = src
-                .map(h => ({ label: (h.symbol || h.name || '—').toString(), pct: Number(h.weight_pct) || 0 }))
-                .filter(x => x.pct > 0);
-
-            if (!items.length) {
-                svg.innerHTML = '';
-                legend.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
-                return;
-            }
-
-            drawDonut(svg, items);
-            legend.innerHTML = items.map((h, i) => `
-      <div class="flex items-center justify-between py-1">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="legend-dot" style="background: var(--phc-${i});"></span>
-          <span class="truncate">${h.label}</span>
+        <div class="flex items-center justify-between py-4">
+          <div id="resultCount" class="text-sm text-slate-500">Showing 0 strategies</div>
+          <div class="text-xs text-slate-400 hidden sm:block">* Metrics are simulated from monthly returns (net of TIF).</div>
         </div>
-        <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
-      </div>`).join('');
 
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-            items.forEach((_, i) => {
-                document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
-            });
+        <section id="mobile-carousel-section" class="block md:hidden -mx-6">
+          <div id="mobile-carousel-container" class="mobile-carousel !px-6">
+            </div>
+        </section>
+
+        <section id="tbl-wrap" class="tbl-wrap hidden md:block">
+          <div class="overflow-x-auto">
+            <table id="tbl">
+              <thead>
+                <tr>
+                  <th class="th-min">#</th>
+                  <th>Name</th>
+                  <th class="hidden md:table-cell">Provider</th>
+                  <th class="th-min hidden md:table-cell">Ccy</th>
+                  <th class="th-min hidden md:table-cell">Risk</th>
+                  <th class="hidden md:table-cell">Style</th>
+                  <th class="hidden lg:table-cell">Universe</th>
+                  <th class="th-min">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div id="empty" class="hidden py-10 text-center text-slate-500">No strategies match your filters.</div>
+      </div>
+    </main>
+  </div>
+
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">user@example.com</div>
+      </div>
+      <div class="p-2">
+        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="filter-modal" class="fixed inset-0 z-[60] p-4 hidden">
+      <div id="filter-overlay" class="absolute inset-0 bg-black/40"></div>
+      <div class="relative w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-6 mt-10">
+          <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">Filters & Sort</h3>
+              <button id="filter-close-btn" class="btn h-9 w-9 p-0 rounded-lg border-0 bg-slate-100 hover:bg-slate-200">
+                  <i class="fa-solid fa-times"></i>
+              </button>
+          </div>
+          
+          <div class="space-y-4">
+              <div>
+                  <label for="q-m" class="block text-sm font-medium text-slate-600 mb-1">Search</label>
+                  <input id="q-m" class="h-10 w-full pl-3 pr-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--olive)] text-sm" placeholder="Search strategies…"/>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                  <div>
+                      <label for="fRisk-m" class="block text-sm font-medium text-slate-600 mb-1">Risk</label>
+                      <select id="fRisk-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                          <option value="">Any</option>
+                          <option>Low</option>
+                          <option>Moderate</option>
+                          <option>High</option>
+                      </select>
+                  </div>
+                  <div>
+                      <label for="fCur-m" class="block text-sm font-medium text-slate-600 mb-1">Currency</label>
+                      <select id="fCur-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                          <option value="">Any</option>
+                          <option>ZAR</option>
+                          <option>USD</option>
+                          <option>EUR</option>
+                      </select>
+                  </div>
+              </div>
+               <div>
+                  <label for="fStyle-m" class="block text-sm font-medium text-slate-600 mb-1">Style</label>
+                  <select id="fStyle-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                       <option value="">Any</option>
+                  </select>
+              </div>
+              <div>
+                  <label for="fSort-m" class="block text-sm font-medium text-slate-600 mb-1">Sort by</label>
+                  <select id="fSort-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                      <option value="name-asc">Name (A→Z)</option>
+                      <option value="cagr-desc">1Y CAGR (High→Low)</option>
+                      <option value="dd-asc">Max DD (Low→High)</option>
+                  </select>
+              </div>
+          </div>
+          
+          <div class="flex items-center justify-between mt-6">
+              <button id="clearBtn-m" class="btn h-10 text-sm">Clear</button>
+              <button id="filter-apply-btn" class="btn h-10 text-sm bg-[var(--olive)] text-white border-none hover:opacity-90">
+                  Apply Filters
+              </button>
+          </div>
+      </div>
+  </div>
+
+
+<script nonce="ALGOHIVE">
+  // SCRIPT FOR MOBILE SIDEBAR
+  (function () {
+    const btn = document.getElementById('ah-mobile-menu-btn');
+    const overlay = document.getElementById('ah-overlay');
+    const sidebar = document.getElementById('ah-sidebar');
+
+    function openMenu() {
+      sidebar.classList.add('is-open');
+      overlay.classList.remove('hidden');
+    }
+    function closeMenu() {
+      sidebar.classList.remove('is-open');
+      overlay.classList.add('hidden');
+    }
+
+    btn?.addEventListener('click', openMenu);
+    overlay?.addEventListener('click', closeMenu);
+    
+    // Also close mobile menu on nav link click
+    sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
+        link.addEventListener('click', closeMenu);
+    });
+  })();
+</script>
+
+<script nonce="ALGOHIVE"> 
+  // Sidebar collapse memory (This controls the DESKTOP collapse)
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+      const saved = localStorage.getItem('ah_collapsed') === 'true';
+      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+      btn?.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+      });
+    })();
+</script>
+
+<script nonce="ALGOHIVE">
+  // SCRIPT FOR FILTER MODAL
+  (function () {
+    // Desktop filters
+    const $q = document.getElementById('q');
+    const $risk = document.getElementById('fRisk');
+    const $cur = document.getElementById('fCur');
+    const $style = document.getElementById('fStyle');
+    const $sort = document.getElementById('fSort');
+
+    // Mobile modal and its filters
+    const $modal = document.getElementById('filter-modal');
+    const $mobileBtn = document.getElementById('mobile-filter-btn');
+    const $closeBtn = document.getElementById('filter-close-btn');
+    const $overlay = document.getElementById('filter-overlay');
+    const $applyBtn = document.getElementById('filter-apply-btn');
+    const $clearMobileBtn = document.getElementById('clearBtn-m');
+    
+    const $q_m = document.getElementById('q-m');
+    const $risk_m = document.getElementById('fRisk-m');
+    const $cur_m = document.getElementById('fCur-m');
+    const $style_m = document.getElementById('fStyle-m');
+    const $sort_m = document.getElementById('fSort-m');
+
+    function openModal() {
+      // Sync desktop values to mobile modal
+      $q_m.value = $q.value;
+      $risk_m.value = $risk.value;
+      $cur_m.value = $cur.value;
+      $style_m.value = $style.value;
+      $sort_m.value = $sort.value;
+      $modal.classList.remove('hidden');
+    }
+    
+    function closeModal() {
+      $modal.classList.add('hidden');
+    }
+
+    function applyModalFilters() {
+      // Sync mobile modal values to desktop filters
+      $q.value = $q_m.value;
+      $risk.value = $risk_m.value;
+      $cur.value = $cur_m.value;
+      $style.value = $style_m.value;
+      $sort.value = $sort_m.value;
+      
+      closeModal();
+      
+      // Manually trigger the 'input' event on a desktop filter to run applyFilters()
+      $q.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    function clearModalFilters() {
+      // Only clear the modal's inputs
+      $q_m.value = '';
+      $risk_m.value = '';
+      $cur_m.value = '';
+      $style_m.value = '';
+      $sort_m.value = 'name-asc';
+    }
+    
+    $mobileBtn?.addEventListener('click', openModal);
+    $closeBtn?.addEventListener('click', closeModal);
+    $overlay?.addEventListener('click', closeModal);
+    $applyBtn?.addEventListener('click', applyModalFilters);
+    $clearMobileBtn?.addEventListener('click', clearModalFilters);
+    
+  })();
+</script>
+
+  <script type="module" nonce="ALGOHIVE">
+  import { supabase } from "/js/supabase.js";
+
+  // ------- helpers -------
+  const $ = (q, el=document) => el.querySelector(q);
+  const moneyFmt = (ccy) => new Intl.NumberFormat(ccy==='ZAR'?'en-ZA':'en-US',{style:'currency',currency:ccy||'USD',maximumFractionDigits:0});
+  const money = (n, ccy) => moneyFmt(ccy).format(n||0);
+
+  // filters
+  const $q     = document.getElementById('q');
+  const $risk  = document.getElementById('fRisk');
+  const $cur   = document.getElementById('fCur');
+  const $style = document.getElementById('fStyle');
+  const $sort  = document.getElementById('fSort');
+  const $clear = document.getElementById('clearBtn');
+  
+  // Chart objects cache to prevent re-rendering
+  let chartInstances = {};
+
+  // --- ADDED: Helper function to calculate growth curve (from strategy.html) ---
+  function curveFromPct(points, base = 100) {
+    const out = []; let lvl = base;
+    for (const p of points) {
+      const r = Number(p?.pct);
+      if (Number.isFinite(r)) lvl *= (1 + r / 100);
+      out.push(Number(lvl.toFixed(2)));
+    }
+    return out;
+  }
+
+  // --- ADDED: Helper function to draw a mini-chart ---
+  function drawCardChart(canvasId, seriesData) {
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    
+    // If a chart already exists on this canvas, destroy it
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].destroy();
+    }
+
+    const pcts = (seriesData || []).map(x => ({ pct: Number(x?.pct) }));
+    const curve = curveFromPct(pcts, 100); // base 100 percentage curve
+    const labels = (seriesData || []).map(x => x.label || '');
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 100);
+    gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+    gradient.addColorStop(1, 'rgba(85,107,47,0.01)');
+
+    chartInstances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: { 
+        labels: labels,
+        datasets: [{ 
+          data: curve, 
+          tension: .35, 
+          borderWidth: 2, 
+          borderColor: '#556B2F', 
+          backgroundColor: gradient, 
+          fill: true, 
+          pointRadius: 0 
+        }] 
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false, // Disable animation for faster rendering
+        plugins: {
+          legend: { display: false },
+          tooltip: { display: false } // Disable tooltips for mini-charts
+        },
+        scales: {
+          x: { display: false }, // Hide X-axis
+          y: { display: false }  // Hide Y-axis
         }
+      }
+    });
+  }
 
-        function renderAssetAllocationFromMetrics(freshMetrics) {
-            const wrap = document.getElementById('asset-allocation');
-            if (!wrap) return;
+  // --- MODIFIED: Fetch strategies AND their metrics ---
+  async function fetchStrategiesAndMetrics(){
+    console.log("Fetching strategies...");
+    // 1. Fetch all strategies
+    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description';
+    const { data: strategiesData, error: strategiesError } = await supabase
+      .from('strategies')
+      .select(cols)
+      .order('name', { ascending: true });
+      
+    if (strategiesError) {
+        console.error("Error fetching strategies:", strategiesError);
+        throw strategiesError;
+    }
+    
+    console.log(`Fetched ${strategiesData.length} strategies. Now fetching metrics...`);
 
-            const NAME_MAP = { FX: 'FX', Indices: 'Indices', Equities: 'Equities', Metals: 'Metals', Energies: 'Energy', Crypto: 'Crypto', Bonds: 'Bonds', CFDs: 'CFDs', Other: 'Other' };
+    // 2. Prepare to fetch metrics (6M only) for each strategy
+    const metricPromises = strategiesData.map(s => 
+      supabase.from('strategy_metrics')
+        .select('strategy_id, series_6m') // Only get what we need
+        .eq('strategy_id', s.id)
+        .maybeSingle()
+    );
+    
+    // Wait for all metric fetches to complete
+    const metricsResults = await Promise.all(metricPromises);
+    
+    console.log("Fetched all metrics. Combining data...");
 
-            const allocRaw = Array.isArray(freshMetrics?.asset_allocation) ? freshMetrics.asset_allocation : [];
-            const alloc = allocRaw
-                .map(i => ({ label: NAME_MAP[i.class] ?? (i.class || 'Other'), pct: Number(i.weight_pct) || 0 }))
-                .filter(i => i.pct > 0.01)
-                .sort((a, b) => b.pct - a.pct);
+    // 3. Combine the data
+    return strategiesData.map(strategy => {
+      const metricsResult = metricsResults.find(m => m.data && m.data.strategy_id === strategy.id);
+      return {
+        // Strategy info
+        id: strategy.id,
+        name: strategy.name,
+        provider: strategy.creator || '—',
+        currency: strategy.currency || 'ZAR',
+        risk: strategy.risk_level || '—',
+        aum: Number(strategy.aum || 0),
+        style: strategy.style || '—',
+        universe: strategy.asset_universe || '—',
+        inception: strategy.inception_date || null,
+        desc: strategy.strategy_description || '—',
+        // Metrics info
+        metrics: metricsResult?.data || null // Attach the metrics
+      };
+    });
+  }
 
-            if (!alloc.length) {
-                wrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>';
-                return;
-            }
+  // --- MODIFIED: Render both table and carousel ---
+  function renderStrategies(items){
+    const tbody = document.getElementById('tbody');
+    const carouselContainer = document.getElementById('mobile-carousel-container');
+    
+    tbody.innerHTML = '';
+    carouselContainer.innerHTML = '';
 
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-            wrap.innerHTML = alloc.map((i, idx) => {
-                const pct = i.pct; const color = colors[idx % colors.length];
-                return `
+    // Clear old chart instances
+    Object.values(chartInstances).forEach(chart => chart.destroy());
+    chartInstances = {};
+
+    items.forEach((s, idx) => {
+      const riskChip = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
+                     : s.risk==='High' ? 'bg-rose-50 text-rose-700'
+                     : 'bg-amber-50 text-amber-700';
+
+      // --- 1. Desktop Table Row (existing logic) ---
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="text-slate-400 text-center">${idx+1}</td>
+        <td class="cell-name">
+          <div class="flex items-center gap-2">
+            <a href="strategy.html?strategy=${encodeURIComponent(s.id)}" class="truncate hover:underline" title="${s.name}">${s.name}</a>
+          </div>
+        </td>
+        <td class="text-slate-600 hidden md:table-cell">${s.provider}</td>
+        <td class="text-slate-600 hidden md:table-cell">${s.currency}</td>
+        <td class="hidden md:table-cell">
+          <span class="chip ${riskChip}">${s.risk}</span>
+        </td>
+        <td class="font-semibold hidden md:table-cell">${money(s.aum, s.currency)}</td>
+        <td class="text-slate-600 hidden md:table-cell">${s.style}</td>
+        <td class="text-slate-600 truncate max-w-[200px] hidden lg:table-cell" title="${s.universe}">${s.universe}</td>
+        <td>
+          <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm"
+             href="strategy.html?strategy=${encodeURIComponent(s.id)}">
+            <i class="fa-regular fa-note-sticky mr-1.5"></i>
+            Factsheet
+          </a>
+        </td>`;
+      tbody.appendChild(tr);
+
+      // --- 2. Mobile Carousel Card (MODIFIED logic) ---
+      const card = document.createElement('div');
+      card.className = 'mobile-strat-card flex flex-col';
+      
+      // Calculate 6M Growth Stats
+      let growthX = '—';
+      let growthPct = '—';
+      let growthColor = 'text-slate-600';
+      let chartId = `chart-${s.id}`;
+      let hasChart = false;
+
+      if (s.metrics && s.metrics.series_6m && s.metrics.series_6m.length > 0) {
+        hasChart = true;
+        const pcts = s.metrics.series_6m.map(x => ({ pct: Number(x?.pct) }));
+        const curve = curveFromPct(pcts, 100);
+        const lastVal = curve.at(-1);
+        
+        if (lastVal) {
+          const multiplier = (lastVal / 100);
+          const percentage = (lastVal - 100);
+          growthX = `${multiplier.toFixed(2)}x`;
+          growthPct = `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
+          growthColor = percentage >= 0 ? 'text-green-600' : 'text-red-600';
+        }
+      }
+
+      card.innerHTML = `
         <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm text-slate-700">${i.label}</span>
-            <span class="text-sm font-medium">${pct.toFixed(2)}%</span>
+          <h3 class="font-bold text-lg text-slate-900 truncate" title="${s.name}">${s.name}</h3>
+          <p class="text-sm text-slate-600 truncate mt-1">${s.provider}</p>
+          
+          <div class="mt-3">
+            <div class="flex items-baseline gap-2">
+              <span class="text-xl font-bold text-slate-900">Growth: ${growthX}</span>
+              <span class="font-semibold ${growthColor}">${growthPct}</span>
+            </div>
+            <div class="h-[100px] mt-2">
+              ${hasChart ? `<canvas id="${chartId}"></canvas>` : '<div class="h-full grid place-items-center text-sm text-slate-400">No chart data</div>'}
+            </div>
           </div>
-          <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-            <div class="h-full rounded-full" style="width:${pct}%; background:${color}"></div>
+
+          <div class="flex items-center gap-3 mt-3">
+            <span class="chip bg-slate-100 text-slate-700 !px-3">${s.currency}</span>
+            <span class="chip ${riskChip}">${s.risk}</span>
           </div>
-        </div>`;
-            }).join('');
-        }
-
-        // ---------- chart setup ----------
-        let chart, currentLabels = [], currentCCY = 'ZAR';
-        function initChart() {
-            const ctx = $('#pf-chart')?.getContext('2d');
-            if (!ctx) return;
-            const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-            gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
-            gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            displayColors: false,
-                            callbacks: {
-                                title: items => currentLabels[items[0].dataIndex] ?? '',
-                                label: c => money(c.raw, currentCCY)
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { display: true, ticks: { maxTicksLimit: 6, color: '#94a3b8' }, grid: { display: false } },
-                        y: { display: true, ticks: { color: '#94a3b8', maxTicksLimit: 4, callback: v => money(v, currentCCY) } }
-                    }
-                }
-            });
-        }
-
-        function curveFromPct(points, base = 100) {
-            const out = []; let lvl = base;
-            for (const p of points) {
-                const r = Number(p?.pct);
-                if (Number.isFinite(r)) lvl *= (1 + r / 100);
-                out.push(Number(lvl.toFixed(2)));
-            }
-            return out;
-        }
-
-        // MODIFIED: This function now ONLY handles currency display (for 1D)
-        // It also resets the chart Y-axis and tooltip to currency format
-        function setCurve(seriesVals, ccy) {
-            if (!chart) return;
-            chart.data.labels = currentLabels;
-            chart.data.datasets[0].data = seriesVals;
-
-            // *** ADDED: Ensure Y-axis is in CURRENCY format ***
-            chart.options.scales.y.ticks.callback = v => money(v, ccy);
-            chart.options.plugins.tooltip.callbacks.label = c => money(c.raw, currentCCY);
-            chart.update();
-
-            // *** MODIFIED: This block is now standard, no 'Growth' check ***
-            const pfValueEl = $('#pf-value');
-            if (!seriesVals.length) {
-                pfValueEl.textContent = money(0, ccy);
-                $('#pf-change').textContent = '—';
-                return;
-            }
-            const first = seriesVals[0], last = seriesVals.at(-1);
-            const chg = ((last - first) / first) * 100;
-            pfValueEl.textContent = money(last, ccy);
-            const chgEl = $('#pf-change');
-            chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
-            chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
-            $('#pf-updated').textContent =
-                new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
-        }
-
-        // ---------- calendar (daily returns) ----------
-
-        // *** ADDED: New function to aggregate daily returns to monthly ***
-        function aggregateDailyToMonthly(dailyReturns) {
-            const monthlyData = {};
-            const byYearMonth = {};
-
-            // Group daily returns by year and month
-            for (const d of (dailyReturns || [])) {
-                if (!finite(d.pct)) continue;
-                const year = d.year;
-                const month = d.month; // 1-indexed
-                byYearMonth[year] ??= {};
-                byYearMonth[year][month] ??= [];
-                byYearMonth[year][month].push(Number(d.pct) / 100);
-            }
-
-            const years = Object.keys(byYearMonth).sort((a, b) => a - b);
-
-            for (const year of years) {
-                monthlyData[year] = {};
-                let yearTotalReturn = 1;
-
-                for (let m = 1; m <= 12; m++) {
-                    const monthName = MONTH_NAMES[m - 1];
-                    const dailyPcts = byYearMonth[year]?.[m];
-
-                    if (dailyPcts && dailyPcts.length > 0) {
-                        const monthTotalReturn = dailyPcts.reduce((acc, r) => acc * (1 + r), 1);
-                        const monthPct = (monthTotalReturn - 1) * 100;
-                        monthlyData[year][monthName] = monthPct;
-                        yearTotalReturn *= monthTotalReturn;
-                    } else {
-                        monthlyData[year][monthName] = null; // No data for this month
-                    }
-                }
-                monthlyData[year]['YTD'] = (yearTotalReturn - 1) * 100;
-            }
-            return monthlyData;
-        }
-
-        // *** ADDED: New function to render the monthly calendar grid from aggregated data ***
-        function renderMonthlyCalendarGrid(container, aggregatedData, filterYear, filterMonths) {
-            const grid = container;
-            if (!grid) return;
-
-            // MODIFIED: Use filterMonths, but always add YTD
-            const monthsToRender = [...filterMonths, 'YTD'];
-            // Get all years, but filter based on the dropdown
-            const allYears = Object.keys(aggregatedData).map(Number).sort((a, b) => a - b);
-            const yearsToRender = (filterYear === 'ALL' || !filterYear) ? allYears : allYears.filter(y => y == filterYear);
-
-
-            grid.innerHTML = '';
-            // MODIFIED: Use monthsToRender.length
-            grid.style.gridTemplateColumns = `120px repeat(${monthsToRender.length}, minmax(72px, 1fr))`;
-
-            const color = (v) => v == null ? '#f8fafc' // Use a lighter bg for null
-                : v >= 1.5 ? '#bbf7d0'
-                    : v > 0 ? '#dcfce7'
-                        : v === 0 ? '#f1f5f9'
-                            : v > -1 ? '#fee2e2'
-                                : '#fecaca';
-
-            // Render Header
-            const corner = document.createElement('div');
-            corner.className = 'cal-head cal-sticky';
-            grid.appendChild(corner);
-            // MODIFIED: Use monthsToRender
-            monthsToRender.forEach(m => {
-                const h = document.createElement('div');
-                h.className = 'cal-head justify-center';
-                h.textContent = m;
-                grid.appendChild(h);
-            });
-
-            // Render Rows
-            yearsToRender.forEach(y => {
-                const yr = document.createElement('div');
-                yr.className = 'cal-head cal-sticky';
-                yr.textContent = y;
-                grid.appendChild(yr);
-
-                // MODIFIED: Use monthsToRender
-                monthsToRender.forEach(m => {
-                    const v = aggregatedData[y]?.[m];
-                    const c = document.createElement('div');
-                    c.className = 'cal-cell';
-                    c.style.background = color(v);
-                    c.textContent = (v != null) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '—';
-
-                    if (m !== 'YTD' && v != null) {
-                        c.style.cursor = 'pointer';
-                        c.title = `Click to view daily returns for ${m} ${y}`;
-                        c.addEventListener('click', () => {
-                            if (window.showDailyModal) {
-                                window.showDailyModal(y, m);
-                            } else {
-                                console.error('Daily modal function not found');
-                            }
-                        });
-                    }
-                    grid.appendChild(c);
-                });
-            });
-
-            document.getElementById('legNeg').style.background = '#fecaca';
-            document.getElementById('legNeu').style.background = '#f1f5f9';
-            document.getElementById('legPos').style.background = '#dcfce7';
-        }
-
-        // *** ADDED: New function to populate the year filter dropdown ***
-        function populateYearFilter(aggregatedData) {
-            const select = document.getElementById('calendar-year-filter');
-            if (!select) return;
-
-            const years = Object.keys(aggregatedData).map(Number).sort((a, b) => b - a); // Newest first
-
-            let currentVal = select.value;
-
-            select.innerHTML = '<option value="ALL">All Years</option>';
-            years.forEach(y => {
-                select.innerHTML += `<option value="${y}">${y}</option>`;
-            });
-
-            // FIXED: Default to "ALL" if nothing is selected
-            if (!currentVal) {
-                currentVal = 'ALL';
-            }
-
-            select.value = currentVal; // Set default or preserve selection
-
-            // Add event listener (only once)
-            if (!select.dataset.listener) {
-                select.addEventListener('change', () => {
-                    const selectedYear = select.value;
-                    // MODIFIED: Get selected months
-                    const selectedMonths = getSelectedMonths();
-                    const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-                    renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear, selectedMonths);
-                });
-                select.dataset.listener = 'true';
-            }
-        }
-
-
-        // THIS FUNCTION IS NO LONGER USED, but we leave it in case it's needed elsewhere
-        // The new modal logic in showDailyModal() handles daily rendering.
-        function renderCalendarDaily(container, daily) {
-            container.innerHTML = '';
-            if (!daily?.length) { container.textContent = 'No daily data yet.'; return; }
-
-            const byYear = {};
-            for (const d of daily) {
-                if (!finite(d.pct)) continue;
-                byYear[d.year] ??= {};
-                byYear[d.year][d.month] ??= {};
-                byYear[d.year][d.month][d.day] = Number(d.pct);
-            }
-            const monthsAbbr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
-
-            container.style.gridTemplateColumns = `120px repeat(12, minmax(72px, 1fr))`;
-            const corner = document.createElement('div'); corner.className = 'cal-head cal-sticky'; container.appendChild(corner);
-            monthsAbbr.forEach(m => { const h = document.createElement('div'); h.className = 'cal-head justify-center'; h.textContent = m; container.appendChild(h); });
-
-            years.forEach(y => {
-                const yr = document.createElement('div'); yr.className = 'cal-head cal-sticky'; yr.textContent = y; container.appendChild(yr);
-                for (let m = 1; m <= 12; m++) {
-                    const box = document.createElement('div'); box.className = 'cal-cell p-1';
-                    const inner = document.createElement('div');
-                    inner.style.display = 'grid'; inner.style.gridTemplateColumns = 'repeat(7,10px)'; inner.style.gap = '2px';
-                    const dim = new Date(y, m, 0).getDate();
-                    for (let d = 1; d <= dim; d++) {
-                        const v = byYear[y]?.[m]?.[d];
-                        const dot = document.createElement('div');
-                        dot.style.cssText = 'width:10px;height:10px;border-radius:2px;';
-                        let color = '#e5e7eb';
-                        if (v != null) {
-                            color = v >= 1.5 ? '#bbf7d0' : (v > 0 ? '#dcfce7' : (v === 0 ? '#f1f5f9' : (v > -1 ? '#fee2e2' : '#fecaca')));
-                        }
-                        dot.style.background = color;
-                        dot.title = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} : ${v != null ? (v > 0 ? '+' : '') + v.toFixed(2) + '%' : '—'}`;
-                        inner.appendChild(dot);
-                    }
-                    box.appendChild(inner);
-                    container.appendChild(box);
-                }
-            });
-            $('#legNeg').style.background = '#fecaca';
-            $('#legNeu').style.background = '#f1f5f9';
-            $('#legPos').style.background = '#dcfce7';
-        }
-
-        // ---------- perf summary ----------
-        function fillPerfSummary(ps) {
-            const pct = v => (v == null || isNaN(v)) ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`;
-            document.getElementById('ps-best').textContent = pct(ps?.best_day_pct);
-            document.getElementById('ps-worst').textContent = pct(ps?.worst_day_pct);
-            document.getElementById('ps-avg').textContent = pct(ps?.avg_daily_return_pct);
-            document.getElementById('ps-pos').textContent = (ps?.positive_days_pct == null ? '—' : `${Number(ps.positive_days_pct).toFixed(0)}%`);
-            document.getElementById('ps-days').textContent = ps?.total_days ?? 0;
-            document.getElementById('ps-ytd').textContent = pct(ps?.ytd_return_pct);
-        }
-
-        function hydrateHeader(strategy) {
-            document.getElementById('fs-title').textContent = strategy.name || '—';
-            document.getElementById('fs-provider').textContent = strategy.creator || '—';
-            document.getElementById('fs-since').textContent = strategy.inception_date
-                ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
-            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-            // *** DELETED AUM hydration (already gone in this file) ***
-            const ecName = document.getElementById('pf-name');
-            if (ecName) ecName.textContent = strategy.name || '—';
-
-            // *** Allocate card: set the Strategy input + optional title ***
-            const allocName = document.getElementById('alloc-name');
-            if (allocName) allocName.value = strategy.name || '—';
-            const allocTitle = document.getElementById('alloc-title');
-            if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
-
-            renderDescAndBullets(strategy);
-
-            const fsDesc = document.getElementById('fsDesc');
-            if (fsDesc) fsDesc.textContent =
-                strategy.investment_objective_description || strategy.strategy_description || '—';
-
-            const fsStyle = document.getElementById('fsStyle');
-            if (fsStyle) fsStyle.textContent = strategy.style || '—';
-
-            const fsUniverse = document.getElementById('fsUniverse');
-            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
-
-            const fsHold = document.getElementById('fsHold');
-            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
-                ? `${strategy.avg_holding_days} days` : '—';
-
-            const fsTrades = document.getElementById('fsTrades');
-            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
-                ? `${strategy.avg_trades_per_month}` : '—';
-        }
-
-        // ---------- data load ----------
-        async function fetchStrategy() {
-            if (stratKey) {
-                let r = await supabase.from('strategies').select('*').eq('id', stratKey).maybeSingle();
-                if (!r.data) r = await supabase.from('strategies').select('*').eq('code', stratKey).maybeSingle();
-                return r.data || null;
-            }
-            const { data } = await supabase.from('strategies').select('*').limit(1);
-            return data?.[0] || null;
-        }
-        async function fetchMetrics(strategyId) {
-            const { data } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategyId).maybeSingle();
-            return data || null;
-        }
-
-        // ---------- equity curve selection ---------
-        function makeLabels1D(src) {
-            return (src || []).map(x => {
-                const d = new Date(x.ts);
-                return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
-            });
-        }
-        function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
-
-        // MODIFIED: This function now splits logic:
-        // - 1D shows currency (calls setCurve)
-        // - 6M, 1Y, ALL show Growth %/Multiplier (calculates and sets text directly)
-        function selectRangeAndRender(rangeKey, metrics, strategy) {
-            // *** MODIFICATION: Logic split between 1D (currency) and other ranges (growth) ***
-
-            const pfValueEl = $('#pf-value');
-            const chgEl = $('#pf-change');
-
-            if (rangeKey === '1D') {
-                const s1d = metrics?.series_1d || [];
-                const vals = s1d.map(p => Number(p?.equity)).filter(v => Number.isFinite(v));
-                currentLabels = makeLabels1D(s1d);
-                // 1D always shows currency
-                setCurve(vals, strategy.currency || 'ZAR');
-                return;
-            }
-
-            // 6M, 1Y, ALL will show Growth Multiplier
-            let src = [];
-            if (rangeKey === '6M') {
-                src = metrics?.series_6m || [];
-                currentLabels = makeLabelsMonthly(src);
-            } else if (rangeKey === '1Y') {
-                src = metrics?.series_1y || [];
-                currentLabels = makeLabelsMonthly(src);
-            } else {
-                // Default to ALL
-                src = metrics?.series_all || [];
-                currentLabels = makeLabelsMonthly(src);
-            }
-
-            const pcts = src.map(x => ({ pct: Number(x?.pct) }));
-            let curve = curveFromPct(pcts, 100); // base 100 percentage curve
-
-            // Update chart
-            if (chart) {
-                chart.data.labels = currentLabels;
-                chart.data.datasets[0].data = curve;
-
-                // *** ADDED: Ensure Y-axis is in PERCENT format ***
-                chart.options.scales.y.ticks.callback = v => v + '%'; // Change Y-axis to %
-                // *** MODIFIED: Tooltip shows % change (e.g. +453.4%) not level (e.g. 553.4%)
-                chart.options.plugins.tooltip.callbacks.label = c => {
-                    const pctChg = c.raw - 100;
-                    return `${pctChg >= 0 ? '+' : ''}${pctChg.toFixed(2)}%`;
-                };
-                chart.update();
-            }
-
-            if (!curve.length) {
-                pfValueEl.textContent = 'Growth: —';
-                chgEl.textContent = '—';
-                chgEl.style.color = '#64748b'; // slate color
-                return;
-            }
-
-            const lastVal = curve.at(-1);
-            const multiplier = (lastVal / 100).toFixed(2);
-            const percentage = (lastVal - 100).toFixed(1); // Use 1 decimal for % as per user's 453.4%
-
-            pfValueEl.textContent = `Growth: ${multiplier}x`;
-            chgEl.textContent = `${percentage >= 0 ? '+' : ''}${percentage}%`;
-            chgEl.style.color = percentage >= 0 ? '#16a34a' : '#dc2626';
-
-            $('#pf-updated').textContent =
-                new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
-        }
-
-        // ---------- Allocation: dynamic total ----------
-        const priceEl = document.getElementById('alloc-price');
-        const unitsEl = document.getElementById('alloc-units');
-        const totalEl = document.getElementById('alloc-total');
-
-        // one source of truth for totals (also used by Paystack click)
-        function calcTotals() {
-            const units = Math.max(1, Math.floor(Number(document.getElementById('alloc-units')?.value || 0)));
-            const unitPrice = Math.max(1, Math.floor(Number(document.getElementById('alloc-price')?.value || 0)));
-
-            let total = units * unitPrice;                          // in strategy currency
-            let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
-
-            if (isUSD()) {
-                const rate = Number(fx.usdzar);
-                if (!Number.isFinite(rate)) {
-                    throw new Error('Live USD→ZAR rate unavailable. Please try again.');
-                }
-                total = total * rate;                                  // convert to ZAR for checkout
-                ccy = 'ZAR';
-            }
-
-            // hard round to cents so UI == backend
-            const totalRounded = Math.round(total * 100) / 100;
-
-            return { units, unitPrice, totalRounded, ccy };
-        }
-
-        function refreshAllocTotal() {
-            try {
-                const { totalRounded, ccy } = calcTotals();
-                if (totalEl) totalEl.textContent = money(totalRounded, ccy);
-            } catch (e) {
-                console.warn(e);
-                if (totalEl) totalEl.textContent = '—';
-            }
-        }
-
-
-        if (priceEl && unitsEl) {
-            ['input', 'change'].forEach(ev => {
-                priceEl.addEventListener(ev, refreshAllocTotal);
-                unitsEl.addEventListener(ev, refreshAllocTotal);
-            });
-        }
-        let fx = { usdzar: null, ts: null };
-        const isUSD = () => (strategy?.currency || 'ZAR').toUpperCase() === 'USD';
-
-        async function fetchUsdZar() {
-            try {
-                // primary provider
-                const r = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=ZAR');
-                const j = await r.json();
-                let rate = Number(j?.rates?.ZAR);
-
-                // fallback provider
-                if (!Number.isFinite(rate)) {
-                    const r2 = await fetch('https://open.er-api.com/v6/latest/USD');
-                    const j2 = await r2.json();
-                    rate = Number(j2?.rates?.ZAR);
-                }
-
-                if (!Number.isFinite(rate)) throw new Error('No rate');
-
-                fx.usdzar = rate;
-                fx.ts = new Date();
-
-                const wrap = document.getElementById('fx-note');
-                if (wrap) {
-                    wrap.classList.remove('hidden');
-                    document.getElementById('fx-rate').textContent = 'R ' + rate.toFixed(4);
-                    document.getElementById('fx-updated').textContent =
-                        'updated ' + fx.ts.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }) + ' SAST';
-                }
-
-                // kick totals so they reflect the fresh rate
-                refreshAllocTotal();
-            } catch (e) {
-                console.warn('[fx] fetch failed', e);
-            }
-        }
-
-
-        // ---------- boot ----------
-        try {
-            strategy = await fetchStrategy();
-            if (!strategy) throw new Error('No strategy found');
-            metrics = await fetchMetrics(strategy.id);
-
-            // hydrate UI
-            currentCCY = strategy.currency || 'ZAR';
-            hydrateHeader(strategy);
-            initChart();
-            // Update "Unit Price (...)" label to the strategy currency
-            const priceLbl = document.querySelector('label[for="alloc-price"]');
-            if (priceLbl) {
-                priceLbl.innerHTML = `Unit Price (${(strategy.currency || 'ZAR').toUpperCase()})`;
-            }
-            if (isUSD()) {
-                await fetchUsdZar();
-                setInterval(fetchUsdZar, 300000); // refresh every 5 min
-            }
-
-
-            // *** MODIFIED: Boot sequence for new calendar ***
-            // render initial curve + tiles + calendar + holdings + allocation
-            const aggregatedMonthlyData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-            populateYearFilter(aggregatedMonthlyData);
-            const defaultYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-            // MODIFIED: Get default months
-            const defaultMonths = getSelectedMonths();
-            renderMonthlyCalendarGrid($('#calendarReturns'), aggregatedMonthlyData, defaultYear, defaultMonths);
-
-            selectRangeAndRender('6M', metrics || {}, strategy);
-            fillPerfSummary(metrics?.perf_summary || null);
-            // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
-            renderPortfolioHoldingsFromMetrics(metrics || {});
-            renderAssetAllocationFromMetrics(metrics || {});
-            // *** END MODIFIED ***
-
-            // timestamp
-            $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
-                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
-
-            // kick the alloc total once we know currency
-            refreshAllocTotal();
-
-            // tabs
-            $$('#portfolio-card .tab').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    $$('#portfolio-card .tab').forEach(b => b.classList.remove('tab-active'));
-                    btn.classList.add('tab-active');
-                    selectRangeAndRender(btn.getAttribute('data-range'), metrics || {}, strategy);
-                });
-            });
-
-            // refresh button (re-pull metrics)
-            $('#pf-refresh')?.addEventListener('click', async (e) => {
-                e.currentTarget.classList.add('spin');
-                try {
-                    const fresh = await fetchMetrics(strategy.id);
-                    metrics = fresh || {};
-
-                    // *** MODIFIED: Refresh handler for new calendar ***
-                    const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-                    populateYearFilter(aggData); // Repopulate in case new years are added
-                    const currentYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-                    // MODIFIED: Get current months
-                    const currentMonths = getSelectedMonths();
-                    renderMonthlyCalendarGrid($('#calendarReturns'), aggData, currentYear, currentMonths);
-
-                    selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '6M', metrics, strategy);
-                    fillPerfSummary(metrics?.perf_summary || null);
-                    // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
-                    renderPortfolioHoldingsFromMetrics(metrics || {});
-                    // *** END MODIFIED ***
-
-                    renderAssetAllocationFromMetrics(metrics || {});
-                    $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
-                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-                    });
-                } catch { /* noop */ }
-                setTimeout(() => e.currentTarget.classList.remove('spin'), 600);
-            });
-
-            // helper: light strategy fetch
-            async function fetchStrategyLite(id) {
-                const { data, error } = await supabase
-                    .from('strategies')
-                    .select('id,name,creator,inception_date,currency,risk_level,aum,strategy_description,style,asset_universe,avg_holding_days,avg_trades_per_month')
-                    .eq('id', id)
-                    .maybeSingle();
-                if (error) throw error;
-                return data || null;
-            }
-
-            // auto-refresh every 2 minutes
-            const doAutoRefresh = async () => {
-                const btn = document.getElementById('pf-refresh');
-                btn?.classList.add('spin');
-                try {
-                    const [freshMetrics, freshStrategy] = await Promise.all([
-                        fetchMetrics(strategy.id),
-                        fetchStrategyLite(strategy.id),
-                    ]);
-                    metrics = freshMetrics || metrics || {};
-                    const activeStrategy = freshStrategy || strategy;
-
-                    hydrateHeader(activeStrategy);
-                    currentCCY = activeStrategy.currency || 'ZAR';
-
-                    const range = document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '6M';
-
-                    // *** MODIFIED: Auto-refresh handler for new calendar ***
-                    const aggDataRefresh = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-                    populateYearFilter(aggDataRefresh); // Repopulate in case new years are added
-                    const currentYearRefresh = document.getElementById('calendar-year-filter')?.value || 'ALL';
-                    // MODIFIED: Get current months
-                    const currentMonthsRefresh = getSelectedMonths();
-                    renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearRefresh, currentMonthsRefresh);
-
-                    selectRangeAndRender(range, metrics, activeStrategy);
-
-                    fillPerfSummary(metrics?.perf_summary || null);
-                    // renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
-                    renderPortfolioHoldingsFromMetrics(metrics || {});
-                    // *** END MODIFIED ***
-
-                    renderAssetAllocationFromMetrics(metrics || {});
-
-                    document.getElementById('fs-updated').textContent =
-                        'Updated ' + new Date().toLocaleString('en-ZA', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit', second: '2-digit'
-                        });
-                } catch (e) {
-                    console.warn('[auto-refresh] failed:', e);
-                } finally {
-                    setTimeout(() => btn?.classList.remove('spin'), 600);
-                }
-                if (isUSD()) { fetchUsdZar(); } // fire-and-forget to keep the banner fresh
-
-            };
-            setInterval(doAutoRefresh, 120000); // 2 minutes
-
-        } catch (err) {
-            console.error('[factsheet init] ', err);
-            // *** MODIFIED: Default to currency display on error ***
-            const pfValueEl = $('#pf-value');
-            pfValueEl.textContent = money(0);
-            $('#pf-change').textContent = '—';
-            $('#calendarReturns').textContent = 'No data.';
-            renderPortfolioHoldingsFromMetrics({});
-            renderAssetAllocationFromMetrics({});
-            refreshAllocTotal();
-        }
-
-        // ----- Allocate -> Paystack redirect -----
-        const btnAlloc = document.getElementById('alloc-btn');
-        btnAlloc?.addEventListener('click', async () => {
-            try {
-                const { units, unitPrice, totalRounded, ccy } = calcTotals();
-                if (!units || !unitPrice || !totalRounded) {
-                    banner('Please enter a valid units amount.', 'err');
-                    return;
-                }
-
-                const email = (user?.email || '').trim();
-                if (!email) { banner('No email on account. Please update your profile.', 'err'); return; }
-
-                // Always charge Paystack in ZAR — calcTotals() already converted if needed
-                const payCurrency = 'ZAR';
-                const amountCents = Math.round(totalRounded * 100);
-
-                const reference = buildRef(row?.id, strategy?.id);
-                const callback_url = currentPageCallbackUrl();
-
-                sessionStorage.setItem('expectedAmountCents', String(amountCents));
-
-                btnAlloc.disabled = true;
-                btnAlloc.classList.add('opacity-60');
-                btnAlloc.textContent = 'Redirecting…';
-
-                const resp = await fetch('/api/paystack/init', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email,
-                        amount: amountCents,        // integer cents
-                        currency: payCurrency,      // 'ZAR'
-                        reference,
-                        callback_url,
-                        channels: ['card'],
-                        metadata: {
-                            profile_id: row?.id || null,
-                            strategy_id: strategy?.id || null,
-                            strategy_name: strategy?.name || null,
-                            units,
-                            unit_price: unitPrice,    // original unit price in strategy currency
-                            fx_rate: isUSD() ? Number(fx.usdzar) || null : null,
-                            shown_total: totalRounded,
-                            shown_currency: ccy       // what user saw in the UI
-                        }
-                    })
-                });
-
-                const data = await resp.json();
-                if (!resp.ok) throw new Error(data?.error || 'Failed to initialize payment');
-
-                const authUrl = data?.data?.authorization_url;
-                if (!authUrl) throw new Error('No authorization_url from Paystack');
-
-                window.location.href = authUrl;
-            } catch (e) {
-                console.error('[allocate/paystack]', e);
-                banner(e.message || 'Could not start payment.', 'err');
-                btnAlloc.disabled = false;
-                btnAlloc.classList.remove('opacity-60');
-                btnAlloc.textContent = 'Allocate';
-            }
-        });
-
-
-        verifyIfReturned();
-    </script>
-
-
-
+        </div>
+        
+        <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm mt-4"
+           href="strategy.html?strategy=${encodeURIComponent(s.id)}">
+          <i class="fa-regular fa-note-sticky mr-1.5"></i>
+          View Factsheet
+        </a>
+      `;
+      carouselContainer.appendChild(card);
+      
+      // --- 3. Draw the chart (after element is in DOM) ---
+      if (hasChart) {
+        // Use a tiny timeout to let the DOM update before drawing
+        setTimeout(() => {
+          drawCardChart(chartId, s.metrics.series_6m);
+        }, 0);
+      }
+    });
+
+    document.getElementById('resultCount').textContent =
+      `Showing ${items.length} ${items.length===1?'strategy':'strategies'}`;
+    
+    const emptyEl = document.getElementById('empty');
+    emptyEl.classList.toggle('hidden', items.length !== 0);
+
+    const isMobile = window.innerWidth < 768;
+    document.getElementById('tbl-wrap').classList.toggle('hidden', items.length === 0 || isMobile);
+    document.getElementById('mobile-carousel-section').classList.toggle('hidden', items.length === 0 || !isMobile);
+  }
+
+  // ------- filtering/sorting -------
+  let ALL = [];
+
+  function applyFilters(){
+    const q  = ($q.value||'').trim().toLowerCase();
+    const r  = $risk.value;
+    const c  = $cur.value;
+    const st = $style.value;
+    const sortVal = $sort.value;
+
+    let rows = ALL.filter(s => {
+      const text = `${s.name} ${s.provider} ${s.style} ${s.universe} ${s.desc}`.toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (r && s.risk !== r) return false;
+      if (c && s.currency !== c) return false;
+      if (st && s.style !== st) return false;
+      return true;
+    });
+
+    rows.sort((a,b)=>{
+      if (sortVal==='name-asc') return a.name.localeCompare(b.name);
+      if (sortVal==='aum-desc') return (b.aum - a.aum);
+      // placeholders for future metrics:
+      if (sortVal==='cagr-desc') return 0;
+      if (sortVal==='dd-asc')   return 0;
+      return 0;
+    });
+
+    renderStrategies(rows);
+  }
+
+  // ------- init style dropdown from DB values -------
+  function initStyleOptions(items){
+    const desktopSel = document.getElementById('fStyle');
+    const mobileSel = document.getElementById('fStyle-m');
+    const styles = [...new Set(items.map(s => s.style).filter(Boolean))].sort();
+    
+    desktopSel.options.length = 1;
+    mobileSel.options.length = 1;
+
+    styles.forEach(st => { 
+      const o1=document.createElement('option'); o1.value=st; o1.textContent=st; desktopSel.appendChild(o1); 
+      const o2=document.createElement('option'); o2.value=st; o2.textContent=st; mobileSel.appendChild(o2);
+    });
+  }
+
+  // clear button
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
+    applyFilters();
+  });
+  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters));
+
+  // ------- boot -------
+  try{
+    // MODIFIED: Call the new function
+    ALL = await fetchStrategiesAndMetrics(); 
+    initStyleOptions(ALL);
+    applyFilters();
+  }catch(e){
+    console.error(e);
+    // This is the error message you are seeing
+    const emptyEl = document.getElementById('empty');
+    emptyEl.textContent = 'Sorry, failed to load strategies. Please ensure you are running this on a web server.';
+    emptyEl.classList.remove('hidden');
+    document.getElementById('tbl-wrap').classList.add('hidden');
+    document.getElementById('mobile-carousel-section').classList.add('hidden');
+  }
+</script>
+
+  <script type="module" nonce="ALGOHIVE">
+  import { supabase } from "/js/supabase.js";
+
+  // --- tiny helpers ---
+  const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? "—"; };
+  const setSrc  = (id, v) => { const el = document.getElementById(id); if (el) el.src = v || BLANK_AVATAR; };
+
+  async function ensureProfile(id, email) {
+    // try fetch; if missing, create a shell row
+    let { data, error } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (data) return data;
+    const up = await supabase.from("profiles")
+      .upsert({ id, email, updated_at: new Date().toISOString() }, { onConflict: "id" })
+      .select("*").single();
+    if (up.error) throw up.error;
+    return up.data;
+  }
+
+  // --- auth guard + hydrate header + modal ---
+  try {
+    // require session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+      throw new Error("redirecting");
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const row = await ensureProfile(user.id, user.email || null);
+
+    // header name (prefer first + last; fallback email handle)
+    const fn = (row?.first_name || "").trim();
+    const ln = (row?.last_name || "").trim();
+    const fallback = (user.email || "User").split("@")[0];
+    setText("hdr-name", (fn || ln) ? `${fn} ${ln}`.trim() : fallback);
+
+    // avatar (cache-bust public URL)
+    const avatarUrl = row?.avatar_url ? `${row.avatar_url}${row.avatar_url.includes("?") ? "&" : "?"}v=${Date.now()}` : BLANK_AVATAR;
+    setSrc("hdr-avatar", avatarUrl);
+
+    // (optional) sidebar account label if you want it populated
+    if (row?.account_number) setText("sidebar-acc", row.account_number);
+
+    // profile modal wiring
+    const modal = document.getElementById("profile-modal");
+    const pmEmail = document.getElementById("pm-email");
+    const btnOpen = document.getElementById("hdr-profile-btn");
+    const btnLogout = document.getElementById("pm-logout");
+
+    const open = () => { pmEmail.textContent = user.email || "—"; modal?.classList.remove("hidden"); };
+    const close = () => modal?.classList.add("hidden");
+
+    btnOpen?.addEventListener("click", (e) => { e.preventDefault(); open(); });
+    modal?.addEventListener("click", (e) => {
+      if (e.target === modal || e.target.classList.contains("bg-black/40")) close();
+    });
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+    btnLogout?.addEventListener('click', async () => {
+      try {
+        await supabase.auth.signOut();
+        location.replace("/auth.html?tab=in");
+      } catch {
+        console.warn("Logout failed");
+      }
+    });
+  } catch (e) {
+    // ignore “redirecting”
+    if (String(e?.message).toLowerCase() !== "redirecting") console.error(e);
+  }
+</script>
 
 </body>
-
 </html>
