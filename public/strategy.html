@@ -365,19 +365,22 @@
                         title="Open Menu">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-                    
+
                     <!-- MODIFIED: Search bar is now a form that submits to strategies.html -->
                     <form action="strategies.html" method="GET" class="relative w-full hidden sm:block max-w-[460px]">
-                        <input id="header-search-input" name="q" class="input w-full pl-9" placeholder="Search strategies..." />
-                        <button type="submit" aria-label="Search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <input id="header-search-input" name="q" class="input w-full pl-9"
+                            placeholder="Search strategies..." />
+                        <button type="submit" aria-label="Search"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8" />
                                 <path d="m21 21-4.3-4.3" />
                             </svg>
                         </button>
                     </form>
                     <!-- END MODIFIED -->
-                    
+
                 </div>
                 <div class="flex items-center gap-3"> <button
                         class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
@@ -395,7 +398,8 @@
 
             <!-- ADDED: Back to Strategies Link -->
             <div class="px-6 pt-5">
-                <a href="strategies.html" class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[var(--olive)] transition-colors">
+                <a href="strategies.html"
+                    class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[var(--olive)] transition-colors">
                     <i class="fa-solid fa-arrow-left text-xs"></i>
                     <span>Back to OpenStrategies</span>
                 </a>
@@ -428,13 +432,17 @@
                             <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
                         </div>
                         <div class="flex items-center gap-2">
+                            <button data-range="1D" class="tab text-[13px]">1D</button>
                             <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
                             <button data-range="1Y" class="tab text-[13px]">1Y</button>
                             <button data-range="ALL" class="tab text-[13px]">All</button>
                             <button id="pf-refresh"
                                 class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
-                                title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
+                                title="Refresh">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
                         </div>
+
 
 
                     </div>
@@ -704,7 +712,7 @@
 
             </div>
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-            </main>
+        </main>
     </div>
 
     <div id="daily-modal-overlay" class="modal-overlay"></div>
@@ -726,7 +734,7 @@
             <div class="day-grid-header">Sat</div>
         </div>
         <div id="daily-modal-grid" class="day-grid">
-            </div>
+        </div>
     </div>
 
     <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
@@ -1545,31 +1553,100 @@
         // ---------- equity curve selection ---------
         function makeLabels1D(src) {
             return (src || []).map(x => {
-                const d = new Date(x.ts);
-                return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+                const d = new Date(x.timestamp); // x.timestamp from Supabase
+                return d.toLocaleTimeString('en-ZA', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             });
         }
+        function extractPctSeries1D(src) {
+            // returns [0.12, 0.15, 0.20, ...] meaning +0.12%, +0.15%, etc
+            // we keep it as actual % numbers
+            return (src || [])
+                .map(p => Number(p.pct))
+                .filter(v => Number.isFinite(v));
+        }
+
+
         function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
         // MODIFIED: This function now splits logic:
         // - 1D shows currency (calls setCurve)
         // - 6M, 1Y, ALL show Growth %/Multiplier (calculates and sets text directly)
         function selectRangeAndRender(rangeKey, metrics, strategy) {
-            // *** MODIFICATION: Logic split between 1D (currency) and other ranges (growth) ***
-
             const pfValueEl = $('#pf-value');
             const chgEl = $('#pf-change');
 
+            // always keep currency around for other stuff
+            currentCCY = strategy.currency || 'ZAR';
+
+            // -----------------
+            // 1D MODE (intraday % curve)
+            // -----------------
             if (rangeKey === '1D') {
                 const s1d = metrics?.series_1d || [];
-                const vals = s1d.map(p => Number(p?.equity)).filter(v => Number.isFinite(v));
+
+                // x labels = intraday times
                 currentLabels = makeLabels1D(s1d);
-                // 1D always shows currency
-                setCurve(vals, strategy.currency || 'ZAR');
+
+                // y data = pct return at that timestamp
+                // e.g. [0.12, 0.15, 0.20] where 0.20 means +0.20%
+                const pctSeries = extractPctSeries1D(s1d);
+
+                if (chart) {
+                    chart.data.labels = currentLabels;
+                    chart.data.datasets[0].data = pctSeries;
+
+                    // y-axis in %
+                    chart.options.scales.y.ticks.callback = v => {
+                        const num = Number(v);
+                        return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
+                    };
+
+                    // tooltip also in %
+                    chart.options.plugins.tooltip.callbacks.label = c => {
+                        const val = Number(c.raw);
+                        return (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+                    };
+
+                    chart.update();
+                }
+
+                // headline display for 1D:
+                // last point = current intraday move
+                if (!pctSeries.length) {
+                    pfValueEl.textContent = '+0.00%';
+                    chgEl.textContent = '—';
+                    chgEl.style.color = '#64748b';
+                } else {
+                    const first = pctSeries[0];
+                    const last = pctSeries.at(-1);
+
+                    // pf-value shows last intraday % move
+                    pfValueEl.textContent = `${last >= 0 ? '+' : ''}${last.toFixed(2)}%`;
+
+                    // change vs first tick of the day (so you can see drift from open)
+                    const diff = last - first;
+                    chgEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                    chgEl.style.color = diff >= 0 ? '#16a34a' : '#dc2626';
+                }
+
+                // timestamp text under Equity Curve title
+                $('#pf-updated').textContent =
+                    new Date().toLocaleString('en-ZA', {
+                        month: 'long',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) + ' SAST';
+
                 return;
             }
 
-            // 6M, 1Y, ALL will show Growth Multiplier
+            // -----------------
+            // MULTI-PERIOD MODES (6M / 1Y / ALL)
+            // -----------------
             let src = [];
             if (rangeKey === '6M') {
                 src = metrics?.series_6m || [];
@@ -1578,47 +1655,56 @@
                 src = metrics?.series_1y || [];
                 currentLabels = makeLabelsMonthly(src);
             } else {
-                // Default to ALL
+                // default to ALL
                 src = metrics?.series_all || [];
                 currentLabels = makeLabelsMonthly(src);
             }
 
-            const pcts = src.map(x => ({ pct: Number(x?.pct) }));
-            let curve = curveFromPct(pcts, 100); // base 100 percentage curve
+            // src should look like [{ pct: 1.2, label: "2025-09" }, ...]
+            // build cumulative growth curve from pct data, start = 100
+            const monthlyReturns = src.map(x => ({ pct: Number(x?.pct) })); // pct e.g. +1.2%
+            const curve = curveFromPct(monthlyReturns, 100); // [100,101.2,...]
 
-            // Update chart
             if (chart) {
                 chart.data.labels = currentLabels;
                 chart.data.datasets[0].data = curve;
 
-                // *** ADDED: Ensure Y-axis is in PERCENT format ***
-                chart.options.scales.y.ticks.callback = v => v + '%'; // Change Y-axis to %
-                // *** MODIFIED: Tooltip shows % change (e.g. +453.4%) not level (e.g. 553.4%)
+                // y-axis is now % growth off base 100
+                chart.options.scales.y.ticks.callback = v => v + '%';
+
+                // tooltip shows change vs 100 baseline
                 chart.options.plugins.tooltip.callbacks.label = c => {
                     const pctChg = c.raw - 100;
                     return `${pctChg >= 0 ? '+' : ''}${pctChg.toFixed(2)}%`;
                 };
+
                 chart.update();
             }
 
             if (!curve.length) {
                 pfValueEl.textContent = 'Growth: —';
                 chgEl.textContent = '—';
-                chgEl.style.color = '#64748b'; // slate color
+                chgEl.style.color = '#64748b';
                 return;
             }
 
-            const lastVal = curve.at(-1);
-            const multiplier = (lastVal / 100).toFixed(2);
-            const percentage = (lastVal - 100).toFixed(1); // Use 1 decimal for % as per user's 453.4%
+            const lastVal = curve.at(-1);                 // e.g. 154.3
+            const multiplier = (lastVal / 100).toFixed(2); // "1.54x"
+            const percentage = (lastVal - 100).toFixed(1); // "54.3"
 
             pfValueEl.textContent = `Growth: ${multiplier}x`;
             chgEl.textContent = `${percentage >= 0 ? '+' : ''}${percentage}%`;
             chgEl.style.color = percentage >= 0 ? '#16a34a' : '#dc2626';
 
             $('#pf-updated').textContent =
-                new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
+                new Date().toLocaleString('en-ZA', {
+                    month: 'long',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) + ' SAST';
         }
+
 
         // ---------- Allocation: dynamic total ----------
         const priceEl = document.getElementById('alloc-price');
