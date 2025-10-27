@@ -1561,12 +1561,15 @@
             });
         }
         function extractPctSeries1D(src) {
-            // returns [0.12, 0.15, 0.20, ...] meaning +0.12%, +0.15%, etc
-            // we keep it as actual % numbers
             return (src || [])
-                .map(p => Number(p.pct))
+                .map(p => {
+                    const raw = Number(p.pct);
+                    if (!Number.isFinite(raw)) return null;
+                    return raw * 100; // convert 0.0052 -> 0.52 (%)
+                })
                 .filter(v => Number.isFinite(v));
         }
+
 
 
         function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
@@ -1587,24 +1590,24 @@
             if (rangeKey === '1D') {
                 const s1d = metrics?.series_1d || [];
 
-                // x labels = intraday times
+                // x labels = intraday HH:MM from timestamp
                 currentLabels = makeLabels1D(s1d);
 
-                // y data = pct return at that timestamp
-                // e.g. [0.12, 0.15, 0.20] where 0.20 means +0.20%
+                // y data = pctSeries in human % units. e.g. [0.52, 0.60, 0.48, ...]
+                // where 0.52 means +0.52%
                 const pctSeries = extractPctSeries1D(s1d);
 
                 if (chart) {
                     chart.data.labels = currentLabels;
                     chart.data.datasets[0].data = pctSeries;
 
-                    // y-axis in %
+                    // y-axis tick formatting (show "+0.52%")
                     chart.options.scales.y.ticks.callback = v => {
                         const num = Number(v);
                         return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
                     };
 
-                    // tooltip also in %
+                    // tooltip shows the same
                     chart.options.plugins.tooltip.callbacks.label = c => {
                         const val = Number(c.raw);
                         return (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
@@ -1613,20 +1616,20 @@
                     chart.update();
                 }
 
-                // headline display for 1D:
-                // last point = current intraday move
+                // headline numbers:
+                // last point = current intraday % PnL vs base
                 if (!pctSeries.length) {
                     pfValueEl.textContent = '+0.00%';
                     chgEl.textContent = '—';
                     chgEl.style.color = '#64748b';
                 } else {
-                    const first = pctSeries[0];
-                    const last = pctSeries.at(-1);
+                    const first = pctSeries[0];       // first % of the day
+                    const last = pctSeries.at(-1);    // latest % of the day
 
-                    // pf-value shows last intraday % move
+                    // show the latest % as main number (like " +0.73% ")
                     pfValueEl.textContent = `${last >= 0 ? '+' : ''}${last.toFixed(2)}%`;
 
-                    // change vs first tick of the day (so you can see drift from open)
+                    // change vs first tick (so you can see movement since open)
                     const diff = last - first;
                     chgEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
                     chgEl.style.color = diff >= 0 ? '#16a34a' : '#dc2626';
@@ -1643,6 +1646,7 @@
 
                 return;
             }
+
 
             // -----------------
             // MULTI-PERIOD MODES (6M / 1Y / ALL)
