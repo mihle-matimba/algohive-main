@@ -1929,17 +1929,24 @@
                 return;
             }
 
-            // lastVal is like 148.14 which means +48.14% from base
-            const pctGrowth = lastVal - 100; // number
+            // curve is compounded index that starts ~100 and ends e.g. 148.14
+            const firstVal = curve[0];
+            const lastVal = curve[curve.length - 1];
+
+            // % growth over the shown range
+            const pctGrowth = ((lastVal - firstVal) / firstVal) * 100;
+
+            // label should be "+48.14%"
             const pctLabel = `${pctGrowth >= 0 ? '+' : ''}${pctGrowth.toFixed(2)}%`;
 
-            // main bold number = pct only
+            // main bold number = percent only
             pfValueEl.textContent = pctLabel;
 
-            // no second number anymore
+            // no secondary number anymore
             chgEl.textContent = '';
             chgEl.style.color = pctGrowth >= 0 ? '#16a34a' : '#dc2626';
-            chgEl.style.minWidth = '0'; // make sure layout doesn't reserve space
+            chgEl.style.minWidth = '0'; // avoid layout gap
+
 
 
             $('#pf-updated').textContent =
