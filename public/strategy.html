@@ -1233,31 +1233,188 @@
         function initChart() {
             const ctx = $('#pf-chart')?.getContext('2d');
             if (!ctx) return;
+
             const gradient = ctx.createLinearGradient(0, 0, 0, 260);
             gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
             gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
+
+            // we'll update this global as we render different ranges
+            window.__pfHoverMeta = {
+                mode: 'pct', // 'pct' or 'currency'
+                labels: [],
+                values: [],  // y values we want in tooltip (% or currency)
+            };
+
+            // custom plugin for vertical seek line + bubble
+            const seekPlugin = {
+                id: 'seekPlugin',
+                afterDraw(chart, args, opts) {
+                    const { ctx, chartArea, tooltip } = chart;
+                    if (!tooltip || !tooltip._active || !tooltip._active.length) return;
+
+                    const activePoint = tooltip._active[0];
+                    const x = activePoint.element.x;
+                    const y = activePoint.element.y;
+
+                    // guard bounds
+                    if (x < chartArea.left || x > chartArea.right) return;
+
+                    const { top, bottom } = chartArea;
+
+                    ctx.save();
+
+                    // dashed vertical line
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, top);
+                    ctx.lineTo(x, bottom);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // triangles (top/bottom)
+                    const triSize = 5;
+                    ctx.fillStyle = '#000';
+                    // top triangle (pointing down)
+                    ctx.beginPath();
+                    ctx.moveTo(x, top - triSize);
+                    ctx.lineTo(x - triSize, top);
+                    ctx.lineTo(x + triSize, top);
+                    ctx.closePath();
+                    ctx.fill();
+                    // bottom triangle (pointing up)
+                    ctx.beginPath();
+                    ctx.moveTo(x, bottom + triSize);
+                    ctx.lineTo(x - triSize, bottom);
+                    ctx.lineTo(x + triSize, bottom);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // white outlined circle on the line at data point
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#1e293b'; // slate-800 ring
+                    ctx.stroke();
+
+                    // draw black pill with "label  +pct"
+                    const meta = window.__pfHoverMeta || {};
+                    const idx = activePoint.index;
+
+                    const dateLabel = (meta.labels && meta.labels[idx]) ? meta.labels[idx] : '';
+                    const valLabel = (function () {
+                        const v = meta.values && meta.values[idx];
+                        if (v == null || Number.isNaN(v)) return '—';
+                        if (meta.mode === 'currency') {
+                            // currency mode shows value as money + also % vs first?
+                            // but you asked: "date and the return for that day"
+                            // so for intraday we'll just show +0.52%
+                            return v;
+                        } else {
+                            // already formatted like "+3.8%"
+                            return v;
+                        }
+                    })();
+
+                    const pillText = `${dateLabel}  ${valLabel}`;
+                    ctx.font = '600 12px Inter, system-ui, sans-serif';
+                    ctx.textBaseline = 'middle';
+
+                    const textW = ctx.measureText(pillText).width;
+                    const padX = 10;
+                    const padY = 6;
+                    const pillW = textW + padX * 2;
+                    const pillH = 28;
+                    const pillX = x - pillW / 2;
+                    const pillY = y - pillH - 10; // above point
+
+                    // pill bg
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    const radius = 14;
+                    roundRectPath(ctx, pillX, pillY, pillW, pillH, radius);
+                    ctx.fill();
+
+                    // pill text (green if positive, red if neg)
+                    let numPart = (valLabel || '').trim();
+                    // grab the last " +3.8%" bit for color check
+                    const m = numPart.match(/([+\-]\d+(\.\d+)?%)/);
+                    const pctPart = m ? m[1] : '';
+                    const pctIsPos = pctPart.startsWith('+');
+
+                    ctx.fillStyle = pctIsPos ? '#4ade80' : '#f87171';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH / 2);
+
+                    ctx.restore();
+                }
+            };
+
+            // helper to draw rounded rect path
+            function roundRectPath(ctx, x, y, w, h, r) {
+                const radius = Math.min(r, h / 2, w / 2);
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + w - radius, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+                ctx.lineTo(x + w, y + h - radius);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+                ctx.lineTo(x + radius, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+            }
+
             chart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: [], datasets: [{ data: [], tension: .35, borderWidth: 2, borderColor: '#556B2F', backgroundColor: gradient, fill: true, pointRadius: 0 }] },
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        tension: .35,
+                        borderWidth: 2,
+                        borderColor: '#556B2F',
+                        backgroundColor: gradient,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHitRadius: 20 // make hover easier
+                    }]
+                },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            displayColors: false,
-                            callbacks: {
-                                title: items => currentLabels[items[0].dataIndex] ?? '',
-                                label: c => money(c.raw, currentCCY)
-                            }
+                            enabled: false // we draw our own pill
                         }
                     },
                     scales: {
-                        x: { display: true, ticks: { maxTicksLimit: 6, color: '#94a3b8' }, grid: { display: false } },
-                        y: { display: true, ticks: { color: '#94a3b8', maxTicksLimit: 4, callback: v => money(v, currentCCY) } }
+                        x: {
+                            display: true,
+                            ticks: { maxTicksLimit: 6, color: '#94a3b8' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            display: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                maxTicksLimit: 4,
+                                callback: v => v // we'll override per range
+                            }
+                        }
                     }
-                }
+                },
+                plugins: [seekPlugin]
             });
         }
+
 
 
 
@@ -1662,6 +1819,17 @@
                     };
 
                     chart.update();
+                    // update hover meta for 1D
+                    window.__pfHoverMeta = {
+                        mode: 'pct',
+                        labels: currentLabels.map(l => l), // e.g. "14:35"
+                        values: pctSeries.map(v => {
+                            if (!Number.isFinite(v)) return '—';
+                            const sign = v >= 0 ? '+' : '';
+                            return `${sign}${v.toFixed(2)}%`;
+                        })
+                    };
+
                 }
 
                 // headline: latest intraday % and move since first tick
@@ -1740,18 +1908,39 @@
                 };
 
                 chart.update();
+                // build hover meta for multi-period
+                window.__pfHoverMeta = {
+                    mode: 'pct',
+                    labels: currentLabels.map(l => l), // "2024-10" or "Oct 2024" (whatever you set in makeLabelsMonthly)
+                    values: curve.map(v => {
+                        if (!Number.isFinite(v)) return '—';
+                        const pctFromStart = v - 100;
+                        const sign = pctFromStart >= 0 ? '+' : '';
+                        return `${sign}${pctFromStart.toFixed(2)}%`;
+                    })
+                };
+
             }
 
-            // headline box under tabs
-            if (!curve.length || headlinePct == null || headlineX == null) {
-                pfValueEl.textContent = 'Growth: —';
+            if (!curve.length) {
+                pfValueEl.textContent = '—';
                 chgEl.textContent = '—';
                 chgEl.style.color = '#64748b';
-            } else {
-                pfValueEl.textContent = `Growth: ${headlineX.toFixed(2)}x`;
-                chgEl.textContent = `${headlinePct >= 0 ? '+' : ''}${headlinePct.toFixed(2)}%`;
-                chgEl.style.color = headlinePct >= 0 ? '#16a34a' : '#dc2626';
+                return;
             }
+
+            // lastVal is like 148.14 which means +48.14% from base
+            const pctGrowth = lastVal - 100; // number
+            const pctLabel = `${pctGrowth >= 0 ? '+' : ''}${pctGrowth.toFixed(2)}%`;
+
+            // main bold number = pct only
+            pfValueEl.textContent = pctLabel;
+
+            // no second number anymore
+            chgEl.textContent = '';
+            chgEl.style.color = pctGrowth >= 0 ? '#16a34a' : '#dc2626';
+            chgEl.style.minWidth = '0'; // make sure layout doesn't reserve space
+
 
             $('#pf-updated').textContent =
                 new Date().toLocaleString('en-ZA', {
