@@ -1760,43 +1760,66 @@
             document.getElementById('ps-ytd').textContent = pct(ps?.ytd_return_pct);
         }
 
-        function hydrateHeader(strategy) {
-            document.getElementById('fs-title').textContent = strategy.name || '—';
-            document.getElementById('fs-provider').textContent = strategy.creator || '—';
-            document.getElementById('fs-since').textContent = strategy.inception_date
-                ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
-            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-            // *** DELETED AUM hydration (already gone in this file) ***
-            const ecName = document.getElementById('pf-name');
-            if (ecName) ecName.textContent = strategy.name || '—';
+       function hydrateHeader(strategy) {
+    document.getElementById('fs-title').textContent = strategy.name || '—';
+    document.getElementById('fs-provider').textContent = strategy.creator || '—';
+    document.getElementById('fs-since').textContent = strategy.inception_date
+        ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
+    document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+    document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
 
-            // *** Allocate card: set the Strategy input + optional title ***
-            const allocName = document.getElementById('alloc-name');
-            if (allocName) allocName.value = strategy.name || '—';
-            const allocTitle = document.getElementById('alloc-title');
-            if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
+    const ecName = document.getElementById('pf-name');
+    if (ecName) ecName.textContent = strategy.name || '—';
 
-            renderDescAndBullets(strategy);
+    // ===== NEW: push strategy name into alloc card =====
+    const allocName = document.getElementById('alloc-name');
+    if (allocName) allocName.value = strategy.name || '—';
 
-            const fsDesc = document.getElementById('fsDesc');
-            if (fsDesc) fsDesc.textContent =
-                strategy.investment_objective_description || strategy.strategy_description || '—';
+    const allocTitle = document.getElementById('alloc-title');
+    if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
 
-            const fsStyle = document.getElementById('fsStyle');
-            if (fsStyle) fsStyle.textContent = strategy.style || '—';
+    // ===== NEW: push unit price from DB into alloc card =====
+    // backend set strategies.unit_price = round(live_balance / total_units)
+    // which is a whole number
+    const allocPriceInput = document.getElementById('alloc-price');
+    if (allocPriceInput) {
+        // if strategy.unit_price exists use that, else fallback to 1
+        const rawUnitPrice = Number(strategy.unit_price);
+        const safeUnitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice > 0 ? rawUnitPrice : 1;
 
-            const fsUniverse = document.getElementById('fsUniverse');
-            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
+        // show it to the user
+        allocPriceInput.value = safeUnitPrice;
 
-            const fsHold = document.getElementById('fsHold');
-            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
-                ? `${strategy.avg_holding_days} days` : '—';
+        // keep it read-only so they can't lie about price
+        allocPriceInput.readOnly = true;
+        allocPriceInput.classList.add('bg-slate-50', 'cursor-not-allowed', 'text-slate-700');
 
-            const fsTrades = document.getElementById('fsTrades');
-            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
-                ? `${strategy.avg_trades_per_month}` : '—';
-        }
+        // store it for calcTotals() to use (just in case browser messes with input later)
+        allocPriceInput.dataset.lockedPrice = String(safeUnitPrice);
+    }
+
+    // ===== existing description + attrs =====
+    renderDescAndBullets(strategy);
+
+    const fsDesc = document.getElementById('fsDesc');
+    if (fsDesc) fsDesc.textContent =
+        strategy.investment_objective_description || strategy.strategy_description || '—';
+
+    const fsStyle = document.getElementById('fsStyle');
+    if (fsStyle) fsStyle.textContent = strategy.style || '—';
+
+    const fsUniverse = document.getElementById('fsUniverse');
+    if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
+
+    const fsHold = document.getElementById('fsHold');
+    if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
+        ? `${strategy.avg_holding_days} days` : '—';
+
+    const fsTrades = document.getElementById('fsTrades');
+    if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
+        ? `${strategy.avg_trades_per_month}` : '—';
+}
+
 
         // ---------- data load ----------
         async function fetchStrategy() {
@@ -2074,27 +2097,45 @@
         const totalEl = document.getElementById('alloc-total');
 
         // one source of truth for totals (also used by Paystack click)
-        function calcTotals() {
-            const units = Math.max(1, Math.floor(Number(document.getElementById('alloc-units')?.value || 0)));
-            const unitPrice = Math.max(1, Math.floor(Number(document.getElementById('alloc-price')?.value || 0)));
+function calcTotals() {
+    const unitsField = document.getElementById('alloc-units');
+    const priceField = document.getElementById('alloc-price');
 
-            let total = units * unitPrice;                          // in strategy currency
-            let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
+    // units (user can change this)
+    const units = Math.max(
+        1,
+        Math.floor(Number(unitsField?.value || 0))
+    );
 
-            if (isUSD()) {
-                const rate = Number(fx.usdzar);
-                if (!Number.isFinite(rate)) {
-                    throw new Error('Live USD→ZAR rate unavailable. Please try again.');
-                }
-                total = total * rate;                                  // convert to ZAR for checkout
-                ccy = 'ZAR';
-            }
+    // unit price (locked from backend)
+    // prefer the locked dataset value (trusted) over whatever is in .value
+    let rawUnitPrice = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
 
-            // hard round to cents so UI == backend
-            const totalRounded = Math.round(total * 100) / 100;
+    // force whole number like backend (backend rounded with round())
+    rawUnitPrice = Math.round(rawUnitPrice);
 
-            return { units, unitPrice, totalRounded, ccy };
+    const unitPrice = Math.max(1, rawUnitPrice);
+
+    // base total in strategy currency
+    let total = units * unitPrice;
+    let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
+
+    // if strategy currency is USD we convert to ZAR for checkout using live fx
+    if (isUSD()) {
+        const rate = Number(fx.usdzar);
+        if (!Number.isFinite(rate)) {
+            throw new Error('Live USD→ZAR rate unavailable. Please try again.');
         }
+        total = total * rate;
+        ccy = 'ZAR';
+    }
+
+    // round to cents (what Paystack sees / what we show)
+    const totalRounded = Math.round(total * 100) / 100;
+
+    return { units, unitPrice, totalRounded, ccy };
+}
+
 
         function refreshAllocTotal() {
             try {
