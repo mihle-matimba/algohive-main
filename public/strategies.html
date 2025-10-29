@@ -262,6 +262,7 @@
                 <tr>
                   <th class="th-min th-center">#</th>
                   <th>Name</th>
+                  <th class="hidden md:table-cell th-min">Unit Price</th>
                   <th class="hidden md:table-cell th-min">Ccy</th>
                   <th class="hidden md:table-cell th-min">Risk</th>
                   <th class="hidden md:table-cell">Universe</th>
@@ -579,7 +580,7 @@
   async function fetchStrategiesAndMetrics(){
     console.log("Fetching strategies...");
     // 1. Fetch all strategies
-    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description';
+    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description,unit_price';
     const { data: strategiesData, error: strategiesError } = await supabase
       .from('strategies')
       .select(cols)
@@ -614,6 +615,7 @@
         name: strategy.name,
         provider: strategy.creator || '—',
         currency: strategy.currency || 'ZAR',
+        unit_price: Number(strategy.unit_price || 0),
         risk: strategy.risk_level || '—',
         aum: Number(strategy.aum || 0),
         style: strategy.style || '—',
@@ -678,6 +680,7 @@
             <a href="strategy.html?strategy=${encodeURIComponent(s.id)}" class="hover:underline" title="${s.name}">${s.name}</a>
           </div>
         </td>
+        <td class="text-slate-600 hidden md:table-cell">${s.unit_price}</td>
         <td class="text-slate-600 hidden md:table-cell">${s.currency}</td>
         <td class="hidden md:table-cell">
           <span class="chip ${riskChip}">${s.risk}</span>
