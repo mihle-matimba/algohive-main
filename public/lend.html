@@ -516,7 +516,7 @@ async function ensureProfile(id,email){
   return up.data;
 }
 
-// render repayments (desktop + mobile) ---------------------------------
+// renderRepayments: desktop table + mobile stacked cards
 function renderRepayments(repayments){
   const $tbodyDesktop = document.getElementById("repayment-body-desktop");
   const $mobileList   = document.getElementById("repayment-mobile-list");
@@ -556,28 +556,31 @@ function renderRepayments(repayments){
     `;
     $tbodyDesktop.appendChild(tr);
 
-    // MOBILE CARD
+    // MOBILE CARD (stacked lines)
     const card = document.createElement("div");
     card.className = "card border border-slate-200 rounded-xl p-4";
     card.innerHTML = `
-      <div class="flex items-start justify-between">
-        <div class="text-[15px] font-semibold text-slate-900 leading-5">
-          <div>${prettyDate}</div>
-          <div class="text-xs text-slate-500 mt-1">${r.ref}</div>
-        </div>
-        <div class="text-right">
-          <div class="text-[15px] font-bold text-slate-900 leading-5">
-            ${money(r.amount)}
-          </div>
-          <div class="mt-1">${statusChipHTML}</div>
-        </div>
+      <!-- date -->
+      <div class="text-[15px] font-semibold text-slate-900 leading-5">
+        ${prettyDate}
+      </div>
+
+      <!-- amount -->
+      <div class="text-[15px] font-bold text-slate-900 leading-5 mt-1">
+        ${money(r.amount)}
+      </div>
+
+      <!-- status + ref -->
+      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-2">
+        ${statusChipHTML}
+        <span class="text-slate-400">${r.ref}</span>
       </div>
     `;
     $mobileList.appendChild(card);
   });
 }
 
-// render history cards -------------------------------------------------
+// renderHistory cards
 function renderHistory(pastLoans){
   const $hist = document.getElementById("loan-history");
   const $histEmpty = document.getElementById("loan-history-empty");
@@ -609,7 +612,11 @@ function renderHistory(pastLoans){
   });
 }
 
-// hydrate summary / active loan ---------------------------------------
+// renderSummaryAndActive handles:
+// - summary cards
+// - active loan block
+// - repayments for that loan
+// - loan history
 function renderSummaryAndActive(loans){
   const activeLoan = loans.find(l=>!l.closed_at) || null;
 
@@ -629,6 +636,7 @@ function renderSummaryAndActive(loans){
     setText("loan-next-due-date", "No payments due");
   }
 
+  // status chip
   const chipEl = document.getElementById("loan-status-chip");
   const descEl = document.getElementById("loan-status-desc");
   if (activeLoan?.status === "late"){
@@ -641,7 +649,7 @@ function renderSummaryAndActive(loans){
     descEl.textContent = "All payments up to date";
   }
 
-  // active loan block
+  // active loan details
   if (activeLoan){
     setText("active-loan-amount", money(activeLoan.principal));
     setText("active-loan-rate", activeLoan.apr ? activeLoan.apr.toFixed(1) + "% APR" : "—");
@@ -656,11 +664,9 @@ function renderSummaryAndActive(loans){
     setText("active-loan-balance","—");
   }
 
-  // repayments (for active loan only)
+  // repayments for active loan (mock for now)
   let repayments = [];
   if (activeLoan){
-    // you'd normally fetch from Supabase repayments table filtered by activeLoan.id
-    // For now we're mocking:
     repayments = [
       { due_date:"2025-11-05", amount:2300, status:"upcoming", ref:"INV-2300A" },
       { due_date:"2025-12-05", amount:2300, status:"upcoming", ref:"INV-2300B" },
@@ -674,7 +680,7 @@ function renderSummaryAndActive(loans){
   renderHistory(pastLoans);
 }
 
-// main init (auth, profile, fetch data) -------------------------------
+// init: auth, profile, loans
 try {
   // auth guard
   const { data:{ session } } = await supabase.auth.getSession();
@@ -721,14 +727,7 @@ try {
   });
 
   // ---- Fetch user's loans ----
-  // TODO: connect to your actual Supabase table
-  // const { data: loans, error } = await supabase
-  //   .from("loans")
-  //   .select("*")
-  //   .eq("user_id", user.id)
-  //   .order("created_at", { ascending:false });
-
-  // mock data for now
+  // TODO: replace this mock with supabase.from("loans")...
   const loans = [{
     id: "ABC123",
     principal: 25000,
