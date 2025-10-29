@@ -366,7 +366,6 @@
                         <i class="fa-solid fa-bars"></i>
                     </button>
 
-                    <!-- MODIFIED: Search bar is now a form that submits to strategies.html -->
                     <form action="strategies.html" method="GET" class="relative w-full hidden sm:block max-w-[460px]">
                         <input id="header-search-input" name="q" class="input w-full pl-9"
                             placeholder="Search strategies..." />
@@ -379,9 +378,7 @@
                             </svg>
                         </button>
                     </form>
-                    <!-- END MODIFIED -->
-
-                </div>
+                    </div>
                 <div class="flex items-center gap-3"> <button
                         class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
                         aria-label="Notifications"> <i class="fa-regular fa-bell text-slate-500"></i> <span
@@ -396,7 +393,6 @@
                 </div>
             </div>
 
-            <!-- ADDED: Back to Strategies Link -->
             <div class="px-6 pt-5">
                 <a href="strategies.html"
                     class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[var(--olive)] transition-colors">
@@ -404,9 +400,6 @@
                     <span>Back to OpenStrategies</span>
                 </a>
             </div>
-            <!-- END ADDED -->
-
-            <!-- MODIFIED: Added pt-2 to py-6 to reduce space from new back link -->
             <div class="px-6 py-6 pt-2 grid grid-cols-12 gap-6 min-w-0">
                 <section id="portfolio-card"
                     class="card border border-slate-200 shadow-none col-span-12 lg:col-span-9 min-w-0">
@@ -590,10 +583,29 @@
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end mb-2 gap-4">
-                                <div class="flex items-center justify-end">
-                                    <label for="calendar-year-filter"
-                                        class="text-sm font-medium text-slate-700 mr-2">Year:</label>
-                                    <select id="calendar-year-filter" class="input h-9 py-0 text-sm w-32"></select>
+                                
+                                <div class="relative flex items-center justify-end">
+                                    <label class="text-sm font-medium text-slate-700 mr-2">Year:</label>
+                                    <button id="year-filter-btn"
+                                        class="input h-9 py-0 text-sm w-32 text-left flex justify-between items-center">
+                                        <span id="year-filter-label" class="truncate">All Years</span>
+                                        <i class="fa-solid fa-chevron-down text-xs mr-1"></i>
+                                    </button>
+                                    <div id="year-filter-popover"
+                                        class="hidden absolute right-0 top-10 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 p-4">
+                                        <div class="space-y-2">
+                                            <div>
+                                                <input type="checkbox" id="year-all" class="year-filter-cb"
+                                                    data-year="All" checked>
+                                                <label for="year-all" class="ml-2 text-sm font-medium">All Years</label>
+                                            </div>
+                                            <hr class="my-2" />
+                                            <div id="year-filter-list" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                                            </div>
+                                            <button id="year-filter-apply"
+                                                class="btn w-full bg-slate-800 text-white border-none h-8 text-sm mt-3 hover:bg-slate-700">Apply</button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="relative flex items-center justify-end">
                                     <label class="text-sm font-medium text-slate-700 mr-2">Months:</label>
@@ -868,6 +880,54 @@
         document.getElementById('daily-modal-overlay')?.addEventListener('click', closeDailyModal);
         // *** END ADDED ***
 
+        // --- MODIFIED: Added Year Filter Logic ---
+        const yearFilterBtn = document.getElementById('year-filter-btn');
+        const yearFilterPopover = document.getElementById('year-filter-popover');
+        const yearFilterApply = document.getElementById('year-filter-apply');
+        const yearAllCb = document.getElementById('year-all');
+        const yearFilterList = document.getElementById('year-filter-list');
+        const yearFilterLabel = document.getElementById('year-filter-label');
+
+        function closeYearPopover() {
+            yearFilterPopover?.classList.add('hidden');
+        }
+
+        function getSelectedYears(allYears) { // allYears is an array of strings
+            const yearIndCbs = document.querySelectorAll('.year-filter-cb-ind');
+            if (!yearAllCb) return allYears; // Safety check
+            if (yearAllCb.checked) {
+                return allYears; // Return all available years
+            }
+            const selected = [...yearIndCbs]
+                .filter(cb => cb.checked)
+                .map(cb => cb.dataset.year);
+
+            return selected.length > 0 ? selected : allYears; // Default to all if none selected
+        }
+
+        function updateYearFilterLabel() {
+            if (!yearAllCb) return;
+            const yearIndCbs = document.querySelectorAll('.year-filter-cb-ind');
+            if (yearAllCb.checked) {
+                yearFilterLabel.textContent = 'All Years';
+                return;
+            }
+            const selected = [...yearIndCbs]
+                .filter(cb => cb.checked)
+                .map(cb => cb.dataset.year);
+
+            if (selected.length === 0) {
+                yearFilterLabel.textContent = 'All Years'; // Fallback
+            } else if (selected.length === 1) {
+                yearFilterLabel.textContent = selected[0];
+            } else if (selected.length === yearIndCbs.length) {
+                yearFilterLabel.textContent = 'All Years';
+            } else {
+                yearFilterLabel.textContent = `${selected.length} Years`;
+            }
+        }
+        // --- END MODIFIED ---
+
         // *** ADDED: Month Filter Popover Logic ***
         const monthFilterBtn = document.getElementById('month-filter-btn');
         const monthFilterPopover = document.getElementById('month-filter-popover');
@@ -912,10 +972,42 @@
             }
         }
 
+        // --- MODIFIED: Event listeners for popovers ---
+        yearFilterBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            yearFilterPopover?.classList.toggle('hidden');
+            closeMonthPopover(); // Close other popover
+        });
+
+        yearFilterApply?.addEventListener('click', () => {
+            const yearIndCbs = document.querySelectorAll('.year-filter-cb-ind');
+            const anyIndChecked = [...yearIndCbs].some(cb => cb.checked);
+            if (!anyIndChecked) {
+                yearAllCb.checked = true;
+            }
+            
+            const allYearsFromCbs = [...yearIndCbs].map(cb => cb.dataset.year);
+            const selectedYears = getSelectedYears(allYearsFromCbs);
+            const selectedMonths = getSelectedMonths();
+            const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
+            renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYears, selectedMonths); // Pass array of years
+
+            updateYearFilterLabel();
+            closeYearPopover();
+        });
+
+        yearAllCb?.addEventListener('click', () => {
+            if (yearAllCb.checked) {
+                document.querySelectorAll('.year-filter-cb-ind').forEach(cb => cb.checked = false);
+            }
+        });
+
         monthFilterBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             monthFilterPopover?.classList.toggle('hidden');
+            closeYearPopover(); // Close other popover
         });
+        // --- END MODIFIED ---
 
         monthFilterApply?.addEventListener('click', () => {
             // If no individuals are checked, re-check 'All'
@@ -924,10 +1016,13 @@
                 monthAllCb.checked = true;
             }
 
-            const selectedYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
+            // --- MODIFIED: Get selected years ---
+            const allYearsFromCbs = [...document.querySelectorAll('.year-filter-cb-ind')].map(cb => cb.dataset.year);
+            const selectedYears = getSelectedYears(allYearsFromCbs);
             const selectedMonths = getSelectedMonths();
             const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-            renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear, selectedMonths);
+            renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYears, selectedMonths);
+            // --- END MODIFIED ---
 
             updateMonthFilterLabel();
             closeMonthPopover();
@@ -952,9 +1047,13 @@
             });
         });
 
+        // --- MODIFIED: Window click listener to close BOTH popovers ---
         window.addEventListener('click', (e) => {
             if (!monthFilterPopover?.contains(e.target) && !monthFilterBtn?.contains(e.target)) {
                 closeMonthPopover();
+            }
+            if (!yearFilterPopover?.contains(e.target) && !yearFilterBtn?.contains(e.target)) {
+                closeYearPopover();
             }
         });
         // *** END ADDED ***
@@ -1489,7 +1588,7 @@
         }
 
         // *** ADDED: New function to render the monthly calendar grid from aggregated data ***
-        function renderMonthlyCalendarGrid(container, aggregatedData, filterYear, filterMonths) {
+        function renderMonthlyCalendarGrid(container, aggregatedData, filterYears, filterMonths) {
             const grid = container;
             if (!grid) return;
 
@@ -1497,7 +1596,8 @@
             const monthsToRender = [...filterMonths, 'YTD'];
             // Get all years, but filter based on the dropdown
             const allYears = Object.keys(aggregatedData).map(Number).sort((a, b) => a - b);
-            const yearsToRender = (filterYear === 'ALL' || !filterYear) ? allYears : allYears.filter(y => y == filterYear);
+            // --- MODIFIED: filterYears is now an array ---
+            const yearsToRender = allYears.filter(y => filterYears.includes(String(y)));
 
 
             grid.innerHTML = '';
@@ -1558,38 +1658,46 @@
             document.getElementById('legPos').style.background = '#dcfce7';
         }
 
-        // *** ADDED: New function to populate the year filter dropdown ***
+        // --- MODIFIED: Populates the new year filter checkbox list ---
         function populateYearFilter(aggregatedData) {
-            const select = document.getElementById('calendar-year-filter');
-            if (!select) return;
+            const listContainer = document.getElementById('year-filter-list');
+            const yearAllCb = document.getElementById('year-all'); // Get 'All' checkbox
+            if (!listContainer || !yearAllCb) return;
 
-            const years = Object.keys(aggregatedData).map(Number).sort((a, b) => b - a); // Newest first
+            const years = Object.keys(aggregatedData).map(Number).sort((a, b) => b - a); // Newest first [2025, 2024, 2023]
+            const allYearsStrings = years.map(String);
 
-            let currentVal = select.value;
+            // Preserve checked state
+            const currentCheckedYears = getSelectedYears(allYearsStrings); // Get currently selected years (as strings)
+            const isAllChecked = yearAllCb.checked;
 
-            select.innerHTML = '<option value="ALL">All Years</option>';
-            years.forEach(y => {
-                select.innerHTML += `<option value="${y}">${y}</option>`;
+            listContainer.innerHTML = ''; // Clear old list
+            
+            years.forEach(y_num => {
+                const y_str = String(y_num);
+                const isChecked = !isAllChecked && currentCheckedYears.includes(y_str);
+                listContainer.insertAdjacentHTML('beforeend', `
+                    <div>
+                        <input type="checkbox" id="year-${y_str}" class="year-filter-cb-ind" data-year="${y_str}" ${isChecked ? 'checked' : ''}>
+                        <label for="year-${y_str}" class="ml-2 text-sm">${y_str}</label>
+                    </div>
+                `);
             });
 
-            // FIXED: Default to "ALL" if nothing is selected
-            if (!currentVal) {
-                currentVal = 'ALL';
-            }
-
-            select.value = currentVal; // Set default or preserve selection
-
-            // Add event listener (only once)
-            if (!select.dataset.listener) {
-                select.addEventListener('change', () => {
-                    const selectedYear = select.value;
-                    // MODIFIED: Get selected months
-                    const selectedMonths = getSelectedMonths();
-                    const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-                    renderMonthlyCalendarGrid($('#calendarReturns'), aggData, selectedYear, selectedMonths);
+            // Add event listeners to NEW individual checkboxes
+            document.querySelectorAll('.year-filter-cb-ind').forEach(cb => {
+                cb.addEventListener('click', () => {
+                    if (cb.checked) {
+                        yearAllCb.checked = false;
+                    }
+                    const anyIndChecked = [...document.querySelectorAll('.year-filter-cb-ind')].some(c => c.checked);
+                    if (!anyIndChecked) {
+                        yearAllCb.checked = true;
+                    }
                 });
-                select.dataset.listener = 'true';
-            }
+            });
+            
+            updateYearFilterLabel(); // Update label after repopulating
         }
 
 
@@ -1652,66 +1760,43 @@
             document.getElementById('ps-ytd').textContent = pct(ps?.ytd_return_pct);
         }
 
-function hydrateHeader(strategy) {
-    document.getElementById('fs-title').textContent = strategy.name || '—';
-    document.getElementById('fs-provider').textContent = strategy.creator || '—';
-    document.getElementById('fs-since').textContent = strategy.inception_date
-        ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
-    document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-    document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+        function hydrateHeader(strategy) {
+            document.getElementById('fs-title').textContent = strategy.name || '—';
+            document.getElementById('fs-provider').textContent = strategy.creator || '—';
+            document.getElementById('fs-since').textContent = strategy.inception_date
+                ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
+            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+            // *** DELETED AUM hydration (already gone in this file) ***
+            const ecName = document.getElementById('pf-name');
+            if (ecName) ecName.textContent = strategy.name || '—';
 
-    const ecName = document.getElementById('pf-name');
-    if (ecName) ecName.textContent = strategy.name || '—';
+            // *** Allocate card: set the Strategy input + optional title ***
+            const allocName = document.getElementById('alloc-name');
+            if (allocName) allocName.value = strategy.name || '—';
+            const allocTitle = document.getElementById('alloc-title');
+            if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
 
-    // ===== NEW: push strategy name into alloc card =====
-    const allocName = document.getElementById('alloc-name');
-    if (allocName) allocName.value = strategy.name || '—';
+            renderDescAndBullets(strategy);
 
-    const allocTitle = document.getElementById('alloc-title');
-    if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
+            const fsDesc = document.getElementById('fsDesc');
+            if (fsDesc) fsDesc.textContent =
+                strategy.investment_objective_description || strategy.strategy_description || '—';
 
-    // ===== NEW: push unit price from DB into alloc card =====
-    // backend set strategies.unit_price = round(live_balance / total_units)
-    // which is a whole number
-    const allocPriceInput = document.getElementById('alloc-price');
-    if (allocPriceInput) {
-        // if strategy.unit_price exists use that, else fallback to 1
-        const rawUnitPrice = Number(strategy.unit_price);
-        const safeUnitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice > 0 ? rawUnitPrice : 1;
+            const fsStyle = document.getElementById('fsStyle');
+            if (fsStyle) fsStyle.textContent = strategy.style || '—';
 
-        // show it to the user
-        allocPriceInput.value = safeUnitPrice;
+            const fsUniverse = document.getElementById('fsUniverse');
+            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
 
-        // keep it read-only so they can't lie about price
-        allocPriceInput.readOnly = true;
-        allocPriceInput.classList.add('bg-slate-50', 'cursor-not-allowed', 'text-slate-700');
+            const fsHold = document.getElementById('fsHold');
+            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
+                ? `${strategy.avg_holding_days} days` : '—';
 
-        // store it for calcTotals() to use (just in case browser messes with input later)
-        allocPriceInput.dataset.lockedPrice = String(safeUnitPrice);
-    }
-
-    // ===== existing description + attrs =====
-    renderDescAndBullets(strategy);
-
-    const fsDesc = document.getElementById('fsDesc');
-    if (fsDesc) fsDesc.textContent =
-        strategy.investment_objective_description || strategy.strategy_description || '—';
-
-    const fsStyle = document.getElementById('fsStyle');
-    if (fsStyle) fsStyle.textContent = strategy.style || '—';
-
-    const fsUniverse = document.getElementById('fsUniverse');
-    if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
-
-    const fsHold = document.getElementById('fsHold');
-    if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
-        ? `${strategy.avg_holding_days} days` : '—';
-
-    const fsTrades = document.getElementById('fsTrades');
-    if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
-        ? `${strategy.avg_trades_per_month}` : '—';
-}
-
+            const fsTrades = document.getElementById('fsTrades');
+            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
+                ? `${strategy.avg_trades_per_month}` : '—';
+        }
 
         // ---------- data load ----------
         async function fetchStrategy() {
@@ -1989,45 +2074,27 @@ function hydrateHeader(strategy) {
         const totalEl = document.getElementById('alloc-total');
 
         // one source of truth for totals (also used by Paystack click)
-function calcTotals() {
-    const unitsField = document.getElementById('alloc-units');
-    const priceField = document.getElementById('alloc-price');
+        function calcTotals() {
+            const units = Math.max(1, Math.floor(Number(document.getElementById('alloc-units')?.value || 0)));
+            const unitPrice = Math.max(1, Math.floor(Number(document.getElementById('alloc-price')?.value || 0)));
 
-    // units (user can change this)
-    const units = Math.max(
-        1,
-        Math.floor(Number(unitsField?.value || 0))
-    );
+            let total = units * unitPrice;                          // in strategy currency
+            let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
 
-    // unit price (locked from backend)
-    // prefer the locked dataset value (trusted) over whatever is in .value
-    let rawUnitPrice = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
+            if (isUSD()) {
+                const rate = Number(fx.usdzar);
+                if (!Number.isFinite(rate)) {
+                    throw new Error('Live USD→ZAR rate unavailable. Please try again.');
+                }
+                total = total * rate;                                  // convert to ZAR for checkout
+                ccy = 'ZAR';
+            }
 
-    // force whole number like backend (backend rounded with round())
-    rawUnitPrice = Math.round(rawUnitPrice);
+            // hard round to cents so UI == backend
+            const totalRounded = Math.round(total * 100) / 100;
 
-    const unitPrice = Math.max(1, rawUnitPrice);
-
-    // base total in strategy currency
-    let total = units * unitPrice;
-    let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
-
-    // if strategy currency is USD we convert to ZAR for checkout using live fx
-    if (isUSD()) {
-        const rate = Number(fx.usdzar);
-        if (!Number.isFinite(rate)) {
-            throw new Error('Live USD→ZAR rate unavailable. Please try again.');
+            return { units, unitPrice, totalRounded, ccy };
         }
-        total = total * rate;
-        ccy = 'ZAR';
-    }
-
-    // round to cents (what Paystack sees / what we show)
-    const totalRounded = Math.round(total * 100) / 100;
-
-    return { units, unitPrice, totalRounded, ccy };
-}
-
 
         function refreshAllocTotal() {
             try {
@@ -2106,17 +2173,16 @@ function calcTotals() {
 
 
             // *** MODIFIED: Boot sequence for new calendar ***
-            // render initial curve + tiles + calendar + holdings + allocation
             const aggregatedMonthlyData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
             populateYearFilter(aggregatedMonthlyData);
-            const defaultYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-            // MODIFIED: Get default months
+            // --- MODIFIED: Get default years/months from new filter state ---
+            const allYearsFromCbsBoot = [...document.querySelectorAll('.year-filter-cb-ind')].map(cb => cb.dataset.year);
+            const defaultYears = getSelectedYears(allYearsFromCbsBoot);
             const defaultMonths = getSelectedMonths();
-            renderMonthlyCalendarGrid($('#calendarReturns'), aggregatedMonthlyData, defaultYear, defaultMonths);
+            renderMonthlyCalendarGrid($('#calendarReturns'), aggregatedMonthlyData, defaultYears, defaultMonths);
 
             selectRangeAndRender('6M', metrics || {}, strategy);
             fillPerfSummary(metrics?.perf_summary || null);
-            // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
             renderPortfolioHoldingsFromMetrics(metrics || {});
             renderAssetAllocationFromMetrics(metrics || {});
             // *** END MODIFIED ***
@@ -2147,15 +2213,15 @@ function calcTotals() {
 
                     // *** MODIFIED: Refresh handler for new calendar ***
                     const aggData = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-                    populateYearFilter(aggData); // Repopulate in case new years are added
-                    const currentYear = document.getElementById('calendar-year-filter')?.value || 'ALL';
-                    // MODIFIED: Get current months
+                    populateYearFilter(aggData); // Repopulate to get new data, preserving checks
+                    // --- MODIFIED: Get current years/months from new filter state ---
+                    const allYearsFromCbsRefresh = [...document.querySelectorAll('.year-filter-cb-ind')].map(cb => cb.dataset.year);
+                    const currentYears = getSelectedYears(allYearsFromCbsRefresh);
                     const currentMonths = getSelectedMonths();
-                    renderMonthlyCalendarGrid($('#calendarReturns'), aggData, currentYear, currentMonths);
+                    renderMonthlyCalendarGrid($('#calendarReturns'), aggData, currentYears, currentMonths);
 
                     selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '6M', metrics, strategy);
                     fillPerfSummary(metrics?.perf_summary || null);
-                    // renderCalendarDaily($('#calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
                     renderPortfolioHoldingsFromMetrics(metrics || {});
                     // *** END MODIFIED ***
 
@@ -2197,16 +2263,16 @@ function calcTotals() {
 
                     // *** MODIFIED: Auto-refresh handler for new calendar ***
                     const aggDataRefresh = aggregateDailyToMonthly(metrics?.calendar_returns || []);
-                    populateYearFilter(aggDataRefresh); // Repopulate in case new years are added
-                    const currentYearRefresh = document.getElementById('calendar-year-filter')?.value || 'ALL';
-                    // MODIFIED: Get current months
+                    populateYearFilter(aggDataRefresh); // Repopulate to get new data, preserving checks
+                    // --- MODIFIED: Get current years/months from new filter state ---
+                    const allYearsFromCbsAuto = [...document.querySelectorAll('.year-filter-cb-ind')].map(cb => cb.dataset.year);
+                    const currentYearsRefresh = getSelectedYears(allYearsFromCbsAuto);
                     const currentMonthsRefresh = getSelectedMonths();
-                    renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearRefresh, currentMonthsRefresh);
+                    renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearsRefresh, currentMonthsRefresh);
 
                     selectRangeAndRender(range, metrics, activeStrategy);
 
                     fillPerfSummary(metrics?.perf_summary || null);
-                    // renderCalendarDaily(document.getElementById('calendarReturns'), metrics?.calendar_returns || []); // <- This old call is now replaced
                     renderPortfolioHoldingsFromMetrics(metrics || {});
                     // *** END MODIFIED ***
 
@@ -2222,7 +2288,7 @@ function calcTotals() {
                 } finally {
                     setTimeout(() => btn?.classList.remove('spin'), 600);
                 }
-                if (isUSD()) { fetchUsdZar(); } // fire-and-forget to keep the banner fresh
+                if (isUSD()) { fetchUsdZar(); } // fire-and-forget to keep the fresh rate
 
             };
             setInterval(doAutoRefresh, 120000); // 2 minutes
@@ -2307,10 +2373,6 @@ function calcTotals() {
 
         verifyIfReturned();
     </script>
-
-
-
-
 </body>
 
 </html>
