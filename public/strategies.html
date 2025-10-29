@@ -66,11 +66,13 @@
 
     /* table styles */
     .tbl-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden }
-    table { width:100%; border-collapse:separate; border-spacing:0 }
+    /* --- MODIFIED: Added table-layout: fixed for equal column spacing --- */
+    table { width:100%; border-collapse:separate; border-spacing:0; table-layout: fixed; }
     thead th { position:sticky; top:0; background:#fff; z-index:1; font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:#64748b; border-bottom:1px solid #e5e7eb; padding:.875rem .875rem; text-align:left }
-    tbody td { padding:1rem .875rem; border-bottom:1px solid #f1f5f9; font-size:.925rem }
+    tbody td { padding:1rem .875rem; border-bottom:1px solid #f1f5f9; font-size:.925rem; vertical-align: middle; } /* Added vertical-align */
     tbody tr:hover { background:#f8fafc }
-    .th-min { width:1%; white-space:nowrap }
+    /* --- MODIFIED: Removed .th-min class --- */
+    /* .th-min { width:1%; white-space:nowrap } */
     .cell-name { font-weight:600 }
 
     /* --- MODIFIED: Mobile Carousel Styles (with Center Snapping) --- */
@@ -79,7 +81,7 @@
       gap: 1.25rem; /* 20px */
       overflow-x: auto;
       
-      /* --- NEW SNAPPING STYLES --- */
+      /* --- NEW SNAPPING STYES --- */
       /* 1. Enable scroll-snapping */
       scroll-snap-type: x mandatory;
       
@@ -110,7 +112,7 @@
       padding: 1rem;
       box-shadow: 0 1px 3px rgba(0,0,0,.05);
       
-      /* --- NEW SNAPPING STYLES --- */
+      /* --- NEW SNAPPING STYES --- */
       /* Snap this item to the center */
       scroll-snap-align: center;
     }
@@ -257,12 +259,15 @@
             <table id="tbl">
               <thead>
                 <tr>
-                  <th class="th-min">#</th>
+                  <th>#</th>
                   <th>Name</th>
-                  <th class="th-min hidden md:table-cell">Ccy</th>
-                  <th class="th-min hidden md:table-cell">Risk</th>
+                  <th class="hidden md:table-cell">Ccy</th>
+                  <th class="hidden md:table-cell">Risk</th>
                   <th class="hidden md:table-cell">Universe</th>
-                  <th class="th-min">Actions</th>
+                  <th class="hidden md:table-cell">Chart</th>
+                  <th class="hidden md:table-cell">YTD %</th>
+                  <th class="hidden md:table-cell">Tag</th>
+                  <th>Actions</th>
                 </tr>
                 </thead>
               <tbody id="tbody">
@@ -501,8 +506,8 @@
     return out;
   }
 
-  // --- ADDED: Helper function to draw a mini-chart ---
-  function drawCardChart(canvasId, seriesData) {
+  // --- MODIFIED: Helper function to draw a mini-chart with dynamic colors ---
+  function drawCardChart(canvasId, seriesData, percentage) {
     const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
     
@@ -515,9 +520,30 @@
     const curve = curveFromPct(pcts, 100); // base 100 percentage curve
     const labels = (seriesData || []).map(x => x.label || '');
     
+    // --- Define dynamic colors based on performance ---
+    const positiveColor = '#16a34a'; // tailwind green-600
+    const positiveGradient = 'rgba(22, 163, 74, 0.35)';
+    const negativeColor = '#dc2626'; // tailwind red-600
+    const negativeGradient = 'rgba(220, 38, 38, 0.35)';
+    const neutralColor = '#2563eb'; // tailwind blue-600
+    const neutralGradient = 'rgba(37, 99, 235, 0.35)';
+    
+    let borderColor = neutralColor;
+    let gradientStart = neutralGradient;
+
+    // Use a small epsilon for float comparison
+    if (percentage > 0.0001) { 
+        borderColor = positiveColor;
+        gradientStart = positiveGradient;
+    } else if (percentage < -0.0001) {
+        borderColor = negativeColor;
+        gradientStart = negativeGradient;
+    }
+    // --- End dynamic colors ---
+
     const gradient = ctx.createLinearGradient(0, 0, 0, 100);
-    gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
-    gradient.addColorStop(1, 'rgba(85,107,47,0.01)');
+    gradient.addColorStop(0, gradientStart);
+    gradient.addColorStop(1, 'rgba(0,0,0,0.01)'); // Fade to transparent
 
     chartInstances[canvasId] = new Chart(ctx, {
       type: 'line',
@@ -527,8 +553,8 @@
           data: curve, 
           tension: .35, 
           borderWidth: 2, 
-          borderColor: '#556B2F', 
-          backgroundColor: gradient, 
+          borderColor: borderColor, // Use dynamic color
+          backgroundColor: gradient, // Use dynamic gradient
           fill: true, 
           pointRadius: 0 
         }] 
@@ -617,7 +643,32 @@
                      : s.risk==='High' ? 'bg-rose-50 text-rose-700'
                      : 'bg-amber-50 text-amber-700';
 
-      // --- 1. Desktop Table Row (START DESKTOP CHANGES) ---
+      // --- Calculate YTD Growth Stats & define IDs ---
+      let growthPct = '—';
+      let growthColor = 'text-slate-600';
+      let hasChart = false;
+      let percentage = 0; // This will store the raw percentage for the chart color
+      const seriesData = (s.metrics && s.metrics.series_ytd) ? s.metrics.series_ytd : [];
+
+      if (seriesData.length > 0) {
+        hasChart = true;
+        const pcts = seriesData.map(x => ({ pct: Number(x?.pct) }));
+        const curve = curveFromPct(pcts, 100);
+        const lastVal = curve.at(-1);
+        
+        if (lastVal) {
+          percentage = (lastVal - 100); // Store the raw percentage
+          growthPct = `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
+          growthColor = percentage >= 0 ? 'text-green-600' : 'text-red-600';
+        }
+      }
+      
+      const chartIdMobile = `chart-mobile-${s.id}`;
+      const chartIdDesktop = `chart-desktop-${s.id}`;
+      // --- End Stats ---
+
+
+      // --- 1. Desktop Table Row (MODIFIED) ---
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="text-slate-400 text-center">${idx+1}</td>
@@ -630,7 +681,22 @@
         <td class="hidden md:table-cell">
           <span class="chip ${riskChip}">${s.risk}</span>
         </td>
-        <td class="text-slate-600 truncate max-w-[200px] hidden md:table-cell" title="${s.universe}">${s.universe}</td>
+        <td class="text-slate-600 truncate hidden md:table-cell" title="${s.universe}">${s.universe}</td>
+        
+        <td class="hidden md:table-cell">
+          <div class="h-[30px] w-full">
+            ${hasChart ? `<canvas id="${chartIdDesktop}"></canvas>` : '<div class="h-full grid place-items-center text-sm text-slate-400">—</div>'}
+          </div>
+        </td>
+        
+        <td class="hidden md:table-cell font-medium ${growthColor}">
+          ${growthPct}
+        </td>
+      
+        <td class="hidden md:table-cell">
+          <span class="chip bg-blue-50 text-blue-700">YTD</span>
+        </td>
+        
         <td>
           <a class="btn bg-[var(--olive)] text-white hover:opacity-95 h-9 text-sm"
              href="strategy.html?strategy=${encodeURIComponent(s.id)}">
@@ -638,36 +704,12 @@
             Factsheet
           </a>
         </td>`;
-      // --- (END DESKTOP CHANGES) ---
       tbody.appendChild(tr);
 
-      // --- 2. Mobile Carousel Card (MODIFIED logic) ---
+      // --- 2. Mobile Carousel Card (MODIFIED) ---
       const card = document.createElement('div');
       card.className = 'mobile-strat-card flex flex-col';
       
-      // Calculate YTD Growth Stats
-      // REMOVED: let growthX = '—';
-      let growthPct = '—';
-      let growthColor = 'text-slate-600';
-      let chartId = `chart-${s.id}`;
-      let hasChart = false;
-
-      if (s.metrics && s.metrics.series_ytd && s.metrics.series_ytd.length > 0) {
-        hasChart = true;
-        const pcts = s.metrics.series_ytd.map(x => ({ pct: Number(x?.pct) }));
-        const curve = curveFromPct(pcts, 100);
-        const lastVal = curve.at(-1);
-        
-        if (lastVal) {
-          // REMOVED: const multiplier = (lastVal / 100);
-          const percentage = (lastVal - 100);
-          // REMOVED: growthX = `${multiplier.toFixed(2)}x`;
-          growthPct = `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
-          growthColor = percentage >= 0 ? 'text-green-600' : 'text-red-600';
-        }
-      }
-
-      // --- START MOBILE CHANGE ---
       card.innerHTML = `
         <div>
           <h3 class="font-bold text-lg text-slate-900 truncate" title="${s.name}">${s.name}</h3>
@@ -678,7 +720,7 @@
               <span class="text-xl font-bold ${growthColor}">${growthPct}</span>
             </div>
             <div class="h-[100px] mt-2">
-              ${hasChart ? `<canvas id="${chartId}"></canvas>` : '<div class="h-full grid place-items-center text-sm text-slate-400">No chart data</div>'}
+              ${hasChart ? `<canvas id="${chartIdMobile}"></canvas>` : '<div class="h-full grid place-items-center text-sm text-slate-400">No chart data</div>'}
             </div>
           </div>
 
@@ -695,14 +737,14 @@
           View Factsheet
         </a>
       `;
-      // --- END MOBILE CHANGE ---
       carouselContainer.appendChild(card);
       
-      // --- 3. Draw the chart (after element is in DOM) ---
+      // --- 3. Draw the charts (after elements are in DOM) ---
       if (hasChart) {
         // Use a tiny timeout to let the DOM update before drawing
         setTimeout(() => {
-          drawCardChart(chartId, s.metrics.series_ytd);
+          drawCardChart(chartIdMobile, seriesData, percentage);
+          drawCardChart(chartIdDesktop, seriesData, percentage);
         }, 0);
       }
     });
