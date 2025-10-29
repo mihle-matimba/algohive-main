@@ -198,7 +198,6 @@
                src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
                alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
           <button id="hdr-profile-btn" class="flex items-center gap-2 text-slate-900 font-medium hover:text-slate-700">
-            <span id="hdr-name">User</span>
             <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
         </div>
@@ -567,10 +566,10 @@
     
     console.log(`Fetched ${strategiesData.length} strategies. Now fetching metrics...`);
 
-    // 2. Prepare to fetch metrics (6M only) for each strategy
+    // 2. Prepare to fetch metrics (YTD only) for each strategy
     const metricPromises = strategiesData.map(s => 
       supabase.from('strategy_metrics')
-        .select('strategy_id, series_6m') // Only get what we need
+        .select('strategy_id, series_ytd') // Only get what we need
         .eq('strategy_id', s.id)
         .maybeSingle()
     );
@@ -646,16 +645,16 @@
       const card = document.createElement('div');
       card.className = 'mobile-strat-card flex flex-col';
       
-      // Calculate 6M Growth Stats
+      // Calculate YTD Growth Stats
       let growthX = '—';
       let growthPct = '—';
       let growthColor = 'text-slate-600';
       let chartId = `chart-${s.id}`;
       let hasChart = false;
 
-      if (s.metrics && s.metrics.series_6m && s.metrics.series_6m.length > 0) {
+      if (s.metrics && s.metrics.series_ytd && s.metrics.series_ytd.length > 0) {
         hasChart = true;
-        const pcts = s.metrics.series_6m.map(x => ({ pct: Number(x?.pct) }));
+        const pcts = s.metrics.series_ytd.map(x => ({ pct: Number(x?.pct) }));
         const curve = curveFromPct(pcts, 100);
         const lastVal = curve.at(-1);
         
@@ -701,7 +700,7 @@
       if (hasChart) {
         // Use a tiny timeout to let the DOM update before drawing
         setTimeout(() => {
-          drawCardChart(chartId, s.metrics.series_6m);
+          drawCardChart(chartId, s.metrics.series_ytd);
         }, 0);
       }
     });
@@ -824,7 +823,6 @@
     const fn = (row?.first_name || "").trim();
     const ln = (row?.last_name || "").trim();
     const fallback = (user.email || "User").split("@")[0];
-    setText("hdr-name", (fn || ln) ? `${fn} ${ln}`.trim() : fallback);
 
     // avatar (cache-bust public URL)
     const avatarUrl = row?.avatar_url ? `${row.avatar_url}${row.avatar_url.includes("?") ? "&" : "?"}v=${Date.now()}` : BLANK_AVATAR;
@@ -864,3 +862,5 @@
 
 </body>
 </html>
+
+
