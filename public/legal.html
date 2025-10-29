@@ -246,18 +246,24 @@
 
         <div class="grid grid-cols-12 gap-8">
           <aside class="col-span-12 md:col-span-4 lg:col-span-3">
-            <nav id="legal-nav" class="flex space-x-1 overflow-x-auto md:flex-col md:space-x-0 md:space-y-1">
-                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Terms%20and%20Conditions.pdf" class="legal-link whitespace-nowrap inline-block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50 md:w-full md:block">Terms & Conditions</a>
-                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Privacy%20Policy.pdf" class="legal-link whitespace-nowrap inline-block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50 md:w-full md:block">Privacy Policy</a>
-                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Advertising%20Policy.pdf" class="legal-link whitespace-nowrap inline-block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50 md:w-full md:block">Advertising Policy</a>
-                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Risk%20Policy.pdf" class="legal-link whitespace-nowrap inline-block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50 md:w-full md:block">Risk Policy</a>
-                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AML%20&%20CTF.pdf" class="legal-link whitespace-nowrap inline-block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50 md:w-full md:block">Anti-Money Laundering & CTF</a>
+            <nav id="legal-nav" class="space-y-1">
+                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Terms%20and%20Conditions.pdf" class="legal-link w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Terms & Conditions</a>
+                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Privacy%20Policy.pdf" class="legal-link w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Privacy Policy</a>
+                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Advertising%20Policy.pdf" class="legal-link w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Advertising Policy</a>
+                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Risk%20Policy.pdf" class="legal-link w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Risk Policy</a>
+                <a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AML%20&%20CTF.pdf" class="legal-link w-full block text-left px-4 py-2 rounded-lg text-slate-700 hover:bg-slate-50">Anti-Money Laundering & CTF</a>
             </nav>
           </aside>
 
           <div class="col-span-12 md:col-span-8 lg:col-span-9">
-             <div class="card border border-slate-200 rounded-2xl p-1 h-[75vh] md:h-[80vh]">
+             <div class="card border border-slate-200 rounded-2xl p-1 h-[75vh] md:h-[80vh] hidden md:block">
                 <iframe id="legal-frame" name="legal-frame" class="w-full h-full border-0 rounded-xl"></iframe>
+             </div>
+             <div class="block md:hidden">
+                <a id="mobile-legal-btn" href="#" target="_blank" class="btn btn-olive w-full">
+                    <i class="fa-solid fa-file-pdf mr-2"></i>
+                    View Document
+                </a>
              </div>
           </div>
         </div>
@@ -328,12 +334,14 @@
       });
     })();
 
-    // Legal page iframe loader
+    // --- MODIFIED: Legal page iframe + mobile button loader ---
     (function() {
         const links = document.querySelectorAll('.legal-link');
         const iframe = document.getElementById('legal-frame');
+        const mobileBtn = document.getElementById('mobile-legal-btn'); // Get mobile button
 
-        if (!links.length || !iframe) return;
+        // Check for all required elements
+        if (!links.length || !iframe || !mobileBtn) return;
 
         function setActiveLink(clickedLink) {
             links.forEach(link => {
@@ -346,7 +354,12 @@
             link.addEventListener('click', function(event) {
                 event.preventDefault();
                 const url = this.getAttribute('href');
+                
+                // Set src for desktop iframe
                 iframe.src = url;
+                // Set href for mobile button
+                mobileBtn.href = url;
+                
                 setActiveLink(this);
             });
         });
