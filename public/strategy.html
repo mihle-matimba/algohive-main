@@ -557,25 +557,8 @@
                         title="Open Menu">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-
-                    <form action="strategies.html" method="GET" class="relative w-full hidden sm:block max-w-[460px]">
-                        <input id="header-search-input" name="q" class="input w-full pl-9"
-                            placeholder="Search strategies..." />
-                        <button type="submit" aria-label="Search"
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.3-4.3" />
-                            </svg>
-                        </button>
-                    </form>
                 </div>
-                <div class="flex items-center gap-3"> <button
-                        class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
-                        aria-label="Notifications"> <i class="fa-regular fa-bell text-slate-500"></i> <span
-                            class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white"></span>
-                    </button> <img id="hdr-avatar"
+                <div class="flex items-center gap-3"> <img id="hdr-avatar"
                         src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
                         alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
                     <button id="hdr-profile-btn"
@@ -1765,7 +1748,19 @@
                     const padY = 6;
                     const pillW = textW + padX * 2;
                     const pillH = 28;
-                    const pillX = x - pillW / 2;
+                    const pillMargin = 8;
+                    const areaWidth = chartArea.right - chartArea.left;
+                    let pillX = x - pillW / 2;
+                    const minPillX = chartArea.left + pillMargin;
+                    const maxPillX = chartArea.right - pillW - pillMargin;
+
+                    if (minPillX > maxPillX) {
+                        pillX = chartArea.left + (areaWidth - pillW) / 2;
+                        pillX = Math.max(chartArea.left, Math.min(pillX, chartArea.right - pillW));
+                    } else {
+                        if (pillX < minPillX) pillX = minPillX;
+                        if (pillX > maxPillX) pillX = maxPillX;
+                    }
                     const pillY = y - pillH - 10; // above point
 
                     // pill bg
@@ -1784,7 +1779,11 @@
 
                     ctx.fillStyle = pctIsPos ? '#4ade80' : '#f87171';
                     ctx.textAlign = 'center';
-                    ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH / 2);
+                    const safePad = Math.min(padX, pillW / 2);
+                    const textMin = pillX + safePad;
+                    const textMax = pillX + pillW - safePad;
+                    const textCenter = Math.min(Math.max(x, textMin), textMax);
+                    ctx.fillText(pillText, textCenter, pillY + pillH / 2);
 
                     ctx.restore();
                 }
