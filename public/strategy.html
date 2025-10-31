@@ -299,14 +299,6 @@
             font-weight: 500;
         }
 
-        .legend-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: #cbd5f5;
-        }
-
         /* Logo fallback initials */
         .ph-logo-fallback {
             width: 32px;
@@ -745,12 +737,7 @@
                             <div class="text-xs text-slate-500">Top 10 by weight</div>
                         </div>
 
-                        <div class="flex flex-col md:flex-row items-center gap-6">
-                            <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
-                            <div id="ph-legend" class="text-sm grow w-full space-y-2"></div>
-                        </div>
-
-                        <div id="ph-top10" class="mt-6 -mx-2"></div>
+                        <div id="ph-top10" class="mt-4 -mx-2"></div>
                     </div>
 
                     <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
@@ -1290,49 +1277,9 @@
             }
         }
 
-        function drawDonut(svgEl, items) {
-            const cx = 90, cy = 90, r = 62, R = 72, TAU = Math.PI * 2;
-            svgEl.innerHTML = '';
-            const sum = items.reduce((s, i) => s + (Number(i.pct) || 0), 0) || 1;
-            let a0 = -Math.PI / 2;
-
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-
-            items.forEach((it, idx) => {
-                const pct = Number(it.pct) || 0;
-                const frac = pct / sum;
-                const a1 = a0 + frac * TAU;
-                const la = (a1 - a0) > Math.PI ? 1 : 0;
-
-                const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)];
-                const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)];
-                const q0 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-                const q1 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
-
-                const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', d);
-                path.setAttribute('fill', it.color || colors[idx % colors.length]);
-                path.setAttribute('opacity', '.95');
-                svgEl.appendChild(path);
-                a0 = a1;
-            });
-
-            const tot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            tot.textContent = '100%';
-            tot.setAttribute('x', cx);
-            tot.setAttribute('y', cy + 5);
-            tot.setAttribute('text-anchor', 'middle');
-            tot.setAttribute('font-size', '16');
-            tot.setAttribute('font-weight', '700');
-            svgEl.appendChild(tot);
-        }
-
         function renderPortfolioHoldingsFromMetrics(freshMetrics) {
-            const svg = document.getElementById('ph-donut');
-            const legend = document.getElementById('ph-legend');
             const top10Container = document.getElementById('ph-top10');
-            if (!svg || !legend || !top10Container) return;
+            if (!top10Container) return;
 
             const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
             const items = src
@@ -1347,28 +1294,9 @@
                 .slice(0, 10);
 
             if (!items.length) {
-                svg.innerHTML = '';
-                legend.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
                 top10Container.innerHTML = '<div class="text-sm text-slate-500 text-center py-4">No holdings data available.</div>';
                 return;
             }
-
-            drawDonut(svg, items.map(i => ({ pct: i.weight, color: null })));
-
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-            legend.innerHTML = items.map((h, i) => `
-        <div class="flex items-center justify-between py-1">
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="legend-dot" style="background: var(--phc-${i});"></span>
-                <span class="truncate text-sm">${h.symbol}</span>
-            </div>
-            <div class="ml-3 tabular-nums font-medium text-sm">${h.weight.toFixed(2)}%</div>
-        </div>
-    `).join('');
-
-            items.forEach((_, i) => {
-                document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
-            });
 
             top10Container.innerHTML = items.map((h) => {
                 const initials = h.symbol.slice(0, 2).toUpperCase();
