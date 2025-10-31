@@ -187,7 +187,7 @@
             gap: 0;
             border-collapse: collapse
         }
-        
+
         /* --- REMOVED this incorrect rule ---
         .cal-grid>.cal-sticky {
             border-right: 0
@@ -299,6 +299,57 @@
             font-weight: 500;
         }
 
+        /* Logo fallback initials */
+        .ph-logo-fallback {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #e2e8f0;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Responsive list item */
+        .ph-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .ph-item:last-child {
+            border-bottom: none;
+        }
+
+        .ph-symbol {
+            font-weight: 600;
+            font-size: 0.875rem;
+            min-width: 60px;
+        }
+
+        .ph-name {
+            font-size: 0.875rem;
+            color: #475569;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ph-weight {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #0f172a;
+            min-width: 50px;
+            text-align: right;
+        }
+
         /* --- END ADDED: Modal Styles --- */
     </style>
 </head>
@@ -382,7 +433,7 @@
                             </svg>
                         </button>
                     </form>
-                    </div>
+                </div>
                 <div class="flex items-center gap-3"> <button
                         class="relative h-10 w-10 rounded-full border border-slate-200 grid place-items-center hover:bg-slate-50"
                         aria-label="Notifications"> <i class="fa-regular fa-bell text-slate-500"></i> <span
@@ -587,7 +638,7 @@
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end mb-2 gap-4">
-                                
+
                                 <div class="relative flex items-center justify-end">
                                     <label class="text-sm font-medium text-slate-700 mr-2">Year:</label>
                                     <button id="year-filter-btn"
@@ -604,7 +655,8 @@
                                                 <label for="year-all" class="ml-2 text-sm font-medium">All Years</label>
                                             </div>
                                             <hr class="my-2" />
-                                            <div id="year-filter-list" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                                            <div id="year-filter-list"
+                                                class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                                             </div>
                                             <button id="year-filter-apply"
                                                 class="btn w-full bg-slate-800 text-white border-none h-8 text-sm mt-3 hover:bg-slate-700">Apply</button>
@@ -682,12 +734,17 @@
                     <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
                         <div class="flex items-center justify-between mb-5">
                             <h3 class="text-lg font-medium text-slate-900">Portfolio Holdings</h3>
-                            <div class="text-xs text-slate-500">Weights from factsheet</div>
+                            <div class="text-xs text-slate-500">Top 10 by weight</div>
                         </div>
+
+                        <!-- Donut Chart + Legend -->
                         <div class="flex flex-col md:flex-row items-center gap-6">
                             <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
-                            <div id="ph-legend" class="text-sm grow w-full"></div>
+                            <div id="ph-legend" class="text-sm grow w-full space-y-2"></div>
                         </div>
+
+                        <!-- Top 10 Holdings List with Logos -->
+                        <div id="ph-top10" class="mt-6 -mx-2"></div>
                     </div>
 
                     <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
@@ -989,7 +1046,7 @@
             if (!anyIndChecked) {
                 yearAllCb.checked = true;
             }
-            
+
             const allYearsFromCbs = [...yearIndCbs].map(cb => cb.dataset.year);
             const selectedYears = getSelectedYears(allYearsFromCbs);
             const selectedMonths = getSelectedMonths();
@@ -1269,33 +1326,65 @@
         function renderPortfolioHoldingsFromMetrics(freshMetrics) {
             const svg = document.getElementById('ph-donut');
             const legend = document.getElementById('ph-legend');
-            if (!svg || !legend) return;
+            const top10Container = document.getElementById('ph-top10');
+            if (!svg || !legend || !top10Container) return;
 
             const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
             const items = src
-                .map(h => ({ label: (h.symbol || h.name || '—').toString(), pct: Number(h.weight_pct) || 0 }))
-                .filter(x => x.pct > 0);
+                .map(h => ({
+                    symbol: (h.symbol || h.name || '—').toString().trim(),
+                    name: (h.company_name || h.name || h.symbol || 'Unknown').toString().trim(),
+                    weight: Number(h.weight_pct) || 0,
+                    logo: h.logo_url || null
+                }))
+                .filter(x => x.weight > 0)
+                .sort((a, b) => b.weight - a.weight)
+                .slice(0, 10); // TOP 10 ONLY
+
+            const totalWeight = items.reduce((s, i) => s + i.weight, 0) || 1;
 
             if (!items.length) {
                 svg.innerHTML = '';
                 legend.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
+                top10Container.innerHTML = '<div class="text-sm text-slate-500 text-center py-4">No holdings data available.</div>';
                 return;
             }
 
-            drawDonut(svg, items);
-            legend.innerHTML = items.map((h, i) => `
-      <div class="flex items-center justify-between py-1">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="legend-dot" style="background: var(--phc-${i});"></span>
-          <span class="truncate">${h.label}</span>
-        </div>
-        <div class="ml-3 tabular-nums">${h.pct.toFixed(2)}%</div>
-      </div>`).join('');
+            // === DONUT CHART ===
+            drawDonut(svg, items.map(i => ({ pct: i.weight, color: null })));
 
+            // === LEGEND (Top 10 with color dots) ===
             const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
+            legend.innerHTML = items.map((h, i) => `
+        <div class="flex items-center justify-between py-1">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="legend-dot" style="background: var(--phc-${i});"></span>
+                <span class="truncate text-sm">${h.symbol}</span>
+            </div>
+            <div class="ml-3 tabular-nums font-medium text-sm">${h.weight.toFixed(2)}%</div>
+        </div>
+    `).join('');
+
             items.forEach((_, i) => {
                 document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
             });
+
+            // === TOP 10 LIST WITH LOGOS ===
+            top10Container.innerHTML = items.map((h, i) => {
+                const initials = h.symbol.slice(0, 2).toUpperCase();
+                const logoEl = h.logo
+                    ? `<img src="${h.logo}" alt="${h.symbol} logo" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200">`
+                    : `<div class="ph-logo-fallback">${initials}</div>`;
+
+                return `
+            <div class="ph-item">
+                <div>${logoEl}</div>
+                <div class="ph-symbol">${h.symbol}</div>
+                <div class="ph-name" title="${h.name}">${h.name}</div>
+                <div class="ph-weight">${h.weight.toFixed(2)}%</div>
+            </div>
+        `;
+            }).join('');
         }
 
         function renderAssetAllocationFromMetrics(freshMetrics) {
@@ -1676,7 +1765,7 @@
             const isAllChecked = yearAllCb.checked;
 
             listContainer.innerHTML = ''; // Clear old list
-            
+
             years.forEach(y_num => {
                 const y_str = String(y_num);
                 const isChecked = !isAllChecked && currentCheckedYears.includes(y_str);
@@ -1700,7 +1789,7 @@
                     }
                 });
             });
-            
+
             updateYearFilterLabel(); // Update label after repopulating
         }
 
@@ -1764,65 +1853,65 @@
             document.getElementById('ps-ytd').textContent = pct(ps?.ytd_return_pct);
         }
 
-       function hydrateHeader(strategy) {
-    document.getElementById('fs-title').textContent = strategy.name || '—';
-    document.getElementById('fs-provider').textContent = strategy.creator || '—';
-    document.getElementById('fs-since').textContent = strategy.inception_date
-        ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
-    document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-    document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+        function hydrateHeader(strategy) {
+            document.getElementById('fs-title').textContent = strategy.name || '—';
+            document.getElementById('fs-provider').textContent = strategy.creator || '—';
+            document.getElementById('fs-since').textContent = strategy.inception_date
+                ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
+            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
 
-    const ecName = document.getElementById('pf-name');
-    if (ecName) ecName.textContent = strategy.name || '—';
+            const ecName = document.getElementById('pf-name');
+            if (ecName) ecName.textContent = strategy.name || '—';
 
-    // ===== NEW: push strategy name into alloc card =====
-    const allocName = document.getElementById('alloc-name');
-    if (allocName) allocName.value = strategy.name || '—';
+            // ===== NEW: push strategy name into alloc card =====
+            const allocName = document.getElementById('alloc-name');
+            if (allocName) allocName.value = strategy.name || '—';
 
-    const allocTitle = document.getElementById('alloc-title');
-    if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
+            const allocTitle = document.getElementById('alloc-title');
+            if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
 
-    // ===== NEW: push unit price from DB into alloc card =====
-    // backend set strategies.unit_price = round(live_balance / total_units)
-    // which is a whole number
-    const allocPriceInput = document.getElementById('alloc-price');
-    if (allocPriceInput) {
-        // if strategy.unit_price exists use that, else fallback to 1
-        const rawUnitPrice = Number(strategy.unit_price);
-        const safeUnitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice > 0 ? rawUnitPrice : 1;
+            // ===== NEW: push unit price from DB into alloc card =====
+            // backend set strategies.unit_price = round(live_balance / total_units)
+            // which is a whole number
+            const allocPriceInput = document.getElementById('alloc-price');
+            if (allocPriceInput) {
+                // if strategy.unit_price exists use that, else fallback to 1
+                const rawUnitPrice = Number(strategy.unit_price);
+                const safeUnitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice > 0 ? rawUnitPrice : 1;
 
-        // show it to the user
-        allocPriceInput.value = safeUnitPrice;
+                // show it to the user
+                allocPriceInput.value = safeUnitPrice;
 
-        // keep it read-only so they can't lie about price
-        allocPriceInput.readOnly = true;
-        allocPriceInput.classList.add('bg-slate-50', 'cursor-not-allowed', 'text-slate-700');
+                // keep it read-only so they can't lie about price
+                allocPriceInput.readOnly = true;
+                allocPriceInput.classList.add('bg-slate-50', 'cursor-not-allowed', 'text-slate-700');
 
-        // store it for calcTotals() to use (just in case browser messes with input later)
-        allocPriceInput.dataset.lockedPrice = String(safeUnitPrice);
-    }
+                // store it for calcTotals() to use (just in case browser messes with input later)
+                allocPriceInput.dataset.lockedPrice = String(safeUnitPrice);
+            }
 
-    // ===== existing description + attrs =====
-    renderDescAndBullets(strategy);
+            // ===== existing description + attrs =====
+            renderDescAndBullets(strategy);
 
-    const fsDesc = document.getElementById('fsDesc');
-    if (fsDesc) fsDesc.textContent =
-        strategy.investment_objective_description || strategy.strategy_description || '—';
+            const fsDesc = document.getElementById('fsDesc');
+            if (fsDesc) fsDesc.textContent =
+                strategy.investment_objective_description || strategy.strategy_description || '—';
 
-    const fsStyle = document.getElementById('fsStyle');
-    if (fsStyle) fsStyle.textContent = strategy.style || '—';
+            const fsStyle = document.getElementById('fsStyle');
+            if (fsStyle) fsStyle.textContent = strategy.style || '—';
 
-    const fsUniverse = document.getElementById('fsUniverse');
-    if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
+            const fsUniverse = document.getElementById('fsUniverse');
+            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
 
-    const fsHold = document.getElementById('fsHold');
-    if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
-        ? `${strategy.avg_holding_days} days` : '—';
+            const fsHold = document.getElementById('fsHold');
+            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
+                ? `${strategy.avg_holding_days} days` : '—';
 
-    const fsTrades = document.getElementById('fsTrades');
-    if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
-        ? `${strategy.avg_trades_per_month}` : '—';
-}
+            const fsTrades = document.getElementById('fsTrades');
+            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
+                ? `${strategy.avg_trades_per_month}` : '—';
+        }
 
 
         // ---------- data load ----------
@@ -2101,44 +2190,44 @@
         const totalEl = document.getElementById('alloc-total');
 
         // one source of truth for totals (also used by Paystack click)
-function calcTotals() {
-    const unitsField = document.getElementById('alloc-units');
-    const priceField = document.getElementById('alloc-price');
+        function calcTotals() {
+            const unitsField = document.getElementById('alloc-units');
+            const priceField = document.getElementById('alloc-price');
 
-    // units (user can change this)
-    const units = Math.max(
-        1,
-        Math.floor(Number(unitsField?.value || 0))
-    );
+            // units (user can change this)
+            const units = Math.max(
+                1,
+                Math.floor(Number(unitsField?.value || 0))
+            );
 
-    // unit price (locked from backend)
-    // prefer the locked dataset value (trusted) over whatever is in .value
-    let rawUnitPrice = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
+            // unit price (locked from backend)
+            // prefer the locked dataset value (trusted) over whatever is in .value
+            let rawUnitPrice = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
 
-    // force whole number like backend (backend rounded with round())
-    rawUnitPrice = Math.round(rawUnitPrice);
+            // force whole number like backend (backend rounded with round())
+            rawUnitPrice = Math.round(rawUnitPrice);
 
-    const unitPrice = Math.max(1, rawUnitPrice);
+            const unitPrice = Math.max(1, rawUnitPrice);
 
-    // base total in strategy currency
-    let total = units * unitPrice;
-    let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
+            // base total in strategy currency
+            let total = units * unitPrice;
+            let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
 
-    // if strategy currency is USD we convert to ZAR for checkout using live fx
-    if (isUSD()) {
-        const rate = Number(fx.usdzar);
-        if (!Number.isFinite(rate)) {
-            throw new Error('Live USD→ZAR rate unavailable. Please try again.');
+            // if strategy currency is USD we convert to ZAR for checkout using live fx
+            if (isUSD()) {
+                const rate = Number(fx.usdzar);
+                if (!Number.isFinite(rate)) {
+                    throw new Error('Live USD→ZAR rate unavailable. Please try again.');
+                }
+                total = total * rate;
+                ccy = 'ZAR';
+            }
+
+            // round to cents (what Paystack sees / what we show)
+            const totalRounded = Math.round(total * 100) / 100;
+
+            return { units, unitPrice, totalRounded, ccy };
         }
-        total = total * rate;
-        ccy = 'ZAR';
-    }
-
-    // round to cents (what Paystack sees / what we show)
-    const totalRounded = Math.round(total * 100) / 100;
-
-    return { units, unitPrice, totalRounded, ccy };
-}
 
 
         function refreshAllocTotal() {
