@@ -48,6 +48,17 @@
             padding: 0 .75rem
         }
 
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+        }
+
+        .field-error {
+            outline: 2px solid rgba(239, 68, 68, 0.35);
+            outline-offset: 2px;
+            border-radius: 12px;
+        }
+
         /* UPDATED FOR RESPONSIVENESS */
         #layout {
             --sb: 220px;
@@ -601,7 +612,7 @@
                                     </label>
                                     <label class="block">
                                         <span class="text-sm text-slate-600">Nationality</span>
-                                        <input id="nationality" class="input w-full" placeholder="South African" />
+                                        <input id="nationality" class="input w-full" />
                                     </label>
                                     <label class="block">
                                         <span class="text-sm text-slate-600">Country of residence</span>
@@ -690,7 +701,7 @@
 
                             <div class="mt-4">
                                 <span class="text-sm text-slate-600 block mb-2">Investment objectives</span>
-                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div id="objectives-group" class="grid grid-cols-2 gap-2 text-sm">
                                     <label class="flex items-center gap-2"><input type="checkbox" name="objectives"
                                             value="Growth">
                                         Growth</label>
@@ -890,8 +901,71 @@
             el._t = setTimeout(() => el.remove(), 4000);
         }    
         // ---------- profile helpers ----------
-        const REQUIRED_FIELDS = ["first_name", "last_name", "phone", "dob", "id_number", "nationality", "country_residence"];
-        function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
+        const REQUIRED_FIELDS = [
+            "first_name",
+            "last_name",
+            "phone",
+            "dob",
+            "id_number",
+            "nationality",
+            "country_residence",
+            "employment_status",
+            "occupation",
+            "employer",
+            "income_bracket",
+            "source_of_funds",
+            "net_worth_range",
+            "experience_level",
+            "risk_tolerance",
+            "objectives"
+        ];
+        const OBJECTIVES_FIELD_KEY = "objectives";
+        const FORM_REQUIRED_FIELDS = REQUIRED_FIELDS.filter(k => k !== OBJECTIVES_FIELD_KEY);
+
+        const hasValue = (value) => String(value ?? "").trim().length > 0;
+        function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => hasValue(row?.[k])); }
+
+        const objectivesGroup = document.getElementById("objectives-group");
+
+        function clearFieldErrors() {
+            FORM_REQUIRED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove("input-error");
+            });
+            objectivesGroup?.classList.remove("field-error");
+        }
+
+        function syncObjectivesHighlight() {
+            const checked = document.querySelectorAll('input[name="objectives"]:checked').length > 0;
+            objectivesGroup?.classList.toggle("field-error", !checked);
+            return checked;
+        }
+
+        FORM_REQUIRED_FIELDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const handle = () => { if (hasValue(el.value)) el.classList.remove("input-error"); };
+            el.addEventListener("input", handle);
+            el.addEventListener("change", handle);
+        });
+        document.querySelectorAll('input[name="objectives"]').forEach(cb => {
+            cb.addEventListener("change", () => { syncObjectivesHighlight(); });
+        });
+
+        function validateAdditionalInfoForm() {
+            clearFieldErrors();
+            const missing = [];
+            FORM_REQUIRED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (!hasValue(el.value)) {
+                    missing.push(id);
+                    el.classList.add("input-error");
+                }
+            });
+            if (!syncObjectivesHighlight()) missing.push(OBJECTIVES_FIELD_KEY);
+            return missing;
+        }
 
         async function ensureProfile(userId, email) {
             let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -1507,8 +1581,21 @@ renderPlanButtons(row?.subscription || 'free');
         const extraSavedTick = document.getElementById("extra-saved");
 
         extraSaveBtn?.addEventListener("click", async () => {
-            setBusy(extraSaveBtn, true);
             extraSavedTick?.classList.add("hidden");
+
+            const missing = validateAdditionalInfoForm();
+            if (missing.length) {
+                const firstKey = missing[0];
+                if (firstKey !== OBJECTIVES_FIELD_KEY) {
+                    document.getElementById(firstKey)?.focus();
+                }
+                const scrollTarget = firstKey === OBJECTIVES_FIELD_KEY ? objectivesGroup : document.getElementById(firstKey);
+                scrollTarget?.scrollIntoView({ behavior: "smooth", block: "center" });
+                banner("Please fill in the highlighted fields.", "err");
+                return;
+            }
+
+            setBusy(extraSaveBtn, true);
 
             try {
                 const payload = {
