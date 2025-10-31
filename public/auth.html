@@ -106,6 +106,7 @@
       "objectives"
     ];
     const REQUIRE_KYC = false; // flip to true if you want KYC to be required to be “complete”
+    const INCOMPLETE_PROFILE_FLAG = "ah_profile_incomplete";
 
     function resolveKycBoolean(row){
       const v = row?.kyc_status;
@@ -134,11 +135,16 @@
       return computeProfileComplete(data || {});
     }
 
-    async function routePostAuth(preferred = "/home.html") {
-      const { data: { session } } = await supabase.auth.getSession();
+    async function routePostAuth(preferred = "/home.html", sessionOverride = null) {
+      let session = sessionOverride;
+      if (!session) {
+        const { data: { session: current } } = await supabase.auth.getSession();
+        session = current;
+      }
       if (!session) return; // email-confirm signup path
       const complete = await isProfileComplete(session.user.id);
       const dest = complete ? preferred : "/settings.html#extra";
+      if (!complete) sessionStorage.setItem(INCOMPLETE_PROFILE_FLAG, "1");
       location.replace(dest);
     }
 
@@ -200,9 +206,9 @@
       const password = e.target.password.value;
       try {
         setLoading(inBtn, true, "Sign in", "Signing in…");
-        await signIn(email, password);
+        const { session } = await signIn(email, password);
         showMsg("Signed in. Redirecting…", "success");
-        await routePostAuth(redirectTo);
+        await routePostAuth(redirectTo, session);
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -218,15 +224,15 @@
       const password = e.target.password.value;
       try {
         setLoading(signupBtn, true, "Create account", "Creating account…");
-        const { data } = await signUp(email, password); // { user, session }
-        const needsConfirm = !data?.session;
+        const signUpResult = await signUp(email, password); // { user, session }
+        const needsConfirm = !signUpResult?.session;
         if (needsConfirm) {
           showMsg("Account created. Please confirm your email, then sign in.", "success");
           signupBtn.disabled = true;
           signupBtn.textContent = "Check your email to confirm";
         } else {
           showMsg("Account created. Redirecting…", "success");
-          await routePostAuth(redirectTo);
+          await routePostAuth(redirectTo, signUpResult.session);
         }
       } catch (err) {
         const m = (err?.message || "").toLowerCase();
@@ -274,7 +280,7 @@
     // If user is already logged in and lands here, route them
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) await routePostAuth(redirectTo);
+      if (session) await routePostAuth(redirectTo, session);
     } catch (_) {}
   </script>
 </body>
