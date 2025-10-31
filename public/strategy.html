@@ -1750,6 +1750,7 @@
                     const pillH = 28;
                     const pillMargin = 8;
                     const areaWidth = chartArea.right - chartArea.left;
+                    const areaHeight = chartArea.bottom - chartArea.top;
                     let pillX = x - pillW / 2;
                     const minPillX = chartArea.left + pillMargin;
                     const maxPillX = chartArea.right - pillW - pillMargin;
@@ -1761,7 +1762,21 @@
                         if (pillX < minPillX) pillX = minPillX;
                         if (pillX > maxPillX) pillX = maxPillX;
                     }
-                    const pillY = y - pillH - 10; // above point
+                    let pillY = y - pillH - 10; // above point
+                    const minPillY = chartArea.top + pillMargin;
+                    const maxPillY = chartArea.bottom - pillH - pillMargin;
+
+                    if (minPillY > maxPillY) {
+                        pillY = chartArea.top + (areaHeight - pillH) / 2;
+                        pillY = Math.max(chartArea.top, Math.min(pillY, chartArea.bottom - pillH));
+                    } else {
+                        if (pillY < minPillY) {
+                            const belowY = y + 10;
+                            const roomBelow = belowY + pillH <= chartArea.bottom - pillMargin;
+                            pillY = roomBelow ? Math.min(Math.max(belowY, minPillY), maxPillY) : minPillY;
+                        }
+                        if (pillY > maxPillY) pillY = maxPillY;
+                    }
 
                     // pill bg
                     ctx.fillStyle = '#000';
@@ -1779,10 +1794,7 @@
 
                     ctx.fillStyle = pctIsPos ? '#4ade80' : '#f87171';
                     ctx.textAlign = 'center';
-                    const safePad = Math.min(padX, pillW / 2);
-                    const textMin = pillX + safePad;
-                    const textMax = pillX + pillW - safePad;
-                    const textCenter = Math.min(Math.max(x, textMin), textMax);
+                    const textCenter = pillX + pillW / 2;
                     ctx.fillText(pillText, textCenter, pillY + pillH / 2);
 
                     ctx.restore();
