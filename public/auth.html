@@ -87,8 +87,27 @@
     import { supabase } from "/js/supabase.js";
 
     // --- SAME COMPLETENESS RULE AS SETTINGS ---
-    const REQUIRED_FIELDS = ["first_name","last_name","phone","dob","id_number","nationality","country_residence"];
-    const REQUIRE_KYC = false; // flip to true if you want KYC to be required to be “complete”
+    const REQUIRED_FIELDS = [
+      "first_name",
+      "last_name",
+      "phone",
+      "dob",
+      "id_number",
+      "nationality",
+      "country_residence",
+      "employment_status",
+      "occupation",
+      "employer",
+      "income_bracket",
+      "source_of_funds",
+      "net_worth_range",
+      "experience_level",
+      "risk_tolerance",
+      "objectives"
+    ];
+    const INCOMPLETE_PROFILE_FLAG = "ah_profile_incomplete";
+    const INCOMPLETE_KYC_FLAG = "ah_profile_kyc_incomplete";
+    const MISSING_ACCOUNT_FLAG = "ah_profile_account_missing";
 
     function resolveKycBoolean(row){
       const v = row?.kyc_status;
@@ -101,27 +120,59 @@
     }
 
     function computeProfileComplete(row){
-      const core = REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0);
-      return REQUIRE_KYC ? (core && resolveKycBoolean(row)) : core;
+      return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0);
     }
 
-    async function isProfileComplete(uid) {
-      // fetch exactly the fields we need (+ kyc_status if you enable REQUIRE_KYC)
+    async function fetchOnboardingStatus(uid) {
       const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(selectCols)
-        .eq("id", uid)
-        .maybeSingle();              // no row -> null instead of throwing
-      if (error) return false;       // treat errors as incomplete
-      return computeProfileComplete(data || {});
+      const [profileRes, accountRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select(selectCols)
+          .eq("id", uid)
+          .maybeSingle(),
+        supabase
+          .from("investment_accounts")
+          .select("id")
+          .eq("profile_id", uid)
+          .limit(1)
+          .maybeSingle()
+      ]);
+
+      const profileRow = profileRes?.data || {};
+      const profileComplete = computeProfileComplete(profileRow);
+      const kycDone = resolveKycBoolean(profileRow);
+
+      const accountError = accountRes?.error;
+      const hasAccount = !accountError && !!accountRes?.data;
+
+      return { profileComplete, kycDone, hasAccount };
     }
 
-    async function routePostAuth(preferred = "/home.html") {
-      const { data: { session } } = await supabase.auth.getSession();
+    async function routePostAuth(preferred = "/home.html", sessionOverride = null) {
+      let session = sessionOverride;
+      if (!session) {
+        const { data: { session: current } } = await supabase.auth.getSession();
+        session = current;
+      }
       if (!session) return; // email-confirm signup path
-      const complete = await isProfileComplete(session.user.id);
-      const dest = complete ? preferred : "/settings.html#extra";
+      const { profileComplete, kycDone, hasAccount } = await fetchOnboardingStatus(session.user.id);
+
+      sessionStorage.removeItem(INCOMPLETE_PROFILE_FLAG);
+      sessionStorage.removeItem(INCOMPLETE_KYC_FLAG);
+      sessionStorage.removeItem(MISSING_ACCOUNT_FLAG);
+
+      let dest = preferred;
+      if (!profileComplete) {
+        dest = "/settings.html#extra";
+        sessionStorage.setItem(INCOMPLETE_PROFILE_FLAG, "1");
+      } else if (!kycDone) {
+        dest = "/settings.html#kyc";
+        sessionStorage.setItem(INCOMPLETE_KYC_FLAG, "1");
+      } else if (!hasAccount) {
+        dest = "/settings.html#manage";
+        sessionStorage.setItem(MISSING_ACCOUNT_FLAG, "1");
+      }
       location.replace(dest);
     }
 
@@ -183,9 +234,9 @@
       const password = e.target.password.value;
       try {
         setLoading(inBtn, true, "Sign in", "Signing in…");
-        await signIn(email, password);
+        const { session } = await signIn(email, password);
         showMsg("Signed in. Redirecting…", "success");
-        await routePostAuth(redirectTo);
+        await routePostAuth(redirectTo, session);
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -201,15 +252,15 @@
       const password = e.target.password.value;
       try {
         setLoading(signupBtn, true, "Create account", "Creating account…");
-        const { data } = await signUp(email, password); // { user, session }
-        const needsConfirm = !data?.session;
+        const signUpResult = await signUp(email, password); // { user, session }
+        const needsConfirm = !signUpResult?.session;
         if (needsConfirm) {
           showMsg("Account created. Please confirm your email, then sign in.", "success");
           signupBtn.disabled = true;
           signupBtn.textContent = "Check your email to confirm";
         } else {
           showMsg("Account created. Redirecting…", "success");
-          await routePostAuth(redirectTo);
+          await routePostAuth(redirectTo, signUpResult.session);
         }
       } catch (err) {
         const m = (err?.message || "").toLowerCase();
@@ -257,7 +308,7 @@
     // If user is already logged in and lands here, route them
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) await routePostAuth(redirectTo);
+      if (session) await routePostAuth(redirectTo, session);
     } catch (_) {}
   </script>
 </body>

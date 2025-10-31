@@ -48,6 +48,17 @@
             padding: 0 .75rem
         }
 
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+        }
+
+        .field-error {
+            outline: 2px solid rgba(239, 68, 68, 0.35);
+            outline-offset: 2px;
+            border-radius: 12px;
+        }
+
         /* UPDATED FOR RESPONSIVENESS */
         #layout {
             --sb: 220px;
@@ -601,7 +612,7 @@
                                     </label>
                                     <label class="block">
                                         <span class="text-sm text-slate-600">Nationality</span>
-                                        <input id="nationality" class="input w-full" placeholder="South African" />
+                                        <input id="nationality" class="input w-full" />
                                     </label>
                                     <label class="block">
                                         <span class="text-sm text-slate-600">Country of residence</span>
@@ -690,7 +701,7 @@
 
                             <div class="mt-4">
                                 <span class="text-sm text-slate-600 block mb-2">Investment objectives</span>
-                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div id="objectives-group" class="grid grid-cols-2 gap-2 text-sm">
                                     <label class="flex items-center gap-2"><input type="checkbox" name="objectives"
                                             value="Growth">
                                         Growth</label>
@@ -890,8 +901,89 @@
             el._t = setTimeout(() => el.remove(), 4000);
         }    
         // ---------- profile helpers ----------
-        const REQUIRED_FIELDS = ["first_name", "last_name", "phone", "dob", "id_number", "nationality", "country_residence"];
-        function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
+        const INCOMPLETE_PROFILE_FLAG = "ah_profile_incomplete";
+        const INCOMPLETE_KYC_FLAG = "ah_profile_kyc_incomplete";
+        const MISSING_ACCOUNT_FLAG = "ah_profile_account_missing";
+
+        if (sessionStorage.getItem(INCOMPLETE_PROFILE_FLAG)) {
+            sessionStorage.removeItem(INCOMPLETE_PROFILE_FLAG);
+            if (!location.hash || location.hash === "#basic") location.hash = "#extra";
+            banner("Please complete your additional info to continue.", "warn");
+        } else if (sessionStorage.getItem(INCOMPLETE_KYC_FLAG)) {
+            sessionStorage.removeItem(INCOMPLETE_KYC_FLAG);
+            if (!location.hash || location.hash === "#basic") location.hash = "#kyc";
+            banner("Please complete your KYC to continue.", "warn");
+        } else if (sessionStorage.getItem(MISSING_ACCOUNT_FLAG)) {
+            sessionStorage.removeItem(MISSING_ACCOUNT_FLAG);
+            if (!location.hash || location.hash === "#basic") location.hash = "#manage";
+            banner("Please set up your investment account to continue.", "warn");
+        }
+
+        const REQUIRED_FIELDS = [
+            "first_name",
+            "last_name",
+            "phone",
+            "dob",
+            "id_number",
+            "nationality",
+            "country_residence",
+            "employment_status",
+            "occupation",
+            "employer",
+            "income_bracket",
+            "source_of_funds",
+            "net_worth_range",
+            "experience_level",
+            "risk_tolerance",
+            "objectives"
+        ];
+        const OBJECTIVES_FIELD_KEY = "objectives";
+        const FORM_REQUIRED_FIELDS = REQUIRED_FIELDS.filter(k => k !== OBJECTIVES_FIELD_KEY);
+
+        const hasValue = (value) => String(value ?? "").trim().length > 0;
+        function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => hasValue(row?.[k])); }
+
+        const objectivesGroup = document.getElementById("objectives-group");
+
+        function clearFieldErrors() {
+            FORM_REQUIRED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove("input-error");
+            });
+            objectivesGroup?.classList.remove("field-error");
+        }
+
+        function syncObjectivesHighlight() {
+            const checked = document.querySelectorAll('input[name="objectives"]:checked').length > 0;
+            objectivesGroup?.classList.toggle("field-error", !checked);
+            return checked;
+        }
+
+        FORM_REQUIRED_FIELDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const handle = () => { if (hasValue(el.value)) el.classList.remove("input-error"); };
+            el.addEventListener("input", handle);
+            el.addEventListener("change", handle);
+        });
+        document.querySelectorAll('input[name="objectives"]').forEach(cb => {
+            cb.addEventListener("change", () => { syncObjectivesHighlight(); });
+        });
+
+        function validateAdditionalInfoForm() {
+            clearFieldErrors();
+            const missing = [];
+            FORM_REQUIRED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (!hasValue(el.value)) {
+                    missing.push(id);
+                    el.classList.add("input-error");
+                }
+            });
+            if (!syncObjectivesHighlight()) missing.push(OBJECTIVES_FIELD_KEY);
+            return missing;
+        }
 
         async function ensureProfile(userId, email) {
             let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -998,6 +1090,7 @@
         let kycDone = resolveKycBoolean(row);
         setKycState(kycDone);
         let profileComplete = computeProfileComplete(row);
+        let hasAccount = false;
 
         // DIDIT callback handler (runs after auth/user + setKycState exist)
         async function handleDiditCallbackAfterAuth() {
@@ -1328,22 +1421,23 @@ renderPlanButtons(row?.subscription || 'free');
 
         const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
         function isGated() {
-            // Users are gated until profile AND KYC are complete
-            // After KYC, only "Manage Accounts" is unlocked, everything else stays locked
-            return !(profileComplete && kycDone);
+            // Users are gated until profile, KYC, and an investment account are complete
+            return !(profileComplete && kycDone && hasAccount);
         }
 
         function isTabAllowed(tabName) {
             if (tabName === "subs") return true; // always allow viewing plans
             if (!profileComplete) return allowedTabsWhenGated.has(tabName);
             if (profileComplete && !kycDone) return allowedTabsWhenGated.has(tabName);
-            if (profileComplete && kycDone) return ["extra", "docs", "manage", "subs"].includes(tabName);
+            if (profileComplete && kycDone && !hasAccount) return ["extra", "docs", "manage", "subs"].includes(tabName);
+            if (profileComplete && kycDone && hasAccount) return true;
             return false;
         }
         function gateReason() {
             if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
             if (!profileComplete) return "Please finish Additional Info first.";
             if (!kycDone) return "Please complete KYC first.";
+            if (!hasAccount) return "Please set up your account in Manage Accounts to continue.";
             return "Please set up your account in Manage Accounts to continue.";
         }
         function lockMainNav() {
@@ -1357,7 +1451,9 @@ renderPlanButtons(row?.subscription || 'free');
                     location.hash = "#extra";
                 } else if (!kycDone) {
                     location.hash = "#kyc";
-                } else if (profileComplete && kycDone) {
+                } else if (profileComplete && kycDone && !hasAccount) {
+                    location.hash = "#manage";
+                } else if (profileComplete && kycDone && hasAccount) {
                     location.hash = "#manage";
                 }
             }
@@ -1366,7 +1462,7 @@ renderPlanButtons(row?.subscription || 'free');
                 const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
                 if (isGated() && !isSettings) {
                     a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
-                    a.title = "Locked until profile + KYC are complete and account is set up";
+                    a.title = "Locked until profile, KYC, and account setup are complete";
                     a.addEventListener("click", preventNav, { passive: false });
                 } else {
                     a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
@@ -1380,7 +1476,9 @@ renderPlanButtons(row?.subscription || 'free');
                             location.hash = "#extra";
                         } else if (!kycDone) {
                             location.hash = "#kyc";
-                        } else if (profileComplete && kycDone) {
+                        } else if (profileComplete && kycDone && !hasAccount) {
+                            location.hash = "#manage";
+                        } else if (profileComplete && kycDone && hasAccount) {
                             location.hash = "#manage";
                         }
                     }, 0);
@@ -1398,8 +1496,10 @@ renderPlanButtons(row?.subscription || 'free');
                     target = "#extra";
                 } else if (!kycDone) {
                     target = "#kyc";
-                } else if (profileComplete && kycDone) {
+                } else if (profileComplete && kycDone && !hasAccount) {
                     target = "#manage";
+                } else if (profileComplete && kycDone && hasAccount) {
+                    target = "#basic";
                 } else {
                     target = "#extra"; // fallback
                 }
@@ -1407,7 +1507,26 @@ renderPlanButtons(row?.subscription || 'free');
             }
         }
         function refreshGates() { lockMainNav(); enforceSettingsGuard(); }
-        lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
+
+        async function checkAccountPresence() {
+            try {
+                const { data, error } = await supabase
+                    .from('investment_accounts')
+                    .select('id')
+                    .eq('profile_id', user.id)
+                    .limit(1)
+                    .maybeSingle();
+                hasAccount = !error && !!data;
+            } catch (e) {
+                console.error('Account presence check failed', e);
+                hasAccount = false;
+            } finally {
+                refreshGates();
+            }
+        }
+
+        await checkAccountPresence();
+        window.addEventListener("hashchange", enforceSettingsGuard);
         const _origSetKycState = setKycState;
         setKycState = (isDone) => {
             _origSetKycState(isDone);
@@ -1415,7 +1534,7 @@ renderPlanButtons(row?.subscription || 'free');
             refreshGates();
 
             // Redirect to accounts when KYC is completed
-            if (isDone && profileComplete) {
+            if (isDone && profileComplete && !hasAccount) {
                 setTimeout(() => {
                     location.hash = "#manage";
                     banner("KYC completed! Please set up your account to continue.", "ok");
@@ -1507,8 +1626,21 @@ renderPlanButtons(row?.subscription || 'free');
         const extraSavedTick = document.getElementById("extra-saved");
 
         extraSaveBtn?.addEventListener("click", async () => {
-            setBusy(extraSaveBtn, true);
             extraSavedTick?.classList.add("hidden");
+
+            const missing = validateAdditionalInfoForm();
+            if (missing.length) {
+                const firstKey = missing[0];
+                if (firstKey !== OBJECTIVES_FIELD_KEY) {
+                    document.getElementById(firstKey)?.focus();
+                }
+                const scrollTarget = firstKey === OBJECTIVES_FIELD_KEY ? objectivesGroup : document.getElementById(firstKey);
+                scrollTarget?.scrollIntoView({ behavior: "smooth", block: "center" });
+                banner("Please fill in the highlighted fields.", "err");
+                return;
+            }
+
+            setBusy(extraSaveBtn, true);
 
             try {
                 const payload = {
@@ -1707,8 +1839,13 @@ renderPlanButtons(row?.subscription || 'free');
 
                 if (error) throw error;
 
-                if (!data || data.length === 0) { empty?.classList.remove('hidden'); return; }
-                data.forEach(row => list.appendChild(renderAccountCard(row)));
+                hasAccount = Array.isArray(data) && data.length > 0;
+                if (!hasAccount) {
+                    empty?.classList.remove('hidden');
+                } else {
+                    data.forEach(row => list.appendChild(renderAccountCard(row)));
+                }
+                refreshGates();
             } catch (e) {
                 console.error(e);
                 banner(e.message || 'Could not load accounts', 'err');
