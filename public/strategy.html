@@ -350,6 +350,148 @@
             text-align: right;
         }
 
+        /* Top gainers carousel */
+        .top-gainers-marquee {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .top-gainers-marquee::-webkit-scrollbar {
+            display: none;
+        }
+
+        .top-gainers-track {
+            display: inline-flex;
+            align-items: stretch;
+            gap: 16px;
+            min-width: max-content;
+        }
+
+        .top-gainers-track.is-looping {
+            animation: tg-scroll var(--tg-duration, 24s) linear infinite;
+        }
+
+        .top-gainers-track.is-looping:hover {
+            animation-play-state: paused;
+        }
+
+        .tg-card {
+            min-width: 200px;
+            max-width: 220px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tg-card:hover {
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+        }
+
+        .tg-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tg-card-meta {
+            min-width: 0;
+        }
+
+        .tg-symbol {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0f172a;
+        }
+
+        .tg-name {
+            font-size: 0.75rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+
+        .tg-logo-img,
+        .tg-logo-fallback {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .tg-logo-img {
+            object-fit: contain;
+            background: #ffffff;
+        }
+
+        .tg-logo-fallback {
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .tg-chevron {
+            margin-left: auto;
+            color: #cbd5f5;
+        }
+
+        .tg-value {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #0f172a;
+        }
+
+        .tg-change {
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tg-change.is-up {
+            color: #16a34a;
+        }
+
+        .tg-change.is-down {
+            color: #dc2626;
+        }
+
+        @keyframes tg-scroll {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .tg-card {
+                min-width: 180px;
+                max-width: 200px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .top-gainers-track.is-looping {
+                animation: none !important;
+            }
+        }
+
         /* --- END ADDED: Modal Styles --- */
     </style>
 </head>
@@ -596,6 +738,18 @@
                     </div>
                 </aside>
                 <section class="col-span-12 lg:col-span-9 min-w-0">
+                    <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-slate-900">Top Gainers</h3>
+                            <span id="top-gainers-updated" class="text-xs text-slate-500 hidden"></span>
+                        </div>
+                        <div id="top-gainers-empty" class="text-sm text-slate-500 text-center py-6">
+                            No daily change data yet.
+                        </div>
+                        <div id="top-gainers-marquee" class="top-gainers-marquee hidden">
+                            <div id="top-gainers-track" class="top-gainers-track"></div>
+                        </div>
+                    </div>
                     <div class="card p-6 rounded-2xl border border-slate-200">
                         <h3 class="text-lg font-medium text-slate-900 mb-5">Performance Summary</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -1191,6 +1345,15 @@
         const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
         const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
         const finite = v => Number.isFinite(Number(v));
+        const escapeHtml = (value) => {
+            return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[ch]);
+        };
 
         // ---------- URL params ----------
         const params = new URLSearchParams(location.search);
@@ -1277,12 +1440,142 @@
             }
         }
 
+        function renderTopGainersMarquee(freshMetrics, holdingsSrc) {
+            const marqueeWrap = document.getElementById('top-gainers-marquee');
+            const track = document.getElementById('top-gainers-track');
+            const emptyState = document.getElementById('top-gainers-empty');
+            const updatedEl = document.getElementById('top-gainers-updated');
+
+            if (!marqueeWrap || !track || !emptyState) return;
+
+            const holdings = Array.isArray(holdingsSrc)
+                ? holdingsSrc
+                : Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
+
+            const currency = (freshMetrics?.currency || currentCCY || 'ZAR').toUpperCase();
+
+            const entries = holdings
+                .map((h) => {
+                    const change = Number(h?.daily_change_pct);
+                    if (!Number.isFinite(change)) return null;
+
+                    const symbol = (h?.symbol || h?.name || '—').toString().trim() || '—';
+                    const name = (h?.company_name || h?.name || h?.symbol || 'Unknown').toString().trim() || 'Unknown';
+                    const valueNum = Number(h?.value);
+                    const priceNum = Number(h?.price);
+                    const weightNum = Number(h?.weight_pct);
+
+                    let valueLabel = '—';
+                    if (Number.isFinite(valueNum) && valueNum !== 0) {
+                        valueLabel = money(valueNum, currency);
+                    } else if (Number.isFinite(priceNum) && priceNum !== 0) {
+                        valueLabel = money(priceNum, currency);
+                    } else if (Number.isFinite(weightNum) && weightNum > 0) {
+                        valueLabel = `${weightNum.toFixed(2)}% weight`;
+                    }
+
+                    const changeLabel = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                    const initials = symbol.slice(0, 2).toUpperCase();
+
+                    return {
+                        symbol,
+                        name,
+                        valueLabel,
+                        change,
+                        changeLabel,
+                        logo: h?.logo_url || h?.logo || null,
+                        initials
+                    };
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.change - a.change);
+
+            const holdingsAsOf = freshMetrics?.portfolio_holdings_updated_at
+                || freshMetrics?.portfolio_holdings_asof
+                || freshMetrics?.asof_date
+                || freshMetrics?.updated_at
+                || null;
+
+            if (updatedEl) {
+                if (holdingsAsOf) {
+                    const parsed = new Date(holdingsAsOf);
+                    if (!Number.isNaN(parsed.getTime())) {
+                        updatedEl.textContent = 'Updated '
+                            + parsed.toLocaleString('en-ZA', {
+                                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                            }) + ' SAST';
+                    } else {
+                        updatedEl.textContent = `Updated ${holdingsAsOf}`;
+                    }
+                    updatedEl.classList.remove('hidden');
+                } else {
+                    updatedEl.textContent = '';
+                    updatedEl.classList.add('hidden');
+                }
+            }
+
+            if (!entries.length) {
+                track.innerHTML = '';
+                marqueeWrap.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                track.classList.remove('is-looping');
+                track.style.removeProperty('--tg-duration');
+                if (updatedEl) {
+                    updatedEl.textContent = '';
+                    updatedEl.classList.add('hidden');
+                }
+                return;
+            }
+
+            const cardMarkup = entries.map((item) => {
+                const safeSymbol = escapeHtml(item.symbol);
+                const safeName = escapeHtml(item.name);
+                const safeValue = escapeHtml(item.valueLabel);
+                const safeChange = escapeHtml(item.changeLabel);
+                const logoHtml = item.logo
+                    ? `<img src="${escapeHtml(item.logo)}" alt="${safeSymbol} logo" class="tg-logo-img">`
+                    : `<div class="tg-logo-fallback">${escapeHtml(item.initials)}</div>`;
+                const changeIcon = item.change >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
+                const changeClass = item.change >= 0 ? 'is-up' : 'is-down';
+                return `
+            <div class="tg-card">
+                <div class="tg-card-header">
+                    ${logoHtml}
+                    <div class="tg-card-meta">
+                        <div class="tg-symbol">${safeSymbol}</div>
+                        <div class="tg-name" title="${safeName}">${safeName}</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right tg-chevron"></i>
+                </div>
+                <div class="tg-value">${safeValue}</div>
+                <div class="tg-change ${changeClass}"><i class="fa-solid ${changeIcon}"></i>${safeChange}</div>
+            </div>`;
+            }).join('');
+
+            const shouldLoop = entries.length > 3;
+            if (shouldLoop) {
+                const duration = Math.max(18, entries.length * 4);
+                track.innerHTML = cardMarkup + cardMarkup;
+                track.classList.add('is-looping');
+                track.style.setProperty('--tg-duration', `${duration}s`);
+            } else {
+                track.innerHTML = cardMarkup;
+                track.classList.remove('is-looping');
+                track.style.removeProperty('--tg-duration');
+            }
+
+            emptyState.classList.add('hidden');
+            marqueeWrap.classList.remove('hidden');
+        }
+
         function renderPortfolioHoldingsFromMetrics(freshMetrics) {
+            const rawHoldings = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
+            renderTopGainersMarquee(freshMetrics, rawHoldings);
+
             const top10Container = document.getElementById('ph-top10');
             if (!top10Container) return;
 
-            const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
-            const items = src
+            const items = rawHoldings
                 .map(h => ({
                     symbol: (h.symbol || h.name || '—').toString().trim(),
                     name: (h.company_name || h.name || h.symbol || 'Unknown').toString().trim(),
