@@ -350,6 +350,148 @@
             text-align: right;
         }
 
+        /* Top gainers carousel */
+        .top-gainers-marquee {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .top-gainers-marquee::-webkit-scrollbar {
+            display: none;
+        }
+
+        .top-gainers-track {
+            display: inline-flex;
+            align-items: stretch;
+            gap: 16px;
+            min-width: max-content;
+        }
+
+        .top-gainers-track.is-looping {
+            animation: tg-scroll var(--tg-duration, 24s) linear infinite;
+        }
+
+        .top-gainers-track.is-looping:hover {
+            animation-play-state: paused;
+        }
+
+        .tg-card {
+            min-width: 200px;
+            max-width: 220px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tg-card:hover {
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+        }
+
+        .tg-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tg-card-meta {
+            min-width: 0;
+        }
+
+        .tg-symbol {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0f172a;
+        }
+
+        .tg-name {
+            font-size: 0.75rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+
+        .tg-logo-img,
+        .tg-logo-fallback {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .tg-logo-img {
+            object-fit: contain;
+            background: #ffffff;
+        }
+
+        .tg-logo-fallback {
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .tg-chevron {
+            margin-left: auto;
+            color: #cbd5f5;
+        }
+
+        .tg-value {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #0f172a;
+        }
+
+        .tg-change {
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tg-change.is-up {
+            color: #16a34a;
+        }
+
+        .tg-change.is-down {
+            color: #dc2626;
+        }
+
+        @keyframes tg-scroll {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .tg-card {
+                min-width: 180px;
+                max-width: 200px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .top-gainers-track.is-looping {
+                animation: none !important;
+            }
+        }
+
         /* --- END ADDED: Modal Styles --- */
     </style>
 </head>
@@ -538,7 +680,7 @@
                                     class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50"
                                     disabled /> </div>
                             <div> <label class="block text-xs text-slate-500 mb-1.5" for="alloc-units">Units</label>
-                                <input id="alloc-units" type="number" min="1" value="10"
+                                <input id="alloc-units" type="number" min="1" value="1"
                                     class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
                             </div>
                         </div>
@@ -596,6 +738,18 @@
                     </div>
                 </aside>
                 <section class="col-span-12 lg:col-span-9 min-w-0">
+                    <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-slate-900">Top Gainers</h3>
+                            <span id="top-gainers-updated" class="text-xs text-slate-500 hidden"></span>
+                        </div>
+                        <div id="top-gainers-empty" class="text-sm text-slate-500 text-center py-6">
+                            No daily change data yet.
+                        </div>
+                        <div id="top-gainers-marquee" class="top-gainers-marquee hidden">
+                            <div id="top-gainers-track" class="top-gainers-track"></div>
+                        </div>
+                    </div>
                     <div class="card p-6 rounded-2xl border border-slate-200">
                         <h3 class="text-lg font-medium text-slate-900 mb-5">Performance Summary</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -737,14 +891,7 @@
                             <div class="text-xs text-slate-500">Top 10 by weight</div>
                         </div>
 
-                        <!-- Donut Chart + Legend -->
-                        <div class="flex flex-col md:flex-row items-center gap-6">
-                            <svg id="ph-donut" viewBox="0 0 180 180" class="h-40 w-40 shrink-0"></svg>
-                            <div id="ph-legend" class="text-sm grow w-full space-y-2"></div>
-                        </div>
-
-                        <!-- Top 10 Holdings List with Logos -->
-                        <div id="ph-top10" class="mt-6 -mx-2"></div>
+                        <div id="ph-top10" class="mt-4 -mx-2"></div>
                     </div>
 
                     <div class="card p-6 rounded-2xl border border-slate-200 mb-6">
@@ -1198,6 +1345,15 @@
         const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
         const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
         const finite = v => Number.isFinite(Number(v));
+        const escapeHtml = (value) => {
+            return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[ch]);
+        };
 
         // ---------- URL params ----------
         const params = new URLSearchParams(location.search);
@@ -1284,53 +1440,142 @@
             }
         }
 
-        // ---- Holdings donut + legend ----
-        function drawDonut(svgEl, items) {
-            const cx = 90, cy = 90, r = 62, R = 72, TAU = Math.PI * 2;
-            svgEl.innerHTML = '';
-            const sum = items.reduce((s, i) => s + (Number(i.pct) || 0), 0) || 1;
-            let a0 = -Math.PI / 2;
+        function renderTopGainersMarquee(freshMetrics, holdingsSrc) {
+            const marqueeWrap = document.getElementById('top-gainers-marquee');
+            const track = document.getElementById('top-gainers-track');
+            const emptyState = document.getElementById('top-gainers-empty');
+            const updatedEl = document.getElementById('top-gainers-updated');
 
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
+            if (!marqueeWrap || !track || !emptyState) return;
 
-            items.forEach((it, idx) => {
-                const pct = Number(it.pct) || 0;
-                const frac = pct / sum;
-                const a1 = a0 + frac * TAU;
-                const la = (a1 - a0) > Math.PI ? 1 : 0;
+            const holdings = Array.isArray(holdingsSrc)
+                ? holdingsSrc
+                : Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
 
-                const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)];
-                const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)];
-                const q0 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
-                const q1 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
+            const currency = (freshMetrics?.currency || currentCCY || 'ZAR').toUpperCase();
 
-                const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', d);
-                path.setAttribute('fill', it.color || colors[idx % colors.length]);
-                path.setAttribute('opacity', '.95');
-                svgEl.appendChild(path);
-                a0 = a1;
-            });
+            const entries = holdings
+                .map((h) => {
+                    const change = Number(h?.daily_change_pct);
+                    if (!Number.isFinite(change)) return null;
 
-            const tot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            tot.textContent = '100%';
-            tot.setAttribute('x', cx);
-            tot.setAttribute('y', cy + 5);
-            tot.setAttribute('text-anchor', 'middle');
-            tot.setAttribute('font-size', '16');
-            tot.setAttribute('font-weight', '700');
-            svgEl.appendChild(tot);
+                    const symbol = (h?.symbol || h?.name || '—').toString().trim() || '—';
+                    const name = (h?.company_name || h?.name || h?.symbol || 'Unknown').toString().trim() || 'Unknown';
+                    const valueNum = Number(h?.value);
+                    const priceNum = Number(h?.price);
+                    const weightNum = Number(h?.weight_pct);
+
+                    let valueLabel = '—';
+                    if (Number.isFinite(valueNum) && valueNum !== 0) {
+                        valueLabel = money(valueNum, currency);
+                    } else if (Number.isFinite(priceNum) && priceNum !== 0) {
+                        valueLabel = money(priceNum, currency);
+                    } else if (Number.isFinite(weightNum) && weightNum > 0) {
+                        valueLabel = `${weightNum.toFixed(2)}% weight`;
+                    }
+
+                    const changeLabel = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                    const initials = symbol.slice(0, 2).toUpperCase();
+
+                    return {
+                        symbol,
+                        name,
+                        valueLabel,
+                        change,
+                        changeLabel,
+                        logo: h?.logo_url || h?.logo || null,
+                        initials
+                    };
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.change - a.change);
+
+            const holdingsAsOf = freshMetrics?.portfolio_holdings_updated_at
+                || freshMetrics?.portfolio_holdings_asof
+                || freshMetrics?.asof_date
+                || freshMetrics?.updated_at
+                || null;
+
+            if (updatedEl) {
+                if (holdingsAsOf) {
+                    const parsed = new Date(holdingsAsOf);
+                    if (!Number.isNaN(parsed.getTime())) {
+                        updatedEl.textContent = 'Updated '
+                            + parsed.toLocaleString('en-ZA', {
+                                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                            }) + ' SAST';
+                    } else {
+                        updatedEl.textContent = `Updated ${holdingsAsOf}`;
+                    }
+                    updatedEl.classList.remove('hidden');
+                } else {
+                    updatedEl.textContent = '';
+                    updatedEl.classList.add('hidden');
+                }
+            }
+
+            if (!entries.length) {
+                track.innerHTML = '';
+                marqueeWrap.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                track.classList.remove('is-looping');
+                track.style.removeProperty('--tg-duration');
+                if (updatedEl) {
+                    updatedEl.textContent = '';
+                    updatedEl.classList.add('hidden');
+                }
+                return;
+            }
+
+            const cardMarkup = entries.map((item) => {
+                const safeSymbol = escapeHtml(item.symbol);
+                const safeName = escapeHtml(item.name);
+                const safeValue = escapeHtml(item.valueLabel);
+                const safeChange = escapeHtml(item.changeLabel);
+                const logoHtml = item.logo
+                    ? `<img src="${escapeHtml(item.logo)}" alt="${safeSymbol} logo" class="tg-logo-img">`
+                    : `<div class="tg-logo-fallback">${escapeHtml(item.initials)}</div>`;
+                const changeIcon = item.change >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
+                const changeClass = item.change >= 0 ? 'is-up' : 'is-down';
+                return `
+            <div class="tg-card">
+                <div class="tg-card-header">
+                    ${logoHtml}
+                    <div class="tg-card-meta">
+                        <div class="tg-symbol">${safeSymbol}</div>
+                        <div class="tg-name" title="${safeName}">${safeName}</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right tg-chevron"></i>
+                </div>
+                <div class="tg-value">${safeValue}</div>
+                <div class="tg-change ${changeClass}"><i class="fa-solid ${changeIcon}"></i>${safeChange}</div>
+            </div>`;
+            }).join('');
+
+            const shouldLoop = entries.length > 3;
+            if (shouldLoop) {
+                const duration = Math.max(18, entries.length * 4);
+                track.innerHTML = cardMarkup + cardMarkup;
+                track.classList.add('is-looping');
+                track.style.setProperty('--tg-duration', `${duration}s`);
+            } else {
+                track.innerHTML = cardMarkup;
+                track.classList.remove('is-looping');
+                track.style.removeProperty('--tg-duration');
+            }
+
+            emptyState.classList.add('hidden');
+            marqueeWrap.classList.remove('hidden');
         }
 
         function renderPortfolioHoldingsFromMetrics(freshMetrics) {
-            const svg = document.getElementById('ph-donut');
-            const legend = document.getElementById('ph-legend');
-            const top10Container = document.getElementById('ph-top10');
-            if (!svg || !legend || !top10Container) return;
+            const rawHoldings = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
+            renderTopGainersMarquee(freshMetrics, rawHoldings);
 
-            const src = Array.isArray(freshMetrics?.portfolio_holdings) ? freshMetrics.portfolio_holdings : [];
-            const items = src
+            const top10Container = document.getElementById('ph-top10');
+            if (!top10Container) return;
+
+            const items = rawHoldings
                 .map(h => ({
                     symbol: (h.symbol || h.name || '—').toString().trim(),
                     name: (h.company_name || h.name || h.symbol || 'Unknown').toString().trim(),
@@ -1339,38 +1584,14 @@
                 }))
                 .filter(x => x.weight > 0)
                 .sort((a, b) => b.weight - a.weight)
-                .slice(0, 10); // TOP 10 ONLY
-
-            const totalWeight = items.reduce((s, i) => s + i.weight, 0) || 1;
+                .slice(0, 10);
 
             if (!items.length) {
-                svg.innerHTML = '';
-                legend.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
                 top10Container.innerHTML = '<div class="text-sm text-slate-500 text-center py-4">No holdings data available.</div>';
                 return;
             }
 
-            // === DONUT CHART ===
-            drawDonut(svg, items.map(i => ({ pct: i.weight, color: null })));
-
-            // === LEGEND (Top 10 with color dots) ===
-            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
-            legend.innerHTML = items.map((h, i) => `
-        <div class="flex items-center justify-between py-1">
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="legend-dot" style="background: var(--phc-${i});"></span>
-                <span class="truncate text-sm">${h.symbol}</span>
-            </div>
-            <div class="ml-3 tabular-nums font-medium text-sm">${h.weight.toFixed(2)}%</div>
-        </div>
-    `).join('');
-
-            items.forEach((_, i) => {
-                document.documentElement.style.setProperty(`--phc-${i}`, colors[i % colors.length]);
-            });
-
-            // === TOP 10 LIST WITH LOGOS ===
-            top10Container.innerHTML = items.map((h, i) => {
+            top10Container.innerHTML = items.map((h) => {
                 const initials = h.symbol.slice(0, 2).toUpperCase();
                 const logoEl = h.logo
                     ? `<img src="${h.logo}" alt="${h.symbol} logo" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200">`
@@ -1418,6 +1639,36 @@
           </div>
         </div>`;
             }).join('');
+        }
+
+        function applyAllocationUnitPrice(rawUnitPrice, currency) {
+            const allocPriceInput = document.getElementById('alloc-price');
+            if (!allocPriceInput) return;
+
+            const existingLocked = Number(allocPriceInput.dataset.lockedPrice);
+            const hasExistingLocked = Number.isFinite(existingLocked) && existingLocked > 0;
+            const parsedUnitPrice = Number(rawUnitPrice);
+
+            let nextUnitPrice;
+            if (Number.isFinite(parsedUnitPrice) && parsedUnitPrice > 0) {
+                nextUnitPrice = parsedUnitPrice;
+            } else if (hasExistingLocked) {
+                nextUnitPrice = existingLocked;
+            } else {
+                nextUnitPrice = 1;
+            }
+
+            nextUnitPrice = Math.max(1, Math.round(nextUnitPrice));
+
+            allocPriceInput.value = nextUnitPrice;
+            allocPriceInput.readOnly = true;
+            allocPriceInput.classList.add('bg-slate-50', 'cursor-not-allowed', 'text-slate-700');
+            allocPriceInput.dataset.lockedPrice = String(nextUnitPrice);
+
+            const priceLbl = document.querySelector('label[for="alloc-price"]');
+            if (priceLbl) {
+                priceLbl.innerHTML = `Unit Price (${(currency || 'ZAR').toUpperCase()})`;
+            }
         }
 
         // ---------- chart setup ----------
@@ -1871,25 +2122,7 @@
             const allocTitle = document.getElementById('alloc-title');
             if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
 
-            // ===== NEW: push unit price from DB into alloc card =====
-            // backend set strategies.unit_price = round(live_balance / total_units)
-            // which is a whole number
-            const allocPriceInput = document.getElementById('alloc-price');
-            if (allocPriceInput) {
-                // if strategy.unit_price exists use that, else fallback to 1
-                const rawUnitPrice = Number(strategy.unit_price);
-                const safeUnitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice > 0 ? rawUnitPrice : 1;
-
-                // show it to the user
-                allocPriceInput.value = safeUnitPrice;
-
-                // keep it read-only so they can't lie about price
-                allocPriceInput.readOnly = true;
-                allocPriceInput.classList.add('bg-slate-50', 'cursor-not-allowed', 'text-slate-700');
-
-                // store it for calcTotals() to use (just in case browser messes with input later)
-                allocPriceInput.dataset.lockedPrice = String(safeUnitPrice);
-            }
+            applyAllocationUnitPrice(strategy?.unit_price, strategy?.currency);
 
             // ===== existing description + attrs =====
             renderDescAndBullets(strategy);
@@ -1927,6 +2160,18 @@
         async function fetchMetrics(strategyId) {
             const { data } = await supabase.from('strategy_metrics').select('*').eq('strategy_id', strategyId).maybeSingle();
             return data || null;
+        }
+
+        async function fetchAllocationUnitPrice(strategyId) {
+            if (!strategyId) return null;
+            const { data, error } = await supabase
+                .from('strategies')
+                .select('unit_price')
+                .eq('id', strategyId)
+                .maybeSingle();
+            if (error) throw error;
+            const price = Number(data?.unit_price);
+            return Number.isFinite(price) && price > 0 ? price : null;
         }
 
         // ---------- equity curve selection ---------
@@ -2296,10 +2541,6 @@
             hydrateHeader(strategy);
             initChart();
             // Update "Unit Price (...)" label to the strategy currency
-            const priceLbl = document.querySelector('label[for="alloc-price"]');
-            if (priceLbl) {
-                priceLbl.innerHTML = `Unit Price (${(strategy.currency || 'ZAR').toUpperCase()})`;
-            }
             if (isUSD()) {
                 await fetchUsdZar();
                 setInterval(fetchUsdZar, 300000); // refresh every 5 min
@@ -2357,9 +2598,16 @@
                     selectRangeAndRender($('.tab.tab-active')?.getAttribute('data-range') || '6M', metrics, strategy);
                     fillPerfSummary(metrics?.perf_summary || null);
                     renderPortfolioHoldingsFromMetrics(metrics || {});
-                    // *** END MODIFIED ***
-
                     renderAssetAllocationFromMetrics(metrics || {});
+                    const manualUnitPrice = await fetchAllocationUnitPrice(strategy.id).catch(err => {
+                        console.warn('[manual-refresh] unit price fetch failed:', err);
+                        return null;
+                    });
+                    if (Number.isFinite(manualUnitPrice) && manualUnitPrice > 0) {
+                        strategy.unit_price = manualUnitPrice;
+                    }
+                    applyAllocationUnitPrice(strategy?.unit_price ?? manualUnitPrice, strategy?.currency);
+                    refreshAllocTotal();
                     $('#fs-updated').textContent = 'Updated ' + new Date().toLocaleString('en-ZA', {
                         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
                     });
@@ -2371,7 +2619,7 @@
             async function fetchStrategyLite(id) {
                 const { data, error } = await supabase
                     .from('strategies')
-                    .select('id,name,creator,inception_date,currency,risk_level,aum,strategy_description,style,asset_universe,avg_holding_days,avg_trades_per_month')
+                    .select('id,name,creator,inception_date,currency,risk_level,aum,strategy_description,style,asset_universe,avg_holding_days,avg_trades_per_month,unit_price,investment_objective_description,strategy_description_bullets')
                     .eq('id', id)
                     .maybeSingle();
                 if (error) throw error;
@@ -2383,15 +2631,23 @@
                 const btn = document.getElementById('pf-refresh');
                 btn?.classList.add('spin');
                 try {
-                    const [freshMetrics, freshStrategy] = await Promise.all([
+                    const [freshMetrics, freshStrategy, freshUnitPrice] = await Promise.all([
                         fetchMetrics(strategy.id),
                         fetchStrategyLite(strategy.id),
+                        fetchAllocationUnitPrice(strategy.id).catch(err => {
+                            console.warn('[auto-refresh] unit price fetch failed:', err);
+                            return null;
+                        }),
                     ]);
                     metrics = freshMetrics || metrics || {};
-                    const activeStrategy = freshStrategy || strategy;
+                    const activeStrategy = { ...(freshStrategy || {}) };
+                    if (Number.isFinite(freshUnitPrice) && freshUnitPrice > 0) {
+                        activeStrategy.unit_price = freshUnitPrice;
+                    }
+                    strategy = { ...(strategy || {}), ...activeStrategy };
 
-                    hydrateHeader(activeStrategy);
-                    currentCCY = activeStrategy.currency || 'ZAR';
+                    hydrateHeader(strategy);
+                    currentCCY = strategy.currency || 'ZAR';
 
                     const range = document.querySelector('#portfolio-card .tab.tab-active')?.getAttribute('data-range') || '6M';
 
@@ -2404,12 +2660,10 @@
                     const currentMonthsRefresh = getSelectedMonths();
                     renderMonthlyCalendarGrid($('#calendarReturns'), aggDataRefresh, currentYearsRefresh, currentMonthsRefresh);
 
-                    selectRangeAndRender(range, metrics, activeStrategy);
+                    selectRangeAndRender(range, metrics, strategy);
 
                     fillPerfSummary(metrics?.perf_summary || null);
                     renderPortfolioHoldingsFromMetrics(metrics || {});
-                    // *** END MODIFIED ***
-
                     renderAssetAllocationFromMetrics(metrics || {});
 
                     document.getElementById('fs-updated').textContent =
@@ -2423,6 +2677,8 @@
                     setTimeout(() => btn?.classList.remove('spin'), 600);
                 }
                 if (isUSD()) { fetchUsdZar(); } // fire-and-forget to keep the fresh rate
+
+                refreshAllocTotal();
 
             };
             setInterval(doAutoRefresh, 120000); // 2 minutes
