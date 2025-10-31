@@ -1284,7 +1284,44 @@
             }
         }
 
+        // ---- Holdings donut + legend ----
+        function drawDonut(svgEl, items) {
+            const cx = 90, cy = 90, r = 62, R = 72, TAU = Math.PI * 2;
+            svgEl.innerHTML = '';
+            const sum = items.reduce((s, i) => s + (Number(i.pct) || 0), 0) || 1;
+            let a0 = -Math.PI / 2;
 
+            const colors = ['#111827', '#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#6b7280', '#10b981', '#6366f1', '#94a3b8', '#3f6212'];
+
+            items.forEach((it, idx) => {
+                const pct = Number(it.pct) || 0;
+                const frac = pct / sum;
+                const a1 = a0 + frac * TAU;
+                const la = (a1 - a0) > Math.PI ? 1 : 0;
+
+                const p0 = [cx + R * Math.cos(a0), cy + R * Math.sin(a0)];
+                const p1 = [cx + R * Math.cos(a1), cy + R * Math.sin(a1)];
+                const q0 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+                const q1 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
+
+                const d = `M ${p0[0]} ${p0[1]} A ${R} ${R} 0 ${la} 1 ${p1[0]} ${p1[1]} L ${q0[0]} ${q0[1]} A ${r} ${r} 0 ${la} 0 ${q1[0]} ${q1[1]} Z`;
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', d);
+                path.setAttribute('fill', it.color || colors[idx % colors.length]);
+                path.setAttribute('opacity', '.95');
+                svgEl.appendChild(path);
+                a0 = a1;
+            });
+
+            const tot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            tot.textContent = '100%';
+            tot.setAttribute('x', cx);
+            tot.setAttribute('y', cy + 5);
+            tot.setAttribute('text-anchor', 'middle');
+            tot.setAttribute('font-size', '16');
+            tot.setAttribute('font-weight', '700');
+            svgEl.appendChild(tot);
+        }
 
         function renderPortfolioHoldingsFromMetrics(freshMetrics) {
             const svg = document.getElementById('ph-donut');
