@@ -41,13 +41,10 @@
       border:1px solid rgba(148,163,184,0.25);
     }
     .view-shell {
-      width:min(100%, calc(100vw - 3rem));
-      margin:0 auto;
-    }
-    @media (max-width: 640px) {
-      .view-shell {
-        width:min(100%, calc(100vw - 1.5rem));
-      }
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 1.5rem;
     }
     .pill {
       border-radius: 999px;
@@ -58,48 +55,6 @@
       padding: 0.35rem 0.8rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-    }
-    .step-tabs {
-      display:flex;
-      flex-wrap:wrap;
-      gap:0.5rem;
-      padding:1.5rem clamp(1.5rem, 4vw, 2.5rem) 0;
-      border-bottom:1px solid rgba(148,163,184,0.25);
-    }
-    .step-tab {
-      display:inline-flex;
-      align-items:center;
-      gap:0.6rem;
-      padding:0.65rem 1.2rem;
-      border-radius:999px;
-      background:rgba(15,23,42,0.04);
-      color:rgba(15,23,42,0.65);
-      font-weight:600;
-      font-size:0.9rem;
-      border:1px solid transparent;
-      transition:all 0.2s ease;
-    }
-    .step-tab span {
-      font-size:0.75rem;
-      font-weight:700;
-      letter-spacing:0.12em;
-      text-transform:uppercase;
-      color:rgba(15,23,42,0.5);
-    }
-    .step-tab.is-active {
-      background:var(--brand);
-      color:#fff;
-      border-color:rgba(255,255,255,0.3);
-      box-shadow:0 10px 24px rgba(107,142,35,0.25);
-    }
-    .step-tab.is-active span {
-      color:rgba(255,255,255,0.8);
-    }
-    .step-tab.is-disabled {
-      background:rgba(148,163,184,0.12);
-      color:rgba(100,116,139,0.7);
-      border-color:rgba(148,163,184,0.2);
-      cursor:not-allowed;
     }
     .step-panel {
       padding:2rem clamp(1.5rem, 4vw, 2.5rem) 2.5rem;
@@ -388,22 +343,7 @@
 
       <section class="relative z-10 space-y-6">
         <div class="card overflow-hidden shadow-xl">
-          <nav class="step-tabs" role="tablist" aria-label="AlgoHive loan steps">
-            <button type="button" class="step-tab is-active" data-step-target="calculator" role="tab" aria-selected="true">
-              <span>Step 1</span>
-              Calculator
-            </button>
-            <button type="button" class="step-tab is-disabled" data-step-target="agreements" role="tab" aria-selected="false" disabled>
-              <span>Step 2</span>
-              Agreements
-            </button>
-            <button type="button" class="step-tab is-disabled" data-step-target="confirmation" role="tab" aria-selected="false" disabled>
-              <span>Step 3</span>
-              Confirmation
-            </button>
-          </nav>
-
-          <div class="step-panel" data-step-panel="calculator" role="tabpanel">
+          <div class="step-panel" data-step-panel="calculator">
             <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold">Loan calculator</h2>
@@ -470,7 +410,7 @@
             </div>
           </div>
 
-          <div class="step-panel hidden" data-step-panel="agreements" role="tabpanel" aria-hidden="true">
+          <div class="step-panel hidden" data-step-panel="agreements" aria-hidden="true">
             <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold">Agreements</h2>
@@ -515,7 +455,7 @@
             </div>
           </div>
 
-          <div class="step-panel hidden" data-step-panel="confirmation" role="tabpanel" aria-hidden="true" id="confirmation-panel">
+          <div class="step-panel hidden" data-step-panel="confirmation" aria-hidden="true" id="confirmation-panel">
             <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold">Loan confirmation</h2>
@@ -690,13 +630,12 @@
   const agreementWarning = document.getElementById('agreement-warning');
   const agreements = Array.from(document.querySelectorAll('input[data-tnc]'));
   const currencyButtons = Array.from(document.querySelectorAll('button[data-currency]'));
-  const stepButtons = Array.from(document.querySelectorAll('[data-step-target]'));
   const stepPanels = new Map(Array.from(document.querySelectorAll('[data-step-panel]')).map((panel) => [panel.dataset.stepPanel, panel]));
   const backButtons = Array.from(document.querySelectorAll('[data-step-back]'));
 
   let selectedCurrency = 'ZAR';
   let activeStep = 'calculator';
-  const stepState = new Map(stepButtons.map((button) => [button.dataset.stepTarget, !button.classList.contains('is-disabled')]));
+  const unlockedSteps = new Set(['calculator']);
 
   const formatCurrency = (value) => {
     const formatter = currencyFormatters[selectedCurrency] || currencyFormatters.ZAR;
@@ -779,24 +718,13 @@
   }
 
   const unlockStep = (step) => {
-    if (!step || stepState.get(step)) return;
-    stepState.set(step, true);
-    const button = stepButtons.find((el) => el.dataset.stepTarget === step);
-    if (button) {
-      button.disabled = false;
-      button.classList.remove('is-disabled');
-    }
+    if (!step) return;
+    unlockedSteps.add(step);
   };
 
   const setStep = (step) => {
-    if (!step || !stepState.get(step)) return;
+    if (!step || !unlockedSteps.has(step)) return;
     activeStep = step;
-    stepButtons.forEach((button) => {
-      const target = button.dataset.stepTarget;
-      const isActive = target === step;
-      button.classList.toggle('is-active', isActive);
-      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
     stepPanels.forEach((panel, key) => {
       const isActive = key === step;
       panel.classList.toggle('hidden', !isActive);
@@ -806,13 +734,6 @@
       updateConfirmation();
     }
   };
-
-  stepButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      if (button.disabled) return;
-      setStep(button.dataset.stepTarget);
-    });
-  });
 
   backButtons.forEach((button) => {
     button.addEventListener('click', () => {
