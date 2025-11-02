@@ -246,9 +246,9 @@
           <span>Need help?</span>
         </a>
         <div class="flex items-center gap-3 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 shadow-sm backdrop-blur">
-          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=facearea&w=80&h=80&q=80" alt="Jordan Evans" class="h-10 w-10 rounded-full object-cover ring-2 ring-white" />
+          <img id="hdr-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><rect width='100%' height='100%' fill='%23f8fafc' rx='16' ry='16'/><text x='50%' y='56%' text-anchor='middle' font-family='Inter, sans-serif' font-size='22' fill='%2394a3b8'>AH</text></svg>" alt="AlgoHive member avatar" class="h-10 w-10 rounded-full object-cover ring-2 ring-white" />
           <div class="leading-tight">
-            <p class="text-sm font-semibold text-[color:var(--ink)]">Jordan Evans</p>
+            <p id="hdr-name" class="text-sm font-semibold text-[color:var(--ink)]">—</p>
           </div>
         </div>
       </div>
@@ -304,22 +304,22 @@
           <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
             <div class="relative flex h-28 w-28 flex-shrink-0 items-center justify-center">
               <span class="shape" style="position:absolute; width:115px; height:125px; opacity:0.45; left:50%; top:50%; transform:translate(-50%, -50%) scale(1.05);"></span>
-              <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=facearea&w=200&h=200&q=80" alt="Portrait of Jordan Evans" class="relative h-24 w-24 rounded-3xl object-cover ring-4 ring-white/70" />
+              <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='100%' height='100%' rx='28' ry='28' fill='%23e2e8f0'/><text x='50%' y='56%' text-anchor='middle' font-family='Inter, sans-serif' font-size='42' fill='%23647a23'>AH</text></svg>" alt="AlgoHive profile portrait" class="relative h-24 w-24 rounded-3xl object-cover ring-4 ring-white/70" />
             </div>
             <div class="flex-1 space-y-4">
               <div class="space-y-1">
                 <p class="text-sm uppercase tracking-[0.18em] text-[color:var(--muted)]">Your profile</p>
-                <p class="text-2xl font-semibold text-[color:var(--ink)]">Jordan Evans</p>
-                <p class="text-sm text-[color:var(--muted)]">Dedicated AlgoHive portfolio member receiving proactive insights and quarterly optimisation.</p>
+                <p id="profile-name" class="text-2xl font-semibold text-[color:var(--ink)]">—</p>
+                <p id="profile-summary" class="text-sm text-[color:var(--muted)]">Personalised AlgoHive member profile.</p>
               </div>
               <dl class="grid gap-3 text-sm sm:grid-cols-2">
                 <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
                   <dt class="text-[color:var(--muted)]">Invested AUM</dt>
-                  <dd class="mt-1 text-lg font-semibold text-[color:var(--ink)]">R 18,500,000</dd>
+                  <dd id="profile-aum" class="mt-1 text-lg font-semibold text-[color:var(--ink)]">R 0</dd>
                 </div>
                 <div class="rounded-2xl border border-white/50 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
                   <dt class="text-[color:var(--muted)]">AlgoHive net worth</dt>
-                  <dd class="mt-1 text-lg font-semibold text-[color:var(--ink)]">R 24,750,000</dd>
+                  <dd id="profile-networth" class="mt-1 text-lg font-semibold text-[color:var(--ink)]">R 0</dd>
                 </div>
               </dl>
             </div>
@@ -461,5 +461,187 @@
       </div>
     </div>
   </footer>
+
+  <script type="module" nonce="ALGOHIVE">
+  import { supabase } from "/js/supabase.js";
+
+  const moneyFmt = new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+    maximumFractionDigits: 0
+  });
+
+  const text = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value ?? '—';
+  };
+
+  const cleanNumber = (value) => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const normalised = value
+        .replace(/,/g, '')
+        .replace(/\s+/g, '')
+        .replace(/rand/gi, '')
+        .replace(/zar/gi, '')
+        .replace(/R(?=\d)/gi, '')
+        .replace(/(?:million|m)\b/gi, 'e6')
+        .replace(/(?:billion|bn)\b/gi, 'e9');
+
+      const exponentMatches = [...normalised.matchAll(/[0-9.]+e[+\-]?[0-9]+/gi)]
+        .map((m) => Number(m[0]))
+        .filter((n) => Number.isFinite(n));
+      if (exponentMatches.length) {
+        return Math.max(...exponentMatches);
+      }
+
+      const sciCandidate = Number(normalised.replace(/[^0-9eE+\.\-]/g, ''));
+      if (Number.isFinite(sciCandidate)) return sciCandidate;
+
+      const numericCandidate = Number(normalised.replace(/[^0-9.\-]/g, ''));
+      if (Number.isFinite(numericCandidate)) return numericCandidate;
+
+      const plainMatches = normalised.match(/[0-9]+(?:\.[0-9]+)?/g);
+      if (plainMatches?.length) {
+        const asNumber = Number(plainMatches.at(-1));
+        if (Number.isFinite(asNumber)) return asNumber;
+      }
+    }
+    return null;
+  };
+
+  const pickNumber = (...candidates) => {
+    for (const value of candidates) {
+      if (Array.isArray(value)) {
+        const nested = pickNumber(...value);
+        if (nested !== null) return nested;
+        continue;
+      }
+      const parsed = cleanNumber(value);
+      if (parsed !== null) return parsed;
+    }
+    return null;
+  };
+
+  const setAvatar = (id, url, name) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const initial = (name?.match(/[A-Za-z]/)?.[0] || 'A').toUpperCase();
+    const fallbackSvg = encodeURIComponent(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'>
+        <rect width='100%' height='100%' rx='28' ry='28' fill='#e2e8f0'/>
+        <text x='50%' y='56%' text-anchor='middle' font-family='Inter, sans-serif' font-size='48' fill='#475569'>${initial}</text>
+      </svg>
+    `.trim());
+    if (url) {
+      el.src = url.startsWith('data:') ? url : `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    } else {
+      el.src = `data:image/svg+xml;utf8,${fallbackSvg}`;
+    }
+    if (name) {
+      el.alt = `Profile photo of ${name}`;
+    }
+  };
+
+  async function ensureProfile(id, email) {
+    let { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data) return data;
+    const up = await supabase
+      .from('profiles')
+      .upsert({ id, email, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+      .select('*')
+      .single();
+    if (up.error) throw up.error;
+    return up.data;
+  }
+
+  const redirectToAuth = () => {
+    const next = encodeURIComponent(location.pathname + location.search + location.hash);
+    location.replace(`/auth.html?tab=in&redirect=${next}`);
+  };
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      redirectToAuth();
+      throw new Error('redirecting');
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      redirectToAuth();
+      throw new Error('redirecting');
+    }
+
+    const profile = await ensureProfile(user.id, user.email || null);
+    const meta = user.user_metadata || {};
+
+    const bestName = [
+      profile?.full_name,
+      [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+      meta.full_name,
+      [meta.first_name, meta.last_name].filter(Boolean).join(' '),
+      meta.name,
+      user.email?.split('@')[0]
+    ].find((value) => value && String(value).trim()) || 'AlgoHive member';
+
+    const summary = [
+      profile?.headline,
+      profile?.bio,
+      profile?.title,
+      profile?.role,
+      profile?.occupation,
+      meta.headline,
+      meta.role
+    ].find((value) => value && String(value).trim()) || 'Active AlgoHive portfolio member with personalised optimisation.';
+
+    text('hdr-name', bestName);
+    text('profile-name', bestName);
+    text('profile-summary', summary);
+
+    const avatarUrl = profile?.avatar_url || meta.avatar_url || null;
+    setAvatar('hdr-avatar', avatarUrl, bestName);
+    setAvatar('profile-avatar', avatarUrl, bestName);
+
+    const investedAum = pickNumber([
+      profile?.aum_invested,
+      profile?.aum,
+      profile?.aum_total,
+      profile?.portfolio_aum,
+      profile?.portfolio_value,
+      profile?.aum_rands,
+      profile?.aum_zar,
+      meta?.aum,
+      meta?.aum_invested
+    ]);
+
+    const netWorth = pickNumber([
+      profile?.algohive_networth,
+      profile?.networth,
+      profile?.net_worth,
+      profile?.total_networth,
+      profile?.total_net_worth,
+      profile?.portfolio_net_worth,
+      meta?.net_worth,
+      meta?.networth,
+      meta?.algohive_networth
+    ]);
+
+    const aumDisplay = moneyFmt.format((investedAum ?? 0) || 0);
+    const netWorthDisplay = moneyFmt.format((netWorth ?? investedAum ?? 0) || 0);
+
+    text('profile-aum', aumDisplay);
+    text('profile-networth', netWorthDisplay);
+  } catch (err) {
+    if (String(err?.message).toLowerCase() !== 'redirecting') {
+      console.error(err);
+    }
+  }
+  </script>
 </body>
 </html>
