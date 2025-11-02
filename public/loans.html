@@ -40,6 +40,15 @@
       box-shadow:0 16px 40px rgba(15,23,42,0.12);
       border:1px solid rgba(148,163,184,0.25);
     }
+    .view-shell {
+      width:min(100%, calc(100vw - 3rem));
+      margin:0 auto;
+    }
+    @media (max-width: 640px) {
+      .view-shell {
+        width:min(100%, calc(100vw - 1.5rem));
+      }
+    }
     .pill {
       border-radius: 999px;
       background: var(--brand-soft);
@@ -49,6 +58,58 @@
       padding: 0.35rem 0.8rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+    .step-tabs {
+      display:flex;
+      flex-wrap:wrap;
+      gap:0.5rem;
+      padding:1.5rem clamp(1.5rem, 4vw, 2.5rem) 0;
+      border-bottom:1px solid rgba(148,163,184,0.25);
+    }
+    .step-tab {
+      display:inline-flex;
+      align-items:center;
+      gap:0.6rem;
+      padding:0.65rem 1.2rem;
+      border-radius:999px;
+      background:rgba(15,23,42,0.04);
+      color:rgba(15,23,42,0.65);
+      font-weight:600;
+      font-size:0.9rem;
+      border:1px solid transparent;
+      transition:all 0.2s ease;
+    }
+    .step-tab span {
+      font-size:0.75rem;
+      font-weight:700;
+      letter-spacing:0.12em;
+      text-transform:uppercase;
+      color:rgba(15,23,42,0.5);
+    }
+    .step-tab.is-active {
+      background:var(--brand);
+      color:#fff;
+      border-color:rgba(255,255,255,0.3);
+      box-shadow:0 10px 24px rgba(107,142,35,0.25);
+    }
+    .step-tab.is-active span {
+      color:rgba(255,255,255,0.8);
+    }
+    .step-tab.is-disabled {
+      background:rgba(148,163,184,0.12);
+      color:rgba(100,116,139,0.7);
+      border-color:rgba(148,163,184,0.2);
+      cursor:not-allowed;
+    }
+    .step-panel {
+      padding:2rem clamp(1.5rem, 4vw, 2.5rem) 2.5rem;
+    }
+    .step-panel:not(.hidden) {
+      animation:fadeIn 0.35s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity:0; transform:translateY(12px); }
+      to { opacity:1; transform:translateY(0); }
     }
     .return-link {
       display:inline-flex;
@@ -87,15 +148,13 @@
     }
     .footer {
       margin-top:auto;
-      padding:3.5rem 1.5rem 2.5rem;
+      padding:3.5rem 0 2.5rem;
       display:flex;
       justify-content:center;
     }
     .footer-shell {
       background:#061a33;
       color:#fff;
-      width:100%;
-      max-width:1080px;
       border-radius:72px;
       overflow:hidden;
       position:relative;
@@ -113,10 +172,10 @@
       position:relative;
       z-index:1;
       margin:0 auto;
-      max-width:72rem;
+      width:100%;
       display:grid;
       gap:2.5rem;
-      padding:0 2.5rem;
+      padding:0 clamp(1.75rem, 4vw, 3rem);
     }
     @media (min-width: 768px) {
       .footer-content {
@@ -187,9 +246,9 @@
       background:rgba(0,0,0,0.15);
     }
     .footer-bottom-inner {
-      max-width:72rem;
       margin:0 auto;
-      padding:1.5rem;
+      width:100%;
+      padding:1.5rem clamp(1.75rem, 4vw, 3rem);
       display:flex;
       flex-direction:column;
       gap:1.25rem;
@@ -235,8 +294,8 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
-  <header class="w-full px-6 py-6">
-    <div class="mx-auto flex max-w-6xl items-center justify-between">
+  <header class="w-full py-6">
+    <div class="view-shell flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2">
         <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="h-8 w-auto" />
         <span class="hidden sm:inline text-lg font-extrabold tracking-tight">AlgoHive</span>
@@ -262,7 +321,7 @@
       <span class="shape" style="left:6.5rem; top:8rem; transform:scale(0.7);"></span>
     </div>
 
-    <div class="mx-auto grid max-w-6xl gap-12 px-6 pb-20 pt-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
+    <div class="view-shell grid gap-12 pb-20 pt-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
       <section class="relative z-10 space-y-8">
         <div class="flex flex-wrap gap-3">
           <a href="index.html" class="return-link">
@@ -328,135 +387,194 @@
       </section>
 
       <section class="relative z-10 space-y-6">
-        <div class="card space-y-8 p-8 shadow-xl">
-          <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 class="text-2xl font-semibold">Loan calculator</h2>
-              <p class="text-sm text-[color:var(--muted)]">Please review and calculate your loan before continuing.</p>
-            </div>
-            <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11.7 2.25a.75.75 0 01.6 0l7.5 3.3a.75.75 0 01.45.69v6.06c0 4.042-2.466 7.608-6.229 9.075l-.271.104a2.25 2.25 0 01-1.5 0l-.271-.104A10.125 10.125 0 015.25 12.3V6.24a.75.75 0 01.45-.69l7.5-3.3z" />
-              </svg>
-            </span>
-          </header>
-
-          <div class="space-y-6">
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Currency</span>
-              <div class="inline-flex overflow-hidden rounded-full border border-slate-200 bg-white text-sm font-semibold text-[color:var(--muted)] shadow-sm">
-                <button type="button" data-currency="ZAR" class="px-4 py-2 text-[color:var(--ink)]">ZAR</button>
-                <button type="button" data-currency="USD" class="px-4 py-2 opacity-60 cursor-not-allowed" disabled>USD</button>
-              </div>
-              <span class="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">Defaulting to South African rand</span>
-            </div>
-
-            <div class="space-y-4 rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
-              <div class="flex items-center justify-between text-sm text-[color:var(--muted)]">
-                <span>Loan amount</span>
-                <span id="loan-amount-display" class="text-base font-semibold text-[color:var(--ink)]">R 230,000</span>
-              </div>
-              <input id="loan-amount" type="range" min="50000" max="500000" value="230000" step="5000" class="w-full accent-[color:var(--brand)]" />
-              <div class="flex justify-between text-xs text-[color:var(--muted)]">
-                <span>R 50,000</span>
-                <span>R 500,000</span>
-              </div>
-            </div>
-
-            <div class="space-y-4 rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
-              <div class="flex items-center justify-between text-sm text-[color:var(--muted)]">
-                <span>Repayment period</span>
-                <span id="repayment-period-display" class="text-base font-semibold text-[color:var(--ink)]">36 months</span>
-              </div>
-              <input id="repayment-period" type="range" min="12" max="72" value="36" step="6" class="w-full accent-[color:var(--brand)]" />
-              <div class="flex justify-between text-xs text-[color:var(--muted)]">
-                <span>12 months</span>
-                <span>72 months</span>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-2 rounded-3xl border border-white/40 bg-white/70 p-6 text-sm shadow-sm ring-1 ring-black/5 backdrop-blur">
-              <div class="flex items-center justify-between">
-                <span class="text-[color:var(--muted)]">Estimated monthly payment</span>
-                <span id="monthly-payment-display" class="text-xl font-semibold text-[color:var(--ink)]">R 6,900</span>
-              </div>
-              <p class="text-xs text-[color:var(--muted)]">Includes a representative fixed annual interest rate of 11.5%. Actual rates may vary depending on your AlgoHive profile.</p>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <h3 class="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">Agreements</h3>
-            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-600">
-              <input type="checkbox" data-tnc class="mt-1 h-4 w-4 rounded border-slate-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]" />
-              <span>I acknowledge and accept the <a href="legal.html#terms" class="font-semibold text-[color:var(--brand)] hover:text-[color:var(--brand-strong)]">AlgoHive terms &amp; conditions</a>.</span>
-            </label>
-            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-600">
-              <input type="checkbox" data-tnc class="mt-1 h-4 w-4 rounded border-slate-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]" />
-              <span>I consent to AlgoHive conducting the necessary credit and compliance checks for this application.</span>
-            </label>
-            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-600">
-              <input type="checkbox" data-tnc class="mt-1 h-4 w-4 rounded border-slate-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]" />
-              <span>I confirm the financial details provided are accurate and belong to my AlgoHive investor profile.</span>
-            </label>
-            <p id="agreement-warning" class="hidden text-sm font-semibold text-red-600">Please agree to all AlgoHive lending terms before continuing.</p>
-          </div>
-
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-xs text-[color:var(--muted)]">We’ll securely carry these details into the confirmation stage.</p>
-            <button id="continue-confirmation" type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-strong)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" disabled>
-              Continue to confirmation
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
+        <div class="card overflow-hidden shadow-xl">
+          <nav class="step-tabs" role="tablist" aria-label="AlgoHive loan steps">
+            <button type="button" class="step-tab is-active" data-step-target="calculator" role="tab" aria-selected="true">
+              <span>Step 1</span>
+              Calculator
             </button>
-          </div>
-        </div>
-
-        <div id="confirmation-card" class="card hidden scroll-mt-24 p-8 shadow-xl">
-          <div class="mb-6 flex items-center justify-between">
-            <div>
-              <h2 class="text-2xl font-semibold">Loan confirmation</h2>
-              <p class="text-sm text-[color:var(--muted)]">Please check the information and confirm the loan.</p>
-            </div>
-            <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11.7 2.25a.75.75 0 01.6 0l7.5 3.3a.75.75 0 01.45.69v6.06c0 4.042-2.466 7.608-6.229 9.075l-.271.104a2.25 2.25 0 01-1.5 0l-.271-.104A10.125 10.125 0 015.25 12.3V6.24a.75.75 0 01.45-.69l7.5-3.3z" />
-              </svg>
-            </span>
-          </div>
-
-          <dl class="space-y-5 text-sm">
-            <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 px-5 py-4">
-              <dt class="text-[color:var(--muted)]">Loan amount</dt>
-              <dd id="confirmation-loan-amount" class="text-base font-semibold text-[color:var(--ink)]">R 230,000</dd>
-            </div>
-            <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 px-5 py-4">
-              <dt class="text-[color:var(--muted)]">Loan currency</dt>
-              <dd id="confirmation-loan-currency" class="text-base font-semibold text-[color:var(--ink)]">South African Rand (ZAR)</dd>
-            </div>
-            <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 px-5 py-4">
-              <dt class="text-[color:var(--muted)]">Repayment period</dt>
-              <dd id="confirmation-repayment" class="text-base font-semibold text-[color:var(--ink)]">36 months</dd>
-            </div>
-            <div class="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 px-5 py-4">
-              <dt class="text-[color:var(--muted)]">Monthly payment</dt>
-              <dd id="confirmation-monthly" class="text-base font-semibold text-[color:var(--ink)]">R 6,900</dd>
-            </div>
-          </dl>
-
-          <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-between">
-            <a href="#top" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-              </svg>
-              Adjust application
-            </a>
-            <button type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-strong)]">
-              Submit application
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
+            <button type="button" class="step-tab is-disabled" data-step-target="agreements" role="tab" aria-selected="false" disabled>
+              <span>Step 2</span>
+              Agreements
             </button>
+            <button type="button" class="step-tab is-disabled" data-step-target="confirmation" role="tab" aria-selected="false" disabled>
+              <span>Step 3</span>
+              Confirmation
+            </button>
+          </nav>
+
+          <div class="step-panel" data-step-panel="calculator" role="tabpanel">
+            <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold">Loan calculator</h2>
+                <p class="text-sm text-[color:var(--muted)]">Dial in your AlgoHive loan before continuing to the agreements.</p>
+              </div>
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.7 2.25a.75.75 0 01.6 0l7.5 3.3a.75.75 0 01.45.69v6.06c0 4.042-2.466 7.608-6.229 9.075l-.271.104a2.25 2.25 0 01-1.5 0l-.271-.104A10.125 10.125 0 015.25 12.3V6.24a.75.75 0 01.45-.69l7.5-3.3z" />
+                </svg>
+              </span>
+            </header>
+
+            <div class="mt-6 space-y-6">
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Currency</span>
+                <div class="inline-flex overflow-hidden rounded-full border border-slate-200 bg-white text-sm font-semibold text-[color:var(--muted)] shadow-sm">
+                  <button type="button" data-currency="ZAR" class="px-4 py-2 text-[color:var(--ink)]">ZAR</button>
+                  <button type="button" data-currency="USD" class="px-4 py-2 opacity-60 cursor-not-allowed" disabled>USD</button>
+                </div>
+                <span class="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">Defaulting to South African rand</span>
+              </div>
+
+              <div class="space-y-4 rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
+                <div class="flex items-center justify-between text-sm text-[color:var(--muted)]">
+                  <span>Loan amount</span>
+                  <span id="loan-amount-display" class="text-base font-semibold text-[color:var(--ink)]">R 230,000</span>
+                </div>
+                <input id="loan-amount" type="range" min="50000" max="500000" value="230000" step="5000" class="w-full accent-[color:var(--brand)]" />
+                <div class="flex justify-between text-xs text-[color:var(--muted)]">
+                  <span>R 50,000</span>
+                  <span>R 500,000</span>
+                </div>
+              </div>
+
+              <div class="space-y-4 rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
+                <div class="flex items-center justify-between text-sm text-[color:var(--muted)]">
+                  <span>Repayment period</span>
+                  <span id="repayment-period-display" class="text-base font-semibold text-[color:var(--ink)]">36 months</span>
+                </div>
+                <input id="repayment-period" type="range" min="12" max="72" value="36" step="6" class="w-full accent-[color:var(--brand)]" />
+                <div class="flex justify-between text-xs text-[color:var(--muted)]">
+                  <span>12 months</span>
+                  <span>72 months</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2 rounded-3xl border border-white/40 bg-white/70 p-6 text-sm shadow-sm ring-1 ring-black/5 backdrop-blur">
+                <div class="flex items-center justify-between">
+                  <span class="text-[color:var(--muted)]">Estimated monthly payment</span>
+                  <span id="monthly-payment-display" class="text-xl font-semibold text-[color:var(--ink)]">R 6,900</span>
+                </div>
+                <p class="text-xs text-[color:var(--muted)]">Includes a representative fixed annual interest rate of 11.5%. Actual rates may vary depending on your AlgoHive profile.</p>
+              </div>
+            </div>
+
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p class="text-xs text-[color:var(--muted)]">We’ll carry these selections into the agreement review.</p>
+              <button id="to-agreements" type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-strong)]">
+                Review agreements
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="step-panel hidden" data-step-panel="agreements" role="tabpanel" aria-hidden="true">
+            <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold">Agreements</h2>
+                <p class="text-sm text-[color:var(--muted)]">Confirm the AlgoHive lending terms to continue.</p>
+              </div>
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5l3.75 3.75L20.25 3" />
+                </svg>
+              </span>
+            </header>
+
+            <div class="mt-6 space-y-4">
+              <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-600">
+                <input type="checkbox" data-tnc class="mt-1 h-4 w-4 rounded border-slate-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]" />
+                <span>I acknowledge and accept the <a href="legal.html#terms" class="font-semibold text-[color:var(--brand)] hover:text-[color:var(--brand-strong)]">AlgoHive terms &amp; conditions</a>.</span>
+              </label>
+              <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-600">
+                <input type="checkbox" data-tnc class="mt-1 h-4 w-4 rounded border-slate-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]" />
+                <span>I consent to AlgoHive conducting the necessary credit and compliance checks for this application.</span>
+              </label>
+              <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-600">
+                <input type="checkbox" data-tnc class="mt-1 h-4 w-4 rounded border-slate-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]" />
+                <span>I confirm the financial details provided are accurate and belong to my AlgoHive investor profile.</span>
+              </label>
+              <p id="agreement-warning" class="hidden text-sm font-semibold text-red-600">Please agree to all AlgoHive lending terms before continuing.</p>
+            </div>
+
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[color:var(--muted)] transition hover:text-[color:var(--ink)]" data-step-back="calculator">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+                Back to calculator
+              </button>
+              <button id="to-confirmation" type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-strong)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" disabled>
+                Continue to confirmation
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="step-panel hidden" data-step-panel="confirmation" role="tabpanel" aria-hidden="true" id="confirmation-panel">
+            <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold">Loan confirmation</h2>
+                <p class="text-sm text-[color:var(--muted)]">Please check the information and confirm the loan.</p>
+              </div>
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75" />
+                </svg>
+              </span>
+            </header>
+
+            <div class="mt-6 space-y-6">
+              <div class="rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
+                <div class="flex items-center justify-between text-sm text-[color:var(--muted)]">
+                  <span>Loan amount</span>
+                  <span id="confirmation-loan-amount" class="text-base font-semibold text-[color:var(--ink)]">R 230,000</span>
+                </div>
+                <div class="mt-3 text-xs text-[color:var(--muted)]">Currency: <span id="confirmation-loan-currency">South African Rand (ZAR)</span></div>
+              </div>
+
+              <div class="rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
+                <div class="flex items-center justify-between text-sm text-[color:var(--muted)]">
+                  <span>Repayment period</span>
+                  <span id="confirmation-repayment" class="text-base font-semibold text-[color:var(--ink)]">36 months</span>
+                </div>
+                <div class="mt-3 text-xs text-[color:var(--muted)]">Monthly payment: <span id="confirmation-monthly">R 6,900</span></div>
+              </div>
+
+              <div class="space-y-3 rounded-3xl border border-white/40 bg-white/70 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="font-semibold text-[color:var(--ink)]">Expected transfer</p>
+                    <p class="text-sm text-[color:var(--muted)]">Funds clear within 4 minutes of AlgoHive confirmation.</p>
+                  </div>
+                </div>
+                <p class="text-xs text-[color:var(--muted)]">AlgoHive aligns transfers with your preferred Algo strategies. Monitor your AlgoHive dashboard for real-time confirmations.</p>
+              </div>
+            </div>
+
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[color:var(--muted)] transition hover:text-[color:var(--ink)]" data-step-back="agreements">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+                Back to agreements
+              </button>
+              <button type="button" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--brand)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-strong)]">
+                Confirm AlgoHive loan
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -464,7 +582,7 @@
   </main>
 
   <footer class="footer">
-    <div class="footer-shell">
+    <div class="footer-shell view-shell">
       <div class="footer-inner">
         <div class="footer-top">
           <span class="footer-shape footer-shape--left"></span>
@@ -563,17 +681,22 @@
   const loanAmountDisplay = document.getElementById('loan-amount-display');
   const repaymentDisplay = document.getElementById('repayment-period-display');
   const monthlyDisplay = document.getElementById('monthly-payment-display');
-  const confirmationCard = document.getElementById('confirmation-card');
   const confirmationAmount = document.getElementById('confirmation-loan-amount');
   const confirmationCurrency = document.getElementById('confirmation-loan-currency');
   const confirmationRepayment = document.getElementById('confirmation-repayment');
   const confirmationMonthly = document.getElementById('confirmation-monthly');
-  const continueButton = document.getElementById('continue-confirmation');
+  const toAgreements = document.getElementById('to-agreements');
+  const toConfirmation = document.getElementById('to-confirmation');
   const agreementWarning = document.getElementById('agreement-warning');
   const agreements = Array.from(document.querySelectorAll('input[data-tnc]'));
   const currencyButtons = Array.from(document.querySelectorAll('button[data-currency]'));
+  const stepButtons = Array.from(document.querySelectorAll('[data-step-target]'));
+  const stepPanels = new Map(Array.from(document.querySelectorAll('[data-step-panel]')).map((panel) => [panel.dataset.stepPanel, panel]));
+  const backButtons = Array.from(document.querySelectorAll('[data-step-back]'));
 
   let selectedCurrency = 'ZAR';
+  let activeStep = 'calculator';
+  const stepState = new Map(stepButtons.map((button) => [button.dataset.stepTarget, !button.classList.contains('is-disabled')]));
 
   const formatCurrency = (value) => {
     const formatter = currencyFormatters[selectedCurrency] || currencyFormatters.ZAR;
@@ -596,6 +719,9 @@
     if (loanAmountDisplay) loanAmountDisplay.textContent = formatCurrency(amount);
     if (repaymentDisplay) repaymentDisplay.textContent = `${months} months`;
     if (monthlyDisplay) monthlyDisplay.textContent = formatCurrency(calculateMonthlyPayment(amount, months));
+    if (activeStep === 'confirmation') {
+      updateConfirmation();
+    }
   };
 
   const updateConfirmation = () => {
@@ -608,9 +734,9 @@
     confirmationCurrency.textContent = currencyLabels[selectedCurrency] || currencyLabels.ZAR;
   };
 
-  const validateAgreements = () => {
+  const syncAgreements = () => {
     const complete = agreements.every((checkbox) => checkbox.checked);
-    if (continueButton) continueButton.disabled = !complete;
+    if (toConfirmation) toConfirmation.disabled = !complete;
     if (agreementWarning && complete) {
       agreementWarning.classList.add('hidden');
     }
@@ -618,7 +744,7 @@
   };
 
   agreements.forEach((checkbox) => {
-    checkbox.addEventListener('change', validateAgreements);
+    checkbox.addEventListener('change', syncAgreements);
   });
 
   const setCurrency = (code) => {
@@ -652,24 +778,76 @@
     repaymentInput.addEventListener('input', updateCalculator);
   }
 
-  if (continueButton) {
-    continueButton.addEventListener('click', (event) => {
-      event.preventDefault();
-      if (!validateAgreements()) {
+  const unlockStep = (step) => {
+    if (!step || stepState.get(step)) return;
+    stepState.set(step, true);
+    const button = stepButtons.find((el) => el.dataset.stepTarget === step);
+    if (button) {
+      button.disabled = false;
+      button.classList.remove('is-disabled');
+    }
+  };
+
+  const setStep = (step) => {
+    if (!step || !stepState.get(step)) return;
+    activeStep = step;
+    stepButtons.forEach((button) => {
+      const target = button.dataset.stepTarget;
+      const isActive = target === step;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    stepPanels.forEach((panel, key) => {
+      const isActive = key === step;
+      panel.classList.toggle('hidden', !isActive);
+      panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    });
+    if (step === 'confirmation') {
+      updateConfirmation();
+    }
+  };
+
+  stepButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      if (button.disabled) return;
+      setStep(button.dataset.stepTarget);
+    });
+  });
+
+  backButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.stepBack;
+      if (target) {
+        setStep(target);
+      }
+    });
+  });
+
+  if (toAgreements) {
+    toAgreements.addEventListener('click', () => {
+      unlockStep('agreements');
+      setStep('agreements');
+    });
+  }
+
+  if (toConfirmation) {
+    toConfirmation.addEventListener('click', () => {
+      const ready = syncAgreements();
+      if (!ready) {
         agreementWarning?.classList.remove('hidden');
         agreementWarning?.scrollIntoView({ block: 'center', behavior: 'smooth' });
         return;
       }
-      updateConfirmation();
-      confirmationCard?.classList.remove('hidden');
-      setTimeout(() => {
-        confirmationCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 80);
+      unlockStep('confirmation');
+      setStep('confirmation');
+      document.getElementById('confirmation-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
+  setStep('calculator');
+
   setCurrency('ZAR');
-  validateAgreements();
+  syncAgreements();
 
   const text = (id, value) => {
     const el = document.getElementById(id);
