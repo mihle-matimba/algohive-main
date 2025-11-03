@@ -225,6 +225,31 @@
             background: #fff
         }
 
+        /* Dynamic Risk Badge Styles */
+        .badge.risk-conservative {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+            color: #15803d;
+        }
+
+        .badge.risk-moderate {
+            background-color: #fef3c7;
+            border-color: #f59e0b;
+            color: #d97706;
+        }
+
+        .badge.risk-high {
+            background-color: #fee2e2;
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .badge.risk-very-high {
+            background-color: #fecaca;
+            border-color: #b91c1c;
+            color: #991b1b;
+        }
+
         .legend-dot {
             width: 10px;
             height: 10px;
@@ -2115,7 +2140,29 @@
             document.getElementById('fs-since').textContent = strategy.inception_date
                 ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
             document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+            
+            // Dynamic risk badge
+            const riskBadge = document.getElementById('fs-risk');
+            const riskLevel = (strategy.risk_level || '').toLowerCase().trim();
+            
+            // Remove any existing risk classes
+            riskBadge.classList.remove('risk-conservative', 'risk-moderate', 'risk-high', 'risk-very-high');
+            
+            // Map risk level to CSS class
+            const riskClassMap = {
+                'conservative': 'risk-conservative',
+                'moderate': 'risk-moderate',
+                'high': 'risk-high',
+                'very high': 'risk-very-high',
+                'very-high': 'risk-very-high'
+            };
+            
+            const riskClass = riskClassMap[riskLevel];
+            if (riskClass) {
+                riskBadge.classList.add(riskClass);
+            }
+            
+            riskBadge.textContent = `Risk ${strategy.risk_level || '—'}`;
 
             const ecName = document.getElementById('pf-name');
             if (ecName) ecName.textContent = strategy.name || '—';
