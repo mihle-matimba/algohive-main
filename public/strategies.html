@@ -215,9 +215,10 @@
              <input id="q" class="h-9 w-full sm:w-64 pl-3 pr-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--olive)] text-sm" placeholder="Search strategies…"/>
             <select id="fRisk" class="h-9 rounded-lg border px-2 text-sm">
               <option value="">Risk: Any</option>
-              <option>Low</option>
-              <option>Moderate</option>
-              <option>High</option>
+              <option value="conservative">Conservative</option>
+              <option value="moderate">Moderate</option>
+              <option value="high">High</option>
+              <option value="very-high">Very High</option>
             </select>
             <select id="fCur" class="h-9 rounded-lg border px-2 text-sm">
               <option value="">Currency: Any</option>
@@ -225,14 +226,18 @@
               <option>USD</option>
               <option>EUR</option>
             </select>
-            <select id="fStyle" class="h-9 rounded-lg border px-2 text-sm">
-              <option value="">Style: Any</option>
+            <select id="fUniverse" class="h-9 rounded-lg border px-2 text-sm">
+              <option value="">Universe: Any</option>
             </select>
             <select id="fSort" class="h-9 rounded-lg border px-2 text-sm ml-auto">
-              <option value="name-asc">Sort: Name (A→Z)</option>
-              <option value="cagr-desc">Sort: 1Y CAGR (High→Low)</option>
-              <option value="aum-desc">Sort: AUM (High→Low)</option>
-              <option value="dd-asc">Sort: Max DD (Low→High)</option>
+              <option value="ytd-desc">Sort: YTD (High→Low)</option>
+              <option value="ytd-asc">Sort: YTD (Low→High)</option>
+              <option value="stability-desc">Sort: Stability (High→Low)</option>
+              <option value="stability-asc">Sort: Stability (Low→High)</option>
+              <option value="best-day-desc">Sort: Best Day (High→Low)</option>
+              <option value="best-day-asc">Sort: Best Day (Low→High)</option>
+              <option value="worst-day-desc">Sort: Worst Day (High→Low)</option>
+              <option value="worst-day-asc">Sort: Worst Day (Low→High)</option>
             </select>
             <button id="clearBtn" class="h-9 px-3 rounded-lg border hover:bg-slate-50 text-sm">Clear</button>
           </div>
@@ -321,9 +326,10 @@
                       <label for="fRisk-m" class="block text-sm font-medium text-slate-600 mb-1">Risk</label>
                       <select id="fRisk-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
                           <option value="">Any</option>
-                          <option>Low</option>
-                          <option>Moderate</option>
-                          <option>High</option>
+                          <option value="conservative">Conservative</option>
+                          <option value="moderate">Moderate</option>
+                          <option value="high">High</option>
+                          <option value="very-high">Very High</option>
                       </select>
                   </div>
                   <div>
@@ -337,17 +343,22 @@
                   </div>
               </div>
                <div>
-                  <label for="fStyle-m" class="block text-sm font-medium text-slate-600 mb-1">Style</label>
-                  <select id="fStyle-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
+                  <label for="fUniverse-m" class="block text-sm font-medium text-slate-600 mb-1">Universe</label>
+                  <select id="fUniverse-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
                        <option value="">Any</option>
                   </select>
               </div>
               <div>
                   <label for="fSort-m" class="block text-sm font-medium text-slate-600 mb-1">Sort by</label>
                   <select id="fSort-m" class="h-10 w-full rounded-lg border px-2 text-sm border-slate-200">
-                      <option value="name-asc">Name (A→Z)</option>
-                      <option value="cagr-desc">1Y CAGR (High→Low)</option>
-                      <option value="dd-asc">Max DD (Low→High)</option>
+                      <option value="ytd-desc">YTD (High→Low)</option>
+                      <option value="ytd-asc">YTD (Low→High)</option>
+                      <option value="stability-desc">Stability (High→Low)</option>
+                      <option value="stability-asc">Stability (Low→High)</option>
+                      <option value="best-day-desc">Best Day (High→Low)</option>
+                      <option value="best-day-asc">Best Day (Low→High)</option>
+                      <option value="worst-day-desc">Worst Day (High→Low)</option>
+                      <option value="worst-day-asc">Worst Day (Low→High)</option>
                   </select>
               </div>
           </div>
@@ -413,7 +424,7 @@
     const $q = document.getElementById('q');
     const $risk = document.getElementById('fRisk');
     const $cur = document.getElementById('fCur');
-    const $style = document.getElementById('fStyle');
+    const $universe = document.getElementById('fUniverse');
     const $sort = document.getElementById('fSort');
 
     // Mobile modal and its filters
@@ -427,7 +438,7 @@
     const $q_m = document.getElementById('q-m');
     const $risk_m = document.getElementById('fRisk-m');
     const $cur_m = document.getElementById('fCur-m');
-    const $style_m = document.getElementById('fStyle-m');
+    const $universe_m = document.getElementById('fUniverse-m');
     const $sort_m = document.getElementById('fSort-m');
 
     function openModal() {
@@ -435,7 +446,7 @@
       $q_m.value = $q.value;
       $risk_m.value = $risk.value;
       $cur_m.value = $cur.value;
-      $style_m.value = $style.value;
+      $universe_m.value = $universe.value;
       $sort_m.value = $sort.value;
       $modal.classList.remove('hidden');
     }
@@ -449,7 +460,7 @@
       $q.value = $q_m.value;
       $risk.value = $risk_m.value;
       $cur.value = $cur_m.value;
-      $style.value = $style_m.value;
+      $universe.value = $universe_m.value;
       $sort.value = $sort_m.value;
       
       closeModal();
@@ -463,8 +474,8 @@
       $q_m.value = '';
       $risk_m.value = '';
       $cur_m.value = '';
-      $style_m.value = '';
-      $sort_m.value = 'name-asc';
+      $universe_m.value = '';
+      $sort_m.value = 'ytd-desc';
     }
     
     $mobileBtn?.addEventListener('click', openModal);
@@ -485,11 +496,11 @@
   const money = (n, ccy) => moneyFmt(ccy).format(n||0);
 
   // filters
-  const $q     = document.getElementById('q');
-  const $risk  = document.getElementById('fRisk');
-  const $cur   = document.getElementById('fCur');
-  const $style = document.getElementById('fStyle');
-  const $sort  = document.getElementById('fSort');
+  const $q       = document.getElementById('q');
+  const $risk    = document.getElementById('fRisk');
+  const $cur     = document.getElementById('fCur');
+  const $universe = document.getElementById('fUniverse');
+  const $sort    = document.getElementById('fSort');
   const $clear = document.getElementById('clearBtn');
   
   // Chart objects cache to prevent re-rendering
@@ -575,54 +586,79 @@
     });
   }
 
+  const num = (val) => {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const normalizeRisk = (risk) => {
+    if (!risk) return '';
+    const lower = risk.toString().trim().toLowerCase();
+    if (lower.includes('very') && lower.includes('high')) return 'very-high';
+    if (lower.includes('high')) return 'high';
+    if (lower.includes('moderate') || lower.includes('medium')) return 'moderate';
+    if (lower.includes('conservative') || lower.includes('low')) return 'conservative';
+    return lower.replace(/[^a-z]+/g, '-');
+  };
+
+  function computeYtdReturn(seriesData, fallback) {
+    if (Number.isFinite(fallback)) return fallback;
+    if (!Array.isArray(seriesData) || !seriesData.length) return null;
+    const pcts = seriesData.map(x => ({ pct: Number(x?.pct) }));
+    const curve = curveFromPct(pcts, 100);
+    const lastVal = curve.at(-1);
+    if (!Number.isFinite(lastVal)) return null;
+    return Number((lastVal - 100).toFixed(4));
+  }
+
   // --- MODIFIED: Fetch strategies AND their metrics ---
   async function fetchStrategiesAndMetrics(){
     console.log("Fetching strategies...");
-    // 1. Fetch all strategies
-    const cols = 'id,name,creator,currency,risk_level,aum,style,asset_universe,inception_date,code,strategy_description,unit_price';
     const { data: strategiesData, error: strategiesError } = await supabase
       .from('strategies')
-      .select(cols)
+      .select(`
+        id, name, creator, currency, risk_level, aum, style, asset_universe, inception_date, code, strategy_description, unit_price,
+        strategy_metrics ( perf_summary, series_ytd )
+      `)
       .order('name', { ascending: true });
-      
+
     if (strategiesError) {
         console.error("Error fetching strategies:", strategiesError);
         throw strategiesError;
     }
-    
-    console.log(`Fetched ${strategiesData.length} strategies. Now fetching metrics...`);
 
-    // 2. Prepare to fetch metrics (YTD only) for each strategy
-    const metricPromises = strategiesData.map(s => 
-      supabase.from('strategy_metrics')
-        .select('strategy_id, series_ytd') // Only get what we need
-        .eq('strategy_id', s.id)
-        .maybeSingle()
-    );
-    
-    // Wait for all metric fetches to complete
-    const metricsResults = await Promise.all(metricPromises);
-    
-    console.log("Fetched all metrics. Combining data...");
+    console.log(`Fetched ${strategiesData.length} strategies. Combining data...`);
 
-    // 3. Combine the data
-    return strategiesData.map(strategy => {
-      const metricsResult = metricsResults.find(m => m.data && m.data.strategy_id === strategy.id);
+    return (strategiesData || []).map(strategy => {
+      const metricsRaw = Array.isArray(strategy.strategy_metrics)
+        ? strategy.strategy_metrics[0]
+        : (strategy.strategy_metrics || {});
+      const seriesYtd = Array.isArray(metricsRaw?.series_ytd) ? metricsRaw.series_ytd : [];
+      const perfSummary = metricsRaw?.perf_summary || {};
+
+      const ytdFromSummary = num(perfSummary.ytd_return_pct);
+      const ytdReturn = computeYtdReturn(seriesYtd, ytdFromSummary);
+      const stability = num(perfSummary.stability_numeric ?? perfSummary.stability_score ?? perfSummary.stability);
+
       return {
-        // Strategy info
         id: strategy.id,
         name: strategy.name,
         provider: strategy.creator || '—',
         currency: strategy.currency || 'ZAR',
         unit_price: Number(strategy.unit_price || 0),
         risk: strategy.risk_level || '—',
+        risk_normalized: normalizeRisk(strategy.risk_level || ''),
         aum: Number(strategy.aum || 0),
         style: strategy.style || '—',
         universe: strategy.asset_universe || '—',
         inception: strategy.inception_date || null,
         desc: strategy.strategy_description || '—',
-        // Metrics info
-        metrics: metricsResult?.data || null // Attach the metrics
+        series_ytd: seriesYtd,
+        perf_summary: perfSummary,
+        ytd_return_pct: ytdReturn,
+        stability_score: stability,
+        best_day_pct: num(perfSummary.best_day_pct),
+        worst_day_pct: num(perfSummary.worst_day_pct)
       };
     });
   }
@@ -639,31 +675,36 @@
     Object.values(chartInstances).forEach(chart => chart.destroy());
     chartInstances = {};
 
+    const chipClassForRisk = (riskValue) => {
+      const norm = normalizeRisk(riskValue);
+      if (norm === 'very-high') return 'bg-rose-200 text-rose-800';
+      if (norm === 'high') return 'bg-rose-100 text-rose-700';
+      if (norm === 'moderate') return 'bg-amber-50 text-amber-700';
+      if (norm === 'conservative') return 'bg-blue-50 text-blue-700';
+      return 'bg-slate-100 text-slate-600';
+    };
+
     items.forEach((s, idx) => {
-      const riskChip = s.risk==='Low' ? 'bg-emerald-50 text-emerald-700'
-                     : s.risk==='High' ? 'bg-rose-50 text-rose-700'
-                     : 'bg-amber-50 text-amber-700';
+      const riskChip = chipClassForRisk(s.risk);
 
       // --- Calculate YTD Growth Stats & define IDs ---
       let growthPct = '—';
       let growthColor = 'text-slate-600';
-      let hasChart = false;
-      let percentage = 0; // This will store the raw percentage for the chart color
-      const seriesData = (s.metrics && s.metrics.series_ytd) ? s.metrics.series_ytd : [];
+      let percentage = null;
+      const seriesData = Array.isArray(s.series_ytd) ? s.series_ytd : [];
+      const hasChart = seriesData.length > 0;
 
-      if (seriesData.length > 0) {
-        hasChart = true;
-        const pcts = seriesData.map(x => ({ pct: Number(x?.pct) }));
-        const curve = curveFromPct(pcts, 100);
-        const lastVal = curve.at(-1);
-        
-        if (lastVal) {
-          percentage = (lastVal - 100); // Store the raw percentage
-          growthPct = `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
-          growthColor = percentage >= 0 ? 'text-green-600' : 'text-red-600';
-        }
+      if (Number.isFinite(s.ytd_return_pct)) {
+        percentage = s.ytd_return_pct;
+      } else if (seriesData.length) {
+        percentage = computeYtdReturn(seriesData, null);
       }
-      
+
+      if (Number.isFinite(percentage)) {
+        growthPct = `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
+        growthColor = percentage >= 0 ? 'text-green-600' : 'text-red-600';
+      }
+
       const chartIdMobile = `chart-mobile-${s.id}`;
       const chartIdDesktop = `chart-desktop-${s.id}`;
       // --- End Stats ---
@@ -741,8 +782,8 @@
       if (hasChart) {
         // Use a tiny timeout to let the DOM update before drawing
         setTimeout(() => {
-          drawCardChart(chartIdMobile, seriesData, percentage);
-          drawCardChart(chartIdDesktop, seriesData, percentage);
+          drawCardChart(chartIdMobile, seriesData, percentage ?? 0);
+          drawCardChart(chartIdDesktop, seriesData, percentage ?? 0);
         }, 0);
       }
     });
@@ -765,57 +806,82 @@
     const q  = ($q.value||'').trim().toLowerCase();
     const r  = $risk.value;
     const c  = $cur.value;
-    const st = $style.value;
+    const uni = $universe.value;
     const sortVal = $sort.value;
 
     let rows = ALL.filter(s => {
       const text = `${s.name} ${s.provider} ${s.style} ${s.universe} ${s.desc}`.toLowerCase();
       if (q && !text.includes(q)) return false;
-      if (r && s.risk !== r) return false;
+      if (r && s.risk_normalized !== r) return false;
       if (c && s.currency !== c) return false;
-      if (st && s.style !== st) return false;
+      if (uni && s.universe !== uni) return false;
       return true;
     });
 
     rows.sort((a,b)=>{
-      if (sortVal==='name-asc') return a.name.localeCompare(b.name);
-      if (sortVal==='aum-desc') return (b.aum - a.aum);
-      // placeholders for future metrics:
-      if (sortVal==='cagr-desc') return 0;
-      if (sortVal==='dd-asc')   return 0;
-      return 0;
+      const byNumber = (va, vb, asc = true) => {
+        const aValid = Number.isFinite(va);
+        const bValid = Number.isFinite(vb);
+        if (!aValid && !bValid) return 0;
+        if (!aValid) return 1;
+        if (!bValid) return -1;
+        return asc ? va - vb : vb - va;
+      };
+
+      switch (sortVal) {
+        case 'ytd-asc':
+          return byNumber(a.ytd_return_pct, b.ytd_return_pct, true);
+        case 'ytd-desc':
+          return byNumber(a.ytd_return_pct, b.ytd_return_pct, false);
+        case 'stability-asc':
+          return byNumber(a.stability_score, b.stability_score, true);
+        case 'stability-desc':
+          return byNumber(a.stability_score, b.stability_score, false);
+        case 'best-day-asc':
+          return byNumber(a.best_day_pct, b.best_day_pct, true);
+        case 'best-day-desc':
+          return byNumber(a.best_day_pct, b.best_day_pct, false);
+        case 'worst-day-asc':
+          return byNumber(a.worst_day_pct, b.worst_day_pct, true);
+        case 'worst-day-desc':
+          return byNumber(a.worst_day_pct, b.worst_day_pct, false);
+        case 'name-asc':
+        default:
+          return a.name.localeCompare(b.name);
+      }
     });
 
     renderStrategies(rows);
   }
 
-  // ------- init style dropdown from DB values -------
-  function initStyleOptions(items){
-    const desktopSel = document.getElementById('fStyle');
-    const mobileSel = document.getElementById('fStyle-m');
-    const styles = [...new Set(items.map(s => s.style).filter(Boolean))].sort();
-    
+  // ------- init universe dropdown from DB values -------
+  function initUniverseOptions(items){
+    const desktopSel = document.getElementById('fUniverse');
+    const mobileSel = document.getElementById('fUniverse-m');
+    const universes = [...new Set(items.map(s => s.universe).filter(v => v && v !== '—'))].sort();
+
     desktopSel.options.length = 1;
     mobileSel.options.length = 1;
 
-    styles.forEach(st => { 
-      const o1=document.createElement('option'); o1.value=st; o1.textContent=st; desktopSel.appendChild(o1); 
+    universes.forEach(st => {
+      const o1=document.createElement('option'); o1.value=st; o1.textContent=st; desktopSel.appendChild(o1);
       const o2=document.createElement('option'); o2.value=st; o2.textContent=st; mobileSel.appendChild(o2);
     });
   }
 
   // clear button
   document.getElementById('clearBtn').addEventListener('click', ()=>{
-    $q.value=''; $risk.value=''; $cur.value=''; $style.value=''; $sort.value='name-asc';
+    $q.value=''; $risk.value=''; $cur.value=''; $universe.value=''; $sort.value='ytd-desc';
     applyFilters();
   });
-  [$q,$risk,$cur,$style,$sort].forEach(el => el.addEventListener('input', applyFilters));
+  [$q,$risk,$cur,$universe,$sort].forEach(el => el.addEventListener('input', applyFilters));
+  [$risk,$cur,$universe,$sort].forEach(el => el.addEventListener('change', applyFilters));
 
   // ------- boot -------
   try{
     // MODIFIED: Call the new function
-    ALL = await fetchStrategiesAndMetrics(); 
-    initStyleOptions(ALL);
+    ALL = await fetchStrategiesAndMetrics();
+    initUniverseOptions(ALL);
     applyFilters();
   }catch(e){
     console.error(e);
