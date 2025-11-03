@@ -2137,46 +2137,34 @@
         }
 
         function hydrateHeader(strategy) {
-            document.getElementById('fs-title').textContent = strategy.name || '—';
-            document.getElementById('fs-provider').textContent = strategy.creator || '—';
-            document.getElementById('fs-since').textContent = strategy.inception_date
-                ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
-            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
-
-            const ecName = document.getElementById('pf-name');
-            if (ecName) ecName.textContent = strategy.name || '—';
-
-            // ===== NEW: push strategy name into alloc card =====
-            const allocName = document.getElementById('alloc-name');
-            if (allocName) allocName.value = strategy.name || '—';
-
-            const allocTitle = document.getElementById('alloc-title');
-            if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
-
-            applyAllocationUnitPrice(strategy?.unit_price, strategy?.currency);
-
-            // ===== existing description + attrs =====
-            renderDescAndBullets(strategy);
-
-            const fsDesc = document.getElementById('fsDesc');
-            if (fsDesc) fsDesc.textContent =
-                strategy.investment_objective_description || strategy.strategy_description || '—';
-
-            const fsStyle = document.getElementById('fsStyle');
-            if (fsStyle) fsStyle.textContent = strategy.style || '—';
-
-            const fsUniverse = document.getElementById('fsUniverse');
-            if (fsUniverse) fsUniverse.textContent = strategy.asset_universe || '—';
-
-            const fsHold = document.getElementById('fsHold');
-            if (fsHold) fsHold.textContent = Number.isFinite(strategy.avg_holding_days)
-                ? `${strategy.avg_holding_days} days` : '—';
-
-            const fsTrades = document.getElementById('fsTrades');
-            if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
-                ? `${strategy.avg_trades_per_month}` : '—';
-        }
+    document.getElementById('fs-title').textContent = strategy.name || '—';
+    document.getElementById('fs-provider').textContent = strategy.creator || '—';
+    document.getElementById('fs-since').textContent = strategy.inception_date
+        ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
+    document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+    
+    // Dynamic risk badge
+    const riskBadge = document.getElementById('fs-risk');
+    const riskLevel = (strategy.risk_level || '').toLowerCase();
+    
+    // Define color schemes
+    const riskColors = {
+        'conservative': { bg: '#ecfdf5', border: '#bbf7d0', text: '#065f46' },
+        'moderate': { bg: '#fff7ed', border: '#fed7aa', text: '#b45309' },
+        'high': { bg: '#fff1f2', border: '#fecaca', text: '#dc2626' },
+        'very high': { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' },
+        'very-high': { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' }
+    };
+    
+    const colors = riskColors[riskLevel] || { bg: '#f1f5f9', border: '#e5e7eb', text: '#64748b' }; // default gray
+    
+    riskBadge.textContent = `Risk ${strategy.risk_level || '—'}`;
+    riskBadge.style.backgroundColor = colors.bg;
+    riskBadge.style.borderColor = colors.border;
+    riskBadge.style.color = colors.text;
+    
+    // ... rest of your code
+}
 
 
         // ---------- data load ----------
