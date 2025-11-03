@@ -899,7 +899,16 @@
             el.textContent = msg;
             clearTimeout(el._t);
             el._t = setTimeout(() => el.remove(), 4000);
-        }    
+        }
+        try {
+            const gateMsg = sessionStorage.getItem("ah_gate_reason");
+            if (gateMsg) {
+                banner(gateMsg, "warn");
+                sessionStorage.removeItem("ah_gate_reason");
+            }
+        } catch (err) {
+            console.warn("Could not read gate banner", err);
+        }
         // ---------- profile helpers ----------
         const REQUIRED_FIELDS = [
             "first_name",
@@ -1092,7 +1101,7 @@
                         .eq('id', user.id);
 
                     setKycState(true);
-                    banner('🎉 KYC Approved! All features unlocked.', 'ok');
+                    banner('🎉 KYC Approved! Next step: create your AlgoHive account.', 'ok');
                 } else if (['declined', 'rejected'].includes(diditStatus)) {
                     setKycState(false);
                     banner('❌ KYC was declined. Please contact support.', 'err');
@@ -1135,7 +1144,7 @@
 
                     setKycState(true);
                     refreshGates();
-                    banner('🎉 KYC Approved! All features unlocked.', 'ok');
+                    banner('🎉 KYC Approved! Next step: create your AlgoHive account.', 'ok');
                 } else if (['rejected', 'declined'].includes((j.status || '').toLowerCase())) {
                     banner('❌ KYC was declined. Please contact support.', 'err');
                 } else {
@@ -1400,47 +1409,66 @@ renderPlanButtons(row?.subscription || 'free');
 
 
 
-        const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
-        function isGated() {
-            // Users are gated until profile AND KYC are complete
-            // After KYC, only "Manage Accounts" is unlocked, everything else stays locked
-            return !(profileComplete && kycDone);
+        const TAB_EXTRA = "extra";
+        const TAB_KYC = "docs";
+        const TAB_MANAGE = "manage";
+        const TAB_SUBS = "subs";
+
+        let accountReady = false;
+        let lastFullyUnlocked = null;
+
+        const normalizeTab = (tabName) => {
+            const name = (tabName || '').toLowerCase();
+            if (name === 'kyc') return TAB_KYC;
+            return name;
+        };
+
+        function computeAllowedTabs() {
+            if (!profileComplete) return new Set([TAB_EXTRA, TAB_SUBS]);
+            if (!kycDone) return new Set([TAB_EXTRA, TAB_KYC, TAB_SUBS]);
+            if (!accountReady) return new Set([TAB_EXTRA, TAB_KYC, TAB_MANAGE, TAB_SUBS]);
+            return null; // everything unlocked
         }
 
-        function isTabAllowed(tabName) {
-            if (tabName === "subs") return true; // always allow viewing plans
-            if (!profileComplete) return allowedTabsWhenGated.has(tabName);
-            if (profileComplete && !kycDone) return allowedTabsWhenGated.has(tabName);
-            if (profileComplete && kycDone) return ["extra", "docs", "manage", "subs"].includes(tabName);
-            return false;
+        function requiredTab() {
+            if (!profileComplete) return TAB_EXTRA;
+            if (!kycDone) return TAB_KYC;
+            if (!accountReady) return TAB_MANAGE;
+            return TAB_EXTRA;
         }
+
+        function isGated() { return computeAllowedTabs() !== null; }
+
+        function isTabAllowed(tabName) {
+            if (tabName === TAB_SUBS) return true; // subscriptions always viewable
+            const normalized = normalizeTab(tabName);
+            const allowed = computeAllowedTabs();
+            if (!allowed) return true;
+            return allowed.has(normalized);
+        }
+
         function gateReason() {
-            if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
             if (!profileComplete) return "Please finish Additional Info first.";
-            if (!kycDone) return "Please complete KYC first.";
-            return "Please set up your account in Manage Accounts to continue.";
+            if (!kycDone) return "Please complete KYC verification before proceeding.";
+            if (!accountReady) return "Please create your AlgoHive investment account to continue.";
+            return "";
         }
         function lockMainNav() {
             const mainNav = document.getElementById("main-nav");
             if (!mainNav) return;
             function preventNav(e) {
+                if (!isGated()) return;
                 e.preventDefault();
+                const target = requiredTab();
                 banner(gateReason(), "warn");
-                // Determine where to redirect based on completion status
-                if (!profileComplete) {
-                    location.hash = "#extra";
-                } else if (!kycDone) {
-                    location.hash = "#kyc";
-                } else if (profileComplete && kycDone) {
-                    location.hash = "#manage";
-                }
+                location.hash = `#${target}`;
             }
             mainNav.querySelectorAll('a[href]').forEach(a => {
                 const href = (a.getAttribute("href") || "").trim();
                 const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
                 if (isGated() && !isSettings) {
                     a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
-                    a.title = "Locked until profile + KYC are complete and account is set up";
+                    a.title = "Locked until onboarding is complete";
                     a.addEventListener("click", preventNav, { passive: false });
                 } else {
                     a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
@@ -1449,14 +1477,10 @@ renderPlanButtons(row?.subscription || 'free');
             mainNav.querySelectorAll('details > summary').forEach(sum => {
                 function onSumClick() {
                     if (isGated()) setTimeout(() => {
+                        if (!isGated()) return;
                         banner(gateReason(), "warn");
-                        if (!profileComplete) {
-                            location.hash = "#extra";
-                        } else if (!kycDone) {
-                            location.hash = "#kyc";
-                        } else if (profileComplete && kycDone) {
-                            location.hash = "#manage";
-                        }
+                        const target = requiredTab();
+                        location.hash = `#${target}`;
                     }, 0);
                 }
                 sum.addEventListener("click", onSumClick);
@@ -1467,20 +1491,20 @@ renderPlanButtons(row?.subscription || 'free');
             const hash = (location.hash || "#basic").toLowerCase();
             const wanted = hash.replace(/^#/, "");
             if (!isTabAllowed(wanted)) {
-                let target;
-                if (!profileComplete) {
-                    target = "#extra";
-                } else if (!kycDone) {
-                    target = "#kyc";
-                } else if (profileComplete && kycDone) {
-                    target = "#manage";
-                } else {
-                    target = "#extra"; // fallback
-                }
-                if (hash !== target) { banner(gateReason(), "warn"); location.hash = target; }
+                const target = requiredTab();
+                const targetHash = `#${target}`;
+                if (hash !== targetHash) { banner(gateReason(), "warn"); location.hash = targetHash; }
             }
         }
-        function refreshGates() { lockMainNav(); enforceSettingsGuard(); }
+        function refreshGates() {
+            lockMainNav();
+            enforceSettingsGuard();
+            const nowUnlocked = !isGated();
+            if (lastFullyUnlocked === false && nowUnlocked) {
+                banner("Your profile is complete! You can now explore strategies.", "ok");
+            }
+            lastFullyUnlocked = nowUnlocked;
+        }
         lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
         const _origSetKycState = setKycState;
         setKycState = (isDone) => {
@@ -1491,14 +1515,49 @@ renderPlanButtons(row?.subscription || 'free');
             // Redirect to accounts when KYC is completed
             if (isDone && profileComplete) {
                 setTimeout(() => {
-                    location.hash = "#manage";
-                    banner("KYC completed! Please set up your account to continue.", "ok");
+                    if (!accountReady) {
+                        location.hash = `#${TAB_MANAGE}`;
+                        banner("KYC completed! Please set up your account to continue.", "ok");
+                    }
                 }, 500);
             }
         };
 
         // Check for KYC return after page setup
         checkKycReturn();
+
+        function syncAccountControls(hasAccounts) {
+            const addBtn = document.getElementById('btn-add-account');
+            if (!addBtn) return;
+            addBtn.disabled = hasAccounts;
+            addBtn.classList.toggle('opacity-50', hasAccounts);
+            addBtn.classList.toggle('cursor-not-allowed', hasAccounts);
+            addBtn.classList.toggle('pointer-events-none', hasAccounts);
+            if (hasAccounts) {
+                addBtn.setAttribute('aria-disabled', 'true');
+            } else {
+                addBtn.removeAttribute('aria-disabled');
+            }
+        }
+
+        async function hydrateAccountPresence() {
+            try {
+                const { count, error } = await supabase
+                    .from('investment_accounts')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('profile_id', user.id);
+                if (error) throw error;
+                accountReady = (count || 0) > 0;
+            } catch (err) {
+                console.warn('Could not determine account presence', err);
+                accountReady = false;
+            } finally {
+                syncAccountControls(accountReady);
+                refreshGates();
+            }
+        }
+
+        await hydrateAccountPresence();
 
         // ---- Paystack return → set subscription=gold ----
 (async function handleSubscriptionReturn() {
@@ -1745,7 +1804,7 @@ renderPlanButtons(row?.subscription || 'free');
             return `${base} bg-slate-100 text-slate-700`;
         };
 
-        function renderAccountCard(row) {
+        function renderAccountCard(row, { allowDelete } = { allowDelete: false }) {
             const card = document.createElement('div');
             card.className = 'rounded-xl border border-slate-200 p-5';
             card.innerHTML = `
@@ -1758,9 +1817,7 @@ renderPlanButtons(row?.subscription || 'free');
             <span class="text-xs text-slate-400">Updated ${new Date(row.updated_at).toLocaleString()}</span>
           </div>
         </div>
-        <button class="btn text-rose-700 hover:bg-rose-50 border-rose-200" data-action="delete" data-id="${row.id}">
-          Delete Account
-        </button>
+        ${allowDelete ? `<button class="btn text-rose-700 hover:bg-rose-50 border-rose-200" data-action="delete" data-id="${row.id}">Delete Account</button>` : ''}
       </div>
       <div class="mt-5 grid grid-cols-2 gap-4">
         <div>
@@ -1794,8 +1851,16 @@ renderPlanButtons(row?.subscription || 'free');
 
                 if (error) throw error;
 
-                if (!data || data.length === 0) { empty?.classList.remove('hidden'); return; }
-                data.forEach(row => list.appendChild(renderAccountCard(row)));
+                const hasAccounts = Array.isArray(data) && data.length > 0;
+                accountReady = hasAccounts;
+                syncAccountControls(hasAccounts);
+                refreshGates();
+
+                if (!hasAccounts) {
+                    empty?.classList.remove('hidden');
+                    return;
+                }
+                data.forEach(row => list.appendChild(renderAccountCard(row, { allowDelete: false })));
             } catch (e) {
                 console.error(e);
                 banner(e.message || 'Could not load accounts', 'err');
@@ -1828,6 +1893,10 @@ renderPlanButtons(row?.subscription || 'free');
         const BROKER_LOCKED = "AlgoHive Markets";
 
         const openAdd = async () => {
+            if (accountReady) {
+                banner('You already have an AlgoHive investment account.', 'info');
+                return;
+            }
             const m = document.getElementById('add-account-modal');
             if (!m) return;
 

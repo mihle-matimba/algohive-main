@@ -735,6 +735,68 @@
     })}`;
   const maskId = (uuid) => (uuid ? `••• ${String(uuid).slice(-4)}` : "—");
 
+  // -------- profile gating helpers --------
+  const REQUIRED_PROFILE_FIELDS = [
+    "first_name",
+    "last_name",
+    "phone",
+    "dob",
+    "id_number",
+    "nationality",
+    "country_residence",
+    "employment_status",
+    "occupation",
+    "employer",
+    "income_bracket",
+    "source_of_funds",
+    "net_worth_range",
+    "experience_level",
+    "risk_tolerance",
+    "objectives",
+  ];
+
+  const hasValue = (value) => String(value ?? "").trim().length > 0;
+  const computeProfileComplete = (row) =>
+    REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
+
+  async function ensureProfile(userId, email) {
+    let { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (data) return data;
+    const up = await supabase
+      .from("profiles")
+      .upsert(
+        { id: userId, email, updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      )
+      .select("*")
+      .single();
+    if (up.error) throw up.error;
+    return up.data;
+  }
+
+  function resolveKycBoolean(row) {
+    const v = row?.kyc_status;
+    if (typeof v === "boolean") return v;
+    if (typeof v === "string")
+      return ["verified", "approved", "done", "passed", "kyc_done"].includes(
+        v.toLowerCase()
+      );
+    return false;
+  }
+
+  function gateBannerMessage(profileComplete, kycDone) {
+    if (!profileComplete && !kycDone)
+      return "Please finish Additional Info and complete KYC first.";
+    if (!profileComplete) return "Please finish Additional Info first.";
+    if (!kycDone) return "Please complete KYC first.";
+    return "";
+  }
+
   function toggleEmptyOverlay(show) {
     const el = document.getElementById("empty-overlay");
     if (!el) return;
@@ -1123,6 +1185,27 @@
     if (!user) {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
       location.replace(`/auth?tab=in&redirect=${next}`);
+      return;
+    }
+
+    let profileRow = null;
+    try {
+      profileRow = await ensureProfile(user.id, user.email || null);
+    } catch (err) {
+      console.error("Profile ensure failed", err);
+    }
+
+    const profileComplete = computeProfileComplete(profileRow || {});
+    const kycDone = resolveKycBoolean(profileRow || {});
+    if (!profileComplete || !kycDone) {
+      const targetHash = !profileComplete ? "#extra" : "#docs";
+      const message = gateBannerMessage(profileComplete, kycDone);
+      try {
+        if (message) sessionStorage.setItem("ah_gate_reason", message);
+      } catch (err) {
+        console.warn("Could not persist gate banner", err);
+      }
+      location.replace(`/settings.html${targetHash}`);
       return;
     }
 
