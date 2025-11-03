@@ -225,6 +225,31 @@
             background: #fff
         }
 
+        /* Dynamic Risk Badge Styles */
+        .badge.risk-conservative {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+            color: #15803d;
+        }
+
+        .badge.risk-moderate {
+            background-color: #fef3c7;
+            border-color: #f59e0b;
+            color: #d97706;
+        }
+
+        .badge.risk-high {
+            background-color: #fee2e2;
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .badge.risk-very-high {
+            background-color: #fecaca;
+            border-color: #b91c1c;
+            color: #991b1b;
+        }
+
         .legend-dot {
             width: 10px;
             height: 10px;
@@ -502,7 +527,7 @@
                     alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
                 <div class="min-w-0">
                     <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
-                    <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
+                    <div class="text-[11px] text-slate-500 label">Where Smart Capital Gathers <span id="sidebar-acc">—</span></div>
                 </div>
             </div>
             <nav class="p-2 text-[14px] flex-1 overflow-y-auto"> <a
@@ -587,8 +612,8 @@
                                 since <span class="font-medium" id="fs-since">01/02/2021</span></span> <span
                                 class="mx-1 text-slate-400">•</span>
                             <span id="fs-currency">ZAR</span> <span
-                                class="badge bg-amber-50 border-amber-200 text-amber-700" id="fs-risk">Risk
-                                Moderate</span>
+                                class="badge bg-gray-50 border-gray-200 text-gray-700" id="fs-risk">Risk
+                </span>
                         </div>
                     </div>
                     <div
@@ -2115,7 +2140,31 @@
             document.getElementById('fs-since').textContent = strategy.inception_date
                 ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
             document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+            
+            // Dynamic risk badge
+            const riskBadge = document.getElementById('fs-risk');
+            const riskLevel = (strategy.risk_level || '').toLowerCase().trim();
+            
+            // Remove any existing risk classes
+            riskBadge.classList.remove('risk-conservative', 'risk-moderate', 'risk-high', 'risk-very-high');
+            
+            // Map risk level to CSS class - updated to handle database format "High Risk", "Very High Risk"
+            const riskClassMap = {
+                'conservative': 'risk-conservative',
+                'moderate': 'risk-moderate',
+                'high': 'risk-high',
+                'high risk': 'risk-high',
+                'very high': 'risk-very-high',
+                'very high risk': 'risk-very-high',
+                'very-high': 'risk-very-high'
+            };
+            
+            const riskClass = riskClassMap[riskLevel];
+            if (riskClass) {
+                riskBadge.classList.add(riskClass);
+            }
+            
+            riskBadge.textContent = strategy.risk_level || 'Risk —';
 
             const ecName = document.getElementById('pf-name');
             if (ecName) ecName.textContent = strategy.name || '—';
