@@ -224,33 +224,6 @@
             font-weight: 600;
             background: #fff
         }
-         
-        .badge.risk-conservative {
-            background: #ecfdf5;      
-            border-color: #bbf7d0;    
-            color: #065f46;           
-        }
-
-       
-        .badge.risk-moderate {
-            background: #fff7ed;      
-            border-color: #fed7aa;    
-            color: #b45309;           
-        }
-
-        
-        .badge.risk-high {
-            background: #fff1f2;      
-            border-color: #fecaca;    
-            color: #dc2626;           
-        }
-
-       
-        .badge.risk-very-high {
-            background: #fee2e2;      
-            border-color: #fecaca;    
-            color: #991b1b;          
-        }
 
         .legend-dot {
             width: 10px;
@@ -614,8 +587,8 @@
                                 since <span class="font-medium" id="fs-since">01/02/2021</span></span> <span
                                 class="mx-1 text-slate-400">•</span>
                             <span id="fs-currency">ZAR</span> <span
-                                class="badge bg-grey-50 border-grey-200 text-grey-700" id="fs-risk">Risk
-                                </span>
+                                class="badge bg-amber-50 border-amber-200 text-amber-700" id="fs-risk">Risk
+                                Moderate</span>
                         </div>
                     </div>
                     <div
@@ -2137,35 +2110,26 @@
         }
 
         function hydrateHeader(strategy) {
-    document.getElementById('fs-title').textContent = strategy.name || '—';
-    document.getElementById('fs-provider').textContent = strategy.creator || '—';
-    document.getElementById('fs-since').textContent = strategy.inception_date
-        ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
-    document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
-    
-    
-    const riskBadge = document.getElementById('fs-risk');
-    const riskLevel = (strategy.risk_level || '').toLowerCase();
-    
-   
-    const riskColors = {
-        'conservative': { bg: '#ecfdf5', border: '#bbf7d0', text: '#065f46' },
-        'moderate': { bg: '#fff7ed', border: '#fed7aa', text: '#b45309' },
-        'high': { bg: '#fff1f2', border: '#fecaca', text: '#dc2626' },
-        'very high': { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' },
-        'very-high': { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' }
-    };
-    
-    const colors = riskColors[riskLevel] || { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' }; 
-    
-    riskBadge.textContent = `${strategy.risk_level || '—'}`;
-    riskBadge.style.backgroundColor = colors.bg;
-    riskBadge.style.borderColor = colors.border;
-    riskBadge.style.color = colors.text;
-    
-   
-}
-// ===== existing description + attrs =====
+            document.getElementById('fs-title').textContent = strategy.name || '—';
+            document.getElementById('fs-provider').textContent = strategy.creator || '—';
+            document.getElementById('fs-since').textContent = strategy.inception_date
+                ? new Date(strategy.inception_date).toLocaleString('en-ZA') : '—';
+            document.getElementById('fs-currency').textContent = strategy.currency || 'USD';
+            document.getElementById('fs-risk').textContent = `Risk ${strategy.risk_level || '—'}`;
+
+            const ecName = document.getElementById('pf-name');
+            if (ecName) ecName.textContent = strategy.name || '—';
+
+            // ===== NEW: push strategy name into alloc card =====
+            const allocName = document.getElementById('alloc-name');
+            if (allocName) allocName.value = strategy.name || '—';
+
+            const allocTitle = document.getElementById('alloc-title');
+            if (allocTitle) allocTitle.textContent = `Allocate — ${strategy.name || 'Strategy'}`;
+
+            applyAllocationUnitPrice(strategy?.unit_price, strategy?.currency);
+
+            // ===== existing description + attrs =====
             renderDescAndBullets(strategy);
 
             const fsDesc = document.getElementById('fsDesc');
@@ -2186,7 +2150,6 @@
             if (fsTrades) fsTrades.textContent = Number.isFinite(strategy.avg_trades_per_month)
                 ? `${strategy.avg_trades_per_month}` : '—';
         }
-
 
 
         // ---------- data load ----------
