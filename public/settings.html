@@ -1027,6 +1027,8 @@
         document.getElementById("acc-number").textContent = acct;
         document.getElementById("sidebar-acc").textContent = acct;
 
+        const legacyAccountNumber = typeof row?.account_number === "string" && row.account_number.trim().length > 0;
+
         // map fields
         const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
         setVal("first_name", row?.first_name);
@@ -1414,7 +1416,8 @@ renderPlanButtons(row?.subscription || 'free');
         const TAB_MANAGE = "manage";
         const TAB_SUBS = "subs";
 
-        let accountReady = false;
+        let accountReady = legacyAccountNumber;
+        let accountStatusLoaded = legacyAccountNumber;
         let lastFullyUnlocked = null;
 
         const normalizeTab = (tabName) => {
@@ -1450,6 +1453,7 @@ renderPlanButtons(row?.subscription || 'free');
         function gateReason() {
             if (!profileComplete) return "Please finish Additional Info first.";
             if (!kycDone) return "Please complete KYC verification before proceeding.";
+            if (!accountStatusLoaded) return "Hang tight while we confirm your AlgoHive account status.";
             if (!accountReady) return "Please create your AlgoHive investment account to continue.";
             return "";
         }
@@ -1505,7 +1509,7 @@ renderPlanButtons(row?.subscription || 'free');
             }
             lastFullyUnlocked = nowUnlocked;
         }
-        lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
+        refreshGates(); window.addEventListener("hashchange", enforceSettingsGuard);
         const _origSetKycState = setKycState;
         setKycState = (isDone) => {
             _origSetKycState(isDone);
@@ -1547,10 +1551,12 @@ renderPlanButtons(row?.subscription || 'free');
                     .select('id', { count: 'exact', head: true })
                     .eq('profile_id', user.id);
                 if (error) throw error;
-                accountReady = (count || 0) > 0;
+                accountReady = ((count || 0) > 0) || legacyAccountNumber;
+                accountStatusLoaded = true;
             } catch (err) {
                 console.warn('Could not determine account presence', err);
-                accountReady = false;
+                accountReady = legacyAccountNumber;
+                accountStatusLoaded = true;
             } finally {
                 syncAccountControls(accountReady);
                 refreshGates();
@@ -1852,8 +1858,9 @@ renderPlanButtons(row?.subscription || 'free');
                 if (error) throw error;
 
                 const hasAccounts = Array.isArray(data) && data.length > 0;
-                accountReady = hasAccounts;
-                syncAccountControls(hasAccounts);
+                accountReady = hasAccounts || legacyAccountNumber;
+                accountStatusLoaded = true;
+                syncAccountControls(accountReady);
                 refreshGates();
 
                 if (!hasAccounts) {
@@ -1863,6 +1870,8 @@ renderPlanButtons(row?.subscription || 'free');
                 data.forEach(row => list.appendChild(renderAccountCard(row, { allowDelete: false })));
             } catch (e) {
                 console.error(e);
+                accountReady = legacyAccountNumber;
+                accountStatusLoaded = true;
                 banner(e.message || 'Could not load accounts', 'err');
             } finally {
                 loading?.classList.add('hidden');
