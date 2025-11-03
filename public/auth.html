@@ -105,7 +105,8 @@
       "risk_tolerance",
       "objectives"
     ];
-    const REQUIRE_KYC = false; // flip to true if you want KYC to be required to be “complete”
+
+    const hasValue = (value) => String(value ?? "").trim().length > 0;
 
     function resolveKycBoolean(row){
       const v = row?.kyc_status;
@@ -117,28 +118,60 @@
       return false;
     }
 
-    function computeProfileComplete(row){
-      const core = REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0);
-      return REQUIRE_KYC ? (core && resolveKycBoolean(row)) : core;
+    function computeAdditionalInfoComplete(row){
+      return REQUIRED_FIELDS.every(key => hasValue(row?.[key]));
     }
 
-    async function isProfileComplete(uid) {
-      // fetch exactly the fields we need (+ kyc_status if you enable REQUIRE_KYC)
-      const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(selectCols)
-        .eq("id", uid)
-        .maybeSingle();              // no row -> null instead of throwing
-      if (error) return false;       // treat errors as incomplete
-      return computeProfileComplete(data || {});
+    async function fetchProfileProgress(uid) {
+      const progress = { profileComplete: false, kycDone: false, hasAccount: false };
+
+      try {
+        const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
+        const { data, error } = await supabase
+          .from("profiles")
+          .select(selectCols)
+          .eq("id", uid)
+          .maybeSingle();
+
+        if (!error && data) {
+          progress.profileComplete = computeAdditionalInfoComplete(data);
+          progress.kycDone = resolveKycBoolean(data);
+        } else if (error && error.code !== "PGRST116") {
+          console.warn("Profile lookup failed", error);
+        }
+      } catch (err) {
+        console.warn("Profile lookup threw", err);
+      }
+
+      try {
+        const { count, error } = await supabase
+          .from("investment_accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("profile_id", uid);
+        if (!error) {
+          progress.hasAccount = (count || 0) > 0;
+        } else {
+          console.warn("Account lookup failed", error);
+        }
+      } catch (err) {
+        console.warn("Account lookup threw", err);
+      }
+
+      return progress;
+    }
+
+    function resolvePostAuthDestination(progress, preferred) {
+      if (!progress.profileComplete) return "/settings.html#extra";
+      if (!progress.kycDone) return "/settings.html#docs";
+      if (!progress.hasAccount) return "/settings.html#manage";
+      return preferred;
     }
 
     async function routePostAuth(preferred = "/Kycwindow.html") {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return; // email-confirm signup path
-      const complete = await isProfileComplete(session.user.id);
-      const dest = complete ? preferred : "/settings.html#extra";
+      const progress = await fetchProfileProgress(session.user.id);
+      const dest = resolvePostAuthDestination(progress, preferred);
       location.replace(dest);
     }
 
