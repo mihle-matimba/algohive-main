@@ -202,10 +202,7 @@
                     alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
                 <div class="min-w-0">
                     <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
-                    <div class="text-[11px] text-slate-500 label">
-                      <span id="sidebar-tagline">Where Smart Capital Gathers</span>
-                    </div>
-
+                    <div class="text-[11px] text-slate-500 label">ID: <span id="sidebar-acc">—</span></div>
                 </div>
             </div>
 
@@ -902,16 +899,7 @@
             el.textContent = msg;
             clearTimeout(el._t);
             el._t = setTimeout(() => el.remove(), 4000);
-        }
-        try {
-            const gateMsg = sessionStorage.getItem("ah_gate_reason");
-            if (gateMsg) {
-                banner(gateMsg, "warn");
-                sessionStorage.removeItem("ah_gate_reason");
-            }
-        } catch (err) {
-            console.warn("Could not read gate banner", err);
-        }
+        }    
         // ---------- profile helpers ----------
         const REQUIRED_FIELDS = [
             "first_name",
@@ -1084,6 +1072,31 @@
         let kycDone = resolveKycBoolean(row);
         setKycState(kycDone);
         let profileComplete = computeProfileComplete(row);
+        
+        // Account setup tracking
+        let accountsSetup = false;
+        
+        // Function to check if accounts are set up
+        async function checkAccountsSetup() {
+            try {
+                const { data, error } = await supabase
+                    .from('investment_accounts')
+                    .select('id')
+                    .eq('profile_id', user.id)
+                    .limit(1);
+                
+                if (error) throw error;
+                return data && data.length > 0;
+            } catch (e) {
+                console.warn('Could not check accounts setup:', e);
+                return false;
+            }
+        }
+        
+        // Initialize account setup status
+        if (profileComplete && kycDone) {
+            accountsSetup = await checkAccountsSetup();
+        }
 
         // DIDIT callback handler (runs after auth/user + setKycState exist)
         async function handleDiditCallbackAfterAuth() {
@@ -1414,23 +1427,40 @@ renderPlanButtons(row?.subscription || 'free');
 
         const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
         function isGated() {
-            // Users are gated until profile AND KYC are complete
-            // After KYC, only "Manage Accounts" is unlocked, everything else stays locked
-            return !(profileComplete && kycDone);
+            // Users are gated until profile, KYC, AND account setup are complete
+            // After KYC completion, only "Manage Accounts" is unlocked
+            // After account setup, everything is unlocked
+            return !(profileComplete && kycDone && accountsSetup);
         }
 
         function isTabAllowed(tabName) {
-            if (tabName === "subs") return true; // always allow viewing plans
+            // Always allow viewing subscription plans
+            if (tabName === "subs" && (!profileComplete || !kycDone)) return true;
+            
+            // Stage 1: Profile incomplete - only basic tabs
             if (!profileComplete) return allowedTabsWhenGated.has(tabName);
+            
+            // Stage 2: Profile complete, KYC incomplete - only basic tabs  
             if (profileComplete && !kycDone) return allowedTabsWhenGated.has(tabName);
-            if (profileComplete && kycDone) return ["extra", "docs", "manage", "subs"].includes(tabName);
+            
+            // Stage 3: Profile complete, KYC complete, accounts not set up - allow manage accounts
+            if (profileComplete && kycDone && !accountsSetup) {
+                return ["extra", "docs", "manage"].includes(tabName);
+            }
+            
+            // Stage 4: Everything complete - allow all tabs including subs
+            if (profileComplete && kycDone && accountsSetup) {
+                return ["extra", "docs", "manage", "subs"].includes(tabName);
+            }
+            
             return false;
         }
         function gateReason() {
             if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
             if (!profileComplete) return "Please finish Additional Info first.";
             if (!kycDone) return "Please complete KYC first.";
-            return "Please set up your account in Manage Accounts to continue.";
+            if (!accountsSetup) return "Please set up your investment account in Manage Accounts to continue.";
+            return "Setup complete! You now have full access.";
         }
         function lockMainNav() {
             const mainNav = document.getElementById("main-nav");
@@ -1443,8 +1473,11 @@ renderPlanButtons(row?.subscription || 'free');
                     location.hash = "#extra";
                 } else if (!kycDone) {
                     location.hash = "#kyc";
-                } else if (profileComplete && kycDone) {
+                } else if (!accountsSetup) {
                     location.hash = "#manage";
+                } else {
+                    // Everything complete, allow access
+                    return;
                 }
             }
             mainNav.querySelectorAll('a[href]').forEach(a => {
@@ -1466,7 +1499,7 @@ renderPlanButtons(row?.subscription || 'free');
                             location.hash = "#extra";
                         } else if (!kycDone) {
                             location.hash = "#kyc";
-                        } else if (profileComplete && kycDone) {
+                        } else if (!accountsSetup) {
                             location.hash = "#manage";
                         }
                     }, 0);
@@ -1484,7 +1517,7 @@ renderPlanButtons(row?.subscription || 'free');
                     target = "#extra";
                 } else if (!kycDone) {
                     target = "#kyc";
-                } else if (profileComplete && kycDone) {
+                } else if (!accountsSetup) {
                     target = "#manage";
                 } else {
                     target = "#extra"; // fallback
@@ -1492,6 +1525,12 @@ renderPlanButtons(row?.subscription || 'free');
                 if (hash !== target) { banner(gateReason(), "warn"); location.hash = target; }
             }
         }
+        async function refreshAccountSetup() {
+            if (profileComplete && kycDone) {
+                accountsSetup = await checkAccountsSetup();
+            }
+        }
+        
         function refreshGates() { lockMainNav(); enforceSettingsGuard(); }
         lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
         const _origSetKycState = setKycState;
@@ -1826,6 +1865,7 @@ renderPlanButtons(row?.subscription || 'free');
             if (error) return banner(error.message, 'err');
             banner('Account deleted', 'ok');
             loadAccounts();
+            await refreshAccountSetup();
         });
 
         // Load when Manage tab is visible
@@ -1923,6 +1963,7 @@ renderPlanButtons(row?.subscription || 'free');
                 banner('Account added', 'ok');
                 closeAdd();
                 loadAccounts();
+                await refreshAccountSetup();
 
             } catch (e) {
                 console.error(e);
