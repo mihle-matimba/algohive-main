@@ -961,7 +961,7 @@
 
   // === [NEW] SESSION TIMEOUT FUNCTION (Black, Fading) ===
   function setupSessionTimeout() {
-    const TIMEOUT_MINUTES = 2;
+    const TIMEOUT_MINUTES = 1;
     const WARNING_SECONDS = 60;
     
     let inactivityTimer;
@@ -1036,7 +1036,7 @@
   async function ensureProfile(id, email) {
     // try fetch; if missing, create a shell row
     let { data, error } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
-    if (error && error.code !== "PGRST116") throw error;
+    if (error && error.code !== "PGRST1Example") throw error;
     if (data) return data;
     const up = await supabase.from("profiles")
       .upsert({ id, email, updated_at: new Date().toISOString() }, { onConflict: "id" })
@@ -1056,6 +1056,9 @@
     }
 
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { // Added this check just in case
+        throw new Error("User not found despite session.");
+    }
     const row = await ensureProfile(user.id, user.email || null);
 
     // === [NEW] KYC/PROFILE REDIRECT LOGIC ===
@@ -1079,7 +1082,7 @@
     const fn = (row?.first_name || "").trim();
     const ln = (row?.last_name || "").trim();
     const fallback = (user.email || "User").split("@")[0];
-    setText("hdr-name", (fn || ln) ? `${fn} ${ln}`.trim() : fallback); // <-- [FIXED JS] This line was added
+    setText("hdr-name", (fn || ln) ? `${fn} ${ln}`.trim() : fallback); // <-- This populates the name
 
     // avatar (cache-bust public URL)
     const avatarUrl = row?.avatar_url ? `${row.avatar_url}${row.avatar_url.includes("?") ? "&" : "?"}v=${Date.now()}` : BLANK_AVATAR;
