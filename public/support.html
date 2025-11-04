@@ -289,10 +289,7 @@
       
 
 
-        <!-- END MODIFIED HEADER -->
-      
-
-      <section id="support-content" class="px-6 py-8">
+        <section id="support-content" class="px-6 py-8">
         <div class="max-w-4xl mx-auto">
 
           <div class="text-center mb-12">
@@ -305,7 +302,6 @@
             <p class="text-slate-600 text-lg">No results found for your search.</p>
           </div>
 
-          <!-- NEW SECTION: Getting Started (from Video) -->
           <div id="getting-started" class="searchable-section mb-12">
             <h2 class="text-2xl font-semibold text-slate-900 border-b pb-3 mb-6">Getting Started</h2>
             <div class="grid md:grid-cols-2 gap-6">
@@ -328,7 +324,6 @@
             </div>
           </div>
 
-          <!-- REBUILT FAQ SECTION (Content from index.html) -->
           <div id="faq" class="searchable-section mb-12">
             <h2 class="text-2xl font-semibold text-slate-900 border-b pb-3 mb-6">Frequently Asked Questions</h2>
             <div class="space-y-4">
@@ -396,7 +391,6 @@
             </div>
           </div>
 
-          <!-- KEPT AS-IS PER REQUEST -->
           <div id="contact" class="mb-12 bg-white p-8 rounded-lg border border-slate-200">
             <h2 class="text-2xl font-semibold text-slate-900">Contact Support</h2>
             <p class="text-slate-600 mt-2">Still can't find what you're looking for? Get in touch with our support team.
@@ -442,7 +436,6 @@
     </main>
   </div>
 
-  <!-- ADDED PROFILE MODAL -->
   <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/40"></div>
     <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
@@ -463,6 +456,22 @@
     </div>
   </div>
 
+  <div id="session-timeout-modal" class="fixed inset-0 z-[600] hidden p-6 grid place-items-center backdrop-blur-lg bg-black/40">
+    <div class="relative w-full max-w-md rounded-2xl border border-slate-300 bg-white p-8 shadow-2xl text-center">
+      <h2 class="text-xl font-semibold text-slate-900">Are you still there?</h2>
+      <p class="text-slate-600 mt-2">
+        You've been inactive for a while. You will be automatically logged out in
+        <span id="session-countdown" class="font-bold">60</span> seconds for security.
+      </p>
+      <button
+        id="session-stay-btn"
+        class="mt-6 inline-flex h-10 px-6 rounded-lg items-center justify-center font-medium
+               bg-[var(--olive)] text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/40"
+      >
+        I'm still here
+      </button>
+    </div>
+  </div>
   <script nonce="ALGOHIVE">
     // Sidebar collapse memory
     (function () {
@@ -545,7 +554,6 @@
     })();
   </script>
 
-  <!-- ADDED SUPABASE AUTH SCRIPT -->
   <script type="module" nonce="ALGOHIVE">
     import { supabase } from "/js/supabase.js"; 
 
@@ -553,6 +561,97 @@
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
     const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? "—"; };
     const setSrc = (id, v) => { const el = document.getElementById(id); if (el) el.src = v || BLANK_AVATAR; };
+
+    // === [NEW] PROFILE GATING HELPERS (from home.html) ===
+    const REQUIRED_PROFILE_FIELDS = [
+      "first_name", "last_name", "phone", "dob", "id_number", "nationality",
+      "country_residence", "employment_status", "occupation", "employer",
+      "income_bracket", "source_of_funds", "net_worth_range", "experience_level",
+      "risk_tolerance", "objectives",
+    ];
+    const hasValue = (value) => String(value ?? "").trim().length > 0;
+    const computeProfileComplete = (row) =>
+      REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
+
+    function resolveKycBoolean(row) {
+      const v = row?.kyc_status;
+      if (typeof v === "boolean") return v;
+      if (typeof v === "string")
+        return ["verified", "approved", "done", "passed", "kyc_done"].includes(
+          v.toLowerCase()
+        );
+      return false;
+    }
+    function gateBannerMessage(profileComplete, kycDone) {
+      if (!profileComplete && !kycDone)
+        return "Please finish Additional Info and complete KYC first.";
+      if (!profileComplete) return "Please finish Additional Info first.";
+      if (!kycDone) return "Please complete KYC first.";
+      return "";
+    }
+    // === [END NEW GATING HELPERS] ===
+
+    // === [NEW] SESSION TIMEOUT FUNCTION ===
+    function setupSessionTimeout() {
+      const TIMEOUT_MINUTES = 10;
+      const WARNING_SECONDS = 60;
+      
+      let inactivityTimer;
+      let warningTimer;
+      let countdownInterval;
+
+      const modal = document.getElementById('session-timeout-modal');
+      const countdownEl = document.getElementById('session-countdown');
+      const stayBtn = document.getElementById('session-stay-btn');
+
+      if (!modal || !countdownEl || !stayBtn) {
+        console.warn('Session timeout modal elements not found. Timeout disabled.');
+        return;
+      }
+
+      const logoutUser = () => {
+        supabase.auth.signOut();
+        // Manually redirect to be safe, as onAuthStateChange might not be set up here
+        location.replace("/auth.html?tab=in&reason=timeout");
+      };
+
+      const showWarning = () => {
+        modal.classList.remove('hidden');
+        let remaining = WARNING_SECONDS;
+        countdownEl.textContent = remaining;
+
+        countdownInterval = setInterval(() => {
+          remaining--;
+          countdownEl.textContent = remaining;
+          if (remaining <= 0) {
+            clearInterval(countdownInterval);
+          }
+        }, 1000);
+
+        warningTimer = setTimeout(logoutUser, WARNING_SECONDS * 1000);
+      };
+
+      const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningTimer);
+        clearInterval(countdownInterval);
+        modal.classList.add('hidden');
+        
+        inactivityTimer = setTimeout(showWarning, TIMEOUT_MINUTES * 60 * 1000); 
+      };
+
+      const userActivityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+      userActivityEvents.forEach(event => {
+        window.addEventListener(event, resetTimer, true);
+      });
+
+      stayBtn.addEventListener('click', resetTimer);
+
+      // Initial start
+      resetTimer();
+    }
+    // === [END SESSION TIMEOUT FUNCTION] ===
+
 
     async function ensureProfile(id, email) {
       // try fetch; if missing, create a shell row
@@ -581,6 +680,24 @@
       if (!user) throw new Error("User not found despite session.");
 
       const row = await ensureProfile(user.id, user.email || null);
+
+      // === [NEW] KYC/PROFILE REDIRECT LOGIC ===
+      // This check uses the helper functions defined above
+      const profileComplete = computeProfileComplete(row || {});
+      const kycDone = resolveKycBoolean(row || {});
+      if (!profileComplete || !kycDone) {
+        const targetHash = !profileComplete ? "#extra" : "#docs";
+        const message = gateBannerMessage(profileComplete, kycDone);
+        try {
+          if (message) sessionStorage.setItem("ah_gate_reason", message);
+        } catch (err) {
+          console.warn("Could not persist gate banner", err);
+        }
+        location.replace(`/settings.html${targetHash}`);
+        // Stop further execution on this page
+        throw new Error("redirecting"); 
+      }
+      // === [END NEW REDIRECT LOGIC] ===
 
       // header name (prefer first + last; fallback email handle)
       const fn = (row?.first_name || "").trim();
@@ -619,6 +736,11 @@
       } else {
         console.warn("Profile modal elements not found. Modal may not work.");
       }
+
+      // === [NEW] START THE SESSION TIMEOUT ===
+      // This is called last, only after auth and profile checks pass.
+      setupSessionTimeout();
+
     } catch (e) {
       // ignore “redirecting”
       if (String(e?.message).toLowerCase() !== "redirecting") console.error(e);
