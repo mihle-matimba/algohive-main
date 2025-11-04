@@ -368,22 +368,6 @@
     })();
   </script>
 
-  <div id="session-timeout-modal" class="fixed inset-0 z-[600] hidden p-6 grid place-items-center backdrop-blur-lg bg-black/40">
-    <div class="relative w-full max-w-md rounded-2xl border border-slate-300 bg-white p-8 shadow-2xl text-center">
-      <h2 class="text-xl font-semibold text-slate-900">Are you still there?</h2>
-      <p class="text-slate-600 mt-2">
-        You've been inactive for a while. You will be automatically logged out in
-        <span id="session-countdown" class="font-bold">60</span> seconds for security.
-      </p>
-      <button
-        id="session-stay-btn"
-        class="mt-6 inline-flex h-10 px-6 rounded-lg items-center justify-center font-medium
-               bg-[var(--olive)] text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/40"
-      >
-        I'm still here
-      </button>
-    </div>
-  </div>
   <script type="module" nonce="ALGOHIVE">
     import { supabase } from "/js/supabase.js";
 
@@ -391,35 +375,6 @@
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>";
     const setSrc  = (id, v) => { const el = document.getElementById(id); if (el) el.src = v || BLANK_AVATAR; };
     // --- End Added Helpers ---
-
-    // === [NEW] PROFILE GATING HELPERS ===
-    const REQUIRED_PROFILE_FIELDS = [
-      "first_name", "last_name", "phone", "dob", "id_number", "nationality",
-      "country_residence", "employment_status", "occupation", "employer",
-      "income_bracket", "source_of_funds", "net_worth_range", "experience_level",
-      "risk_tolerance", "objectives",
-    ];
-    const hasValue = (value) => String(value ?? "").trim().length > 0;
-    const computeProfileComplete = (row) =>
-      REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
-
-    function resolveKycBoolean(row) {
-      const v = row?.kyc_status;
-      if (typeof v === "boolean") return v;
-      if (typeof v === "string")
-        return ["verified", "approved", "done", "passed", "kyc_done"].includes(
-          v.toLowerCase()
-        );
-      return false;
-    }
-    function gateBannerMessage(profileComplete, kycDone) {
-      if (!profileComplete && !kycDone)
-        return "Please finish Additional Info and complete KYC first.";
-      if (!profileComplete) return "Please finish Additional Info first.";
-      if (!kycDone) return "Please complete KYC first.";
-      return "";
-    }
-    // === [END NEW GATING HELPERS] ===
 
     // ===== Authentication Guard =====
     const { data: { session } } = await supabase.auth.getSession();
@@ -444,23 +399,6 @@
     // ===== Load User Profile =====
     const profile = await ensureProfile(user.id, user.email || null);
 
-    // === [NEW] KYC/PROFILE REDIRECT LOGIC ===
-    const profileComplete = computeProfileComplete(profile || {});
-    const kycDone = resolveKycBoolean(profile || {});
-    if (!profileComplete || !kycDone) {
-      const targetHash = !profileComplete ? "#extra" : "#docs";
-      const message = gateBannerMessage(profileComplete, kycDone);
-      try {
-        if (message) sessionStorage.setItem("ah_gate_reason", message);
-      } catch (err) {
-        console.warn("Could not persist gate banner", err);
-      }
-      location.replace(`/settings.html${targetHash}`);
-      // Stop further execution on this page
-      return; 
-    }
-    // === [END NEW REDIRECT LOGIC] ===
-
     // ===== Header Profile Info =====
     const displayName = profile.first_name && profile.last_name 
       ? `${profile.first_name} ${profile.last_name}` 
@@ -484,79 +422,12 @@
     btnLogout?.addEventListener("click", async () => {
       try {
         await supabase.auth.signOut();
-        // Redirect to auth.html, not the root
-        location.replace("/auth.html?tab=in"); 
+        location.replace("/auth.html?tab=in");
       } catch (error) {
         console.error("Logout failed:", error);
         alert("Sorry, logout failed. Please try again.");
       }
     });
-
-    // === [NEW] SESSION TIMEOUT LOGIC ===
-    function setupSessionTimeout() {
-      const TIMEOUT_MINUTES = 10;
-      const WARNING_SECONDS = 60;
-      
-      let inactivityTimer;
-      let warningTimer;
-      let countdownInterval;
-
-      const modal = document.getElementById('session-timeout-modal');
-      const countdownEl = document.getElementById('session-countdown');
-      const stayBtn = document.getElementById('session-stay-btn');
-
-      if (!modal || !countdownEl || !stayBtn) {
-        console.warn('Session timeout modal elements not found. Timeout disabled.');
-        return;
-      }
-
-      const logoutUser = () => {
-        // This will trigger the auth state change listener if one is set up,
-        // or we can just redirect manually.
-        supabase.auth.signOut();
-        // Manually redirect to be safe
-        location.replace("/auth.html?tab=in&reason=timeout");
-      };
-
-      const showWarning = () => {
-        modal.classList.remove('hidden');
-        let remaining = WARNING_SECONDS;
-        countdownEl.textContent = remaining;
-
-        countdownInterval = setInterval(() => {
-          remaining--;
-          countdownEl.textContent = remaining;
-          if (remaining <= 0) {
-            clearInterval(countdownInterval);
-          }
-        }, 1000);
-
-        warningTimer = setTimeout(logoutUser, WARNING_SECONDS * 1000);
-      };
-
-      const resetTimer = () => {
-        clearTimeout(inactivityTimer);
-        clearTimeout(warningTimer);
-        clearInterval(countdownInterval);
-        modal.classList.add('hidden');
-        
-        // Set to 10 minutes (10 * 60 * 1000)
-        inactivityTimer = setTimeout(showWarning, TIMEOUT_MINUTES * 60 * 1000); 
-      };
-
-      const userActivityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-      userActivityEvents.forEach(event => {
-        window.addEventListener(event, resetTimer, true);
-      });
-
-      stayBtn.addEventListener('click', resetTimer);
-
-      // Initial start
-      resetTimer();
-    }
-
-    setupSessionTimeout();
-    // === END SESSION TIMEOUT LOGIC ===
   </script>
 
 </body>
