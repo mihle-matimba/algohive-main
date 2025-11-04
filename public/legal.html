@@ -140,6 +140,73 @@
       cursor: not-allowed;
     }
 
+    /* NEW: Digital Stopwatch Display Styles */
+    @font-face {
+        font-family: 'Digital-7 Mono';
+        src: url('https://fonts.cdnfonts.com/s/43424/digital-7%20(mono).woff') format('woff');
+        /* You might need to host this font yourself or use a different source */
+        font-weight: normal;
+        font-style: normal;
+    }
+    
+    .digital-display {
+      font-family: 'Digital-7 Mono', monospace; /* Will use a fallback if not available */
+      font-size: 3.5rem; /* Larger font size */
+      font-weight: normal; /* Digital fonts are usually not bold */
+      color: #FF0000; /* Bright red color */
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.7); /* Glow effect */
+      letter-spacing: -3px; /* Tighter spacing for digital look */
+      line-height: 1;
+      text-align: center;
+      display: flex; /* To align minutes and seconds */
+      justify-content: center;
+      align-items: center;
+      margin-top: 1rem;
+      position: relative;
+    }
+
+    .digital-display span {
+      position: relative;
+      padding: 0 5px; /* Add some padding around digits */
+    }
+
+    .digital-display span::before {
+      content: '88'; /* Ghosting effect for unlit segments */
+      position: absolute;
+      color: rgba(255, 0, 0, 0.15); /* Faded red for unlit segments */
+      left: 0;
+      top: 0;
+      width: 100%;
+      text-align: center;
+    }
+
+    .digital-display span:first-child::before { content: '00'; } /* Minutes ghost */
+    .digital-display span:last-child::before { content: '88'; }  /* Seconds ghost */
+
+
+    /* Animation for attention */
+    @keyframes pulse-red {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .digital-display.active-warning {
+      animation: pulse-red 1s infinite alternate; /* Apply animation when active */
+    }
+
+    /* Keep the pop-up centered and visible */
+    #session-timeout-modal .modal-content-custom {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      width: 90vw;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    /* END: Digital Stopwatch Styles */
+
     /* Active state for the links */
     .link-active {
         background-color: #f1f5f9;
@@ -294,7 +361,10 @@
       <h2 class="text-xl font-semibold text-slate-900">Are you still there?</h2>
       <p class="text-slate-600 mt-2">
         You've been inactive for a while. You will be automatically logged out in
-        <span id="session-countdown" class="font-bold">60</span> seconds for security.
+        <div id="session-countdown" class="digital-display mt-4">
+          <span id="countdown-minutes">00</span>:<span id="countdown-seconds">60</span>
+        </div>
+         seconds for security.
       </p>
       <button
         id="session-stay-btn"
@@ -445,9 +515,9 @@
       }
     });
 
-    // === [NEW] SESSION TIMEOUT LOGIC (2 MINUTES) ===
+    // === [NEW] SESSION TIMEOUT LOGIC (10 MINUTES WITH ANIMATED RED DIGITAL DISPLAY) ===
     function setupSessionTimeout() {
-      const TIMEOUT_MINUTES = 10; // <-- Set to 2 minutes
+      const TIMEOUT_MINUTES = 10; // <-- Set to 10 minutes
       const WARNING_SECONDS = 60;
       
       let inactivityTimer;
@@ -455,11 +525,13 @@
       let countdownInterval;
 
       const modal = document.getElementById('session-timeout-modal');
-      const countdownEl = document.getElementById('session-countdown');
+      const countdownContainer = document.getElementById('session-countdown'); // The new container div
+      const countdownMinutesEl = document.getElementById('countdown-minutes');
+      const countdownSecondsEl = document.getElementById('countdown-seconds');
       const stayBtn = document.getElementById('session-stay-btn');
 
-      if (!modal || !countdownEl || !stayBtn) {
-        console.warn('Session timeout modal elements not found. Timeout disabled.');
+      if (!modal || !countdownContainer || !countdownMinutesEl || !countdownSecondsEl || !stayBtn) {
+        console.warn('Session timeout modal elements not found or incomplete. Timeout disabled.');
         return;
       }
 
@@ -468,14 +540,23 @@
         location.replace("/auth.html?tab=in&reason=timeout");
       };
 
+      const updateCountdownDisplay = (totalSeconds) => {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        countdownMinutesEl.textContent = String(minutes).padStart(2, '0');
+        countdownSecondsEl.textContent = String(seconds).padStart(2, '0');
+      };
+
       const showWarning = () => {
         modal.classList.remove('hidden');
+        countdownContainer.classList.add('active-warning'); // Add animation class
+
         let remaining = WARNING_SECONDS;
-        countdownEl.textContent = remaining;
+        updateCountdownDisplay(remaining);
 
         countdownInterval = setInterval(() => {
           remaining--;
-          countdownEl.textContent = remaining;
+          updateCountdownDisplay(remaining);
           if (remaining <= 0) {
             clearInterval(countdownInterval);
           }
@@ -489,7 +570,9 @@
         clearTimeout(warningTimer);
         clearInterval(countdownInterval);
         modal.classList.add('hidden');
-        
+        countdownContainer.classList.remove('active-warning'); // Remove animation class
+        updateCountdownDisplay(WARNING_SECONDS); // Reset display to default
+
         // Set timer
         inactivityTimer = setTimeout(showWarning, TIMEOUT_MINUTES * 60 * 1000); 
       };
