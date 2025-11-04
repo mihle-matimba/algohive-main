@@ -289,6 +289,22 @@
     </div>
   </div>
   
+  <div id="session-timeout-modal" class="fixed inset-0 z-[600] hidden p-6 grid place-items-center backdrop-blur-lg bg-black/40">
+    <div class="relative w-full max-w-md rounded-2xl border border-slate-300 bg-white p-8 shadow-2xl text-center">
+      <h2 class="text-xl font-semibold text-slate-900">Are you still there?</h2>
+      <p class="text-slate-600 mt-2">
+        You've been inactive for a while. You will be automatically logged out in
+        <span id="session-countdown" class="font-bold">60</span> seconds for security.
+      </p>
+      <button
+        id="session-stay-btn"
+        class="mt-6 inline-flex h-10 px-6 rounded-lg items-center justify-center font-medium
+               bg-[var(--olive)] text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/40"
+      >
+        I'm still here
+      </button>
+    </div>
+  </div>
   <script nonce="ALGOHIVE">
     // SCRIPT FOR MOBILE SIDEBAR
     (function () {
@@ -428,6 +444,70 @@
         alert("Sorry, logout failed. Please try again.");
       }
     });
+
+    // === [NEW] SESSION TIMEOUT LOGIC (2 MINUTES) ===
+    function setupSessionTimeout() {
+      const TIMEOUT_MINUTES = 2; // <-- Set to 2 minutes
+      const WARNING_SECONDS = 60;
+      
+      let inactivityTimer;
+      let warningTimer;
+      let countdownInterval;
+
+      const modal = document.getElementById('session-timeout-modal');
+      const countdownEl = document.getElementById('session-countdown');
+      const stayBtn = document.getElementById('session-stay-btn');
+
+      if (!modal || !countdownEl || !stayBtn) {
+        console.warn('Session timeout modal elements not found. Timeout disabled.');
+        return;
+      }
+
+      const logoutUser = () => {
+        supabase.auth.signOut();
+        location.replace("/auth.html?tab=in&reason=timeout");
+      };
+
+      const showWarning = () => {
+        modal.classList.remove('hidden');
+        let remaining = WARNING_SECONDS;
+        countdownEl.textContent = remaining;
+
+        countdownInterval = setInterval(() => {
+          remaining--;
+          countdownEl.textContent = remaining;
+          if (remaining <= 0) {
+            clearInterval(countdownInterval);
+          }
+        }, 1000);
+
+        warningTimer = setTimeout(logoutUser, WARNING_SECONDS * 1000);
+      };
+
+      const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningTimer);
+        clearInterval(countdownInterval);
+        modal.classList.add('hidden');
+        
+        // Set timer
+        inactivityTimer = setTimeout(showWarning, TIMEOUT_MINUTES * 60 * 1000); 
+      };
+
+      const userActivityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+      userActivityEvents.forEach(event => {
+        window.addEventListener(event, resetTimer, true);
+      });
+
+      stayBtn.addEventListener('click', resetTimer);
+
+      // Initial start
+      resetTimer();
+    }
+
+    // Start the timer
+    setupSessionTimeout();
+    // === END SESSION TIMEOUT LOGIC ===
   </script>
 
 </body>
