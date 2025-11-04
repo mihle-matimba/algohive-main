@@ -678,6 +678,22 @@
     </div>
   </div>
 
+  <div id="session-timeout-modal" class="fixed inset-0 z-[600] hidden p-6 grid place-items-center backdrop-blur-lg bg-black/40">
+    <div class="relative w-full max-w-md rounded-2xl border border-slate-300 bg-white p-8 shadow-2xl text-center">
+      <h2 class="text-xl font-semibold text-slate-900">Are you still there?</h2>
+      <p class="text-slate-600 mt-2">
+        You've been inactive for a while. You will be automatically logged out in
+        <span id="session-countdown" class="font-bold">60</span> seconds for security.
+      </p>
+      <button
+        id="session-stay-btn"
+        class="mt-6 inline-flex h-10 px-6 rounded-lg items-center justify-center font-medium
+               bg-[var(--olive)] text-white hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/40"
+      >
+        I'm still here
+      </button>
+    </div>
+  </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
 
   <script>
@@ -1023,6 +1039,8 @@
     return m.name || m.symbol || `Strategy ${String(id).slice(0, 6)}…`;
   }
 
+
+
   function equityOf(h) {
     const p = priceByStrategy.get(h.strategy_id);
     const nav = Number(p?.nav || 0);
@@ -1195,6 +1213,7 @@
       console.error("Profile ensure failed", err);
     }
 
+    // === [THIS IS THE REDIRECT LOGIC YOU ASKED ABOUT] ===
     const profileComplete = computeProfileComplete(profileRow || {});
     const kycDone = resolveKycBoolean(profileRow || {});
     if (!profileComplete || !kycDone) {
@@ -1208,9 +1227,73 @@
       location.replace(`/settings.html${targetHash}`);
       return;
     }
+    // === [END OF REDIRECT LOGIC] ===
 
     await setHeaderNameAndAvatar(user);
     wireProfileMenu();
+
+    // === [NEW] SESSION TIMEOUT LOGIC ===
+    function setupSessionTimeout() {
+      const TIMEOUT_MINUTES = 10;
+      const WARNING_SECONDS = 60;
+      
+      let inactivityTimer;
+      let warningTimer;
+      let countdownInterval;
+
+      const modal = document.getElementById('session-timeout-modal');
+      const countdownEl = document.getElementById('session-countdown');
+      const stayBtn = document.getElementById('session-stay-btn');
+
+      if (!modal || !countdownEl || !stayBtn) {
+        console.warn('Session timeout modal elements not found. Timeout disabled.');
+        return;
+      }
+
+      const logoutUser = () => {
+        // This will trigger the 'SIGNED_OUT' event in onAuthStateChange
+        supabase.auth.signOut();
+      };
+
+      const showWarning = () => {
+        modal.classList.remove('hidden');
+        let remaining = WARNING_SECONDS;
+        countdownEl.textContent = remaining;
+
+        countdownInterval = setInterval(() => {
+          remaining--;
+          countdownEl.textContent = remaining;
+          if (remaining <= 0) {
+            clearInterval(countdownInterval);
+          }
+        }, 1000);
+
+        warningTimer = setTimeout(logoutUser, WARNING_SECONDS * 1000);
+      };
+
+      const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningTimer);
+        clearInterval(countdownInterval);
+        modal.classList.add('hidden');
+        
+        // Set to 10 minutes (10 * 60 * 1000)
+        inactivityTimer = setTimeout(showWarning, TIMEOUT_MINUTES * 60 * 1000); 
+      };
+
+      const userActivityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+      userActivityEvents.forEach(event => {
+        window.addEventListener(event, resetTimer, true);
+      });
+
+      stayBtn.addEventListener('click', resetTimer);
+
+      // Initial start
+      resetTimer();
+    }
+
+    setupSessionTimeout();
+    // === END SESSION TIMEOUT LOGIC ===
 
     // quick existence test – uses your RPC: has_units(uid uuid) returns boolean
     let hasAny = false;
