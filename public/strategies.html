@@ -961,7 +961,7 @@
 
   // === [NEW] SESSION TIMEOUT FUNCTION (Black, Fading) ===
   function setupSessionTimeout() {
-    const TIMEOUT_MINUTES = 1;
+    const TIMEOUT_MINUTES = 10; // Set to 10 minutes
     const WARNING_SECONDS = 60;
     
     let inactivityTimer;
@@ -1036,7 +1036,7 @@
   async function ensureProfile(id, email) {
     // try fetch; if missing, create a shell row
     let { data, error } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
-    if (error && error.code !== "PGRST1Example") throw error;
+    if (error && error.code !== "PGRST116") throw error; // Do not throw on "No rows"
     if (data) return data;
     const up = await supabase.from("profiles")
       .upsert({ id, email, updated_at: new Date().toISOString() }, { onConflict: "id" })
