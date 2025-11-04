@@ -1462,49 +1462,75 @@ renderPlanButtons(row?.subscription || 'free');
             if (!accountsSetup) return "Please set up your investment account in Manage Accounts to continue.";
             return "Setup complete! You now have full access.";
         }
+        // Store prevent nav handlers so we can remove them
+        const preventNavHandlers = new WeakMap();
+        
         function lockMainNav() {
             const mainNav = document.getElementById("main-nav");
             if (!mainNav) return;
-            function preventNav(e) {
-                e.preventDefault();
-                banner(gateReason(), "warn");
-                // Determine where to redirect based on completion status
-                if (!profileComplete) {
-                    location.hash = "#extra";
-                } else if (!kycDone) {
-                    location.hash = "#kyc";
-                } else if (!accountsSetup) {
-                    location.hash = "#manage";
-                } else {
-                    // Everything complete, allow access
-                    return;
-                }
-            }
+            
             mainNav.querySelectorAll('a[href]').forEach(a => {
                 const href = (a.getAttribute("href") || "").trim();
                 const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
-                if (isGated() && !isSettings) {
-                    a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
-                    a.title = "Locked until profile + KYC are complete and account is set up";
-                    a.addEventListener("click", preventNav, { passive: false });
-                } else {
-                    a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
+                
+                // Remove old handler if it exists
+                const oldHandler = preventNavHandlers.get(a);
+                if (oldHandler) {
+                    a.removeEventListener("click", oldHandler);
+                    preventNavHandlers.delete(a);
                 }
-            });
-            mainNav.querySelectorAll('details > summary').forEach(sum => {
-                function onSumClick() {
-                    if (isGated()) setTimeout(() => {
+                
+                if (isGated() && !isSettings) {
+                    const preventNav = function(e) {
+                        e.preventDefault();
                         banner(gateReason(), "warn");
+                        // Determine where to redirect based on completion status
                         if (!profileComplete) {
                             location.hash = "#extra";
                         } else if (!kycDone) {
                             location.hash = "#kyc";
                         } else if (!accountsSetup) {
                             location.hash = "#manage";
+                        } else {
+                            // Everything complete, allow access
+                            return;
                         }
-                    }, 0);
+                    };
+                    
+                    a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
+                    a.title = "Locked until profile + KYC are complete and account is set up";
+                    a.addEventListener("click", preventNav, { passive: false });
+                    preventNavHandlers.set(a, preventNav);
+                } else {
+                    a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
                 }
-                sum.addEventListener("click", onSumClick);
+            });
+            
+            // Handle dropdown menus (details > summary)
+            mainNav.querySelectorAll('details > summary').forEach(sum => {
+                // Remove old handler if it exists
+                const oldSumHandler = preventNavHandlers.get(sum);
+                if (oldSumHandler) {
+                    sum.removeEventListener("click", oldSumHandler);
+                    preventNavHandlers.delete(sum);
+                }
+                
+                if (isGated()) {
+                    const onSumClick = function() {
+                        setTimeout(() => {
+                            banner(gateReason(), "warn");
+                            if (!profileComplete) {
+                                location.hash = "#extra";
+                            } else if (!kycDone) {
+                                location.hash = "#kyc";
+                            } else if (!accountsSetup) {
+                                location.hash = "#manage";
+                            }
+                        }, 0);
+                    };
+                    sum.addEventListener("click", onSumClick);
+                    preventNavHandlers.set(sum, onSumClick);
+                }
             });
         }
         function enforceSettingsGuard() {
