@@ -11,80 +11,207 @@
       --olive-700: #576138;
       --ink: #0B1215;
     }
-    body { background: #f6f7f6 }
+    body { background: #f6f7f6; }
+    .preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: #f6f7f6;
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: opacity .45s ease;
+    }
+    .preloader__logo {
+      height: 3rem;
+      width: auto;
+      animation: heroSlideUp .6s ease-out, preloaderPulse 2.4s ease-in-out .45s infinite;
+    }
+    .preloader__brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      animation: heroSlideUp .6s ease-out .08s both;
+    }
+    .preloader__tagline {
+      font-size: .95rem;
+      color: rgba(11, 18, 21, 0.68);
+      animation: heroSlideUp .6s ease-out .14s both;
+    }
+    .preloader--hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .btn-shine { position: relative; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
+    .btn-shine::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.7) 50%, transparent 100%); transform: translateX(-120%); transition: transform .8s ease; }
+    .btn-shine:hover::before { transform: translateX(120%); }
+    .btn-shine:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -16px rgba(11,18,21,0.4); }
+    .btn-shine:disabled { box-shadow: none; transform: none; }
+    .btn-shine:disabled::before { display: none; }
+    .auth-left { animation: heroSlideUp .7s ease-out .25s both; }
+    .auth-right { animation: heroScaleIn .9s cubic-bezier(.2,.8,.2,1) .35s both; }
+    @keyframes heroScaleIn { 0% { transform: scale(1.06); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes preloaderPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+    .orb-gradient {
+      background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0) 60%),
+                        radial-gradient(circle at 80% 20%, rgba(126,141,82,0.18), rgba(255,255,255,0) 55%),
+                        radial-gradient(circle at 50% 80%, rgba(126,141,82,0.12), rgba(255,255,255,0) 55%);
+    }
   </style>
 </head>
 
-<body class="min-h-screen grid place-items-center">
-  <main class="w-full max-w-md bg-white p-6 rounded-2xl shadow border border-black/10">
-    <!-- Brand -->
-    <div class="flex items-center gap-2 mb-4">
-      <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-7 w-auto">
-      <h1 class="text-lg font-extrabold text-[var(--ink)]">AlgoHive</h1>
-    </div>
+<body class="min-h-screen antialiased text-slate-900">
+  <div id="preloader" class="preloader">
+    <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="preloader__logo" />
+    <span class="preloader__brand">AlgoHive</span>
+    <span class="preloader__tagline">Where Smart Capital Gathers</span>
+  </div>
+  <div class="flex min-h-screen flex-col bg-transparent lg:flex-row lg:items-stretch">
+    <!-- Left: Auth -->
+    <main class="auth-left relative mx-auto w-full max-w-2xl bg-white px-6 py-12 shadow-sm sm:px-10 sm:py-14 lg:flex lg:min-h-screen lg:max-w-lg lg:flex-col lg:justify-between lg:px-16 lg:py-20 lg:shadow">
+      <!-- Brand -->
+      <div class="flex items-center gap-2">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-8 w-auto" />
+        <span class="text-lg font-semibold tracking-tight text-[var(--ink)]">AlgoHive</span>
+      </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-2 mb-4">
-      <button id="tab-in" type="button" class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
-      <button id="tab-up" type="button" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
-    </div>
+      <!-- Auth content -->
+      <div class="mt-10 flex-1 lg:mt-16">
+        <header class="mb-9 space-y-3">
+          <div id="heading-in" class="space-y-2">
+            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Welcome back</p>
+            <h1 class="text-3xl font-semibold text-slate-900 sm:text-[34px]">Sign in to AlgoHive</h1>
+            <p class="text-sm text-slate-500">Need to register? <button id="switch-to-signup" type="button" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Sign up.</button></p>
+          </div>
+          <div id="heading-up" class="hidden space-y-2">
+            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Join the hive</p>
+            <h1 class="text-3xl font-semibold text-slate-900 sm:text-[34px]">Create your account</h1>
+            <p class="text-sm text-slate-500">Already have an account? <button id="switch-to-signin" type="button" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Log in.</button></p>
+          </div>
+        </header>
 
-    <!-- Messages -->
-    <div id="msg" class="hidden mb-3 rounded-lg border text-sm px-3 py-2"></div>
+        <!-- Messages -->
+        <div id="msg" class="hidden mb-5 max-w-md rounded-lg border px-3 py-2 text-sm text-left"></div>
 
-    <!-- Sign in -->
-    <form id="login-form" class="space-y-3">
-      <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
-      <button type="submit" class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
-      <button id="forgot" type="button" class="w-full text-sm text-[var(--olive-700)] underline">Forgot password?</button>
-    </form>
+        <!-- Sign in -->
+        <section id="panel-in" class="space-y-8">
+          <form id="login-form" class="space-y-5 text-left sm:max-w-md">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="login-email">Email or username</label>
+              <input id="login-email" name="email" type="email" placeholder="john@company.com" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <label class="font-medium text-slate-700" for="login-password">Password</label>
+                <button id="forgot" type="button" class="font-medium text-[var(--olive)] hover:text-[var(--olive-700)]">Forgot password?</button>
+              </div>
+              <input id="login-password" name="password" type="password" placeholder="••••••••" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+            </div>
+            <button type="submit" class="btn-shine w-full rounded-2xl bg-[var(--olive)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">Log in</button>
+          </form>
+        </section>
 
-    <!-- Inline forgot form -->
-    <div id="forgot-wrap" class="hidden mt-3">
-      <form id="forgot-form" class="space-y-2">
-        <input name="email" type="email" placeholder="Your email" class="w-full border rounded px-3 py-2" required />
-        <div class="flex gap-2">
-          <button type="submit" class="flex-1 rounded px-3 py-2 bg-[var(--olive)] text-white">Send reset link</button>
-          <button type="button" id="forgot-cancel" class="rounded px-3 py-2 border">Cancel</button>
+        <!-- Inline forgot form -->
+        <div id="forgot-wrap" class="mt-8 hidden w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+          <h2 class="mb-3 text-sm font-semibold text-slate-700">Reset password</h2>
+          <form id="forgot-form" class="space-y-3">
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-slate-600" for="forgot-email">Email</label>
+              <input id="forgot-email" name="email" type="email" placeholder="you@example.com" class="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+            </div>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <button type="submit" class="btn-shine flex-1 rounded-2xl bg-[var(--olive)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">Send reset link</button>
+              <button type="button" id="forgot-cancel" class="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300">Cancel</button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
 
-    <!-- Sign up -->
-    <form id="signup-form" class="space-y-3 hidden mt-2">
-      <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
+        <!-- Sign up -->
+        <section id="panel-up" class="hidden space-y-6">
+          <form id="signup-form" class="space-y-5 text-left sm:max-w-md">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="signup-email">Email</label>
+              <input id="signup-email" name="email" type="email" placeholder="john@company.com" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="signup-password">Password</label>
+              <input id="signup-password" name="password" type="password" placeholder="At least 6 characters" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+            </div>
+            <label class="flex items-start gap-3 rounded-2xl bg-slate-50/90 p-4 text-xs text-slate-600">
+              <input id="agree" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]" />
+              <span>
+                I agree to the
+                <a href="/terms.html" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Terms &amp; Conditions</a>,
+                <a href="/privacy.html" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Privacy Policy</a>,
+                <a href="/risk.html" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Risk Disclosure</a>, and
+                <a href="/investment-disclaimer.html" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Investment Disclaimer</a>.
+              </span>
+            </label>
+            <button id="signup-btn" type="submit" class="btn-shine w-full rounded-2xl bg-[var(--olive)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)] disabled:cursor-not-allowed disabled:opacity-60" disabled>
+              Create account
+            </button>
+            <p class="text-[11px] leading-relaxed text-slate-500">We’ll email a confirmation link to activate your account.</p>
+          </form>
+        </section>
+      </div>
 
-      <!-- Legal acceptance -->
-      <label class="flex items-start gap-2 text-xs text-slate-700">
-        <input id="agree" type="checkbox" class="mt-1 accent-[var(--olive)]" />
-        <span>
-          I agree to the
-          <a href="/terms.html" class="underline text-[var(--olive-700)]">Terms & Conditions</a>,
-          <a href="/privacy.html" class="underline text-[var(--olive-700)]">Privacy Policy</a>,
-          <a href="/risk.html" class="underline text-[var(--olive-700)]">Risk Disclosure</a>, and
-          <a href="/investment-disclaimer.html" class="underline text-[var(--olive-700)]">Investment Disclaimer</a>.
-        </span>
-      </label>
-
-      <button id="signup-btn" type="submit" class="w-full rounded px-3 py-2 bg-[var(--olive)] text-white disabled:opacity-50" disabled>
-        Create account
-      </button>
-      <p class="text-[11px] text-slate-500">We’ll email a confirmation link to activate your account.</p>
-    </form>
-
-    <!-- FSP notice -->
-    <div class="mt-6 rounded-xl border border-black/10 bg-black/[0.03] p-3">
-      <p class="text-[11px] leading-5 text-slate-600">
+      <!-- Notice -->
+      <footer class="mt-14 border-t border-slate-100 pt-6 text-left text-[11px] leading-5 text-slate-500">
         AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past performance is not indicative of future results.
-      </p>
-    </div>
-  </main>
+      </footer>
+    </main>
+
+    <!-- Right: Preview -->
+    <aside class="auth-right relative hidden w-full bg-[#f7f9ff] px-6 py-14 shadow-inner lg:flex lg:flex-1 lg:items-stretch lg:rounded-none lg:px-20 lg:py-20">
+      <div class="absolute inset-0 orb-gradient opacity-95"></div>
+      <div class="relative z-10 ml-auto flex w-full max-w-5xl flex-col items-start gap-12">
+        <section class="max-w-xl space-y-6 text-left text-slate-800">
+          <p class="text-2xl font-semibold leading-snug text-slate-900 sm:text-[28px] lg:text-[32px]">
+            <span class="text-[var(--olive)]">“Investing as you know it is kept behind closed doors.</span><br />
+            At AlgoHive open the vail with our Open Strategies”
+          </p>
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/80 shadow-sm">
+              <span class="text-base font-semibold text-[var(--olive-700)]">LD</span>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-800">Lonwabo Damane</p>
+              <p class="text-xs text-slate-500">CEO of AlgoHive</p>
+            </div>
+          </div>
+        </section>
+        <figure class="relative w-full overflow-hidden rounded-[10px] bg-[#0b1215] shadow-[0_45px_120px_-60px_rgba(11,18,21,0.45)]">
+          <video
+            class="block w-full"
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="auto"
+          >
+            <source src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/Screen%20Recording%202025-11-05%20at%2018.14.15.mov" />
+            Your browser does not support the video tag.
+          </video>
+        </figure>
+      </div>
+    </aside>
+  </div>
 
   <script type="module" nonce="ALGOHIVE">
     import { signIn, signUp } from "/js/auth.js";
     import { supabase } from "/js/supabase.js";
+
+    const preloader = document.getElementById("preloader");
+    window.addEventListener("load", () => {
+      if (!preloader) return;
+      preloader.classList.add("preloader--hide");
+      setTimeout(() => preloader.remove(), 450);
+    });
 
     // --- SAME COMPLETENESS RULE AS SETTINGS ---
     const REQUIRED_FIELDS = [
@@ -146,8 +273,12 @@
     const redirectTo = qs.get("redirect") || "/home.html";
 
     // elems
-    const tabIn = document.getElementById("tab-in");
-    const tabUp = document.getElementById("tab-up");
+    const headingIn = document.getElementById("heading-in");
+    const headingUp = document.getElementById("heading-up");
+    const panelIn = document.getElementById("panel-in");
+    const panelUp = document.getElementById("panel-up");
+    const switchToSignup = document.getElementById("switch-to-signup");
+    const switchToSignin = document.getElementById("switch-to-signin");
     const fIn = document.getElementById("login-form");
     const fUp = document.getElementById("signup-form");
     const msg = document.getElementById("msg");
@@ -171,21 +302,16 @@
     function show(tab) {
       clearMsg();
       const up = tab === "up";
-      fUp.classList.toggle("hidden", !up);
-      fIn.classList.toggle("hidden", up);
-      tabUp.classList.toggle("bg-black", up);
-      tabUp.classList.toggle("text-white", up);
-      tabUp.classList.toggle("bg-gray-100", !up);
-      tabIn.classList.toggle("bg-black", !up);
-      tabIn.classList.toggle("text-white", !up);
-      tabIn.classList.toggle("bg-gray-100", up);
+      panelUp.classList.toggle("hidden", !up);
+      panelIn.classList.toggle("hidden", up);
+      headingUp.classList.toggle("hidden", !up);
+      headingIn.classList.toggle("hidden", up);
       forgot.classList.toggle("hidden", up);
       forgotWrap.classList.add("hidden");
     }
 
-    // tabs
-    tabIn.addEventListener("click", () => show("in"));
-    tabUp.addEventListener("click", () => show("up"));
+    switchToSignup?.addEventListener("click", () => show("up"));
+    switchToSignin?.addEventListener("click", () => show("in"));
 
     // enable/disable signup by checkbox
     const toggleSignupBtn = () => signupBtn.disabled = !agree.checked;
@@ -199,14 +325,14 @@
       const email = e.target.email.value.trim();
       const password = e.target.password.value;
       try {
-        setLoading(inBtn, true, "Sign in", "Signing in…");
+        setLoading(inBtn, true, "Log in", "Logging in…");
         await signIn(email, password);
         showMsg("Signed in. Redirecting…", "success");
         await routePostAuth(redirectTo);
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
-        setLoading(inBtn, false, "Sign in");
+        setLoading(inBtn, false, "Log in");
       }
     });
 
