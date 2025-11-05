@@ -184,6 +184,11 @@
               <label class="text-sm font-medium text-slate-700" for="signup-password">Password</label>
               <input id="signup-password" name="password" type="password" placeholder="At least 6 characters" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
             </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="signup-confirm-password">Confirm password</label>
+              <input id="signup-confirm-password" name="confirm_password" type="password" placeholder="Re-enter your password" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+              <p id="confirm-hint" class="hidden text-xs font-medium text-rose-600">Passwords must match.</p>
+            </div>
             <label class="flex items-start gap-3 rounded-2xl bg-slate-50/90 p-4 text-xs text-slate-600">
               <input id="agree" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]" />
               <span>
@@ -332,6 +337,9 @@
     const forgotCancel = document.getElementById("forgot-cancel");
     const agree = document.getElementById("agree");
     const signupBtn = document.getElementById("signup-btn");
+    const signupPassword = document.getElementById("signup-password");
+    const signupConfirm = document.getElementById("signup-confirm-password");
+    const confirmHint = document.getElementById("confirm-hint");
 
     // ---- UI helpers ----
     function showMsg(text, type = "info") { // "success" | "error" | "info"
@@ -375,8 +383,37 @@
     switchToSignin?.addEventListener("click", () => show("in"));
 
     // enable/disable signup by checkbox
-    const toggleSignupBtn = () => signupBtn.disabled = !agree.checked;
+    const passwordsMatch = () => signupConfirm.value === signupPassword.value;
+
+    const validatePasswords = () => {
+      const hasConfirm = Boolean(signupConfirm.value);
+      const match = passwordsMatch();
+
+      if (!hasConfirm) {
+        signupConfirm.setCustomValidity("");
+        confirmHint?.classList.add("hidden");
+        return true;
+      }
+
+      signupConfirm.setCustomValidity(match ? "" : "Passwords do not match.");
+      if (confirmHint) {
+        confirmHint.textContent = match ? "" : "Passwords must match.";
+        confirmHint.classList.toggle("hidden", match);
+      }
+      return match;
+    };
+
+    signupPassword.addEventListener("input", validatePasswords);
+    signupConfirm.addEventListener("input", validatePasswords);
+
+    const toggleSignupBtn = () => {
+      validatePasswords();
+      const disabled = !agree.checked || !signupConfirm.value || !signupPassword.value || !passwordsMatch();
+      signupBtn.disabled = disabled;
+    };
     agree.addEventListener("change", toggleSignupBtn);
+    signupPassword.addEventListener("input", toggleSignupBtn);
+    signupConfirm.addEventListener("input", toggleSignupBtn);
     toggleSignupBtn();
 
     // ---- Sign in ----
@@ -403,6 +440,12 @@
       if (!agree.checked) { showMsg("Please accept the Terms, Privacy, Risk and Investment Disclaimer.", "error"); return; }
       const email = e.target.email.value.trim();
       const password = e.target.password.value;
+      const confirm = e.target.confirm_password.value;
+      if (password !== confirm) {
+        showMsg("Passwords must match.", "error");
+        signupConfirm.focus();
+        return;
+      }
       try {
         setLoading(signupBtn, true, "Create account", "Creating account…");
         const { data } = await signUp(email, password); // { user, session }
