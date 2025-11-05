@@ -12,6 +12,42 @@
 
   <style>
     :root{ --page:#0b1220; --bg:#f9fafb; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e5e7ef }
+    .preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: #f6f7f6;
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: opacity .45s ease;
+    }
+    .preloader__logo {
+      height: 3rem;
+      width: auto;
+      animation: heroSlideUp .6s ease-out, preloaderPulse 2.4s ease-in-out .45s infinite;
+    }
+    .preloader__brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      animation: heroSlideUp .6s ease-out .08s both;
+    }
+    .preloader__tagline {
+      font-size: .95rem;
+      color: rgba(11, 18, 21, 0.68);
+      animation: heroSlideUp .6s ease-out .14s both;
+    }
+    .preloader--hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes preloaderPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
     html,body{ font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink) }
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.04) }
     .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; height:40px; padding:0 .875rem; border-radius:10px; border:1px solid var(--line); font-weight:600 }
@@ -188,6 +224,11 @@
 </head>
 
 <body class="min-h-screen overflow-x-hidden">
+  <div id="preloader" class="preloader">
+    <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="preloader__logo" />
+    <span class="preloader__brand">AlgoHive</span>
+    <span class="preloader__tagline">Where Smart Capital Gathers</span>
+  </div>
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false"
@@ -453,6 +494,14 @@
       </button>
     </div>
   </div>
+  <script nonce="ALGOHIVE">
+    const preloader = document.getElementById("preloader");
+    window.addEventListener("load", () => {
+      if (!preloader) return;
+      preloader.classList.add("preloader--hide");
+      setTimeout(() => preloader.remove(), 450);
+    });
+  </script>
   <script nonce="ALGOHIVE">
   // SCRIPT FOR MOBILE SIDEBAR
   (function () {
