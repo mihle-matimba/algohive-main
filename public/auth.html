@@ -57,6 +57,22 @@
     @keyframes heroScaleIn { 0% { transform: scale(1.06); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     @keyframes preloaderPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+    #quote-rotator .relative { min-height: 130px; }
+    .rotator-item {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: translateY(25px);
+      transition: opacity .6s ease, transform .6s ease;
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(140deg, rgba(11,18,21,0.85), rgba(11,18,21,0.7));
+      border-radius: 16px;
+      box-shadow: 0 24px 48px -30px rgba(11,18,21,0.6);
+    }
+    .rotator-item.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
     .orb-gradient {
       background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0) 60%),
                         radial-gradient(circle at 80% 20%, rgba(126,141,82,0.18), rgba(255,255,255,0) 55%),
@@ -172,12 +188,12 @@
       <div class="relative z-10 ml-auto flex w-full max-w-5xl flex-col items-start gap-12">
         <section class="max-w-xl space-y-6 text-left text-slate-800">
           <p class="text-2xl font-semibold leading-snug text-slate-900 sm:text-[28px] lg:text-[32px]">
-            <span class="text-[var(--olive)]">“Wall Street keeps the playbook locked away.</span><br />
-            At AlgoHive we pull back the veil with open strategies.”
+            <span class="text-[var(--olive)]">“Wall Street hoards the edge.</span><br />
+            AlgoHive puts the strategies in your hands.”
           </p>
           <div class="flex items-center gap-3 text-sm text-slate-600">
             <img
-              src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/Screenshot%202025-11-05%20at%2017.18.43.png"
+              src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/1673431038869.jpeg"
               alt="Lonwabo Damane"
               class="h-11 w-11 rounded-full object-cover shadow-sm"
             />
@@ -200,6 +216,27 @@
             Your browser does not support the video tag.
           </video>
         </figure>
+        <section id="quote-rotator" class="mt-auto w-full max-w-xl space-y-4 text-left">
+          <div class="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Voices from the hive</div>
+          <div class="relative overflow-hidden">
+            <article class="rotator-item active space-y-2 text-slate-100" data-index="0">
+              <p class="text-lg font-medium leading-snug text-white">“AlgoHive turns market noise into signal in minutes.”</p>
+              <footer class="text-xs uppercase tracking-[0.2em] text-slate-300">Mihle Matimba · COO at AlgoHive</footer>
+            </article>
+            <article class="rotator-item space-y-2 text-slate-100" data-index="1">
+              <p class="text-lg font-medium leading-snug text-white">“See live strategies evolve instead of stale reports.”</p>
+              <footer class="text-xs uppercase tracking-[0.2em] text-slate-300">Sipho Ndlovu · Head of Research</footer>
+            </article>
+            <article class="rotator-item space-y-2 text-slate-100" data-index="2">
+              <p class="text-lg font-medium leading-snug text-white">“Institutional insights finally packaged for every investor.”</p>
+              <footer class="text-xs uppercase tracking-[0.2em] text-slate-300">Amelia Chen · Quant Strategist</footer>
+            </article>
+            <article class="rotator-item space-y-2 text-slate-100" data-index="3">
+              <p class="text-lg font-medium leading-snug text-white">“Transparent playbooks mean you always know the why.”</p>
+              <footer class="text-xs uppercase tracking-[0.2em] text-slate-300">Jared Mokoena · Portfolio Lead</footer>
+            </article>
+          </div>
+        </section>
       </div>
     </aside>
   </div>
@@ -398,6 +435,22 @@
     // ---- On load ----
     if (qs.get("tab") === "up") show("up"); else show("in");
     if (qs.get("confirmed") === "1") showMsg("Email confirmed — you can sign in now.", "success");
+
+    // ---- Rotating preview quotes ----
+    const rotator = document.getElementById("quote-rotator");
+    if (rotator) {
+      const items = Array.from(rotator.querySelectorAll(".rotator-item"));
+      if (items.length > 1) {
+        let current = 0;
+        setInterval(() => {
+          const prev = items[current];
+          current = (current + 1) % items.length;
+          const next = items[current];
+          prev?.classList.remove("active");
+          next?.classList.add("active");
+        }, 5200);
+      }
+    }
 
     // If user is already logged in and lands here, route them
     try {
