@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custodial Ledger — AlgoHive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="icon" href="/favicon.png" sizes="any">
+  <style>
+    :root {
+      --olive: #7e8d52;
+      --olive-700: #576138;
+      --ink: #0b1215;
+      --muted: #525a67;
+      --surface: #f8faf8;
+    }
+    html, body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif;
+      background: #fff;
+      color: var(--ink);
+      min-height: 100%;
+      width: 100%;
+    }
+    .grid-bg {
+      background-image: radial-gradient(rgba(69,98,67,.08) 1px, transparent 1px);
+      background-size: 18px 18px;
+      background-position: -10px -10px;
+    }
+    .glass {
+      position: relative;
+      background: rgba(255,255,255,0.65);
+      border: 1px solid rgba(126,141,82,0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .ledger-row:hover {
+      background: rgba(126,141,82,0.06);
+    }
+  </style>
+</head>
+<body class="grid-bg">
+  <header class="w-full sticky top-3 z-50 px-3 sm:px-4 lg:px-6">
+    <div class="mx-auto max-w-5xl">
+      <nav aria-label="Primary" class="relative flex items-center justify-between gap-2 rounded-full border border-black/10 bg-white px-3 py-2 shadow-lg">
+        <a href="index.html" class="flex flex-shrink-0 items-center gap-2 rounded-full px-2 py-1.5 hover:bg-black/5">
+          <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="h-7 w-auto">
+          <span class="hidden md:inline text-sm font-extrabold tracking-tight text-[var(--ink)]">AlgoHive</span>
+        </a>
+        <div class="hidden md:flex items-center gap-1">
+          <a href="home.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Dashboard</a>
+          <a href="strategies.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Strategies</a>
+          <a href="support.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Support</a>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="auth.html" class="inline-flex items-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--olive-700)]">Logout</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 pb-16 pt-24">
+    <section class="space-y-6">
+      <div class="flex flex-col gap-2 text-center">
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Custodial Ledger</h1>
+        <p class="text-sm sm:text-base text-[var(--muted)] max-w-2xl mx-auto">
+          View the aggregate holdings for each instrument and drill down to the client-level allocations, including volumes and average execution prices.
+        </p>
+      </div>
+
+      <div class="grid gap-4" id="ledger-container"></div>
+    </section>
+  </main>
+
+  <template id="instrument-template">
+    <details class="group rounded-2xl border border-black/10 bg-[var(--surface)] p-0 overflow-hidden shadow-sm transition">
+      <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-left">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div>
+            <p class="text-sm uppercase tracking-widest text-[var(--muted)]">Instrument</p>
+            <p class="text-xl font-semibold" data-role="instrument-name"></p>
+          </div>
+          <div class="grid grid-cols-2 gap-4 text-sm sm:text-base">
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[var(--muted)]">Total Holdings</p>
+              <p class="font-semibold" data-role="total-quantity"></p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[var(--muted)]">Market Value</p>
+              <p class="font-semibold" data-role="total-value"></p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[var(--muted)]">Average Price</p>
+              <p class="font-semibold" data-role="average-price"></p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[var(--muted)]">Currency</p>
+              <p class="font-semibold" data-role="currency"></p>
+            </div>
+          </div>
+        </div>
+        <svg class="h-5 w-5 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m6 9 6 6 6-6" />
+        </svg>
+      </summary>
+      <div class="bg-white/80">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-black/5 text-left">
+            <thead class="bg-[var(--surface)]/60 text-xs uppercase tracking-widest text-[var(--muted)]">
+              <tr>
+                <th scope="col" class="px-6 py-3 font-medium">Client</th>
+                <th scope="col" class="px-6 py-3 font-medium">Quantity</th>
+                <th scope="col" class="px-6 py-3 font-medium">% of Instrument</th>
+                <th scope="col" class="px-6 py-3 font-medium">Avg. Price</th>
+                <th scope="col" class="px-6 py-3 font-medium">Market Value</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-black/5" data-role="client-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  </template>
+
+  <script>
+    const ledgerData = [
+      {
+        symbol: "AAPL",
+        name: "Apple Inc.",
+        currency: "USD",
+        totalQuantity: 4500,
+        markPrice: 172.45,
+        clients: [
+          { name: "Client Alpha", quantity: 1500, avgPrice: 170.1 },
+          { name: "Client Beta", quantity: 1200, avgPrice: 168.4 },
+          { name: "Client Gamma", quantity: 900, avgPrice: 175.9 },
+          { name: "Client Delta", quantity: 900, avgPrice: 174.3 }
+        ]
+      },
+      {
+        symbol: "TSLA",
+        name: "Tesla Inc.",
+        currency: "USD",
+        totalQuantity: 2800,
+        markPrice: 238.17,
+        clients: [
+          { name: "Client Alpha", quantity: 500, avgPrice: 220.25 },
+          { name: "Client Epsilon", quantity: 1350, avgPrice: 242.1 },
+          { name: "Client Zeta", quantity: 950, avgPrice: 240.6 }
+        ]
+      },
+      {
+        symbol: "MSFT",
+        name: "Microsoft Corp.",
+        currency: "USD",
+        totalQuantity: 5200,
+        markPrice: 328.34,
+        clients: [
+          { name: "Client Beta", quantity: 1800, avgPrice: 315.7 },
+          { name: "Client Theta", quantity: 2200, avgPrice: 330.9 },
+          { name: "Client Omega", quantity: 1200, avgPrice: 325.1 }
+        ]
+      },
+      {
+        symbol: "XAU",
+        name: "Gold Bullion Trust",
+        currency: "USD",
+        totalQuantity: 965,
+        markPrice: 1985.65,
+        clients: [
+          { name: "Client Gamma", quantity: 300, avgPrice: 1950.5 },
+          { name: "Client Lambda", quantity: 415, avgPrice: 1989.7 },
+          { name: "Client Sigma", quantity: 250, avgPrice: 2005.1 }
+        ]
+      }
+    ];
+
+    const numberFormatter = new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 0
+    });
+
+    const currencyFormatters = new Map();
+
+    function formatCurrency(value, currency) {
+      if (!currencyFormatters.has(currency)) {
+        currencyFormatters.set(
+          currency,
+          new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency,
+            minimumFractionDigits: 2
+          })
+        );
+      }
+
+      return currencyFormatters.get(currency).format(value);
+    }
+
+    function renderLedger(data) {
+      const container = document.getElementById("ledger-container");
+      const template = document.getElementById("instrument-template");
+
+      data.forEach((instrument) => {
+        const clone = template.content.cloneNode(true);
+
+        const instrumentName = `${instrument.symbol} · ${instrument.name}`;
+        const totalValue = instrument.totalQuantity * instrument.markPrice;
+        const weightedAveragePrice =
+          instrument.clients.reduce(
+            (acc, client) => acc + client.avgPrice * client.quantity,
+            0
+          ) / instrument.totalQuantity;
+
+        clone.querySelector('[data-role="instrument-name"]').textContent = instrumentName;
+        clone.querySelector('[data-role="total-quantity"]').textContent = `${numberFormatter.format(instrument.totalQuantity)} units`;
+        clone.querySelector('[data-role="total-value"]').textContent = formatCurrency(totalValue, instrument.currency);
+        clone.querySelector('[data-role="average-price"]').textContent = formatCurrency(weightedAveragePrice, instrument.currency);
+        clone.querySelector('[data-role="currency"]').textContent = instrument.currency;
+
+        const tbody = clone.querySelector('[data-role="client-rows"]');
+
+        instrument.clients.forEach((client) => {
+          const shareOfInstrument = (client.quantity / instrument.totalQuantity) * 100;
+          const clientValue = client.quantity * instrument.markPrice;
+
+          const row = document.createElement("tr");
+          row.className = "ledger-row transition-colors";
+          row.innerHTML = `
+            <td class="px-6 py-4 text-sm font-medium text-[var(--ink)]">${client.name}</td>
+            <td class="px-6 py-4 text-sm text-[var(--muted)]">${numberFormatter.format(client.quantity)}</td>
+            <td class="px-6 py-4 text-sm text-[var(--muted)]">${shareOfInstrument.toFixed(1)}%</td>
+            <td class="px-6 py-4 text-sm text-[var(--muted)]">${formatCurrency(client.avgPrice, instrument.currency)}</td>
+            <td class="px-6 py-4 text-sm text-[var(--muted)]">${formatCurrency(clientValue, instrument.currency)}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        container.appendChild(clone);
+      });
+    }
+
+    renderLedger(ledgerData);
+  </script>
+</body>
+</html>
