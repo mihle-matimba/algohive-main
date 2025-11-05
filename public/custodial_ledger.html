@@ -38,6 +38,11 @@
     .ledger-row:hover {
       background: rgba(126,141,82,0.06);
     }
+    select:disabled,
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body class="grid-bg">
@@ -70,6 +75,98 @@
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" id="portfolio-summary"></div>
+
+      <section class="space-y-6" id="analytics-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-[var(--muted)] shadow-sm">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-[var(--ink)]">Time frame</span>
+            <select class="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--olive)]" aria-label="Select performance time frame" disabled>
+              <option>3 Years</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-[var(--ink)]">Filter by</span>
+            <select class="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--olive)]" aria-label="Filter portfolio data" disabled>
+              <option>Fund</option>
+            </select>
+          </div>
+          <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1.5 font-medium text-[var(--ink)] shadow-sm transition hover:bg-black/5" disabled>
+            Customize
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+              <path d="m4.94 3.94 1.12-1.13A1.5 1.5 0 0 1 7.12 2h5.76c.4 0 .78.16 1.06.44l1.12 1.12c.28.29.44.67.44 1.07v12.62a.75.75 0 0 1-1.28.53l-2.59-2.58a1.5 1.5 0 0 0-1.06-.44H7.12c-.4 0-.78.16-1.06.44l-2.6 2.58a.75.75 0 0 1-1.28-.53V5.01c0-.4.16-.78.44-1.07Z" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2" id="portfolio-analytics">
+          <article class="glass border border-black/10 rounded-2xl bg-white/70 shadow-sm" aria-labelledby="composition-heading">
+            <header class="flex items-center justify-between border-b border-black/5 px-6 py-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Portfolio Composition</p>
+                <h2 id="composition-heading" class="text-lg font-semibold text-[var(--ink)]">Data</h2>
+              </div>
+              <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-medium text-[var(--olive-700)]">Holdings</span>
+            </header>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-black/5 text-left text-sm">
+                <thead class="bg-[var(--surface)]/60 text-xs uppercase tracking-widest text-[var(--muted)]">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 font-medium">Instrument</th>
+                    <th scope="col" class="px-6 py-3 font-medium">Par</th>
+                    <th scope="col" class="px-6 py-3 font-medium">Market Value</th>
+                    <th scope="col" class="px-6 py-3 font-medium">Book Value</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-black/5" data-role="composition-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="glass border border-black/10 rounded-2xl bg-white/70 shadow-sm" aria-labelledby="exposure-heading">
+            <header class="flex items-center justify-between border-b border-black/5 px-6 py-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Portfolio Composition</p>
+                <h2 id="exposure-heading" class="text-lg font-semibold text-[var(--ink)]">Exposure</h2>
+              </div>
+              <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-medium text-[var(--olive-700)]">Visual</span>
+            </header>
+            <div class="flex h-full flex-col gap-6 px-6 py-5 md:flex-row md:items-center">
+              <div class="mx-auto flex h-48 w-48 items-center justify-center" data-role="donut-chart" aria-label="Instrument exposure donut chart"></div>
+              <ul class="flex-1 space-y-3 text-sm" data-role="donut-legend" aria-label="Instrument exposure legend"></ul>
+            </div>
+          </article>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2" id="risk-analytics">
+          <article class="glass border border-black/10 rounded-2xl bg-white/70 shadow-sm" aria-labelledby="policy-heading">
+            <header class="flex items-center justify-between border-b border-black/5 px-6 py-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Portfolio vs Policy</p>
+                <h2 id="policy-heading" class="text-lg font-semibold text-[var(--ink)]">Concentration</h2>
+              </div>
+              <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-medium text-[var(--olive-700)]">Risk</span>
+            </header>
+            <div class="flex h-64 flex-col justify-between px-6 py-5">
+              <div class="flex h-40 items-end gap-4" data-role="policy-chart" aria-label="Policy deviation bar chart"></div>
+              <div class="flex items-center justify-between text-xs text-[var(--muted)]">
+                <span>Policy Limit</span>
+                <span>Portfolio Weight</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="glass border border-black/10 rounded-2xl bg-white/70 shadow-sm" aria-labelledby="benchmark-heading">
+            <header class="flex items-center justify-between border-b border-black/5 px-6 py-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Return vs Benchmark</p>
+                <h2 id="benchmark-heading" class="text-lg font-semibold text-[var(--ink)]">US Treasury 3 Month Rate</h2>
+              </div>
+              <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-medium text-[var(--olive-700)]">Trend</span>
+            </header>
+            <div class="px-6 py-5" data-role="benchmark-chart" aria-label="Benchmark comparison line chart"></div>
+          </article>
+        </div>
+      </section>
 
       <div class="grid gap-4" id="ledger-container"></div>
     </section>
@@ -117,6 +214,7 @@
             <thead class="bg-[var(--surface)]/60 text-xs uppercase tracking-widest text-[var(--muted)]">
               <tr>
                 <th scope="col" class="px-6 py-3 font-medium">Client</th>
+                <th scope="col" class="px-6 py-3 font-medium">Account #</th>
                 <th scope="col" class="px-6 py-3 font-medium">Quantity</th>
                 <th scope="col" class="px-6 py-3 font-medium">% of Instrument</th>
                 <th scope="col" class="px-6 py-3 font-medium">Avg. Price</th>
