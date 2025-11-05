@@ -12,6 +12,40 @@
       --ink: #0B1215;
     }
     body { background: #f6f7f6; }
+    .preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: #f6f7f6;
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: opacity .45s ease;
+    }
+    .preloader__logo {
+      height: 3rem;
+      width: auto;
+      animation: heroSlideUp .6s ease-out;
+    }
+    .preloader__brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      animation: heroSlideUp .6s ease-out .08s both;
+    }
+    .preloader__tagline {
+      font-size: .95rem;
+      color: rgba(11, 18, 21, 0.68);
+      animation: heroSlideUp .6s ease-out .14s both;
+    }
+    .preloader--hide {
+      opacity: 0;
+      pointer-events: none;
+    }
     .btn-shine { position: relative; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
     .btn-shine::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.7) 50%, transparent 100%); transform: translateX(-120%); transition: transform .8s ease; }
     .btn-shine:hover::before { transform: translateX(120%); }
@@ -31,6 +65,11 @@
 </head>
 
 <body class="min-h-screen antialiased text-slate-900">
+  <div id="preloader" class="preloader">
+    <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="preloader__logo" />
+    <span class="preloader__brand">AlgoHive</span>
+    <span class="preloader__tagline">Where Smart Capital Gathers</span>
+  </div>
   <div class="flex min-h-screen flex-col bg-transparent lg:flex-row lg:items-stretch">
     <!-- Left: Auth -->
     <main class="auth-left relative mx-auto w-full max-w-2xl bg-white px-6 py-12 shadow-sm sm:px-10 sm:py-14 lg:flex lg:min-h-screen lg:max-w-lg lg:flex-col lg:justify-between lg:px-16 lg:py-20 lg:shadow">
@@ -165,6 +204,13 @@
   <script type="module" nonce="ALGOHIVE">
     import { signIn, signUp } from "/js/auth.js";
     import { supabase } from "/js/supabase.js";
+
+    const preloader = document.getElementById("preloader");
+    window.addEventListener("load", () => {
+      if (!preloader) return;
+      preloader.classList.add("preloader--hide");
+      setTimeout(() => preloader.remove(), 450);
+    });
 
     // --- SAME COMPLETENESS RULE AS SETTINGS ---
     const REQUIRED_FIELDS = [
