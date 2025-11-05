@@ -57,6 +57,7 @@
     @keyframes heroScaleIn { 0% { transform: scale(1.06); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     @keyframes preloaderPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+    .swap-anim { animation: heroSlideUp .5s ease both; }
     .testimonial-block {
       display: flex;
       flex-direction: column;
@@ -203,7 +204,7 @@
 
       <!-- Notice -->
       <footer class="mt-14 border-t border-slate-100 pt-6 text-left text-[11px] leading-5 text-slate-500">
-        AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past performance is not indicative of future results.
+        AlgoHive (<b>FSP 55118</b>) is an authorised Financial Services Provider. All investment activity carries risk, including the possible loss of capital and liquidity constraints. Any information provided here is educational in nature, does not constitute personalised financial advice, and should not be relied on as a recommendation to buy or sell securities. Please consider whether investing is appropriate for your circumstances and consult an independent adviser where necessary.
       </footer>
     </main>
 
@@ -342,13 +343,30 @@
     function clearMsg() { msg.classList.add("hidden"); msg.textContent = ""; }
     function setLoading(btn, on, idle, busy) { btn.disabled = on; btn.textContent = on ? busy : idle; }
 
+    function animateSwap(...els) {
+      els.forEach((el) => {
+        if (!el) return;
+        el.classList.remove("swap-anim");
+        void el.offsetWidth;
+        el.classList.add("swap-anim");
+      });
+    }
+
     function show(tab) {
       clearMsg();
       const up = tab === "up";
-      panelUp.classList.toggle("hidden", !up);
-      panelIn.classList.toggle("hidden", up);
-      headingUp.classList.toggle("hidden", !up);
-      headingIn.classList.toggle("hidden", up);
+      const toShowPanel = up ? panelUp : panelIn;
+      const toHidePanel = up ? panelIn : panelUp;
+      const toShowHeading = up ? headingUp : headingIn;
+      const toHideHeading = up ? headingIn : headingUp;
+
+      toHidePanel.classList.add("hidden");
+      toHideHeading.classList.add("hidden");
+
+      toShowPanel.classList.remove("hidden");
+      toShowHeading.classList.remove("hidden");
+
+      animateSwap(toShowPanel, toShowHeading);
       forgot.classList.toggle("hidden", up);
       forgotWrap.classList.add("hidden");
     }
