@@ -15,40 +15,111 @@
       --ink: #0b1215;
       --muted: #525a67;
       --surface: #f8faf8;
+      --accent: #2f4858;
+      --accent-soft: rgba(47, 72, 88, 0.14);
     }
-    html, body {
+    html,
+    body {
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif;
-      background: #fff;
+      background: linear-gradient(160deg, #f4f7f2, #eef3f8);
       color: var(--ink);
       min-height: 100%;
       width: 100%;
     }
     .grid-bg {
-      background-image: radial-gradient(rgba(69,98,67,.08) 1px, transparent 1px);
+      background-image: radial-gradient(rgba(69, 98, 67, 0.08) 1px, transparent 1px);
       background-size: 18px 18px;
       background-position: -10px -10px;
     }
     .glass {
       position: relative;
-      background: rgba(255,255,255,0.65);
-      border: 1px solid rgba(126,141,82,0.2);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(126, 141, 82, 0.18);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
     .ledger-row:hover {
-      background: rgba(126,141,82,0.06);
+      background: rgba(126, 141, 82, 0.08);
     }
     select:disabled,
     button:disabled {
       opacity: 0.7;
       cursor: not-allowed;
     }
+    .summary-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      border: 1px solid rgba(82, 90, 103, 0.08);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.65));
+      box-shadow: 0 20px 35px -25px rgba(47, 72, 88, 0.35);
+    }
+    .summary-icon {
+      display: inline-flex;
+      height: 2.25rem;
+      width: 2.25rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      background: rgba(126, 141, 82, 0.12);
+      color: var(--olive);
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-radius: 9999px;
+      padding: 0.35rem 0.8rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .status-pill[data-status="stable"] {
+      background: rgba(90, 146, 108, 0.14);
+      color: #2b6946;
+    }
+    .status-pill[data-status="watch"] {
+      background: rgba(170, 125, 79, 0.18);
+      color: #7b4f1f;
+    }
+    .status-pill[data-status="elevated"] {
+      background: rgba(201, 76, 76, 0.18);
+      color: #842525;
+    }
+    .progress-track {
+      position: relative;
+      height: 0.5rem;
+      width: 100%;
+      border-radius: 9999px;
+      background: rgba(12, 18, 21, 0.08);
+      overflow: hidden;
+    }
+    .progress-fill {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+    .dash-header {
+      border-radius: 1.5rem;
+      backdrop-filter: blur(14px);
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(11, 18, 21, 0.08);
+      box-shadow: 0 12px 30px -18px rgba(11, 18, 21, 0.55);
+    }
+    .insight-card {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
   </style>
 </head>
 <body class="grid-bg">
   <header class="w-full sticky top-3 z-50 px-3 sm:px-4 lg:px-6">
-    <div class="mx-auto max-w-5xl">
-      <nav aria-label="Primary" class="relative flex items-center justify-between gap-2 rounded-full border border-black/10 bg-white px-3 py-2 shadow-lg">
+    <div class="mx-auto max-w-6xl">
+      <nav aria-label="Primary" class="dash-header relative flex items-center justify-between gap-2 px-3 py-2">
         <a href="index.html" class="flex flex-shrink-0 items-center gap-2 rounded-full px-2 py-1.5 hover:bg-black/5">
           <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="h-7 w-auto">
           <span class="hidden md:inline text-sm font-extrabold tracking-tight text-[var(--ink)]">AlgoHive</span>
@@ -67,14 +138,88 @@
 
   <main class="mx-auto max-w-6xl px-4 pb-16 pt-24">
     <section class="space-y-10">
-      <div class="flex flex-col gap-2 text-center">
-        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Custodial Ledger</h1>
-        <p class="text-sm sm:text-base text-[var(--muted)] max-w-2xl mx-auto">
-          View the aggregate holdings for each instrument and drill down to the client-level allocations, including volumes and average execution prices.
-        </p>
+      <div class="dash-header flex flex-col gap-6 px-6 py-6">
+        <div class="flex flex-col gap-2">
+          <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Custody Oversight</p>
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Custodial Ledger</h1>
+              <p class="mt-2 text-sm sm:text-base text-[var(--muted)] max-w-2xl">
+                Portfolio-wide positions, client allocations, and policy guardrails presented in a consolidated operations dashboard.
+              </p>
+            </div>
+            <div class="flex flex-col items-end text-right text-sm text-[var(--muted)]">
+              <span id="last-synced" class="font-medium text-[var(--ink)]"></span>
+              <span>Trading calendar synced</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div class="flex items-center gap-3">
+            <span class="status-pill" data-status="stable">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4">
+                <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm4.28 7.28a.75.75 0 0 0-1.06-1.06L11 12.69l-2.22-2.22a.75.75 0 0 0-1.06 1.06l2.75 2.75a.75.75 0 0 0 1.06 0l4.75-4.75Z" clip-rule="evenodd" />
+              </svg>
+              Reconciled
+            </span>
+            <div class="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 shadow-sm">
+              <span class="font-medium text-[var(--ink)]">Cut-off</span>
+              <span>New York 4:00 PM EST</span>
+            </div>
+            <div class="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 shadow-sm">
+              <span class="font-medium text-[var(--ink)]">Custodian</span>
+              <span>AlgoHive Prime Trust</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 font-medium text-[var(--ink)] shadow-sm transition hover:bg-black/5">
+              Export report
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0 4.5-4.5M12 16.5V3" />
+              </svg>
+            </button>
+            <button class="inline-flex items-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
+              Broadcast update
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-6m0 0V6m0 6h6m-6 0H6" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" id="portfolio-summary"></div>
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" id="portfolio-summary"></div>
+
+      <div class="grid gap-6 lg:grid-cols-3" id="insight-row">
+        <article class="glass insight-card rounded-2xl bg-white/70 px-6 py-5 shadow-sm" aria-labelledby="risk-heading">
+          <header class="flex items-center justify-between border-b border-black/5 pb-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Policy Signals</p>
+              <h2 id="risk-heading" class="text-lg font-semibold text-[var(--ink)]">Risk Overview</h2>
+            </div>
+            <span class="status-pill" data-status="stable">In limits</span>
+          </header>
+          <div id="risk-indicators" class="space-y-4"></div>
+        </article>
+        <article class="glass insight-card rounded-2xl bg-white/70 px-6 py-5 shadow-sm" aria-labelledby="clients-heading">
+          <header class="flex items-center justify-between border-b border-black/5 pb-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Client Coverage</p>
+              <h2 id="clients-heading" class="text-lg font-semibold text-[var(--ink)]">Top Allocations</h2>
+            </div>
+          </header>
+          <div id="top-clients" class="space-y-4"></div>
+        </article>
+        <article class="glass insight-card rounded-2xl bg-white/70 px-6 py-5 shadow-sm" aria-labelledby="currency-heading">
+          <header class="flex items-center justify-between border-b border-black/5 pb-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Funding Mix</p>
+              <h2 id="currency-heading" class="text-lg font-semibold text-[var(--ink)]">Currency Exposure</h2>
+            </div>
+          </header>
+          <div id="currency-exposure" class="space-y-4"></div>
+        </article>
+      </div>
 
       <section class="space-y-6" id="analytics-section">
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-[var(--muted)] shadow-sm">
@@ -227,6 +372,6 @@
       </div>
     </details>
   </template>
-  <script type="module" src="/js/custodial-ledger.js"></script>
+  <script type="module" src="./js/custodial-ledger.js"></script>
 </body>
 </html>
