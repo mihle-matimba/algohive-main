@@ -21,6 +21,63 @@
             --line: #e2e8f0;
         }
 
+        /* Olive color palette for welcome modal */
+        .text-olive-600 { color: #7c8550; }
+        .text-olive-700 { color: #6b7142; }
+        .text-olive-800 { color: #5a5d35; }
+        .bg-olive-50 { background-color: #f7f8f4; }
+        .bg-olive-100 { background-color: #eff1e8; }
+        .bg-olive-200 { background-color: #e7eadc; }
+        .bg-olive-600 { background-color: #7c8550; }
+        .bg-olive-700 { background-color: #6b7142; }
+        .bg-olive-800 { background-color: #5a5d35; }
+        .border-olive-100 { border-color: #eff1e8; }
+        .from-olive-50 { --tw-gradient-from: #f7f8f4; }
+        .to-olive-50 { --tw-gradient-to: #f7f8f4; }
+        .from-olive-100 { --tw-gradient-from: #eff1e8; }
+        .to-olive-200 { --tw-gradient-to: #e7eadc; }
+        .from-olive-200\/30 { --tw-gradient-from: rgba(231, 234, 220, 0.3); }
+        .to-olive-300\/20 { --tw-gradient-to: rgba(209, 213, 196, 0.2); }
+        .from-olive-100\/40 { --tw-gradient-from: rgba(239, 241, 232, 0.4); }
+        .to-olive-200\/30 { --tw-gradient-to: rgba(231, 234, 220, 0.3); }
+        .from-olive-600 { --tw-gradient-from: #7c8550; }
+        .to-olive-700 { --tw-gradient-to: #6b7142; }
+        .from-olive-700 { --tw-gradient-from: #6b7142; }
+        .to-olive-800 { --tw-gradient-to: #5a5d35; }
+        .hover\:from-olive-700:hover { --tw-gradient-from: #6b7142; }
+        .hover\:to-olive-800:hover { --tw-gradient-to: #5a5d35; }
+
+        /* Welcome modal animations */
+        #welcome-modal .absolute.left-1\/2 {
+            transform: translate(-50%, -50%) scale(0.95);
+            transition: transform 0.3s ease-out;
+        }
+
+        #welcome-modal:not(.hidden) .absolute.left-1\/2 {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Additional smooth transitions */
+        #welcome-modal {
+            backdrop-filter: blur(4px);
+            transition: backdrop-filter 0.3s ease;
+        }
+
+        /* Welcome button styling */
+        #welcome-continue {
+            background: linear-gradient(to right, #7c8550, #6b7142) !important;
+            color: white !important;
+        }
+
+        #welcome-continue:hover {
+            background: linear-gradient(to right, #6b7142, #5a5d35) !important;
+            transform: scale(1.02);
+        }
+
+        #welcome-continue span {
+            color: white !important;
+        }
+
         html,
         body {
             font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
@@ -46,6 +103,17 @@
             border: 1px solid var(--line);
             border-radius: 10px;
             padding: 0 .75rem
+        }
+
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+        }
+
+        .field-error {
+            outline: 2px solid rgba(239, 68, 68, 0.35);
+            outline-offset: 2px;
+            border-radius: 12px;
         }
 
         /* UPDATED FOR RESPONSIVENESS */
@@ -601,7 +669,7 @@
                                     </label>
                                     <label class="block">
                                         <span class="text-sm text-slate-600">Nationality</span>
-                                        <input id="nationality" class="input w-full" placeholder="South African" />
+                                        <input id="nationality" class="input w-full" />
                                     </label>
                                     <label class="block">
                                         <span class="text-sm text-slate-600">Country of residence</span>
@@ -690,7 +758,7 @@
 
                             <div class="mt-4">
                                 <span class="text-sm text-slate-600 block mb-2">Investment objectives</span>
-                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div id="objectives-group" class="grid grid-cols-2 gap-2 text-sm">
                                     <label class="flex items-center gap-2"><input type="checkbox" name="objectives"
                                             value="Growth">
                                         Growth</label>
@@ -890,8 +958,71 @@
             el._t = setTimeout(() => el.remove(), 4000);
         }    
         // ---------- profile helpers ----------
-        const REQUIRED_FIELDS = ["first_name", "last_name", "phone", "dob", "id_number", "nationality", "country_residence"];
-        function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => String(row?.[k] ?? "").trim().length > 0); }
+        const REQUIRED_FIELDS = [
+            "first_name",
+            "last_name",
+            "phone",
+            "dob",
+            "id_number",
+            "nationality",
+            "country_residence",
+            "employment_status",
+            "occupation",
+            "employer",
+            "income_bracket",
+            "source_of_funds",
+            "net_worth_range",
+            "experience_level",
+            "risk_tolerance",
+            "objectives"
+        ];
+        const OBJECTIVES_FIELD_KEY = "objectives";
+        const FORM_REQUIRED_FIELDS = REQUIRED_FIELDS.filter(k => k !== OBJECTIVES_FIELD_KEY);
+
+        const hasValue = (value) => String(value ?? "").trim().length > 0;
+        function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => hasValue(row?.[k])); }
+
+        const objectivesGroup = document.getElementById("objectives-group");
+
+        function clearFieldErrors() {
+            FORM_REQUIRED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove("input-error");
+            });
+            objectivesGroup?.classList.remove("field-error");
+        }
+
+        function syncObjectivesHighlight() {
+            const checked = document.querySelectorAll('input[name="objectives"]:checked').length > 0;
+            objectivesGroup?.classList.toggle("field-error", !checked);
+            return checked;
+        }
+
+        FORM_REQUIRED_FIELDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const handle = () => { if (hasValue(el.value)) el.classList.remove("input-error"); };
+            el.addEventListener("input", handle);
+            el.addEventListener("change", handle);
+        });
+        document.querySelectorAll('input[name="objectives"]').forEach(cb => {
+            cb.addEventListener("change", () => { syncObjectivesHighlight(); });
+        });
+
+        function validateAdditionalInfoForm() {
+            clearFieldErrors();
+            const missing = [];
+            FORM_REQUIRED_FIELDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (!hasValue(el.value)) {
+                    missing.push(id);
+                    el.classList.add("input-error");
+                }
+            });
+            if (!syncObjectivesHighlight()) missing.push(OBJECTIVES_FIELD_KEY);
+            return missing;
+        }
 
         async function ensureProfile(userId, email) {
             let { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -998,6 +1129,31 @@
         let kycDone = resolveKycBoolean(row);
         setKycState(kycDone);
         let profileComplete = computeProfileComplete(row);
+        
+        // Account setup tracking
+        let accountsSetup = false;
+        
+        // Function to check if accounts are set up
+        async function checkAccountsSetup() {
+            try {
+                const { data, error } = await supabase
+                    .from('investment_accounts')
+                    .select('id')
+                    .eq('profile_id', user.id)
+                    .limit(1);
+                
+                if (error) throw error;
+                return data && data.length > 0;
+            } catch (e) {
+                console.warn('Could not check accounts setup:', e);
+                return false;
+            }
+        }
+        
+        // Initialize account setup status
+        if (profileComplete && kycDone) {
+            accountsSetup = await checkAccountsSetup();
+        }
 
         // DIDIT callback handler (runs after auth/user + setKycState exist)
         async function handleDiditCallbackAfterAuth() {
@@ -1328,64 +1484,110 @@ renderPlanButtons(row?.subscription || 'free');
 
         const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
         function isGated() {
-            // Users are gated until profile AND KYC are complete
-            // After KYC, only "Manage Accounts" is unlocked, everything else stays locked
-            return !(profileComplete && kycDone);
+            // Users are gated until profile, KYC, AND account setup are complete
+            // After KYC completion, only "Manage Accounts" is unlocked
+            // After account setup, everything is unlocked
+            return !(profileComplete && kycDone && accountsSetup);
         }
 
         function isTabAllowed(tabName) {
-            if (tabName === "subs") return true; // always allow viewing plans
+            // Always allow viewing subscription plans
+            if (tabName === "subs" && (!profileComplete || !kycDone)) return true;
+            
+            // Stage 1: Profile incomplete - only basic tabs
             if (!profileComplete) return allowedTabsWhenGated.has(tabName);
+            
+            // Stage 2: Profile complete, KYC incomplete - only basic tabs  
             if (profileComplete && !kycDone) return allowedTabsWhenGated.has(tabName);
-            if (profileComplete && kycDone) return ["extra", "docs", "manage", "subs"].includes(tabName);
+            
+            // Stage 3: Profile complete, KYC complete, accounts not set up - allow manage accounts
+            if (profileComplete && kycDone && !accountsSetup) {
+                return ["extra", "docs", "manage"].includes(tabName);
+            }
+            
+            // Stage 4: Everything complete - allow all tabs including subs
+            if (profileComplete && kycDone && accountsSetup) {
+                return ["extra", "docs", "manage", "subs"].includes(tabName);
+            }
+            
             return false;
         }
         function gateReason() {
             if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
             if (!profileComplete) return "Please finish Additional Info first.";
             if (!kycDone) return "Please complete KYC first.";
-            return "Please set up your account in Manage Accounts to continue.";
+            if (!accountsSetup) return "Please set up your investment account in Manage Accounts to continue.";
+            return "Setup complete! You now have full access.";
         }
+        // Store prevent nav handlers so we can remove them
+        const preventNavHandlers = new WeakMap();
+        
         function lockMainNav() {
             const mainNav = document.getElementById("main-nav");
             if (!mainNav) return;
-            function preventNav(e) {
-                e.preventDefault();
-                banner(gateReason(), "warn");
-                // Determine where to redirect based on completion status
-                if (!profileComplete) {
-                    location.hash = "#extra";
-                } else if (!kycDone) {
-                    location.hash = "#kyc";
-                } else if (profileComplete && kycDone) {
-                    location.hash = "#manage";
-                }
-            }
+            
             mainNav.querySelectorAll('a[href]').forEach(a => {
                 const href = (a.getAttribute("href") || "").trim();
                 const isSettings = href.startsWith("#") || /settings\.html/i.test(href) || href === "";
-                if (isGated() && !isSettings) {
-                    a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
-                    a.title = "Locked until profile + KYC are complete and account is set up";
-                    a.addEventListener("click", preventNav, { passive: false });
-                } else {
-                    a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
+                
+                // Remove old handler if it exists
+                const oldHandler = preventNavHandlers.get(a);
+                if (oldHandler) {
+                    a.removeEventListener("click", oldHandler);
+                    preventNavHandlers.delete(a);
                 }
-            });
-            mainNav.querySelectorAll('details > summary').forEach(sum => {
-                function onSumClick() {
-                    if (isGated()) setTimeout(() => {
+                
+                if (isGated() && !isSettings) {
+                    const preventNav = function(e) {
+                        e.preventDefault();
                         banner(gateReason(), "warn");
+                        // Determine where to redirect based on completion status
                         if (!profileComplete) {
                             location.hash = "#extra";
                         } else if (!kycDone) {
                             location.hash = "#kyc";
-                        } else if (profileComplete && kycDone) {
+                        } else if (!accountsSetup) {
                             location.hash = "#manage";
+                        } else {
+                            // Everything complete, allow access
+                            return;
                         }
-                    }, 0);
+                    };
+                    
+                    a.classList.add("link-disabled"); a.setAttribute("aria-disabled", "true");
+                    a.title = "Locked until profile + KYC are complete and account is set up";
+                    a.addEventListener("click", preventNav, { passive: false });
+                    preventNavHandlers.set(a, preventNav);
+                } else {
+                    a.classList.remove("link-disabled"); a.removeAttribute("aria-disabled"); a.removeAttribute("title");
                 }
-                sum.addEventListener("click", onSumClick);
+            });
+            
+            // Handle dropdown menus (details > summary)
+            mainNav.querySelectorAll('details > summary').forEach(sum => {
+                // Remove old handler if it exists
+                const oldSumHandler = preventNavHandlers.get(sum);
+                if (oldSumHandler) {
+                    sum.removeEventListener("click", oldSumHandler);
+                    preventNavHandlers.delete(sum);
+                }
+                
+                if (isGated()) {
+                    const onSumClick = function() {
+                        setTimeout(() => {
+                            banner(gateReason(), "warn");
+                            if (!profileComplete) {
+                                location.hash = "#extra";
+                            } else if (!kycDone) {
+                                location.hash = "#kyc";
+                            } else if (!accountsSetup) {
+                                location.hash = "#manage";
+                            }
+                        }, 0);
+                    };
+                    sum.addEventListener("click", onSumClick);
+                    preventNavHandlers.set(sum, onSumClick);
+                }
             });
         }
         function enforceSettingsGuard() {
@@ -1398,7 +1600,7 @@ renderPlanButtons(row?.subscription || 'free');
                     target = "#extra";
                 } else if (!kycDone) {
                     target = "#kyc";
-                } else if (profileComplete && kycDone) {
+                } else if (!accountsSetup) {
                     target = "#manage";
                 } else {
                     target = "#extra"; // fallback
@@ -1406,6 +1608,12 @@ renderPlanButtons(row?.subscription || 'free');
                 if (hash !== target) { banner(gateReason(), "warn"); location.hash = target; }
             }
         }
+        async function refreshAccountSetup() {
+            if (profileComplete && kycDone) {
+                accountsSetup = await checkAccountsSetup();
+            }
+        }
+        
         function refreshGates() { lockMainNav(); enforceSettingsGuard(); }
         lockMainNav(); enforceSettingsGuard(); window.addEventListener("hashchange", enforceSettingsGuard);
         const _origSetKycState = setKycState;
@@ -1507,8 +1715,21 @@ renderPlanButtons(row?.subscription || 'free');
         const extraSavedTick = document.getElementById("extra-saved");
 
         extraSaveBtn?.addEventListener("click", async () => {
-            setBusy(extraSaveBtn, true);
             extraSavedTick?.classList.add("hidden");
+
+            const missing = validateAdditionalInfoForm();
+            if (missing.length) {
+                const firstKey = missing[0];
+                if (firstKey !== OBJECTIVES_FIELD_KEY) {
+                    document.getElementById(firstKey)?.focus();
+                }
+                const scrollTarget = firstKey === OBJECTIVES_FIELD_KEY ? objectivesGroup : document.getElementById(firstKey);
+                scrollTarget?.scrollIntoView({ behavior: "smooth", block: "center" });
+                banner("Please fill in the highlighted fields.", "err");
+                return;
+            }
+
+            setBusy(extraSaveBtn, true);
 
             try {
                 const payload = {
@@ -1727,6 +1948,8 @@ renderPlanButtons(row?.subscription || 'free');
             if (error) return banner(error.message, 'err');
             banner('Account deleted', 'ok');
             loadAccounts();
+            await refreshAccountSetup();
+            refreshGates();
         });
 
         // Load when Manage tab is visible
@@ -1824,12 +2047,62 @@ renderPlanButtons(row?.subscription || 'free');
                 banner('Account added', 'ok');
                 closeAdd();
                 loadAccounts();
+                await refreshAccountSetup();
+                refreshGates();
+                
+                // Show welcome modal after successful account setup
+                showWelcomeModal();
 
             } catch (e) {
                 console.error(e);
                 banner(e.message || 'Add failed', 'err');
             } finally {
                 btn.disabled = false;
+            }
+        });
+
+        // ---------- Welcome Modal Functions ----------
+        function showWelcomeModal() {
+            const modal = document.getElementById('welcome-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Add slight delay for smooth animation
+                setTimeout(() => {
+                    modal.querySelector('.absolute.left-1\\/2').style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 50);
+            }
+        }
+
+        function closeWelcomeModal() {
+            const modal = document.getElementById('welcome-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Welcome modal event listeners
+        document.getElementById('welcome-continue')?.addEventListener('click', () => {
+            closeWelcomeModal();
+            // Optionally redirect to home or dashboard
+            setTimeout(() => {
+                window.location.href = 'home.html';
+            }, 300);
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('welcome-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'welcome-modal') {
+                closeWelcomeModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('welcome-modal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeWelcomeModal();
+                }
             }
         });
     </script>
@@ -1865,6 +2138,57 @@ renderPlanButtons(row?.subscription || 'free');
             <div class="mt-6 flex justify-end gap-2">
                 <button id="aac-cancel" class="btn">Cancel</button>
                 <button id="aac-save" class="btn btn-olive">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div id="welcome-modal" class="fixed inset-0 z-[150] hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[95vw] rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+            <!-- Decorative background elements -->
+            <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-green-50 via-white to-green-50 opacity-80"></div>
+            <div class="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-olive-200/30 to-olive-300/20 rounded-full blur-xl"></div>
+            <div class="absolute -bottom-8 -left-8 w-24 h-24 bg-gradient-to-tr from-olive-100/40 to-olive-200/30 rounded-full blur-lg"></div>
+            
+            <div class="relative p-8 text-center">
+                <!-- Icon -->
+                <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-olive-100 to-olive-200 flex items-center justify-center mb-6 shadow-lg">
+                    <i class="fa-solid fa-check text-3xl text-olive-700"></i>
+                </div>
+                
+                <!-- Welcome text -->
+                <h2 class="text-2xl font-bold text-olive-800 mb-2">Welcome to AlgoHive!</h2>
+                <p class="text-lg text-olive-600 mb-6 leading-relaxed">
+                    Your account has been successfully set up.<br>
+                    You're now ready to explore our investment strategies and grow your portfolio.
+                </p>
+                
+                <!-- Features highlight -->
+                <div class="bg-olive-50 rounded-2xl p-4 mb-6 border border-olive-100">
+                    <div class="flex items-center justify-center gap-6 text-sm text-olive-700">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-olive-600"></i>
+                            <span>Smart Strategies</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-shield-alt text-olive-600"></i>
+                            <span>Secure Trading</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-olive-600"></i>
+                            <span>Expert Insights</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Continue button -->
+                <button id="welcome-continue" class="w-full font-semibold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl text-white" style="background: linear-gradient(to right, #7c8550, #6b7142); color: white;">
+                    <span class="flex items-center justify-center gap-2" style="color: white;">
+                        Continue to Dashboard
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </span>
+                </button>
             </div>
         </div>
     </div>
