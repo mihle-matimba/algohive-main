@@ -187,6 +187,7 @@
             <div class="space-y-2">
               <label class="text-sm font-medium text-slate-700" for="signup-confirm-password">Confirm password</label>
               <input id="signup-confirm-password" name="confirm_password" type="password" placeholder="Re-enter your password" class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" required />
+              <p id="confirm-hint" class="hidden text-xs font-medium text-rose-600">Passwords must match.</p>
             </div>
             <label class="flex items-start gap-3 rounded-2xl bg-slate-50/90 p-4 text-xs text-slate-600">
               <input id="agree" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]" />
@@ -338,6 +339,7 @@
     const signupBtn = document.getElementById("signup-btn");
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm-password");
+    const confirmHint = document.getElementById("confirm-hint");
 
     // ---- UI helpers ----
     function showMsg(text, type = "info") { // "success" | "error" | "info"
@@ -384,12 +386,20 @@
     const passwordsMatch = () => signupConfirm.value === signupPassword.value;
 
     const validatePasswords = () => {
-      if (!signupConfirm.value) {
+      const hasConfirm = Boolean(signupConfirm.value);
+      const match = passwordsMatch();
+
+      if (!hasConfirm) {
         signupConfirm.setCustomValidity("");
+        confirmHint?.classList.add("hidden");
         return true;
       }
-      const match = passwordsMatch();
+
       signupConfirm.setCustomValidity(match ? "" : "Passwords do not match.");
+      if (confirmHint) {
+        confirmHint.textContent = match ? "" : "Passwords must match.";
+        confirmHint.classList.toggle("hidden", match);
+      }
       return match;
     };
 
