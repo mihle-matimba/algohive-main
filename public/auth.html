@@ -11,76 +11,193 @@
       --olive-700: #576138;
       --ink: #0B1215;
     }
-    body { background: #f6f7f6 }
+    body { background: #f1f4ff; }
+    .orb-gradient {
+      background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0) 60%),
+                        radial-gradient(circle at 80% 20%, rgba(88,164,255,0.18), rgba(255,255,255,0) 55%),
+                        radial-gradient(circle at 50% 80%, rgba(118,133,255,0.12), rgba(255,255,255,0) 55%);
+    }
   </style>
 </head>
 
-<body class="min-h-screen grid place-items-center">
-  <main class="w-full max-w-md bg-white p-6 rounded-2xl shadow border border-black/10">
-    <!-- Brand -->
-    <div class="flex items-center gap-2 mb-4">
-      <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-7 w-auto">
-      <h1 class="text-lg font-extrabold text-[var(--ink)]">AlgoHive</h1>
-    </div>
+<body class="min-h-screen antialiased text-slate-900">
+  <div class="flex min-h-screen flex-col bg-transparent lg:flex-row">
+    <!-- Left: Auth -->
+    <main class="relative w-full bg-white px-8 py-10 shadow-lg lg:flex lg:min-h-screen lg:max-w-xl lg:flex-col lg:justify-between lg:px-12 lg:py-16 xl:max-w-[500px]">
+      <!-- Brand -->
+      <div class="flex items-center gap-2">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-8 w-auto" />
+        <span class="text-lg font-semibold tracking-tight text-[var(--ink)]">AlgoHive</span>
+      </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-2 mb-4">
-      <button id="tab-in" type="button" class="flex-1 py-2 rounded-lg bg-black text-white text-sm font-semibold">Sign in</button>
-      <button id="tab-up" type="button" class="flex-1 py-2 rounded-lg bg-gray-100 text-sm font-semibold">Create account</button>
-    </div>
+      <!-- Auth content -->
+      <div class="mt-10 flex-1 lg:mt-16">
+        <header class="mb-8 space-y-2">
+          <div id="heading-in" class="space-y-1">
+            <h1 class="text-3xl font-semibold text-slate-900">Log in</h1>
+            <p class="text-sm text-slate-500">Need to register? <button id="switch-to-signup" type="button" class="font-semibold text-sky-600 hover:text-sky-700">Sign up.</button></p>
+          </div>
+          <div id="heading-up" class="hidden space-y-1">
+            <h1 class="text-3xl font-semibold text-slate-900">Create account</h1>
+            <p class="text-sm text-slate-500">Already have an account? <button id="switch-to-signin" type="button" class="font-semibold text-sky-600 hover:text-sky-700">Log in.</button></p>
+          </div>
+        </header>
 
-    <!-- Messages -->
-    <div id="msg" class="hidden mb-3 rounded-lg border text-sm px-3 py-2"></div>
+        <!-- Messages -->
+        <div id="msg" class="hidden mb-4 rounded-lg border px-3 py-2 text-sm"></div>
 
-    <!-- Sign in -->
-    <form id="login-form" class="space-y-3">
-      <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" required />
-      <button type="submit" class="w-full rounded px-3 py-2 bg-black text-white">Sign in</button>
-      <button id="forgot" type="button" class="w-full text-sm text-[var(--olive-700)] underline">Forgot password?</button>
-    </form>
+        <!-- Sign in -->
+        <section id="panel-in" class="space-y-8">
+          <form id="login-form" class="space-y-4">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="login-email">Email or username</label>
+              <input id="login-email" name="email" type="email" placeholder="john@company.com" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" required />
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <label class="font-medium text-slate-700" for="login-password">Password</label>
+                <button id="forgot" type="button" class="font-medium text-sky-600 hover:text-sky-700">Forgot password?</button>
+              </div>
+              <input id="login-password" name="password" type="password" placeholder="••••••••" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" required />
+            </div>
+            <button type="submit" class="w-full rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">Log in</button>
+          </form>
 
-    <!-- Inline forgot form -->
-    <div id="forgot-wrap" class="hidden mt-3">
-      <form id="forgot-form" class="space-y-2">
-        <input name="email" type="email" placeholder="Your email" class="w-full border rounded px-3 py-2" required />
-        <div class="flex gap-2">
-          <button type="submit" class="flex-1 rounded px-3 py-2 bg-[var(--olive)] text-white">Send reset link</button>
-          <button type="button" id="forgot-cancel" class="rounded px-3 py-2 border">Cancel</button>
+          <div class="space-y-3">
+            <div class="relative text-center text-xs uppercase tracking-[0.2em] text-slate-400">
+              <span class="bg-white px-3">or</span>
+              <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-slate-200"></div>
+            </div>
+            <button type="button" class="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300"><img src="https://www.svgrepo.com/show/512120/shield-check.svg" alt="SSO" class="h-5 w-5" /> Use single sign-on (SSO)</button>
+            <button type="button" class="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300"><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" class="h-5 w-5" /> Sign in with a corporate Google account</button>
+          </div>
+        </section>
+
+        <!-- Inline forgot form -->
+        <div id="forgot-wrap" class="mt-6 hidden rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+          <h2 class="mb-3 text-sm font-semibold text-slate-700">Reset password</h2>
+          <form id="forgot-form" class="space-y-3">
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-slate-600" for="forgot-email">Email</label>
+              <input id="forgot-email" name="email" type="email" placeholder="you@example.com" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" required />
+            </div>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <button type="submit" class="flex-1 rounded-lg bg-[var(--olive)] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">Send reset link</button>
+              <button type="button" id="forgot-cancel" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300">Cancel</button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
 
-    <!-- Sign up -->
-    <form id="signup-form" class="space-y-3 hidden mt-2">
-      <input name="email" type="email" placeholder="Email" class="w-full border rounded px-3 py-2" required />
-      <input name="password" type="password" placeholder="Password (min 6)" class="w-full border rounded px-3 py-2" required />
+        <!-- Sign up -->
+        <section id="panel-up" class="hidden space-y-6">
+          <form id="signup-form" class="space-y-4">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="signup-email">Email</label>
+              <input id="signup-email" name="email" type="email" placeholder="john@company.com" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" required />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-700" for="signup-password">Password</label>
+              <input id="signup-password" name="password" type="password" placeholder="At least 6 characters" class="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" required />
+            </div>
+            <label class="flex items-start gap-3 rounded-lg bg-slate-50/80 p-3 text-xs text-slate-600">
+              <input id="agree" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]" />
+              <span>
+                I agree to the
+                <a href="/terms.html" class="font-semibold text-sky-600 hover:text-sky-700">Terms &amp; Conditions</a>,
+                <a href="/privacy.html" class="font-semibold text-sky-600 hover:text-sky-700">Privacy Policy</a>,
+                <a href="/risk.html" class="font-semibold text-sky-600 hover:text-sky-700">Risk Disclosure</a>, and
+                <a href="/investment-disclaimer.html" class="font-semibold text-sky-600 hover:text-sky-700">Investment Disclaimer</a>.
+              </span>
+            </label>
+            <button id="signup-btn" type="submit" class="w-full rounded-lg bg-[var(--olive)] px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)] disabled:cursor-not-allowed disabled:opacity-60" disabled>
+              Create account
+            </button>
+            <p class="text-[11px] leading-relaxed text-slate-500">We’ll email a confirmation link to activate your account.</p>
+          </form>
+        </section>
+      </div>
 
-      <!-- Legal acceptance -->
-      <label class="flex items-start gap-2 text-xs text-slate-700">
-        <input id="agree" type="checkbox" class="mt-1 accent-[var(--olive)]" />
-        <span>
-          I agree to the
-          <a href="/terms.html" class="underline text-[var(--olive-700)]">Terms & Conditions</a>,
-          <a href="/privacy.html" class="underline text-[var(--olive-700)]">Privacy Policy</a>,
-          <a href="/risk.html" class="underline text-[var(--olive-700)]">Risk Disclosure</a>, and
-          <a href="/investment-disclaimer.html" class="underline text-[var(--olive-700)]">Investment Disclaimer</a>.
-        </span>
-      </label>
-
-      <button id="signup-btn" type="submit" class="w-full rounded px-3 py-2 bg-[var(--olive)] text-white disabled:opacity-50" disabled>
-        Create account
-      </button>
-      <p class="text-[11px] text-slate-500">We’ll email a confirmation link to activate your account.</p>
-    </form>
-
-    <!-- FSP notice -->
-    <div class="mt-6 rounded-xl border border-black/10 bg-black/[0.03] p-3">
-      <p class="text-[11px] leading-5 text-slate-600">
+      <!-- Notice -->
+      <footer class="mt-12 border-t border-slate-100 pt-6 text-[11px] leading-5 text-slate-500">
         AlgoHive (<b>FSP 55118</b>) is a registered Financial Services Provider. Investing involves risk. Past performance is not indicative of future results.
-      </p>
-    </div>
-  </main>
+      </footer>
+    </main>
+
+    <!-- Right: Preview -->
+    <aside class="relative hidden flex-1 items-center justify-center overflow-hidden bg-[#f6f8ff] lg:flex">
+      <div class="absolute inset-0 orb-gradient"></div>
+      <div class="relative z-10 w-full max-w-4xl px-10 py-16">
+        <div class="mb-10 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-slate-500">Hi, John Doe</p>
+            <h2 class="text-2xl font-semibold text-slate-900">Get started with Sumsub</h2>
+          </div>
+          <button type="button" class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500">Help Center</button>
+        </div>
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="space-y-4 rounded-2xl border border-white/60 bg-white/80 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-800">Start with the basic KYC flow</h3>
+              <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-600">New</span>
+            </div>
+            <p class="text-xs text-slate-500">Launch the verification flow covering common KYC requirements.</p>
+            <div class="space-y-2 text-xs text-slate-500">
+              <p>• Templates</p>
+              <p>• Review Center</p>
+              <p>• Live Dashboard</p>
+            </div>
+            <button type="button" class="w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm">Start</button>
+          </div>
+          <div class="space-y-4 rounded-2xl border border-white/60 bg-white/80 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-800">Create custom verification flow</h3>
+              <span class="rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-semibold text-indigo-600">Popular</span>
+            </div>
+            <p class="text-xs text-slate-500">Configure verification flows with custom logic and automations.</p>
+            <div class="space-y-2 text-xs text-slate-500">
+              <p>• Automations</p>
+              <p>• Lists and settings</p>
+              <p>• Advanced routing</p>
+            </div>
+            <button type="button" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">Build</button>
+          </div>
+          <div class="lg:col-span-2 rounded-2xl border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800">Overview</h3>
+                <p class="text-xs text-slate-500">Verification status • Last 7 days • Nov 18 2023</p>
+              </div>
+              <button type="button" class="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">Download report</button>
+            </div>
+            <div class="mt-6 grid gap-6 lg:grid-cols-2">
+              <div class="rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
+                <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Checked applicants (per time)</h4>
+                <img src="https://static.figma.com/uploads/d7e1e1d76e6aa708ced84afae4be41a1de37d582" alt="Line chart" class="mt-3 w-full rounded" />
+              </div>
+              <div class="rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
+                <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Checked Applicants</h4>
+                <div class="mt-4 grid grid-cols-2 gap-4 text-xs text-slate-600">
+                  <div>
+                    <p class="text-2xl font-semibold text-slate-900">324</p>
+                    <p>Total</p>
+                  </div>
+                  <div>
+                    <p class="text-2xl font-semibold text-emerald-600">92%</p>
+                    <p>Approved</p>
+                  </div>
+                  <div class="col-span-2 mt-4">
+                    <div class="h-2 rounded-full bg-slate-100">
+                      <div class="h-full w-[92%] rounded-full bg-emerald-400"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <script type="module" nonce="ALGOHIVE">
     import { signIn, signUp } from "/js/auth.js";
@@ -146,8 +263,12 @@
     const redirectTo = qs.get("redirect") || "/home.html";
 
     // elems
-    const tabIn = document.getElementById("tab-in");
-    const tabUp = document.getElementById("tab-up");
+    const headingIn = document.getElementById("heading-in");
+    const headingUp = document.getElementById("heading-up");
+    const panelIn = document.getElementById("panel-in");
+    const panelUp = document.getElementById("panel-up");
+    const switchToSignup = document.getElementById("switch-to-signup");
+    const switchToSignin = document.getElementById("switch-to-signin");
     const fIn = document.getElementById("login-form");
     const fUp = document.getElementById("signup-form");
     const msg = document.getElementById("msg");
@@ -171,21 +292,16 @@
     function show(tab) {
       clearMsg();
       const up = tab === "up";
-      fUp.classList.toggle("hidden", !up);
-      fIn.classList.toggle("hidden", up);
-      tabUp.classList.toggle("bg-black", up);
-      tabUp.classList.toggle("text-white", up);
-      tabUp.classList.toggle("bg-gray-100", !up);
-      tabIn.classList.toggle("bg-black", !up);
-      tabIn.classList.toggle("text-white", !up);
-      tabIn.classList.toggle("bg-gray-100", up);
+      panelUp.classList.toggle("hidden", !up);
+      panelIn.classList.toggle("hidden", up);
+      headingUp.classList.toggle("hidden", !up);
+      headingIn.classList.toggle("hidden", up);
       forgot.classList.toggle("hidden", up);
       forgotWrap.classList.add("hidden");
     }
 
-    // tabs
-    tabIn.addEventListener("click", () => show("in"));
-    tabUp.addEventListener("click", () => show("up"));
+    switchToSignup?.addEventListener("click", () => show("up"));
+    switchToSignin?.addEventListener("click", () => show("in"));
 
     // enable/disable signup by checkbox
     const toggleSignupBtn = () => signupBtn.disabled = !agree.checked;
@@ -199,14 +315,14 @@
       const email = e.target.email.value.trim();
       const password = e.target.password.value;
       try {
-        setLoading(inBtn, true, "Sign in", "Signing in…");
+        setLoading(inBtn, true, "Log in", "Logging in…");
         await signIn(email, password);
         showMsg("Signed in. Redirecting…", "success");
         await routePostAuth(redirectTo);
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
-        setLoading(inBtn, false, "Sign in");
+        setLoading(inBtn, false, "Log in");
       }
     });
 
