@@ -1356,30 +1356,28 @@ renderPlanButtons(row?.subscription || 'free');
                 // When user returns, we’ll read ?kyc_session=... from URL and check status
                 const returnUrl = `${location.origin}/settings.html#docs`;
 
-                // Call our server to create the Didit session (and embed the redirect back)
-                const resp = await fetch('/api/kyc/create-session', {
+                // Call our server to create the SamSub session
+                const resp = await fetch('/api/Samsub/init-automated', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: user.id,
+                        externalUserId: user.id,
+                        levelName: 'test-level',
                         email: user.email,
-                        phone: row?.phone || undefined,
-                        redirect_url: returnUrl
+                        firstName: row?.first_name || undefined,
+                        lastName: row?.last_name || undefined,
+                        phone: row?.phone || undefined
                     })
                 });
 
                 const data = await resp.json();
-                if (!resp.ok) throw new Error(data?.error || 'Could not start KYC');
+                if (!resp.ok) throw new Error(data?.error?.message || data?.error || 'Could not start KYC');
 
-                // TEST mode → just show message
-                if (data.mode === 'TEST') {
-                    banner('Server OK (TEST mode). Configure DIDIT_API_KEY & DIDIT_WORKFLOW_ID for live.', 'ok');
-                    btnKycStart.disabled = false;
-                    btnKycStart.textContent = "Get Started";
-                    return;
+                if (!data.success) {
+                    throw new Error(data?.error?.message || 'Failed to initialize KYC verification');
                 }
 
-                if (!data.sessionUrl) throw new Error('No session URL from KYC provider');
+                if (!data.data?.webSDKLink?.url) throw new Error('No verification URL from KYC provider');
 
                 // Best practice: add sessionId to the return URL as a query (so we can poll when we land back)
                 const back = new URL(data.redirectUrl || returnUrl);
@@ -1409,8 +1407,21 @@ renderPlanButtons(row?.subscription || 'free');
 
                 banner('Redirecting to KYC verification...', 'info');
 
-                // Off you go 🚀
-                window.location.href = finalUrl;
+                // Store SamSub session info for return handling
+                const applicantId = data.data.applicant.id;
+                const verificationUrl = data.data.webSDKLink.url;
+                
+                try {
+                    localStorage.setItem('samsub_applicant_id', applicantId);
+                    localStorage.setItem('samsub_user_id', user.id);
+                    localStorage.setItem('samsub_started_at', Date.now().toString());
+                    sessionStorage.setItem('lastSamsubApplicantId', applicantId);
+                } catch (e) {
+                    console.warn('Could not persist SamSub session to localStorage', e);
+                }
+
+                // Open SamSub verification in new window/tab to maintain user session
+                window.open(verificationUrl, 'samsub_kyc', 'width=800,height=600,scrollbars=yes,resizable=yes');
 
             } catch (e) {
                 console.error(e);
@@ -1420,10 +1431,43 @@ renderPlanButtons(row?.subscription || 'free');
             }
         });
 
-
-
-
-
+        // SamSub status checking function
+        async function checkSamsubStatus(applicantId) {
+            try {
+                const response = await fetch(`/api/Samsub/status/${applicantId}`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const status = data.data.reviewStatus;
+                    
+                    if (status === 'completed' && data.data.reviewResult?.reviewAnswer === 'GREEN') {
+                        // Update profile in Supabase
+                        await supabase.from('profiles')
+                            .update({ 
+                                kyc_status: 'verified',
+                                kyc_approved_at: new Date().toISOString()
+                            })
+                            .eq('id', user.id);
+                        
+                        setKycState(true);
+                        banner('🎉 KYC Verified! All features unlocked.', 'ok');
+                        
+                        // Clean up localStorage
+                        localStorage.removeItem('samsub_applicant_id');
+                        localStorage.removeItem('samsub_started_at');
+                        
+                    } else if (status === 'completed' && data.data.reviewResult?.reviewAnswer === 'RED') {
+                        setKycState(false);
+                        banner('❌ KYC was declined. Please contact support.', 'err');
+                    } else {
+                        banner(`KYC status: ${status || 'pending'}`, 'info');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking SamSub status:', error);
+                banner('Could not check KYC status', 'err');
+            }
+        }
 
         const allowedTabsWhenGated = new Set(["extra", "docs", "subs"]);
         function isGated() {
