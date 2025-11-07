@@ -109,6 +109,113 @@
       color: #fff;
       border-color: var(--olive);
     }
+    .toast-stack {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 400;
+      pointer-events: none;
+    }
+    .toast-card {
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      min-width: 260px;
+      max-width: 360px;
+      padding: 0.9rem 1rem;
+      border-radius: 1rem;
+      background-image: linear-gradient(135deg, #0b1215, #1c2714);
+      color: #f8fafc;
+      box-shadow: 0 18px 42px -18px rgba(11, 18, 21, 0.7);
+      border: 1px solid rgba(126, 141, 82, 0.45);
+      transform: translateX(120%);
+      opacity: 0;
+      animation: toastIn 0.45s cubic-bezier(.22, 1, .36, 1) forwards;
+    }
+    .toast-card[data-tone="err"],
+    .toast-card[data-tone="warn"] {
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+    .toast-icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      border-radius: 9999px;
+      background: rgba(126, 141, 82, 0.18);
+      border: 1px solid rgba(126, 141, 82, 0.45);
+      color: rgba(226, 232, 240, 0.95);
+    }
+    .toast-card[data-tone="err"] .toast-icon,
+    .toast-card[data-tone="warn"] .toast-icon {
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.45);
+      color: rgba(254, 226, 226, 0.95);
+    }
+    .toast-card[data-tone="ok"] .toast-icon {
+      color: rgba(190, 242, 100, 0.95);
+    }
+    .toast-message {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      font-weight: 500;
+      color: inherit;
+    }
+    .toast-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding-top: 0.1rem;
+    }
+    .toast-dismiss {
+      margin-left: auto;
+      margin-top: 0.1rem;
+      background: transparent;
+      border: 0;
+      color: rgba(248, 250, 252, 0.75);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      transition: background 0.2s ease, color 0.2s ease;
+      cursor: pointer;
+    }
+    .toast-dismiss:hover {
+      background: rgba(15, 23, 42, 0.22);
+      color: rgba(248, 250, 252, 0.95);
+    }
+    .toast-card--leaving {
+      animation: toastOut 0.32s ease forwards;
+    }
+    @keyframes toastIn {
+      0% {
+        transform: translateX(120%);
+        opacity: 0;
+      }
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes toastOut {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(120%);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 
@@ -754,20 +861,64 @@
     });
 
     function banner(msg, tone = "warn") {
-      let el = document.getElementById("banner");
-      if (!el) {
-        el = document.createElement("div");
-        el.id = "banner";
-        el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-        document.body.appendChild(el);
+      const stackId = "toast-stack";
+      let stack = document.getElementById(stackId);
+      if (!stack) {
+        stack = document.createElement("div");
+        stack.id = stackId;
+        stack.className = "toast-stack";
+        document.body.appendChild(stack);
       }
-      el.className = "fixed top-3 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow text-sm";
-      if (tone === "warn") el.classList.add("bg-amber-100", "text-amber-900");
-      if (tone === "err") el.classList.add("bg-rose-100", "text-rose-900");
-      if (tone === "ok") el.classList.add("bg-emerald-100", "text-emerald-900");
-      el.textContent = msg;
-      clearTimeout(el._t);
-      el._t = setTimeout(() => el.remove(), 4000);
+
+      const toast = document.createElement("div");
+      toast.className = "toast-card";
+      toast.dataset.tone = tone;
+
+      const icon = document.createElement("span");
+      icon.className = "toast-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = tone === "ok"
+        ? '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 6L8.5 14L4 9.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.5 6.5L6.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M6.5 6.5L13.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+
+      const content = document.createElement("div");
+      content.className = "toast-content";
+      const message = document.createElement("p");
+      message.className = "toast-message";
+      message.textContent = msg;
+      content.appendChild(message);
+
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "toast-dismiss";
+      close.setAttribute("aria-label", "Dismiss notification");
+      close.innerHTML = '<svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.75 7.25L7.25 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7.25 7.25L12.75 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+      toast.append(icon, content, close);
+      stack.prepend(toast);
+
+      let isLeaving = false;
+      const removeToast = () => {
+        if (isLeaving) return;
+        isLeaving = true;
+        toast.classList.add("toast-card--leaving");
+        toast.addEventListener(
+          "animationend",
+          () => {
+            toast.remove();
+            if (!stack.hasChildNodes()) {
+              stack.remove();
+            }
+          },
+          { once: true },
+        );
+      };
+
+      const timeout = setTimeout(removeToast, 5000);
+      close.addEventListener("click", () => {
+        clearTimeout(timeout);
+        removeToast();
+      });
     }
 
     const REQUIRED_FIELDS = [
@@ -1118,7 +1269,7 @@
 
         autoCompleteStepsFromProfile(profileRow);
 
-        banner("Profile saved ✅", "ok");
+        banner("Profile saved successfully.", "ok");
         document.dispatchEvent(new Event("ah:profile-saved"));
         return true;
       } catch (error) {
@@ -1163,7 +1314,7 @@
       setAvatarSrc(avatar_url);
       avatarRemove?.classList.remove("hidden");
       setAvatarFilename(file.name);
-      banner("Avatar updated ✅", "ok");
+      banner("Avatar updated successfully.", "ok");
     }
 
     avatarFile?.addEventListener("change", async () => {
@@ -1225,7 +1376,7 @@
           button.disabled = true;
           button.textContent = "All steps saved";
           button.classList.add("opacity-80");
-          banner("Onboarding complete ✅", "ok");
+          banner("Onboarding complete.", "ok");
           return;
         }
 
