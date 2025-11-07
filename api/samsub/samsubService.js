@@ -8,9 +8,14 @@ class SamSubService {
     this.appToken = process.env.SAMSUB_APP_TOKEN;
     this.secretKey = process.env.SAMSUB_SECRET_KEY;
     this.appId = process.env.SAMSUB_APP_ID;
+  }
 
+  validateCredentials() {
     if (!this.appToken || !this.secretKey || !this.appId) {
-      throw new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+      const error = new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+      error.statusCode = 503; // Service Unavailable
+      error.code = 'SAMSUB_CREDENTIALS_MISSING';
+      throw error;
     }
   }
 
@@ -42,14 +47,15 @@ class SamSubService {
       data: isFormData ? '(form data)' : data
     });
     
-    // Validate environment variables
-    if (!this.appToken || !this.secretKey || !this.appId) {
+    try {
+      this.validateCredentials();
+    } catch (error) {
       console.error('Missing SamSub credentials:', {
         hasAppToken: !!this.appToken,
         hasSecretKey: !!this.secretKey,
         hasAppId: !!this.appId
       });
-      throw new Error('SamSub credentials missing. Check SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+      throw error;
     }
 
     const url = endpoint;
@@ -149,6 +155,8 @@ class SamSubService {
     const { timestamp, signature } = this.generateSignature('POST', url, '');
 
     try {
+      this.validateCredentials();
+      
       const response = await axios.post(`${this.apiUrl}${endpoint}`, formData, {
         headers: {
           ...formData.getHeaders(),
@@ -158,13 +166,39 @@ class SamSubService {
         },
         params: {
           idDocType: documentType
-        }
+        },
+        validateStatus: false
       });
+
+      // Log the complete response for debugging
+      console.log('SamSub Document Upload Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      });
+
+      // Handle non-200 responses explicitly
+      if (response.status !== 200) {
+        throw new Error(JSON.stringify({
+          status: response.status,
+          message: response.data?.description || response.statusText,
+          details: response.data
+        }));
+      }
 
       return response.data;
     } catch (error) {
-      console.error('Document upload error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.description || error.message);
+      console.error('Document upload error:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      
+      throw new Error(JSON.stringify({
+        message: error.response?.data?.description || error.message,
+        details: error.response?.data || error
+      }));
     }
   }
 
