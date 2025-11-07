@@ -380,6 +380,59 @@ router.post('/websdk-link', async (req, res) => {
 });
 
 /**
+ * Create KYC session (alias for init-automated)
+ * POST /api/kyc/create-session
+ */
+router.post('/create-session', async (req, res) => {
+  try {
+    const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
+
+    if (!externalUserId) {
+      return res.status(400).json(helpers.formatResponse(false, null, {
+        message: 'External user ID is required'
+      }));
+    }
+
+    helpers.logRequest(req, '/create-session');
+
+    // Generate WebSDK link directly for the user
+    const webSDKLink = await samsubService.generateWebSDKLink({
+      externalUserId,
+      levelName,
+      email,
+      phone
+    });
+
+    res.json(helpers.formatResponse(true, {
+      sessionUrl: webSDKLink.url,
+      externalUserId,
+      levelName,
+      expiresInSeconds: webSDKLink.expiresInSeconds
+    }));
+
+  } catch (error) {
+    console.error('Create session error:', error);
+    
+    let errorMessage = 'Failed to create KYC session';
+    let statusCode = 500;
+    
+    // Try to parse JSON error
+    try {
+      const errorObj = JSON.parse(error.message);
+      errorMessage = errorObj.message || errorMessage;
+      statusCode = errorObj.statusCode || errorObj.status || statusCode;
+    } catch (e) {
+      errorMessage = error.message || errorMessage;
+    }
+    
+    res.status(statusCode).json(helpers.formatResponse(false, null, {
+      message: errorMessage,
+      error: error.message
+    }));
+  }
+});
+
+/**
  * Initialize automated verification flow
  * POST /api/samsub/kyc/init-automated
  */
