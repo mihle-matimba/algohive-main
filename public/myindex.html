@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoHive | The Future of Algorithmic Investing</title> 
   
+  <meta http-equiv="Content-Security-Policy" 
+        content="script-src 'self' 'nonce-ALGOHIVE' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://s3.tradingview.com; 
+                 frame-src 'self' https://s3.tradingview.com https://www.tradingview-widget.com/;
+                 connect-src 'self' https://cdn.jsdelivr.net;">
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -237,7 +242,7 @@
   <section class="py-4 border-y border-[var(--line)]">
     <div class="tradingview-widget-container tv-ticker">
       <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async nonce="ALGOHIVE">
       {
         "symbols": [
           { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
@@ -643,6 +648,8 @@
 
   // Countdown Timer
   (function(){
+    // ***** THIS IS THE SCRIPT BLOCK WITH THE FIX *****
+    let interval; // <-- 1. Declare 'interval' up here
     const target = new Date('2025-10-21T21:00+02:00');
     const daysEl  = document.getElementById('cdDays');
     const hrsEl   = document.getElementById('cdHrs');
@@ -657,7 +664,7 @@
       if (ms <= 0){
         daysEl.textContent = '0'; hrsEl.textContent = '00';
         minsEl.textContent = '00'; secsEl.textContent = '00';
-        if(interval) clearInterval(interval);
+        if(interval) clearInterval(interval); // <-- 2. Now this is safe
         return;
       }
       const d = Math.floor(ms / (1000*60*60*24));
@@ -674,8 +681,9 @@
       secsEl.textContent = String(s).padStart(2, '0');
     }
     update();
-    const interval = setInterval(update, 1000);
+    interval = setInterval(update, 1000); // <-- 3. Assign to the declared variable
   })();
+  // ***** END OF FIX *****
 
   // Scroll Animations
   (function() {
@@ -701,8 +709,8 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
   
   // ***** THIS IS THE KEY FIX *****
-  // Access createClient from the global `window.supabase` object loaded by the CDN script
-  const { createClient } = window.supabase; 
+  // Access createClient from the global `supabase` object loaded by the CDN script
+  const { createClient } = supabase; 
   const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // --- DOM helpers ---
@@ -1128,6 +1136,9 @@
 
     els.periodButtons.forEach(b=> b.addEventListener('click', ()=>{ 
       selectedPeriod=b.dataset.period||'ALL'; 
+      // Update active state for period buttons
+      els.periodButtons.forEach(btn => btn.classList.remove('active'));
+      b.classList.add('active');
       render(); 
     }));
   }
