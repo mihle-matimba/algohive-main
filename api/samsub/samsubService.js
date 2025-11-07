@@ -36,6 +36,11 @@ class SamSubService {
    * Make authenticated request to SamSub API
    */
   async makeRequest(method, endpoint, data = null, isFormData = false) {
+    // Validate environment variables
+    if (!this.appToken || !this.secretKey || !this.appId) {
+      throw new Error('SamSub credentials missing. Check SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+    }
+
     const url = endpoint;
     const body = data ? (isFormData ? '' : JSON.stringify(data)) : '';
     const { timestamp, signature } = this.generateSignature(method, url, body);

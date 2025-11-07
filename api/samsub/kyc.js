@@ -127,6 +127,12 @@ router.get('/health', (req, res) => {
  */
 router.post('/create-applicant', async (req, res) => {
   try {
+    // Log incoming request
+    console.log('Create applicant request:', JSON.stringify({
+      body: req.body,
+      headers: req.headers
+    }, null, 2));
+
     const { externalUserId, levelName, email, firstName, lastName, phone } = req.body;
 
     // Validation
@@ -166,9 +172,12 @@ router.post('/create-applicant', async (req, res) => {
 
   } catch (error) {
     console.error('Create applicant error:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Full error object:', JSON.stringify(error, null, 2));
     res.status(500).json(helpers.formatResponse(false, null, {
       message: 'Failed to create applicant',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     }));
   }
 });
@@ -254,8 +263,20 @@ router.get('/status/:applicantId', async (req, res) => {
  */
 router.post('/webhook', async (req, res) => {
   try {
+    console.log('Received webhook:', {
+      headers: req.headers,
+      body: req.body
+    });
+
     const payload = req.body;
     const signature = req.headers['x-payload-digest'];
+
+    if (!signature) {
+      console.error('Missing webhook signature');
+      return res.status(400).json(helpers.formatResponse(false, null, {
+        message: 'Missing webhook signature'
+      }));
+    }
 
     // Verify webhook signature
     const isValid = samsubService.verifyWebhookSignature(payload, signature);
