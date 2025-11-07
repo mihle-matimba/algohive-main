@@ -81,12 +81,12 @@
       box-shadow: 0 32px 64px -32px rgba(15, 23, 42, 0.9);
     }
     .product-card--investing {
-      background-image: radial-gradient(circle at 0% 0%, rgba(126, 141, 82, 0.22), transparent 58%),
-        linear-gradient(140deg, #080b0c 10%, #101713 45%, #1f2617 100%);
+      background-image: radial-gradient(circle at 0% 0%, rgba(150, 178, 92, 0.35), transparent 58%),
+        linear-gradient(140deg, #0c140c 12%, #1f2f18 48%, #3b5624 100%);
     }
     .product-card--loans {
-      background-image: radial-gradient(circle at 100% 0%, rgba(147, 51, 234, 0.28), transparent 60%),
-        linear-gradient(140deg, #080b0c 12%, #131024 52%, #2f164f 100%);
+      background-image: radial-gradient(circle at 100% 0%, rgba(183, 148, 255, 0.4), transparent 60%),
+        linear-gradient(140deg, #0d0a13 15%, #2a1d4a 52%, #704adf 100%);
     }
     .product-option--active {
       border-color: rgba(255, 255, 255, 0.32) !important;
@@ -1224,6 +1224,7 @@
     const productLoader = document.getElementById("productLoader");
     const productPicker = document.getElementById("productPicker");
     const productOptions = Array.from(document.querySelectorAll("[data-product-option]"));
+    const DEFAULT_PRODUCT_OPTION = "investing";
     const checkoutPanel = document.getElementById("checkoutPanel");
     const checkoutBadge = document.getElementById("checkoutBadge");
     const checkoutTitle = document.getElementById("checkoutTitle");
@@ -1294,10 +1295,14 @@
           productPicker.classList.remove("hidden");
           productPicker.classList.add("swap-anim");
         }
+        if (productOptions.length) {
+          updateCheckout(DEFAULT_PRODUCT_OPTION, { scroll: false });
+        }
       }, 5000);
     };
 
-    const updateCheckout = (productKey) => {
+    const updateCheckout = (productKey, options = {}) => {
+      const { scroll = true } = options;
       const detail = productDetails[productKey];
       if (!detail) return;
 
@@ -1325,7 +1330,9 @@
         checkoutPanel.classList.add("swap-anim");
       }
 
-      checkoutPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (scroll) {
+        checkoutPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     };
 
     productOptions.forEach((button) => {
