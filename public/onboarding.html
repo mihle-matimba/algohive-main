@@ -58,10 +58,72 @@
     @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     @keyframes preloaderPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
     .swap-anim { animation: heroSlideUp .5s ease both; }
+    .product-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.25rem;
+      padding: 1.75rem;
+      border-radius: 1.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: #0b1215;
+      color: #f8fafc;
+      text-align: left;
+      box-shadow: 0 24px 50px -30px rgba(11, 18, 21, 0.85);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      min-height: 164px;
+    }
+    .product-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow: 0 32px 64px -32px rgba(15, 23, 42, 0.9);
+    }
+    .product-card--investing {
+      background-image: radial-gradient(circle at 0% 0%, rgba(126, 141, 82, 0.22), transparent 58%),
+        linear-gradient(140deg, #080b0c 10%, #101713 45%, #1f2617 100%);
+    }
+    .product-card--loans {
+      background-image: radial-gradient(circle at 100% 0%, rgba(147, 51, 234, 0.28), transparent 60%),
+        linear-gradient(140deg, #080b0c 12%, #131024 52%, #2f164f 100%);
+    }
     .product-option--active {
-      border-color: var(--olive) !important;
-      box-shadow: 0 20px 48px -24px rgba(87, 97, 56, 0.45), 0 0 0 1px rgba(87, 97, 56, 0.15);
-      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.32) !important;
+      box-shadow: 0 36px 78px -36px rgba(126, 141, 82, 0.55);
+      transform: translateY(-8px);
+    }
+    .product-card__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(15, 23, 42, 0.55);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+    .product-card__title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .product-card__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.92);
+    }
+    .product-card__cta svg {
+      width: 1rem;
+      height: 1rem;
     }
     .orb-gradient {
       background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0) 60%),
@@ -124,7 +186,7 @@
       z-index: 400;
       pointer-events: none;
     }
-    .toast-card {
+    .toast-card { 
       pointer-events: auto;
       display: flex;
       align-items: flex-start;
@@ -140,6 +202,11 @@
       transform: translateX(120%);
       opacity: 0;
       animation: toastIn 0.45s cubic-bezier(.22, 1, .36, 1) forwards;
+    }
+    .plan-group--error {
+      outline: 2px solid rgba(248, 113, 113, 0.45);
+      outline-offset: 6px;
+      border-radius: 1.75rem;
     }
     .toast-card[data-tone="err"],
     .toast-card[data-tone="warn"] {
@@ -782,7 +849,7 @@
 
                 <form data-panel="5" class="tab-panel hidden space-y-10" novalidate>
                   <div class="space-y-6">
-                    <div class="grid gap-6 md:grid-cols-2">
+                    <div data-plan-group class="grid gap-6 md:grid-cols-2">
                       <label class="relative flex cursor-pointer flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[var(--olive)] hover:shadow-lg">
                         <input type="radio" name="plan" value="core" class="peer absolute right-6 top-6 h-4 w-4 border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]/20" />
                         <div class="flex items-center justify-between">
@@ -852,25 +919,36 @@
 
                 <div id="productLoader" class="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
                   <span class="h-10 w-10 animate-spin rounded-full border-2 border-[var(--olive)] border-t-transparent"></span>
-                  <div class="space-y-1">
-                    <p class="text-sm font-semibold text-slate-800">Preparing your personalized options…</p>
-                    <p class="text-xs text-slate-500">This only takes a moment.</p>
-                  </div>
+                  <p class="text-sm font-semibold text-slate-800">Loading your products…</p>
                 </div>
 
-                <div id="productPicker" class="hidden space-y-3">
-                  <p class="text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Next up</p>
-                  <h3 class="text-lg font-semibold text-slate-900">What products are you interested in?</h3>
+                <div id="productPicker" class="hidden">
                   <div class="grid gap-3 sm:grid-cols-2">
-                    <button type="button" data-product-option="investing" class="flex flex-col items-start gap-3 rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-[var(--olive)] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--olive)]/40">
-                      <span class="inline-flex items-center gap-2 rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--olive-700)]">Investing</span>
-                      <p class="text-sm font-medium text-slate-700">Grow with quant-backed portfolios.</p>
-                      <span class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--olive)]">Continue <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" class="h-4 w-4"><path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <button
+                      type="button"
+                      data-product-option="investing"
+                      class="product-card product-card--investing w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--olive)]/40"
+                    >
+                      <div class="space-y-2">
+                        <span class="product-card__eyebrow">Investing</span>
+                        <p class="product-card__title">Quant portfolios</p>
+                      </div>
+                      <span class="product-card__cta">Go to checkout
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none"><path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </span>
                     </button>
-                    <button type="button" data-product-option="loans" class="flex flex-col items-start gap-3 rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-[var(--olive)] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--olive)]/40">
-                      <span class="inline-flex items-center gap-2 rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--olive-700)]">Loans</span>
-                      <p class="text-sm font-medium text-slate-700">Compare tailored funding options.</p>
-                      <span class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--olive)]">Continue <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" class="h-4 w-4"><path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <button
+                      type="button"
+                      data-product-option="loans"
+                      class="product-card product-card--loans w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--olive)]/40"
+                    >
+                      <div class="space-y-2">
+                        <span class="product-card__eyebrow">Loans</span>
+                        <p class="product-card__title">Flexible funding</p>
+                      </div>
+                      <span class="product-card__cta">Go to checkout
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none"><path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1086,6 +1164,13 @@
     }
 
     const objectivesGroup = document.getElementById("objectives-group");
+    const planGroup = document.querySelector('[data-plan-group]');
+    const planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
+
+    function setPlanGroupError(active) {
+      if (!planGroup) return;
+      planGroup.classList.toggle("plan-group--error", !!active);
+    }
 
     function clearFieldErrors() {
       FORM_REQUIRED_FIELDS.forEach((id) => {
@@ -1093,6 +1178,7 @@
         if (el) el.classList.remove("input-error");
       });
       objectivesGroup?.classList.remove("field-error");
+      setPlanGroupError(false);
     }
 
     function syncObjectivesHighlight() {
@@ -1114,6 +1200,12 @@
     document.querySelectorAll('input[name="objectives"]').forEach((cb) => {
       cb.addEventListener("change", () => {
         syncObjectivesHighlight();
+      });
+    });
+
+    planRadios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        setPlanGroupError(false);
       });
     });
 
@@ -1372,6 +1464,13 @@
           missing.push(key);
         }
       });
+      if (step >= totalSteps) {
+        const hasPlan = planRadios.some((radio) => radio.checked);
+        setPlanGroupError(!hasPlan);
+        if (!hasPlan) missing.push("plan");
+      } else {
+        setPlanGroupError(false);
+      }
       return missing;
     }
 
@@ -1382,6 +1481,10 @@
         objectivesGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
         const firstCb = objectivesGroup?.querySelector('input[name="objectives"]');
         firstCb?.focus();
+      } else if (firstKey === "plan") {
+        planGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const firstPlan = planRadios[0];
+        firstPlan?.focus();
       } else {
         const el = document.getElementById(firstKey);
         if (el) {
