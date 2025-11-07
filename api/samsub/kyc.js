@@ -385,11 +385,14 @@ router.post('/websdk-link', async (req, res) => {
  */
 router.post('/create-session', async (req, res) => {
   try {
-    const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
+    // Support both userId and externalUserId
+    const { userId, externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
+    
+    const userIdentifier = externalUserId || userId;
 
-    if (!externalUserId) {
+    if (!userIdentifier) {
       return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'External user ID is required'
+        message: 'User ID (userId or externalUserId) is required'
       }));
     }
 
@@ -397,7 +400,7 @@ router.post('/create-session', async (req, res) => {
 
     // Generate WebSDK link directly for the user
     const webSDKLink = await samsubService.generateWebSDKLink({
-      externalUserId,
+      externalUserId: userIdentifier,
       levelName,
       email,
       phone
@@ -405,7 +408,7 @@ router.post('/create-session', async (req, res) => {
 
     res.json(helpers.formatResponse(true, {
       sessionUrl: webSDKLink.url,
-      externalUserId,
+      externalUserId: userIdentifier,
       levelName,
       expiresInSeconds: webSDKLink.expiresInSeconds
     }));
