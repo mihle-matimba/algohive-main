@@ -9,7 +9,17 @@ class SamSubService {
     this.secretKey = process.env.SAMSUB_SECRET_KEY;
     this.appId = process.env.SAMSUB_APP_ID;
 
-    if (!this.appToken || !this.secretKey || !this.appId) {
+    this.isConfigured = Boolean(this.appToken && this.secretKey && this.appId);
+
+    if (!this.isConfigured) {
+      console.warn(
+        'SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.'
+      );
+    }
+  }
+
+  ensureConfigured() {
+    if (!this.isConfigured) {
       throw new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
     }
   }
@@ -18,9 +28,11 @@ class SamSubService {
    * Generate signature for SamSub API requests
    */
   generateSignature(method, url, body = '') {
+    this.ensureConfigured();
+
     const timestamp = Math.floor(Date.now() / 1000);
     const message = `${timestamp}${method.toUpperCase()}${url}${body}`;
-    
+
     const signature = crypto
       .createHmac('sha256', this.secretKey)
       .update(message)
@@ -36,6 +48,8 @@ class SamSubService {
    * Make authenticated request to SamSub API
    */
   async makeRequest(method, endpoint, data = null, isFormData = false) {
+    this.ensureConfigured();
+
     const url = endpoint;
     const body = data ? (isFormData ? '' : JSON.stringify(data)) : '';
     const { timestamp, signature } = this.generateSignature(method, url, body);
@@ -73,6 +87,8 @@ class SamSubService {
    * Create a new applicant
    */
   async createApplicant({ externalUserId, levelName, email, firstName, lastName, phone }) {
+    this.ensureConfigured();
+
     const applicantData = {
       externalUserId,
       info: {}
@@ -91,6 +107,8 @@ class SamSubService {
    * Upload document for verification
    */
   async uploadDocument(applicantId, { documentType, fileName, fileBuffer, mimeType }) {
+    this.ensureConfigured();
+
     const formData = new FormData();
     formData.append('content', fileBuffer, {
       filename: fileName,
@@ -125,6 +143,8 @@ class SamSubService {
    * Get applicant status and verification results
    */
   async getApplicantStatus(applicantId) {
+    this.ensureConfigured();
+
     const endpoint = `/resources/applicants/${applicantId}/status`;
     return await this.makeRequest('GET', endpoint);
   }
@@ -133,6 +153,8 @@ class SamSubService {
    * Generate access token for SamSub SDK
    */
   async generateAccessToken(applicantId, levelName) {
+    this.ensureConfigured();
+
     const endpoint = `/resources/accessTokens?userId=${applicantId}&levelName=${levelName || 'test-level'}`;
     const response = await this.makeRequest('POST', endpoint);
     return response.token;
@@ -142,6 +164,11 @@ class SamSubService {
    * Verify webhook signature
    */
   verifyWebhookSignature(payload, receivedSignature) {
+    if (!this.isConfigured) {
+      console.warn('SamSub webhook signature verification skipped: credentials not configured.');
+      return false;
+    }
+
     if (!receivedSignature) {
       return false;
     }
@@ -162,6 +189,8 @@ class SamSubService {
    * Get applicant data
    */
   async getApplicantData(applicantId) {
+    this.ensureConfigured();
+
     const endpoint = `/resources/applicants/${applicantId}/one`;
     return await this.makeRequest('GET', endpoint);
   }
@@ -170,6 +199,8 @@ class SamSubService {
    * Reset applicant (for resubmission)
    */
   async resetApplicant(applicantId) {
+    this.ensureConfigured();
+
     const endpoint = `/resources/applicants/${applicantId}/reset`;
     return await this.makeRequest('POST', endpoint);
   }
@@ -178,6 +209,8 @@ class SamSubService {
    * Get verification documents
    */
   async getDocuments(applicantId) {
+    this.ensureConfigured();
+
     const endpoint = `/resources/applicants/${applicantId}/info/idDoc`;
     return await this.makeRequest('GET', endpoint);
   }
@@ -200,6 +233,8 @@ class SamSubService {
    * Request applicant check (starts the verification process)
    */
   async requestApplicantCheck(applicantId) {
+    this.ensureConfigured();
+
     const endpoint = `/resources/applicants/${applicantId}/status/pending`;
     return await this.makeRequest('POST', endpoint);
   }
@@ -209,6 +244,8 @@ class SamSubService {
    * Uses the proper SamSub API endpoint to generate external shareable links
    */
   async generateWebSDKLink({ applicantId, externalUserId, levelName, email, phone }) {
+    this.ensureConfigured();
+
     try {
       // Use the correct SamSub API endpoint for generating external WebSDK links
       const endpoint = `/resources/sdkIntegrations/levels/-/websdkLink`;
