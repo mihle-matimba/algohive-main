@@ -1204,15 +1204,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 
     const s = list[activeStrategyIndex];
     
-    // ***** THIS IS THE KEY FIX *****
     // Get the correct data series based on the selected period
     const { eq, dates } = periodSeries(s); 
-    
-    // But for the YTD box, *always* get the YTD data
-    const { eq: ytdEq } = periodSeries({...s, selectedPeriod: 'YTD'}); // Force YTD calc
-    const ytdPct = (ytdEq.length > 0) ? (ytdEq.at(-1) - ytdEq[0]) / ytdEq[0] * 100 : 0;
-    const ytdFmt = fmtPct(ytdPct, 2);
-    // ***** END OF KEY FIX *****
 
     els.stratName.textContent = s.name;
     els.provider.textContent  = s.provider;
@@ -1246,8 +1239,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.mAvgDaily.textContent = s.avgDaily;
     els.mPosDays.textContent = s.posDaysPct;
     els.mTradingDays.textContent = s.tradingDays;
-    // ***** Use the correctly calculated YTD value *****
-    els.mYTD.textContent = ytdFmt; 
+    // ***** MODIFIED: Use the pre-fetched s.ytd value *****
+    els.mYTD.textContent = s.ytd;
     
     // ***** ADDED: Colorize the summary box values *****
     const red = '#dc2626'; // Tailwind's red-600
@@ -1259,8 +1252,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.mAvgDaily.style.color = (s.avgDaily && s.avgDaily.startsWith('-')) ? red : (s.avgDaily && s.avgDaily.startsWith('+')) ? green : defaultColor;
     els.mPosDays.style.color = defaultColor; // This is just a %, no color needed
     els.mTradingDays.style.color = defaultColor;
-    // ***** Use the calculated YTD value for coloring *****
-    els.mYTD.style.color = (ytdFmt && ytdFmt.startsWith('-')) ? red : (ytdFmt && ytdFmt.startsWith('+')) ? green : defaultColor;
+    // ***** MODIFIED: Use the pre-fetched s.ytd for coloring *****
+    els.mYTD.style.color = (s.ytd && s.ytd.startsWith('-')) ? red : (s.ytd && s.ytd.startsWith('+')) ? green : defaultColor;
     // ***** END OF ADDED BLOCK *****
 
     els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
