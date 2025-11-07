@@ -6,6 +6,7 @@
   <title>AlgoHive — Where Smart Capital Gathers</title> 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"> 
   <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="icon" href="/favicon.png" sizes="any">
@@ -71,6 +72,25 @@
     #strategyBar:hover {
       background: rgba(126, 141, 82, 0.05);
     }
+    
+    /* ***** ADDED: Styles for Performance Summary box from strategy.html ***** */
+    .ps-tile {
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: #fff
+    }
+    .ps-label {
+        color: #64748b;
+        font-weight: 500;
+        font-size: .85rem
+    }
+    .ps-value {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-top: 2px
+    }
+    /* ***** END OF ADDED STYLES ***** */
     
   </style>
 </head>
@@ -235,8 +255,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3 text-xs">
-                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full bg-slate-900"></span> Portfolio</span>
-                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full" style="background:#7e8d52"></span> Benchmark</span>
+                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full" style="background:#7e8d52"></span> Portfolio</span>
                     </div>
                 </div>
 
@@ -251,30 +270,37 @@
                         </div>
 
                         <div class="relative w-full h-[320px] overflow-hidden rounded-2xl border bg-white">
-                            <svg id="equitySvg" viewBox="0 0 900 320" class="w-full h-full">
-                                <defs>
-                                    <linearGradient id="eqLine" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#7e8d52" stop-opacity="1"/>
-                                        <stop offset="100%" stop-color="#7e8d52" stop-opacity="0.15"/>
-                                    </linearGradient>
-                                </defs>
-                                <g id="eqAxes"></g>
-                                <path id="equityFill" d="" fill="url(#eqLine)" opacity="0.18"></path>
-                                <path id="equityLine" d="" fill="none" stroke="#7e8d52" stroke-width="2.5" stroke-linecap="round"></path>
-                            </svg>
+                            <canvas id="equityChartCanvas" class="max-w-full"></canvas>
                         </div>
                     </div>
 
                     <div class="lg:col-span-4 xl:col-span-3">
                         <div id="eqMetrics" class="grid grid-cols-2 gap-3 text-sm">
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Best Day</div><div id="mBestDay" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Worst Day</div><div id="mWorstDay" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Daily Return</div><div id="mAvgDaily" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Positive Days</div><div id="mPosDays" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trading Days</div><div id="mTradingDays" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">YTD</div><div id="mYTD" class="font-semibold">—</div></div>
+                            <div class="ps-tile">
+                                <div class="ps-label">Best Day</div>
+                                <div id="mBestDay" class="ps-value">—</div>
+                            </div>
+                            <div class="ps-tile">
+                                <div class="ps-label">Worst Day</div>
+                                <div id="mWorstDay" class="ps-value">—</div>
+                            </div>
+                            <div class="ps-tile">
+                                <div class="ps-label">Avg Daily Return</div>
+                                <div id="mAvgDaily" class="ps-value">—</div>
+                            </div>
+                            <div class="ps-tile">
+                                <div class="ps-label">Positive Days</div>
+                                <div id="mPosDays" class="ps-value">—</div>
+                            </div>
+                            <div class="ps-tile">
+                                <div class="ps-label">Trading Days</div>
+                                <div id="mTradingDays" class="ps-value">—</div>
+                            </div>
+                            <div class="ps-tile">
+                                <div class="ps-label">YTD</div>
+                                <div id="mYTD" class="ps-value">—</div>
+                            </div>
                         </div>
-
                         <p id="stratDesc" class="mt-3 text-[12px] leading-5 text-slate-700">—</p>
                     </div>
                 </div>
@@ -796,14 +822,15 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   const $  = (s)=>document.querySelector(s);
   const $$ = (s)=>document.querySelectorAll(s);
 
-  // ***** MODIFIED: Updated els object to match new HTML IDs *****
+  // ***** MODIFIED: Updated els object for new HTML structure *****
   const els = {
     stratName: $('#stratName'), provider: $('#provider'), since: $('#since'),
     currency: $('#currency'), risk: $('#risk'), aum: $('#aum'), period: $('#period'),
     eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
     mBestDay: $('#mBestDay'), mWorstDay: $('#mWorstDay'), mAvgDaily: $('#mAvgDaily'),
     mPosDays: $('#mPosDays'), mTradingDays: $('#mTradingDays'), mYTD: $('#mYTD'),
-    axes: $('#eqAxes'), line: $('#equityLine'), fill: $('#equityFill'),
+    // Removed SVG els, added canvas
+    equityChartCanvas: $('#equityChartCanvas'), 
     stratDesc: $('#stratDesc'), leftCard: $('#leftCard'),
     assetFilters: $('#assetFilters'), periodButtons: $$('.prd')
   };
@@ -813,6 +840,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   let selectedAsset = 'All';
   let selectedPeriod = 'ALL';
   let activeStrategyIndex = 0;
+  let chart; // ***** ADDED: Global var for Chart.js instance *****
+  let currentLabels = []; // ***** ADDED: Global var for chart labels *****
 
   const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit', day: 'numeric' });
 
@@ -851,7 +880,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
       const num = (x)=> (x==null || x==='') ? null : Number(x);
       const asDate = (x)=> x ? new Date(x) : null;
 
-      // ***** MODIFIED: Updated this object to fetch and format all 6 metrics *****
+      // ***** This object is already correct from the previous fix *****
       return {
         id: s.id,
         name: s.name || 'Unnamed Strategy',
@@ -875,67 +904,223 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
         calendar_returns: Array.isArray(m.calendar_returns) ? m.calendar_returns : [],
 
         // --- Data for the 6-pack, matching strategy.html logic ---
-        // Best Day: 2 decimals
         bestDay:     fmtPct(num(ps.best_day_pct), 2),
-        // Worst Day: 2 decimals
         worstDay:    fmtPct(num(ps.worst_day_pct), 2),
-        // Avg Daily Return: 2 decimals
         avgDaily:    fmtPct(num(ps.avg_daily_return_pct), 2),
-        // Positive Days %: 0 decimals
         posDaysPct:  (ps?.positive_days_pct == null || isNaN(ps.positive_days_pct)) ? '—' : `${Number(ps.positive_days_pct).toFixed(0)}%`,
-        // Trading Days: integer
         tradingDays: fmtInt(num(ps.total_days)),
-        // YTD: 2 decimals
         ytd:         fmtPct(num(ps.ytd_return_pct), 2)
       };
     });
   }
 
-  // --- Chart ---
-  function drawChart(equityVals, dates){
-    const axes = els.axes, line = els.line, fill = els.fill;
-    axes.innerHTML=''; line.setAttribute('d',''); fill.setAttribute('d','');
-    if (!equityVals || equityVals.length<2){ els.eqValue.textContent='—'; els.eqDelta.textContent=''; return; }
+  // ***** ADDED: initChart and related functions from strategy.html *****
+  
+  // Helper to draw rounded rect path for tooltip
+  function roundRectPath(ctx, x, y, w, h, r) {
+      const radius = Math.min(r, h / 2, w / 2);
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+  }
+  
+  // Custom plugin for vertical seek line + hover pill
+  const seekPlugin = {
+      id: 'seekPlugin',
+      afterDraw(chart, args, opts) {
+          const { ctx, chartArea, tooltip } = chart;
+          if (!tooltip || !tooltip._active || !tooltip._active.length) return;
 
-    const pct = (n,dp=1)=>`${n>=0?'+':''}${n.toFixed(dp)}%`;
-    const base = equityVals[0] || 1;
-    const rets = equityVals.map(v=> ((v/base)-1)*100 );
+          const activePoint = tooltip._active[0];
+          const x = activePoint.element.x;
+          const y = activePoint.element.y;
 
-    const W=900,H=320,P={top:16,right:24,bottom:40,left:52};
-    const innerW=W-P.left-P.right, innerH=H-P.top-P.bottom;
-    let yMin=Math.min(...rets), yMax=Math.max(...rets);
-    if (yMax===yMin){ yMax+=1; yMin-=1; }
-    const pad = Math.max(5,(yMax-yMin)*.12);
-    yMin = Math.floor((Math.min(0,yMin-pad))/5)*5;
-    yMax = Math.ceil((Math.max(0,yMax+pad))/5)*5;
+          if (x < chartArea.left || x > chartArea.right) return;
+          const { top, bottom } = chartArea;
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          const triSize = 5;
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.moveTo(x, top - triSize);
+          ctx.lineTo(x - triSize, top);
+          ctx.lineTo(x + triSize, top);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(x, bottom + triSize);
+          ctx.lineTo(x - triSize, bottom);
+          ctx.lineTo(x + triSize, bottom);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#1e293b'; // slate-800 ring
+          ctx.stroke();
 
-    const sx=i=>P.left+(i*(innerW))/Math.max(1,rets.length-1);
-    const sy=r=>P.top+(yMax-r)*(innerH)/Math.max(1,yMax-yMin);
+          const meta = window.__pfHoverMeta || {};
+          const idx = activePoint.index;
+          const dateLabel = (meta.labels && meta.labels[idx]) ? meta.labels[idx] : '';
+          const valLabel = (meta.values && meta.values[idx] != null) ? meta.values[idx] : '—';
+          
+          const pillText = `${dateLabel}  ${valLabel}`;
+          ctx.font = '600 12px Inter, system-ui, sans-serif';
+          ctx.textBaseline = 'middle';
+          const textW = ctx.measureText(pillText).width;
+          const padX = 10, padY = 6;
+          const pillW = textW + padX * 2, pillH = 28;
+          const pillMargin = 8;
+          const areaWidth = chartArea.right - chartArea.left;
+          const areaHeight = chartArea.bottom - chartArea.top;
+          let pillX = x - pillW / 2;
+          const minPillX = chartArea.left + pillMargin;
+          const maxPillX = chartArea.right - pillW - pillMargin;
 
-    for(let t=0;t<=5;t++){
-      const v=yMin+t*(yMax-yMin)/5, y=sy(v);
-      axes.innerHTML+=`<line x1="${P.left}" x2="${W-P.right}" y1="${y}" y2="${y}" stroke="rgba(0,0,0,.08)" stroke-dasharray="4 4"/>`;
-      axes.innerHTML+=`<text x="${P.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#64748b">${pct(v,0)}</text>`;
-    }
-    axes.innerHTML+=`<line x1="${P.left}" x2="${W-P.right}" y1="${H-P.bottom}" y2="${H-P.bottom}" stroke="rgba(0,0,0,.12)"/>`;
+          if (minPillX > maxPillX) {
+              pillX = chartArea.left + (areaWidth - pillW) / 2;
+              pillX = Math.max(chartArea.left, Math.min(pillX, chartArea.right - pillW));
+          } else {
+              if (pillX < minPillX) pillX = minPillX;
+              if (pillX > maxPillX) pillX = maxPillX;
+          }
+          let pillY = y - pillH - 10; // above point
+          const minPillY = chartArea.top + pillMargin;
+          const maxPillY = chartArea.bottom - pillH - pillMargin;
 
-    if (dates?.length){
-      const step=Math.max(1,Math.round((dates.length-1)/5));
-      for (let i=0,k=0; i<dates.length; i+=step,k++){
-        const x=sx(i); const ta=k===0?'start':(i+step>=dates.length?'end':'middle');
-        axes.innerHTML+=`<text x="${x}" y="${H-P.bottom+14}" text-anchor="${ta}" font-size="10" fill="#64748b">${monthFmt.format(dates[i])}</text>`;
+          if (minPillY > maxPillY) {
+              pillY = chartArea.top + (areaHeight - pillH) / 2;
+              pillY = Math.max(chartArea.top, Math.min(pillY, chartArea.bottom - pillH));
+          } else {
+              if (pillY < minPillY) {
+                  const belowY = y + 10;
+                  const roomBelow = belowY + pillH <= chartArea.bottom - pillMargin;
+                  pillY = roomBelow ? Math.min(Math.max(belowY, minPillY), maxPillY) : minPillY;
+              }
+              if (pillY > maxPillY) pillY = maxPillY;
+          }
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          roundRectPath(ctx, pillX, pillY, pillW, pillH, 14);
+          ctx.fill();
+
+          const pctIsPos = valLabel.startsWith('+');
+          ctx.fillStyle = pctIsPos ? '#4ade80' : (valLabel.startsWith('—') ? '#fff' : '#f87171');
+          ctx.textAlign = 'center';
+          const textCenter = pillX + pillW / 2;
+          ctx.fillText(pillText, textCenter, pillY + pillH / 2);
+          ctx.restore();
       }
-    }
+  };
+  
+  // Global var for hover plugin
+  window.__pfHoverMeta = { labels: [], values: [] };
 
-    const d='M '+rets.map((r,i)=>`${sx(i)},${sy(r)}`).join(' L ');
-    line.setAttribute('d', d);
-    fill.setAttribute('d', `${d} L ${sx(rets.length-1)},${H-P.bottom} L ${sx(0)},${H-P.bottom} Z`);
+  function initChart() {
+      const ctx = els.equityChartCanvas?.getContext('2d');
+      if (!ctx) return;
 
-    const last = rets.at(-1) || 0;
-    // Main chart value (already correct from last fix)
-    els.eqValue.textContent = pct(last, 2); 
-    els.eqDelta.textContent = ''; 
-    els.eqDelta.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] hidden';
+      const gradient = ctx.createLinearGradient(0, 0, 0, 320); // 320px height
+      gradient.addColorStop(0, 'rgba(126,141,82,0.35)'); // --olive
+      gradient.addColorStop(1, 'rgba(126,141,82,0.06)');
+
+      chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+              labels: [],
+              datasets: [{
+                  data: [],
+                  tension: .35,
+                  borderWidth: 2,
+                  borderColor: 'var(--olive)', // #7e8d52
+                  backgroundColor: gradient,
+                  fill: true,
+                  pointRadius: 0,
+                  pointHitRadius: 20 
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: {
+                  mode: 'index',
+                  intersect: false
+              },
+              plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                      enabled: false // Use custom seekPlugin
+                  }
+              },
+              scales: {
+                  x: {
+                      display: true,
+                      ticks: { maxTicksLimit: 6, color: '#94a3b8' },
+                      grid: { display: false }
+                  },
+                  y: {
+                      display: true,
+                      ticks: {
+                          color: '#94a3b8',
+                          maxTicksLimit: 5, // A bit more room
+                          callback: v => v // Default, will be overridden
+                      }
+                  }
+              }
+          },
+          plugins: [seekPlugin] // Enable the hover plugin
+      });
+  }
+
+  // --- Chart ---
+  // ***** MODIFIED: This function now updates Chart.js instead of drawing SVG *****
+  function drawChart(equityVals, dates){
+      if (!chart) return; // Guard if chart isn't initialized
+      
+      const pct = (n,dp=1)=>`${n>=0?'+':''}${n.toFixed(dp)}%`;
+      
+      // We start from a base of 100 and calculate cumulative % return
+      const base = equityVals[0] || 1;
+      // `rets` = array of percentage returns, e.g. [0, 1.5, -2.1, 5.3]
+      const rets = equityVals.map(v=> ((v/base)-1)*100 ); 
+      
+      const last = rets.at(-1) || 0;
+      
+      // Main chart value
+      els.eqValue.textContent = pct(last, 2); 
+      els.eqDelta.textContent = ''; 
+      els.eqDelta.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] hidden';
+
+      // Update chart instance
+      const chartLabels = dates.map(d => monthFmt.format(d));
+      chart.data.labels = chartLabels;
+      chart.data.datasets[0].data = rets; // Use the % rets array for the Y-axis
+
+      // Update Y-axis ticks to show %
+      chart.options.scales.y.ticks.callback = v => pct(v, 0);
+
+      // Update hover metadata
+      window.__pfHoverMeta = {
+          labels: chartLabels,
+          values: rets.map(r => pct(r, 2))
+      };
+      
+      chart.update();
   }
 
   // --- Series selection (works for your JSON shapes) ---
@@ -977,7 +1162,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     }).filter(Boolean);
 
     if (!rows.length) return { eq:[100], dates:[ new Date(s.inception_date || Date.now()) ] };
-
+    
+    // This creates the cumulative equity curve, e.g., [100, 101.2, 99.8, 103.4]
     const eq = rows.reduce((arr, r)=>{ arr.push(arr.at(-1)*(1+(r.pct||0))); return arr; }, [100]);
     const start = new Date(rows[0].d); start.setDate(start.getDate()-1);
     const dates = [start, ...rows.map(r=>r.d)];
@@ -1002,7 +1188,15 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.provider.textContent  = s.provider;
     els.since.textContent     = s.since;
     els.currency.textContent  = s.currency || 'USD';
-    els.aum.textContent       = s.aum;
+    
+    // ***** MODIFIED: Hide AUM if it's 'R0.0m' or '—'
+    if (s.aum && s.aum !== 'R0.0m' && s.aum !== '—') {
+      els.aum.textContent = s.aum;
+      els.aum.classList.remove('hidden');
+    } else {
+      els.aum.classList.add('hidden');
+    }
+    
     els.stratDesc.textContent = s.desc;
 
     const r = (s.risk||'').toLowerCase();
@@ -1010,7 +1204,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.risk.textContent = s.risk || '—';
     els.risk.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ' +
       (r.includes('high') ? 'bg-red-50 text-red-700' :
-       r.includes('med')  ? 'bg-amber-50 text-amber-700' :
+       (r.includes('med') || r.includes('moderate'))  ? 'bg-amber-50 text-amber-700' :
+       r.includes('low') ? 'bg-green-50 text-green-700' :
                             'bg-slate-50 text-slate-700');
 
     // ***** MODIFIED: Populate the correct 6 fields *****
@@ -1023,7 +1218,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 
     els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
 
-    drawChart(eq, dates);
+    drawChart(eq, dates); // This now updates the Chart.js instance
 
     els.leftCard.classList.remove('swap-in'); void els.leftCard.offsetWidth; els.leftCard.classList.add('swap-in');
 
@@ -1047,6 +1242,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 
   // --- Init ---
   async function main(){
+    initChart(); // ***** ADDED: Initialize the chart structure *****
     STRATEGIES = await fetchStrategies();
     if (STRATEGIES.length){ renderAssetFilters(); render(); }
     else { $('#stratName').textContent = 'No strategies available.'; updateNav(0,0); }
