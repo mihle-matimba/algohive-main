@@ -198,6 +198,82 @@
       background: rgba(15, 23, 42, 0.22);
       color: rgba(248, 250, 252, 0.95);
     }
+    .product-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.5rem;
+      border-radius: 1.75rem;
+      padding: 1.75rem;
+      color: #f8fafc;
+      background: #0b1215;
+      overflow: hidden;
+      text-decoration: none;
+      border: 1px solid rgba(248, 250, 252, 0.08);
+      box-shadow: 0 32px 68px -42px rgba(0, 0, 0, 0.85);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .product-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.88;
+      transition: opacity 0.3s ease;
+    }
+    .product-card > * {
+      position: relative;
+      z-index: 1;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 42px 82px -44px rgba(0, 0, 0, 0.82);
+    }
+    .product-card:hover::after {
+      opacity: 1;
+    }
+    .product-card--invest::after {
+      background: linear-gradient(135deg, #050706 0%, #1a2917 35%, #b9ff7d 100%);
+    }
+    .product-card--loan::after {
+      background: linear-gradient(135deg, #06050b 0%, #231a3c 35%, #d6b6ff 100%);
+    }
+    .product-card__eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: rgba(248, 250, 252, 0.7);
+    }
+    .product-card__title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+    }
+    .product-card__copy {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: rgba(248, 250, 252, 0.78);
+    }
+    .product-card__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(248, 250, 252, 0.85);
+    }
+    .product-card__cta svg {
+      width: 1rem;
+      height: 1rem;
+    }
+    .product-card:hover .product-card__cta {
+      color: #ffffff;
+    }
     .toast-card--leaving {
       animation: toastOut 0.32s ease forwards;
     }
@@ -836,12 +912,42 @@
                 <div class="space-y-3">
                   <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">All done</p>
                   <h2 class="text-2xl font-semibold text-slate-900 sm:text-3xl">You're ready to explore AlgoHive</h2>
-                  <p class="text-base font-semibold text-[var(--olive-700)]">Your AlgoHive onboarding is complete.</p>
+                  <p class="text-base font-semibold text-[var(--olive-700)]">Your AlgoHive onboarding is complete — explore AlgoHive whenever you're ready.</p>
                 </div>
 
                 <div id="checkoutLoader" class="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
                   <span class="h-10 w-10 animate-spin rounded-full border-2 border-[var(--olive)] border-t-transparent"></span>
-                  <p class="text-sm font-semibold text-slate-800">Preparing your checkout…</p>
+                  <p class="text-sm font-semibold text-slate-800">Finalising your setup…</p>
+                </div>
+
+                <div id="explorePanel" class="hidden space-y-5">
+                  <div class="space-y-2">
+                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Explore AlgoHive</p>
+                    <h3 class="text-xl font-semibold text-slate-900">Choose your next step</h3>
+                    <p class="text-sm text-slate-600">Start investing or apply for a loan to keep the momentum going.</p>
+                  </div>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <a href="#" class="product-card product-card--invest">
+                      <div class="space-y-3">
+                        <p class="product-card__eyebrow">Start investing</p>
+                        <p class="product-card__title">Build your AlgoHive portfolio</p>
+                        <p class="product-card__copy">Explore quant-backed strategies with vibrant reporting tailored for you.</p>
+                      </div>
+                      <span class="product-card__cta">Explore strategies
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
+                      </span>
+                    </a>
+                    <a href="#" class="product-card product-card--loan">
+                      <div class="space-y-3">
+                        <p class="product-card__eyebrow">Apply for a loan</p>
+                        <p class="product-card__title">Access flexible AlgoHive funding</p>
+                        <p class="product-card__copy">Compare credit options with transparent terms and supportive guidance.</p>
+                      </div>
+                      <span class="product-card__cta">View loan offers
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
+                      </span>
+                    </a>
+                  </div>
                 </div>
 
                 <div id="checkoutPanel" class="hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
@@ -1100,6 +1206,9 @@
         selectedPlanKey = radio.value;
         planSkipped = false;
         setPlanGroupError(false);
+        if (explorePanel && !explorePanel.classList.contains("hidden")) {
+          explorePanel.classList.add("hidden");
+        }
       });
     });
 
@@ -1110,6 +1219,12 @@
         radio.checked = false;
       });
       setPlanGroupError(false);
+      if (checkoutPanel) {
+        checkoutPanel.classList.add("hidden");
+      }
+      if (explorePanel) {
+        explorePanel.classList.add("hidden");
+      }
     });
 
     const stepMeta = {
@@ -1126,6 +1241,7 @@
     const onboardingComplete = document.getElementById("onboardingComplete");
     const checkoutLoader = document.getElementById("checkoutLoader");
     const checkoutPanel = document.getElementById("checkoutPanel");
+    const explorePanel = document.getElementById("explorePanel");
     const checkoutBadge = document.getElementById("checkoutBadge");
     const checkoutTitle = document.getElementById("checkoutTitle");
     const checkoutSubtitle = document.getElementById("checkoutSubtitle");
@@ -1206,6 +1322,11 @@
       if (checkoutRenewal) checkoutRenewal.textContent = detail.renewal;
       if (checkoutNextCharge) checkoutNextCharge.textContent = formatNextCharge(detail.nextChargeOffset);
 
+      if (explorePanel && !explorePanel.classList.contains("hidden")) {
+        explorePanel.classList.add("hidden");
+        explorePanel.classList.remove("swap-anim");
+      }
+
       if (checkoutPanel && checkoutPanel.classList.contains("hidden")) {
         checkoutPanel.classList.remove("hidden");
         checkoutPanel.classList.add("swap-anim");
@@ -1220,15 +1341,23 @@
       if (checkoutRevealStarted) return;
       checkoutRevealStarted = true;
 
-      if (!selectedPlanKey || planSkipped) {
-        if (checkoutLoader) checkoutLoader.classList.add("hidden");
-        checkoutPanel?.classList.add("hidden");
-        return;
-      }
-
       if (checkoutLoader) checkoutLoader.classList.remove("hidden");
+      checkoutPanel?.classList.add("hidden");
+      checkoutPanel?.classList.remove("swap-anim");
+      if (explorePanel) explorePanel.classList.add("hidden");
+      explorePanel?.classList.remove("swap-anim");
+
       checkoutRevealTimer = window.setTimeout(() => {
         if (checkoutLoader) checkoutLoader.classList.add("hidden");
+
+        if (planSkipped || !selectedPlanKey) {
+          if (explorePanel) {
+            explorePanel.classList.remove("hidden");
+            explorePanel.classList.add("swap-anim");
+          }
+          return;
+        }
+
         updateCheckout(selectedPlanKey, { scroll: false });
       }, 5000);
     };
