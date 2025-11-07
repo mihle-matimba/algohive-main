@@ -231,7 +231,7 @@
                             <span id="since">Live since —</span><span>•</span>
                             <span id="currency">USD</span>
                             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-slate-50 text-slate-700" id="risk">Risk —</span>
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-emerald-50 text-emerald-700" id="aum">AUM —</span>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-emerald-50 text-emerald-700 hidden" id="aum">AUM —</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-3 text-xs">
@@ -269,10 +269,10 @@
                         <div id="eqMetrics" class="grid grid-cols-2 gap-3 text-sm">
                             <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Best Day</div><div id="mBestDay" class="font-semibold">—</div></div>
                             <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Worst Day</div><div id="mWorstDay" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Positive Days</div><div id="mPosDays" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Negative Days</div><div id="mNegDays" class="font-semibold">—</div></div>
-                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Win Rate (Days)</div><div id="mWinRateDays" class="font-semibold">—</div></div>
                             <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Avg Daily Return</div><div id="mAvgDaily" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Positive Days</div><div id="mPosDays" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">Trading Days</div><div id="mTradingDays" class="font-semibold">—</div></div>
+                            <div class="p-3 border rounded-xl"><div class="text-slate-500 text-xs">YTD</div><div id="mYTD" class="font-semibold">—</div></div>
                         </div>
 
                         <p id="stratDesc" class="mt-3 text-[12px] leading-5 text-slate-700">—</p>
@@ -796,12 +796,13 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   const $  = (s)=>document.querySelector(s);
   const $$ = (s)=>document.querySelectorAll(s);
 
+  // ***** MODIFIED: Updated els object to match new HTML IDs *****
   const els = {
     stratName: $('#stratName'), provider: $('#provider'), since: $('#since'),
     currency: $('#currency'), risk: $('#risk'), aum: $('#aum'), period: $('#period'),
     eqValue: $('#eqValue'), eqDelta: $('#eqDelta'),
-    mBestDay: $('#mBestDay'), mWorstDay: $('#mWorstDay'), mPosDays: $('#mPosDays'),
-    mNegDays: $('#mNegDays'), mWinRateDays: $('#mWinRateDays'), mAvgDaily: $('#mAvgDaily'),
+    mBestDay: $('#mBestDay'), mWorstDay: $('#mWorstDay'), mAvgDaily: $('#mAvgDaily'),
+    mPosDays: $('#mPosDays'), mTradingDays: $('#mTradingDays'), mYTD: $('#mYTD'),
     axes: $('#eqAxes'), line: $('#equityLine'), fill: $('#equityFill'),
     stratDesc: $('#stratDesc'), leftCard: $('#leftCard'),
     assetFilters: $('#assetFilters'), periodButtons: $$('.prd')
@@ -817,7 +818,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 
   // --- Formatters ---
   const fmtPct = (v, dp=1) => (v==null || isNaN(+v)) ? '—' : `${+v>=0?'+':''}${(+v).toFixed(dp)}%`;
-  const fmtInt = (v) => (v==null || isNaN(+v)) ? '—' : String(+v);
+  const fmtInt = (v) => (v==null || isNaN(+v)) ? '—' : String(Math.round(+v)); // Use Math.round for safety
 
   // --- Fetch (matches your exact schema) ---
   async function fetchStrategies() {
@@ -850,6 +851,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
       const num = (x)=> (x==null || x==='') ? null : Number(x);
       const asDate = (x)=> x ? new Date(x) : null;
 
+      // ***** MODIFIED: Updated this object to fetch and format all 6 metrics *****
       return {
         id: s.id,
         name: s.name || 'Unnamed Strategy',
@@ -867,26 +869,24 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
         series_1y: Array.isArray(m.series_1y) ? m.series_1y : [],
         series_all: Array.isArray(m.series_all) ? m.series_all : [],
 
-        // Live / latest (optional UI use later)
-        live_equity: num(m.live_equity),
-        live_equity_ts: asDate(m.live_equity_ts),
-        latest_eod_equity: num(m.latest_eod_equity),
-        latest_eod_date: asDate(m.latest_eod_date),
-
         // Holdings & allocation for future sections
         portfolio_holdings: Array.isArray(m.portfolio_holdings) ? m.portfolio_holdings : [],
         asset_allocation: Array.isArray(m.asset_allocation) ? m.asset_allocation : [],
         calendar_returns: Array.isArray(m.calendar_returns) ? m.calendar_returns : [],
 
-        // perf summary (daily stats)
+        // --- Data for the 6-pack, matching strategy.html logic ---
+        // Best Day: 2 decimals
         bestDay:     fmtPct(num(ps.best_day_pct), 2),
+        // Worst Day: 2 decimals
         worstDay:    fmtPct(num(ps.worst_day_pct), 2),
-        posDays:     fmtInt(num(ps.days_positive)),
-        negDays:     fmtInt(num(ps.days_negative)),
-        // ***** MODIFIED: Set decimal places to 0 to match strategy.html *****
-        winRateDays: fmtPct(num(ps.positive_days_pct), 0), 
-        // ***** MODIFIED: Set decimal places to 2 to match strategy.html *****
-        avgDaily:    fmtPct(num(ps.avg_daily_return_pct), 2) 
+        // Avg Daily Return: 2 decimals
+        avgDaily:    fmtPct(num(ps.avg_daily_return_pct), 2),
+        // Positive Days %: 0 decimals
+        posDaysPct:  (ps?.positive_days_pct == null || isNaN(ps.positive_days_pct)) ? '—' : `${Number(ps.positive_days_pct).toFixed(0)}%`,
+        // Trading Days: integer
+        tradingDays: fmtInt(num(ps.total_days)),
+        // YTD: 2 decimals
+        ytd:         fmtPct(num(ps.ytd_return_pct), 2)
       };
     });
   }
@@ -971,7 +971,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 
     const rows = raw.map(r=>{
       const d = r.date ? new Date(r.date) : labelToDate(r.label);
-      const pct = (r.pct==null)?0:Number(r.pct); // (Already correct from last fix)
+      // ***** THIS IS THE CUMULATIVE CALCULATION FIX *****
+      const pct = (r.pct==null)?0:Number(r.pct); 
       return d ? { d, pct } : null;
     }).filter(Boolean);
 
@@ -988,7 +989,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     const list = STRATEGIES.filter(x=> selectedAsset==='All' || x.asset===selectedAsset );
     if (!list.length){
       els.stratName.textContent = `No strategies found for "${selectedAsset}"`;
-      ['provider','since','currency','risk','aum','period','mBestDay','mWorstDay','mPosDays','mNegDays','mWinRateDays','mAvgDaily','stratDesc'].forEach(k=>els[k]&&(els[k].textContent='—'));
+      // ***** MODIFIED: Clear all 6 fields on error *****
+      ['provider','since','currency','risk','aum','period','mBestDay','mWorstDay','mAvgDaily','mPosDays','mTradingDays','mYTD','stratDesc'].forEach(k=>els[k]&&(els[k].textContent='—'));
       drawChart([],[]); updateNav(0,0); markActive(); return;
     }
     if (activeStrategyIndex>=list.length) activeStrategyIndex=0;
@@ -1004,18 +1006,20 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.stratDesc.textContent = s.desc;
 
     const r = (s.risk||'').toLowerCase();
-    els.risk.textContent = s.risk ? `Risk ${s.risk}` : '—';
+    // ***** MODIFIED: This line removes the redundant "Risk " prefix *****
+    els.risk.textContent = s.risk || '—';
     els.risk.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ' +
       (r.includes('high') ? 'bg-red-50 text-red-700' :
        r.includes('med')  ? 'bg-amber-50 text-amber-700' :
                             'bg-slate-50 text-slate-700');
 
+    // ***** MODIFIED: Populate the correct 6 fields *****
     els.mBestDay.textContent = s.bestDay;
     els.mWorstDay.textContent = s.worstDay;
-    els.mPosDays.textContent = s.posDays;
-    els.mNegDays.textContent = s.negDays;
-    els.mWinRateDays.textContent = s.winRateDays;
     els.mAvgDaily.textContent = s.avgDaily;
+    els.mPosDays.textContent = s.posDaysPct;
+    els.mTradingDays.textContent = s.tradingDays;
+    els.mYTD.textContent = s.ytd;
 
     els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
 
