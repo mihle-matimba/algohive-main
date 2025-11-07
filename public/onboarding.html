@@ -948,15 +948,19 @@
 
                 <div id="explorePanel" class="hidden space-y-4">
                   <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Explore AlgoHive</p>
+                  <h3 class="text-xl font-semibold text-slate-900">Welcome to AlgoHive</h3>
+                  <p class="text-sm text-slate-500">You're officially part of the hive! Explore tailored investing opportunities and smart lending tools crafted to help you reach your goals.</p>
                   <p class="text-sm text-slate-500">Pick your next step below to dive into AlgoHive.</p>
                   <div class="grid gap-4 sm:grid-cols-2">
                     <a href="#" class="product-card product-card--invest">
+                      <p class="product-card__eyebrow">Welcome</p>
                       <p class="product-card__title">Start investing</p>
                       <span class="product-card__cta">Explore strategies
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
                       </span>
                     </a>
                     <a href="#" class="product-card product-card--loan">
+                      <p class="product-card__eyebrow">Welcome</p>
                       <p class="product-card__title">Apply for a loan</p>
                       <span class="product-card__cta">View loan offers
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
@@ -1042,6 +1046,23 @@
                       </div>
                       <p class="text-xs text-slate-400">Change or cancel your plan anytime.</p>
                     </aside>
+                  </div>
+                  <div id="corePaymentContainer" class="mt-6 hidden space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-inner">
+                    <div class="space-y-1">
+                      <p class="text-sm font-semibold text-slate-800">Secure checkout</p>
+                      <p class="text-xs text-slate-500">Complete your Core plan subscription directly in the Paystack window below.</p>
+                    </div>
+                    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                      <iframe
+                        id="corePaymentFrame"
+                        src="https://paystack.shop/pay/eo1b1n9h45"
+                        title="AlgoHive Core plan payment"
+                        loading="lazy"
+                        class="h-[600px] w-full"
+                        allow="payment *; clipboard-write"
+                      ></iframe>
+                    </div>
+                    <p id="corePaymentStatus" class="text-xs text-slate-500">Complete your payment in the Paystack window above. We'll automatically confirm when it's successful.</p>
                   </div>
                 </div>
               </div>
@@ -1171,6 +1192,11 @@
     const planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
     const planSkipButton = document.querySelector('[data-plan-skip]');
     const completeButton = document.querySelector('[data-complete][data-save-profile]');
+    const corePaymentContainer = document.getElementById("corePaymentContainer");
+    const corePaymentFrame = document.getElementById("corePaymentFrame");
+    const corePaymentStatus = document.getElementById("corePaymentStatus");
+    const corePaymentStatusDefaultClass = corePaymentStatus?.className || "";
+    const corePaymentStatusDefaultText = corePaymentStatus?.textContent?.trim() || "";
 
     function setPlanGroupError(active) {
       if (!planGroup) return;
@@ -1212,6 +1238,16 @@
       radio.addEventListener("change", () => {
         selectedPlanKey = radio.value;
         planSkipped = false;
+        corePaymentCompleted = radio.value === "core" && profileRow?.plan === "core";
+        if (corePaymentStatus) {
+          corePaymentStatus.className = corePaymentStatusDefaultClass;
+          corePaymentStatus.textContent = corePaymentCompleted
+            ? "Payment confirmed — your profile is already on the Core plan."
+            : corePaymentStatusDefaultText;
+        }
+        if (corePaymentContainer && radio.value !== "core") {
+          corePaymentContainer.classList.add("hidden");
+        }
         setPlanGroupError(false);
         if (explorePanel && !explorePanel.classList.contains("hidden")) {
           explorePanel.classList.add("hidden");
@@ -1225,6 +1261,11 @@
       planRadios.forEach((radio) => {
         radio.checked = false;
       });
+      if (corePaymentContainer) corePaymentContainer.classList.add("hidden");
+      if (corePaymentStatus) {
+        corePaymentStatus.className = corePaymentStatusDefaultClass;
+        corePaymentStatus.textContent = corePaymentStatusDefaultText;
+      }
       setPlanGroupError(false);
       if (checkoutPanel) {
         checkoutPanel.classList.add("hidden");
@@ -1276,6 +1317,7 @@
     let planSkipped = false;
     let checkoutRevealStarted = false;
     let checkoutRevealTimer = null;
+    let corePaymentCompleted = false;
 
     const formatNextCharge = (monthOffset = 1) => {
       const base = new Date();
@@ -1283,6 +1325,40 @@
       base.setHours(0, 0, 0, 0);
       base.setMonth(base.getMonth() + Math.max(1, Number(monthOffset) || 1));
       return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(base);
+    };
+
+    const PAYSTACK_ORIGINS = [/^https:\/\/([a-z0-9-]+\.)*paystack\.shop$/i, /^https:\/\/([a-z0-9-]+\.)*paystack\.com$/i];
+    const isPaystackOrigin = (origin) => typeof origin === "string" && PAYSTACK_ORIGINS.some((regex) => regex.test(origin));
+
+    const coerceMessagePayload = (payload) => {
+      if (typeof payload === "string") {
+        const trimmed = payload.trim();
+        if (!trimmed) return trimmed;
+        try {
+          return JSON.parse(trimmed);
+        } catch (error) {
+          return trimmed;
+        }
+      }
+      return payload;
+    };
+
+    const isSuccessfulPaymentPayload = (payload) => {
+      if (!payload) return false;
+      if (typeof payload === "string") {
+        const lower = payload.toLowerCase();
+        return lower.includes("success") || lower.includes("completed") || lower.includes("paid");
+      }
+      if (typeof payload === "object") {
+        const eventName = String(payload.event || payload.type || payload.action || "").toLowerCase();
+        const status = String(payload.status || payload.state || "").toLowerCase();
+        const message = typeof payload.message === "string" ? payload.message.toLowerCase() : "";
+        const dataStatus = typeof payload.data?.status === "string" ? payload.data.status.toLowerCase() : "";
+        return [eventName, status, message, dataStatus].some((value) =>
+          value && (value.includes("success") || value.includes("completed") || value.includes("paid")),
+        );
+      }
+      return false;
     };
 
     const planDetails = {
@@ -1345,6 +1421,27 @@
       if (checkoutDueToday) checkoutDueToday.textContent = detail.dueToday;
       if (checkoutRenewal) checkoutRenewal.textContent = detail.renewal;
       if (checkoutNextCharge) checkoutNextCharge.textContent = formatNextCharge(detail.nextChargeOffset);
+
+      if (corePaymentContainer) {
+        const showCoreFrame = planKey === "core";
+        corePaymentContainer.classList.toggle("hidden", !showCoreFrame);
+        if (corePaymentStatus) {
+          if (showCoreFrame) {
+            const alreadyCore = corePaymentCompleted || profileRow?.plan === "core";
+            if (alreadyCore) {
+              corePaymentCompleted = true;
+              corePaymentStatus.className = "text-xs font-semibold text-[var(--olive)]";
+              corePaymentStatus.textContent = "Payment confirmed — your profile is now on the Core plan.";
+            } else {
+              corePaymentStatus.className = corePaymentStatusDefaultClass;
+              corePaymentStatus.textContent = corePaymentStatusDefaultText;
+            }
+          } else {
+            corePaymentStatus.className = corePaymentStatusDefaultClass;
+            corePaymentStatus.textContent = corePaymentStatusDefaultText;
+          }
+        }
+      }
 
       if (explorePanel && !explorePanel.classList.contains("hidden")) {
         explorePanel.classList.add("hidden");
@@ -1632,6 +1729,18 @@
       return totalSteps;
     }
 
+    async function updateProfilePlan(planKey) {
+      if (!supabaseUser) throw new Error("Please sign in again.");
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert({ id: supabaseUser.id, plan: planKey, updated_at: new Date().toISOString() }, { onConflict: "id" })
+        .select("*")
+        .single();
+      if (error) throw error;
+      profileRow = { ...profileRow, ...data };
+      return data;
+    }
+
     async function persistProfile(button) {
       if (!supabaseUser) {
         banner("Please sign in again.", "err");
@@ -1740,6 +1849,38 @@
       }
     });
 
+    window.addEventListener("message", async (event) => {
+      if (!corePaymentFrame || !isPaystackOrigin(event.origin)) return;
+      if (corePaymentFrame.contentWindow && event.source && event.source !== corePaymentFrame.contentWindow) return;
+
+      const payload = coerceMessagePayload(event.data);
+      if (!isSuccessfulPaymentPayload(payload) || corePaymentCompleted) return;
+
+      corePaymentCompleted = true;
+      if (corePaymentStatus) {
+        corePaymentStatus.className = "text-xs font-semibold text-[var(--olive)]";
+        corePaymentStatus.textContent = "Payment confirmed. Updating your profile…";
+      }
+
+      try {
+        await updateProfilePlan("core");
+        if (corePaymentStatus) {
+          corePaymentStatus.className = "text-xs font-semibold text-[var(--olive)]";
+          corePaymentStatus.textContent = "Payment confirmed — your profile is now on the Core plan.";
+        }
+        banner("Core plan activated successfully.", "ok");
+      } catch (error) {
+        console.error(error);
+        corePaymentCompleted = false;
+        if (corePaymentStatus) {
+          corePaymentStatus.className = "text-xs text-red-500";
+          corePaymentStatus.textContent = error.message ||
+            "We received a success signal but could not update your plan. Please try again or contact support.";
+        }
+        banner(error.message || "Could not update plan after payment.", "err");
+      }
+    });
+
     document.querySelectorAll("[data-save-profile]").forEach((button) => {
       button.addEventListener("click", async () => {
         const validationStep = button.hasAttribute("data-complete") ? totalSteps : currentStep;
@@ -1808,6 +1949,7 @@
         supabaseUser = user;
         const row = await ensureProfile(user.id, user.email || null);
         profileRow = row;
+        corePaymentCompleted = row?.plan === "core";
 
         setFieldValue("first_name", row?.first_name);
         setFieldValue("last_name", row?.last_name);
