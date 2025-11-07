@@ -36,8 +36,19 @@ class SamSubService {
    * Make authenticated request to SamSub API
    */
   async makeRequest(method, endpoint, data = null, isFormData = false) {
+    console.log('Making SamSub API request:', {
+      method,
+      endpoint,
+      data: isFormData ? '(form data)' : data
+    });
+    
     // Validate environment variables
     if (!this.appToken || !this.secretKey || !this.appId) {
+      console.error('Missing SamSub credentials:', {
+        hasAppToken: !!this.appToken,
+        hasSecretKey: !!this.secretKey,
+        hasAppId: !!this.appId
+      });
       throw new Error('SamSub credentials missing. Check SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
     }
 
@@ -56,6 +67,9 @@ class SamSubService {
     }
 
     try {
+      console.log('SamSub API URL:', `${this.apiUrl}${url}`);
+      console.log('SamSub request headers:', headers);
+      
       const config = {
         method,
         url: `${this.apiUrl}${url}`,
@@ -215,6 +229,15 @@ class SamSubService {
    */
   async generateWebSDKLink({ applicantId, externalUserId, levelName, email, phone }) {
     try {
+      // Log the request parameters for debugging
+      console.log('Generating WebSDK link with params:', {
+        applicantId,
+        externalUserId,
+        levelName,
+        email: email ? 'provided' : 'not provided',
+        phone: phone ? 'provided' : 'not provided'
+      });
+
       // Use the correct SamSub API endpoint for generating external WebSDK links
       const endpoint = `/resources/sdkIntegrations/levels/-/websdkLink`;
       

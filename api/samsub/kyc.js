@@ -263,12 +263,23 @@ router.get('/status/:applicantId', async (req, res) => {
  */
 router.post('/webhook', async (req, res) => {
   try {
+    // 1. Log incoming webhook
     console.log('Received webhook:', {
       headers: req.headers,
-      body: req.body
+      body: req.body,
+      timestamp: new Date().toISOString()
     });
 
+    // 2. Basic validation
     const payload = req.body;
+    if (!payload || !payload.type) {
+      console.error('Invalid webhook payload:', payload);
+      return res.status(400).json(helpers.formatResponse(false, null, {
+        message: 'Invalid webhook payload'
+      }));
+    }
+
+    // 3. Verify signature
     const signature = req.headers['x-payload-digest'];
 
     if (!signature) {
@@ -297,15 +308,37 @@ router.post('/webhook', async (req, res) => {
     switch (payload.type) {
       case 'applicantReviewed':
         console.log(`Applicant ${payload.applicantId} reviewed: ${payload.reviewStatus}`);
+        // Update applicant status and notify frontend
+        await samsubService.getApplicantStatus(payload.applicantId);
         break;
+        
       case 'applicantPending':
         console.log(`Applicant ${payload.applicantId} is pending review`);
+        // Log the pending state for monitoring
         break;
+        
+      case 'applicantCreated':
+        console.log(`New applicant created: ${payload.applicantId}`);
+        // Initialize applicant tracking
+        break;
+        
       case 'applicantActionPending':
-        console.log(`Applicant ${payload.applicantId} requires action`);
+        console.log(`Applicant ${payload.applicantId} requires action: ${payload.actionType}`);
+        // Notify user of required action
         break;
+        
+      case 'applicantActionReviewed':
+        console.log(`Applicant ${payload.applicantId} action reviewed: ${payload.reviewResult}`);
+        // Process action review result
+        break;
+        
+      case 'applicantOnHold':
+        console.log(`Applicant ${payload.applicantId} verification on hold: ${payload.hold}`);
+        // Handle hold status
+        break;
+        
       default:
-        console.log(`Unknown webhook type: ${payload.type}`);
+        console.log(`Unhandled webhook type: ${payload.type}`, payload);
     }
 
     res.json(helpers.formatResponse(true, { received: true }));
@@ -406,9 +439,27 @@ router.post('/websdk-link', async (req, res) => {
  */
 router.post('/init-automated', async (req, res) => {
   try {
-    console.log('Initializing automated verification with request:', req.body);
+    // 1. Log and validate the request
+    console.log('Initializing automated verification with request:', {
+      ...req.body,
+      timestamp: new Date().toISOString()
+    });
     
     const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
+    
+    // Validate email if provided
+    if (email && !helpers.isValidEmail(email)) {
+      return res.status(400).json(helpers.formatResponse(false, null, {
+        message: 'Invalid email format'
+      }));
+    }
+    
+    // Validate phone if provided
+    if (phone && !helpers.isValidPhone(phone)) {
+      return res.status(400).json(helpers.formatResponse(false, null, {
+        message: 'Invalid phone format'
+      }));
+    }
 
     if (!externalUserId) {
       return res.status(400).json(helpers.formatResponse(false, null, {
@@ -440,6 +491,17 @@ router.post('/init-automated', async (req, res) => {
     console.log('WebSDK link generated:', sdkData);
 
     // 3. Send complete response
+    // Validate response data
+    if (!applicant || !applicant.id) {
+      console.error('Invalid applicant data:', applicant);
+      throw new Error('Failed to create applicant: Invalid response from SamSub');
+    }
+
+    if (!sdkData || !sdkData.url) {
+      console.error('Invalid SDK data:', sdkData);
+      throw new Error('Failed to generate WebSDK link: Invalid response from SamSub');
+    }
+
     res.json(helpers.formatResponse(true, {
       applicant: {
         id: applicant.id,
