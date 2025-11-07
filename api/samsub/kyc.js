@@ -406,7 +406,9 @@ router.post('/websdk-link', async (req, res) => {
  */
 router.post('/init-automated', async (req, res) => {
   try {
-    const { externalUserId, levelName = 'test-level', email, firstName, lastName, phone } = req.body;
+    console.log('Initializing automated verification with request:', req.body);
+    
+    const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
 
     if (!externalUserId) {
       return res.status(400).json(helpers.formatResponse(false, null, {
@@ -416,7 +418,8 @@ router.post('/init-automated', async (req, res) => {
 
     helpers.logRequest(req, '/init-automated');
 
-    // 1. Create applicant
+    // 1. Create applicant with minimal info first
+    console.log('Creating applicant...');
     const applicant = await samsubService.createApplicant({
       externalUserId,
       levelName,
@@ -425,32 +428,28 @@ router.post('/init-automated', async (req, res) => {
       lastName,
       phone
     });
+    console.log('Applicant created:', applicant);
 
-    // 2. Generate access token for SDK
-    const accessToken = await samsubService.generateAccessToken(applicant.id, levelName);
-
-    // 3. Generate WebSDK link using the proper external link endpoint
-    const webSDKLink = await samsubService.generateWebSDKLink({
+    // 2. Generate WebSDK link
+    console.log('Generating WebSDK link...');
+    const sdkData = await samsubService.generateWebSDKLink({
       applicantId: applicant.id,
-      externalUserId,
-      levelName,
-      email,
-      phone
+      externalUserId: applicant.externalUserId,
+      levelName
     });
+    console.log('WebSDK link generated:', sdkData);
 
+    // 3. Send complete response
     res.json(helpers.formatResponse(true, {
-      applicant,
-      accessToken,
-      webSDKLink,
-      instructions: {
-        message: 'Automated verification initialized successfully',
-        nextSteps: [
-          'Direct user to the webSDKLink for automated document scanning',
-          'User will scan documents with camera (auto-capture)',
-          'All data will be extracted automatically via OCR',
-          'Monitor verification status via webhook or polling'
-        ]
-      }
+      applicant: {
+        id: applicant.id,
+        externalUserId: applicant.externalUserId,
+        status: applicant.status
+      },
+      sdkLink: sdkData.url,
+      token: sdkData.token,
+      levelName: levelName,
+      ttl: sdkData.ttl
     }));
 
   } catch (error) {
