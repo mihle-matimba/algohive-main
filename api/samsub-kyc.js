@@ -8,8 +8,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Mount the router
-app.use('/api/samsub/kyc', kycRouter);
+// Mount the router at root since Vercel routing already handles the path prefix
+app.use('/', kycRouter);
 
 // Export as serverless function
 module.exports = app;
