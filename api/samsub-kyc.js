@@ -1,4 +1,5 @@
 // Serverless function for SamSub KYC API
+require('dotenv').config();
 const express = require('express');
 const kycRouter = require('./samsub/kyc');
 

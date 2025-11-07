@@ -8,9 +8,14 @@ class SamSubService {
     this.appToken = process.env.SAMSUB_APP_TOKEN;
     this.secretKey = process.env.SAMSUB_SECRET_KEY;
     this.appId = process.env.SAMSUB_APP_ID;
+  }
 
+  validateCredentials() {
     if (!this.appToken || !this.secretKey || !this.appId) {
-      throw new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+      const error = new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+      error.statusCode = 503; // Service Unavailable
+      error.code = 'SAMSUB_CREDENTIALS_MISSING';
+      throw error;
     }
   }
 
@@ -36,6 +41,23 @@ class SamSubService {
    * Make authenticated request to SamSub API
    */
   async makeRequest(method, endpoint, data = null, isFormData = false) {
+    console.log('Making SamSub API request:', {
+      method,
+      endpoint,
+      data: isFormData ? '(form data)' : data
+    });
+    
+    try {
+      this.validateCredentials();
+    } catch (error) {
+      console.error('Missing SamSub credentials:', {
+        hasAppToken: !!this.appToken,
+        hasSecretKey: !!this.secretKey,
+        hasAppId: !!this.appId
+      });
+      throw error;
+    }
+
     const url = endpoint;
     const body = data ? (isFormData ? '' : JSON.stringify(data)) : '';
     const { timestamp, signature } = this.generateSignature(method, url, body);
@@ -51,10 +73,14 @@ class SamSubService {
     }
 
     try {
+      console.log('SamSub API URL:', `${this.apiUrl}${url}`);
+      console.log('SamSub request headers:', headers);
+
       const config = {
         method,
         url: `${this.apiUrl}${url}`,
         headers,
+        validateStatus: false // Don't throw on any status
       };
 
       if (data) {
@@ -62,10 +88,37 @@ class SamSubService {
       }
 
       const response = await axios(config);
+      
+      // Log the complete response for debugging
+      console.log('SamSub API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      });
+
+      // Handle non-200 responses explicitly
+      if (response.status !== 200) {
+        throw new Error(JSON.stringify({
+          status: response.status,
+          message: response.data?.description || response.statusText,
+          details: response.data
+        }));
+      }
+
       return response.data;
     } catch (error) {
-      console.error('SamSub API Error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.description || error.message);
+      console.error('SamSub API Error:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      
+      // Ensure we always return a properly formatted error
+      throw new Error(JSON.stringify({
+        message: error.response?.data?.description || error.message,
+        details: error.response?.data || error
+      }));
     }
   }
 
