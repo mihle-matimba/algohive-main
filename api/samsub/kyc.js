@@ -444,6 +444,16 @@ router.post('/init-automated', async (req, res) => {
       ...req.body,
       timestamp: new Date().toISOString()
     });
+
+    // Ensure we have a valid request body
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid request body'
+        }
+      });
+    }
     
     const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
     
