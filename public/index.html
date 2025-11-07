@@ -88,7 +88,10 @@
     .ps-value {
         font-weight: 600;
         font-size: 1rem;
-        margin-top: 2px
+        margin-top: 2px;
+        /* ***** ADDED: Default color transition ***** */
+        color: var(--ink);
+        transition: color 0.2s;
     }
     /* ***** END OF ADDED STYLES ***** */
     
@@ -255,7 +258,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3 text-xs">
-                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full" style="background:#7e8d52"></span> Portfolio</span>
+                        <span class="inline-flex items-center gap-2"><span class="inline-block h-2 w-2 rounded-full" style="background:#556B2F"></span> Portfolio</span>
                     </div>
                 </div>
 
@@ -743,9 +746,9 @@
         <ul class="mt-3 space-y-2 text-sm">
           <li><a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Terms%20and%20Conditions.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Terms & Conditions</a></li>
           <li><a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Privacy%20Policy.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Privacy Policy</a></li>
-          <li><a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Advertising%20Policy.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Advertising Policy</a></li>
-          <li><a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AlgoHive%20Risk%20Policy.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Risk Policy</a></li>
-          <li><a href="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Legal%20Docs/AML%20&%20CTF.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Anti-Money Laundering & CTF</a></li>
+          <li><a href="httpsEncrypted.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Advertising Policy</a></li>
+          <li><a href="Encrypted.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Risk Policy</a></li>
+          <li><a href="Encrypted.pdf" class="text-[var(--muted)] hover:text-[var(--ink)]">Anti-Money Laundering & CTF</a></li>
         </ul>
       </div>
     </div>
@@ -843,7 +846,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   let chart; // ***** ADDED: Global var for Chart.js instance *****
   let currentLabels = []; // ***** ADDED: Global var for chart labels *****
 
-  const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit', day: 'numeric' });
+  const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', year: '2-digit' });
 
   // --- Formatters ---
   const fmtPct = (v, dp=1) => (v==null || isNaN(+v)) ? '—' : `${+v>=0?'+':''}${(+v).toFixed(dp)}%`;
@@ -1020,7 +1023,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
           ctx.fill();
 
           const pctIsPos = valLabel.startsWith('+');
-          ctx.fillStyle = pctIsPos ? '#4ade80' : (valLabel.startsWith('—') ? '#fff' : '#f87171');
+          ctx.fillStyle = pctIsPos ? '#4ade80' : (valLabel.startsWith('—') || valLabel === '0.00%') ? '#fff' : '#f87171';
           ctx.textAlign = 'center';
           const textCenter = pillX + pillW / 2;
           ctx.fillText(pillText, textCenter, pillY + pillH / 2);
@@ -1035,9 +1038,10 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
       const ctx = els.equityChartCanvas?.getContext('2d');
       if (!ctx) return;
 
+      // ***** MODIFIED: Changed gradient colors to match strategy.html *****
       const gradient = ctx.createLinearGradient(0, 0, 0, 320); // 320px height
-      gradient.addColorStop(0, 'rgba(126,141,82,0.35)'); // --olive
-      gradient.addColorStop(1, 'rgba(126,141,82,0.06)');
+      gradient.addColorStop(0, 'rgba(85,107,47,0.35)'); // #556B2F
+      gradient.addColorStop(1, 'rgba(85,107,47,0.06)'); // #556B2F
 
       chart = new Chart(ctx, {
           type: 'line',
@@ -1047,7 +1051,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
                   data: [],
                   tension: .35,
                   borderWidth: 2,
-                  borderColor: 'var(--olive)', // #7e8d52
+                  // ***** MODIFIED: Changed border color to match strategy.html *****
+                  borderColor: '#556B2F', 
                   backgroundColor: gradient,
                   fill: true,
                   pointRadius: 0,
@@ -1088,36 +1093,39 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   }
 
   // --- Chart ---
-  // ***** MODIFIED: This function now updates Chart.js instead of drawing SVG *****
+  // ***** MODIFIED: This function now updates Chart.js with the correct logic *****
   function drawChart(equityVals, dates){
       if (!chart) return; // Guard if chart isn't initialized
       
       const pct = (n,dp=1)=>`${n>=0?'+':''}${n.toFixed(dp)}%`;
       
-      // We start from a base of 100 and calculate cumulative % return
-      const base = equityVals[0] || 1;
-      // `rets` = array of percentage returns, e.g. [0, 1.5, -2.1, 5.3]
-      const rets = equityVals.map(v=> ((v/base)-1)*100 ); 
+      // `equityVals` is the cumulative level, e.g. [100, 101.5, 103.2]
+      // `base` is the starting level, e.g. 100
+      const base = (equityVals && equityVals.length > 0) ? equityVals[0] : 100;
       
-      const last = rets.at(-1) || 0;
+      // Calculate final percentage growth from start to end
+      const lastPct = ((equityVals.at(-1) || base) - base) / base * 100;
       
       // Main chart value
-      els.eqValue.textContent = pct(last, 2); 
+      els.eqValue.textContent = pct(lastPct, 2); 
       els.eqDelta.textContent = ''; 
       els.eqDelta.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] hidden';
 
       // Update chart instance
-      const chartLabels = dates.map(d => monthFmt.format(d));
+      const chartLabels = dates.map(d => monthFmt.format(new Date(d))); // Ensure it's a Date object
       chart.data.labels = chartLabels;
-      chart.data.datasets[0].data = rets; // Use the % rets array for the Y-axis
+      chart.data.datasets[0].data = equityVals; // PLOT THE CUMULATIVE LEVEL
 
-      // Update Y-axis ticks to show %
-      chart.options.scales.y.ticks.callback = v => pct(v, 0);
+      // Update Y-axis ticks to show relative %
+      chart.options.scales.y.ticks.callback = v => {
+          const relPct = ((v - base) / base) * 100;
+          return pct(relPct, 0);
+      };
 
       // Update hover metadata
       window.__pfHoverMeta = {
           labels: chartLabels,
-          values: rets.map(r => pct(r, 2))
+          values: equityVals.map(v => pct(((v - base) / base) * 100, 2))
       };
       
       chart.update();
@@ -1202,10 +1210,12 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     const r = (s.risk||'').toLowerCase();
     // ***** MODIFIED: This line removes the redundant "Risk " prefix *****
     els.risk.textContent = s.risk || '—';
+    // ***** MODIFIED: Added all risk level color mappings *****
     els.risk.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ' +
-      (r.includes('high') ? 'bg-red-50 text-red-700' :
+      (r.includes('very high') ? 'bg-red-100 text-red-800' :
+       r.includes('high') ? 'bg-red-50 text-red-700' :
        (r.includes('med') || r.includes('moderate'))  ? 'bg-amber-50 text-amber-700' :
-       r.includes('low') ? 'bg-green-50 text-green-700' :
+       r.includes('conservative') ? 'bg-green-50 text-green-700' :
                             'bg-slate-50 text-slate-700');
 
     // ***** MODIFIED: Populate the correct 6 fields *****
@@ -1215,6 +1225,19 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.mPosDays.textContent = s.posDaysPct;
     els.mTradingDays.textContent = s.tradingDays;
     els.mYTD.textContent = s.ytd;
+    
+    // ***** ADDED: Colorize the summary box values *****
+    const red = '#dc2626'; // Tailwind's red-600
+    const green = '#16a34a'; // Tailwind's green-600
+    const defaultColor = 'var(--ink)';
+
+    els.mBestDay.style.color = (s.bestDay && s.bestDay.startsWith('+')) ? green : defaultColor;
+    els.mWorstDay.style.color = (s.worstDay && s.worstDay.startsWith('-')) ? red : defaultColor;
+    els.mAvgDaily.style.color = (s.avgDaily && s.avgDaily.startsWith('-')) ? red : (s.avgDaily && s.avgDaily.startsWith('+'))G ? green : defaultColor;
+    els.mPosDays.style.color = defaultColor; // This is just a %, no color needed
+    els.mTradingDays.style.color = defaultColor;
+    els.mYTD.style.color = (s.ytd && s.ytd.startsWith('-')) ? red : (s.ytd && s.ytd.startsWith('+')) ? green : defaultColor;
+    // ***** END OF ADDED BLOCK *****
 
     els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
 
