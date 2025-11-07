@@ -127,12 +127,6 @@ router.get('/health', (req, res) => {
  */
 router.post('/create-applicant', async (req, res) => {
   try {
-    // Log incoming request
-    console.log('Create applicant request:', JSON.stringify({
-      body: req.body,
-      headers: req.headers
-    }, null, 2));
-
     const { externalUserId, levelName, email, firstName, lastName, phone } = req.body;
 
     // Validation
@@ -172,12 +166,9 @@ router.post('/create-applicant', async (req, res) => {
 
   } catch (error) {
     console.error('Create applicant error:', error);
-    console.error('Stack trace:', error.stack);
-    console.error('Full error object:', JSON.stringify(error, null, 2));
     res.status(500).json(helpers.formatResponse(false, null, {
       message: 'Failed to create applicant',
-      error: error.message,
-      stack: error.stack
+      error: error.message
     }));
   }
 });
@@ -263,31 +254,8 @@ router.get('/status/:applicantId', async (req, res) => {
  */
 router.post('/webhook', async (req, res) => {
   try {
-    // 1. Log incoming webhook
-    console.log('Received webhook:', {
-      headers: req.headers,
-      body: req.body,
-      timestamp: new Date().toISOString()
-    });
-
-    // 2. Basic validation
     const payload = req.body;
-    if (!payload || !payload.type) {
-      console.error('Invalid webhook payload:', payload);
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Invalid webhook payload'
-      }));
-    }
-
-    // 3. Verify signature
     const signature = req.headers['x-payload-digest'];
-
-    if (!signature) {
-      console.error('Missing webhook signature');
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Missing webhook signature'
-      }));
-    }
 
     // Verify webhook signature
     const isValid = samsubService.verifyWebhookSignature(payload, signature);
@@ -308,37 +276,15 @@ router.post('/webhook', async (req, res) => {
     switch (payload.type) {
       case 'applicantReviewed':
         console.log(`Applicant ${payload.applicantId} reviewed: ${payload.reviewStatus}`);
-        // Update applicant status and notify frontend
-        await samsubService.getApplicantStatus(payload.applicantId);
         break;
-        
       case 'applicantPending':
         console.log(`Applicant ${payload.applicantId} is pending review`);
-        // Log the pending state for monitoring
         break;
-        
-      case 'applicantCreated':
-        console.log(`New applicant created: ${payload.applicantId}`);
-        // Initialize applicant tracking
-        break;
-        
       case 'applicantActionPending':
-        console.log(`Applicant ${payload.applicantId} requires action: ${payload.actionType}`);
-        // Notify user of required action
+        console.log(`Applicant ${payload.applicantId} requires action`);
         break;
-        
-      case 'applicantActionReviewed':
-        console.log(`Applicant ${payload.applicantId} action reviewed: ${payload.reviewResult}`);
-        // Process action review result
-        break;
-        
-      case 'applicantOnHold':
-        console.log(`Applicant ${payload.applicantId} verification on hold: ${payload.hold}`);
-        // Handle hold status
-        break;
-        
       default:
-        console.log(`Unhandled webhook type: ${payload.type}`, payload);
+        console.log(`Unknown webhook type: ${payload.type}`);
     }
 
     res.json(helpers.formatResponse(true, { received: true }));
@@ -439,37 +385,7 @@ router.post('/websdk-link', async (req, res) => {
  */
 router.post('/init-automated', async (req, res) => {
   try {
-    // 1. Log and validate the request
-    console.log('Initializing automated verification with request:', {
-      ...req.body,
-      timestamp: new Date().toISOString()
-    });
-
-    // Ensure we have a valid request body
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Invalid request body'
-        }
-      });
-    }
-    
-    const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
-    
-    // Validate email if provided
-    if (email && !helpers.isValidEmail(email)) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Invalid email format'
-      }));
-    }
-    
-    // Validate phone if provided
-    if (phone && !helpers.isValidPhone(phone)) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Invalid phone format'
-      }));
-    }
+    const { externalUserId, levelName = 'test-level', email, firstName, lastName, phone } = req.body;
 
     if (!externalUserId) {
       return res.status(400).json(helpers.formatResponse(false, null, {
@@ -479,8 +395,7 @@ router.post('/init-automated', async (req, res) => {
 
     helpers.logRequest(req, '/init-automated');
 
-    // 1. Create applicant with minimal info first
-    console.log('Creating applicant...');
+    // 1. Create applicant
     const applicant = await samsubService.createApplicant({
       externalUserId,
       levelName,
@@ -489,39 +404,32 @@ router.post('/init-automated', async (req, res) => {
       lastName,
       phone
     });
-    console.log('Applicant created:', applicant);
 
-    // 2. Generate WebSDK link
-    console.log('Generating WebSDK link...');
-    const sdkData = await samsubService.generateWebSDKLink({
+    // 2. Generate access token for SDK
+    const accessToken = await samsubService.generateAccessToken(applicant.id, levelName);
+
+    // 3. Generate WebSDK link using the proper external link endpoint
+    const webSDKLink = await samsubService.generateWebSDKLink({
       applicantId: applicant.id,
-      externalUserId: applicant.externalUserId,
-      levelName
+      externalUserId,
+      levelName,
+      email,
+      phone
     });
-    console.log('WebSDK link generated:', sdkData);
-
-    // 3. Send complete response
-    // Validate response data
-    if (!applicant || !applicant.id) {
-      console.error('Invalid applicant data:', applicant);
-      throw new Error('Failed to create applicant: Invalid response from SamSub');
-    }
-
-    if (!sdkData || !sdkData.url) {
-      console.error('Invalid SDK data:', sdkData);
-      throw new Error('Failed to generate WebSDK link: Invalid response from SamSub');
-    }
 
     res.json(helpers.formatResponse(true, {
-      applicant: {
-        id: applicant.id,
-        externalUserId: applicant.externalUserId,
-        status: applicant.status
-      },
-      sdkLink: sdkData.url,
-      token: sdkData.token,
-      levelName: levelName,
-      ttl: sdkData.ttl
+      applicant,
+      accessToken,
+      webSDKLink,
+      instructions: {
+        message: 'Automated verification initialized successfully',
+        nextSteps: [
+          'Direct user to the webSDKLink for automated document scanning',
+          'User will scan documents with camera (auto-capture)',
+          'All data will be extracted automatically via OCR',
+          'Monitor verification status via webhook or polling'
+        ]
+      }
     }));
 
   } catch (error) {

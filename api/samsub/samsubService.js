@@ -8,14 +8,9 @@ class SamSubService {
     this.appToken = process.env.SAMSUB_APP_TOKEN;
     this.secretKey = process.env.SAMSUB_SECRET_KEY;
     this.appId = process.env.SAMSUB_APP_ID;
-  }
 
-  validateCredentials() {
     if (!this.appToken || !this.secretKey || !this.appId) {
-      const error = new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
-      error.statusCode = 503; // Service Unavailable
-      error.code = 'SAMSUB_CREDENTIALS_MISSING';
-      throw error;
+      throw new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
     }
   }
 
@@ -41,23 +36,6 @@ class SamSubService {
    * Make authenticated request to SamSub API
    */
   async makeRequest(method, endpoint, data = null, isFormData = false) {
-    console.log('Making SamSub API request:', {
-      method,
-      endpoint,
-      data: isFormData ? '(form data)' : data
-    });
-    
-    try {
-      this.validateCredentials();
-    } catch (error) {
-      console.error('Missing SamSub credentials:', {
-        hasAppToken: !!this.appToken,
-        hasSecretKey: !!this.secretKey,
-        hasAppId: !!this.appId
-      });
-      throw error;
-    }
-
     const url = endpoint;
     const body = data ? (isFormData ? '' : JSON.stringify(data)) : '';
     const { timestamp, signature } = this.generateSignature(method, url, body);
@@ -73,14 +51,10 @@ class SamSubService {
     }
 
     try {
-      console.log('SamSub API URL:', `${this.apiUrl}${url}`);
-      console.log('SamSub request headers:', headers);
-
       const config = {
         method,
         url: `${this.apiUrl}${url}`,
         headers,
-        validateStatus: false // Don't throw on any status
       };
 
       if (data) {
@@ -88,37 +62,10 @@ class SamSubService {
       }
 
       const response = await axios(config);
-      
-      // Log the complete response for debugging
-      console.log('SamSub API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data
-      });
-
-      // Handle non-200 responses explicitly
-      if (response.status !== 200) {
-        throw new Error(JSON.stringify({
-          status: response.status,
-          message: response.data?.description || response.statusText,
-          details: response.data
-        }));
-      }
-
       return response.data;
     } catch (error) {
-      console.error('SamSub API Error:', {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
-      });
-      
-      // Ensure we always return a properly formatted error
-      throw new Error(JSON.stringify({
-        message: error.response?.data?.description || error.message,
-        details: error.response?.data || error
-      }));
+      console.error('SamSub API Error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.description || error.message);
     }
   }
 
@@ -155,8 +102,6 @@ class SamSubService {
     const { timestamp, signature } = this.generateSignature('POST', url, '');
 
     try {
-      this.validateCredentials();
-      
       const response = await axios.post(`${this.apiUrl}${endpoint}`, formData, {
         headers: {
           ...formData.getHeaders(),
@@ -166,39 +111,13 @@ class SamSubService {
         },
         params: {
           idDocType: documentType
-        },
-        validateStatus: false
+        }
       });
-
-      // Log the complete response for debugging
-      console.log('SamSub Document Upload Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data
-      });
-
-      // Handle non-200 responses explicitly
-      if (response.status !== 200) {
-        throw new Error(JSON.stringify({
-          status: response.status,
-          message: response.data?.description || response.statusText,
-          details: response.data
-        }));
-      }
 
       return response.data;
     } catch (error) {
-      console.error('Document upload error:', {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
-      });
-      
-      throw new Error(JSON.stringify({
-        message: error.response?.data?.description || error.message,
-        details: error.response?.data || error
-      }));
+      console.error('Document upload error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.description || error.message);
     }
   }
 
@@ -291,15 +210,6 @@ class SamSubService {
    */
   async generateWebSDKLink({ applicantId, externalUserId, levelName, email, phone }) {
     try {
-      // Log the request parameters for debugging
-      console.log('Generating WebSDK link with params:', {
-        applicantId,
-        externalUserId,
-        levelName,
-        email: email ? 'provided' : 'not provided',
-        phone: phone ? 'provided' : 'not provided'
-      });
-
       // Use the correct SamSub API endpoint for generating external WebSDK links
       const endpoint = `/resources/sdkIntegrations/levels/-/websdkLink`;
       
