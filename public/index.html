@@ -883,8 +883,10 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
         worstDay:    fmtPct(num(ps.worst_day_pct), 2),
         posDays:     fmtInt(num(ps.days_positive)),
         negDays:     fmtInt(num(ps.days_negative)),
-        winRateDays: fmtPct(num(ps.positive_days_pct), 1),
-        avgDaily:    fmtPct(num(ps.avg_daily_return_pct), 3)
+        // ***** MODIFIED: Set decimal places to 0 to match strategy.html *****
+        winRateDays: fmtPct(num(ps.positive_days_pct), 0), 
+        // ***** MODIFIED: Set decimal places to 2 to match strategy.html *****
+        avgDaily:    fmtPct(num(ps.avg_daily_return_pct), 2) 
       };
     });
   }
@@ -930,11 +932,9 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     fill.setAttribute('d', `${d} L ${sx(rets.length-1)},${H-P.bottom} L ${sx(0)},${H-P.bottom} Z`);
 
     const last = rets.at(-1) || 0;
-    // MODIFIED: Set main value to percentage (2 decimal places) to match strategy.html
+    // Main chart value (already correct from last fix)
     els.eqValue.textContent = pct(last, 2); 
-    // MODIFIED: Clear secondary value to match strategy.html
     els.eqDelta.textContent = ''; 
-    // MODIFIED: Hide the (now empty) secondary value
     els.eqDelta.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] hidden';
   }
 
@@ -971,7 +971,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
 
     const rows = raw.map(r=>{
       const d = r.date ? new Date(r.date) : labelToDate(r.label);
-      const pct = (r.pct==null)?0:Number(r.pct); // <-- ***** THE FIX IS HERE *****
+      const pct = (r.pct==null)?0:Number(r.pct); // (Already correct from last fix)
       return d ? { d, pct } : null;
     }).filter(Boolean);
 
