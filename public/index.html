@@ -235,7 +235,7 @@
 
 
             <div class="ml-0 sm:ml-auto flex items-center gap-1 rounded-full border border-black/10 bg-white p-1">
-                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="6M">6M</button>
+                <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5 prd-active" data-period="6M">6M</button>
                 <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="1Y">1Y</button>
                 <button class="prd px-3 py-1.5 rounded-full text-xs font-medium text-[var(--ink)] hover:bg-black/5" data-period="ALL">All</button>
             </div>
@@ -844,7 +844,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   // --- State ---
   let STRATEGIES = [];
   let selectedAsset = 'All';
-  let selectedPeriod = 'ALL';
+  let selectedPeriod = '6M'; // ***** MODIFIED: Default to 6M to match active button *****
   let activeStrategyIndex = 0;
   let chart; // ***** ADDED: Global var for Chart.js instance *****
   let currentLabels = []; // ***** ADDED: Global var for chart labels *****
@@ -865,6 +865,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
         strategy_metrics:strategy_metrics!strategy_metrics_strategy_id_fkey (
           asof_date, perf_summary, calendar_returns,
            series_6m, series_1y, series_all,
+           series_ytd,
           live_equity, live_equity_ts, latest_eod_equity, latest_eod_date,
           portfolio_holdings, asset_allocation
         )
@@ -903,6 +904,7 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
         series_6m: Array.isArray(m.series_6m) ? m.series_6m : [],
         series_1y: Array.isArray(m.series_1y) ? m.series_1y : [],
         series_all: Array.isArray(m.series_all) ? m.series_all : [],
+        series_ytd: Array.isArray(m.series_ytd) ? m.series_ytd : [], // ***** ADDED YTD *****
 
         // Holdings & allocation for future sections
         portfolio_holdings: Array.isArray(m.portfolio_holdings) ? m.portfolio_holdings : [],
@@ -1140,12 +1142,17 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
   // --- Series selection (works for your JSON shapes) ---
   function periodSeries(s){
     let raw=[];
+    // ***** MODIFIED: This logic is now correct *****
     switch (selectedPeriod){
       case '6M': raw=s.series_6m; break;
       case '1Y': raw=s.series_1y; break;
-      case 'ALL':
-      default: raw=s.series_all; break;
+      case 'ALL': raw=s.series_all; break;
+      // ***** ADDED: YTD case *****
+      case 'YTD': raw=s.series_ytd; break; 
+      default: raw=s.series_6m; break; // Default to 6M
     }
+    // ***** END MODIFICATION *****
+    
     if (!Array.isArray(raw) || raw.length===0){
       return { eq:[100], dates:[ new Date(s.inception_date || Date.now()) ] };
     }
@@ -1196,7 +1203,16 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     if (activeStrategyIndex>=list.length) activeStrategyIndex=0;
 
     const s = list[activeStrategyIndex];
-    const { eq, dates } = periodSeries(s);
+    
+    // ***** THIS IS THE KEY FIX *****
+    // Get the correct data series based on the selected period
+    const { eq, dates } = periodSeries(s); 
+    
+    // But for the YTD box, *always* get the YTD data
+    const { eq: ytdEq } = periodSeries({...s, selectedPeriod: 'YTD'}); // Force YTD calc
+    const ytdPct = (ytdEq.length > 0) ? (ytdEq.at(-1) - ytdEq[0]) / ytdEq[0] * 100 : 0;
+    const ytdFmt = fmtPct(ytdPct, 2);
+    // ***** END OF KEY FIX *****
 
     els.stratName.textContent = s.name;
     els.provider.textContent  = s.provider;
@@ -1230,7 +1246,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.mAvgDaily.textContent = s.avgDaily;
     els.mPosDays.textContent = s.posDaysPct;
     els.mTradingDays.textContent = s.tradingDays;
-    els.mYTD.textContent = s.ytd;
+    // ***** Use the correctly calculated YTD value *****
+    els.mYTD.textContent = ytdFmt; 
     
     // ***** ADDED: Colorize the summary box values *****
     const red = '#dc2626'; // Tailwind's red-600
@@ -1242,7 +1259,8 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     els.mAvgDaily.style.color = (s.avgDaily && s.avgDaily.startsWith('-')) ? red : (s.avgDaily && s.avgDaily.startsWith('+')) ? green : defaultColor;
     els.mPosDays.style.color = defaultColor; // This is just a %, no color needed
     els.mTradingDays.style.color = defaultColor;
-    els.mYTD.style.color = (s.ytd && s.ytd.startsWith('-')) ? red : (s.ytd && s.ytd.startsWith('+')) ? green : defaultColor;
+    // ***** Use the calculated YTD value for coloring *****
+    els.mYTD.style.color = (ytdFmt && ytdFmt.startsWith('-')) ? red : (ytdFmt && ytdFmt.startsWith('+')) ? green : defaultColor;
     // ***** END OF ADDED BLOCK *****
 
     els.period.textContent = selectedPeriod==='ALL' ? 'All time' : selectedPeriod;
@@ -1276,7 +1294,10 @@ AlgoHive (FSP 55118) is a registered Financial Services Provider. All asset clas
     if (STRATEGIES.length){ renderAssetFilters(); render(); }
     else { $('#stratName').textContent = 'No strategies available.'; updateNav(0,0); }
 
-    els.periodButtons.forEach(b=> b.addEventListener('click', ()=>{ selectedPeriod=b.dataset.period||'ALL'; render(); }));
+    els.periodButtons.forEach(b=> b.addEventListener('click', ()=>{ 
+      selectedPeriod=b.dataset.period||'ALL'; 
+      render(); 
+    }));
   }
   main();
 </script>
