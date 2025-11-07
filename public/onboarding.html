@@ -119,7 +119,7 @@
       z-index: 400;
       pointer-events: none;
     }
-    .toast-card {
+    .toast-card { 
       pointer-events: auto;
       display: flex;
       align-items: flex-start;
@@ -135,6 +135,11 @@
       transform: translateX(120%);
       opacity: 0;
       animation: toastIn 0.45s cubic-bezier(.22, 1, .36, 1) forwards;
+    }
+    .plan-group--error {
+      outline: 2px solid rgba(248, 113, 113, 0.45);
+      outline-offset: 6px;
+      border-radius: 1.75rem;
     }
     .toast-card[data-tone="err"],
     .toast-card[data-tone="warn"] {
@@ -193,6 +198,82 @@
       background: rgba(15, 23, 42, 0.22);
       color: rgba(248, 250, 252, 0.95);
     }
+    .product-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.5rem;
+      border-radius: 1.75rem;
+      padding: 1.75rem;
+      color: #f8fafc;
+      background: #0b1215;
+      overflow: hidden;
+      text-decoration: none;
+      border: 1px solid rgba(248, 250, 252, 0.08);
+      box-shadow: 0 32px 68px -42px rgba(0, 0, 0, 0.85);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .product-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.88;
+      transition: opacity 0.3s ease;
+    }
+    .product-card > * {
+      position: relative;
+      z-index: 1;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 42px 82px -44px rgba(0, 0, 0, 0.82);
+    }
+    .product-card:hover::after {
+      opacity: 1;
+    }
+    .product-card--invest::after {
+      background: linear-gradient(140deg, #010302 0%, #0d2518 42%, #2f8f4e 100%);
+    }
+    .product-card--loan::after {
+      background: linear-gradient(140deg, #150023 0%, #6a1687 48%, #d43bff 100%);
+    }
+    .product-card__eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: rgba(248, 250, 252, 0.7);
+    }
+    .product-card__title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+    }
+    .product-card__copy {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: rgba(248, 250, 252, 0.78);
+    }
+    .product-card__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(248, 250, 252, 0.85);
+    }
+    .product-card__cta svg {
+      width: 1rem;
+      height: 1rem;
+    }
+    .product-card:hover .product-card__cta {
+      color: #ffffff;
+    }
     .toast-card--leaving {
       animation: toastOut 0.32s ease forwards;
     }
@@ -218,7 +299,6 @@
     }
   </style>
 </head>
-
 <body class="min-h-screen antialiased text-slate-900">
   <div id="preloader" class="preloader">
     <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="preloader__logo" />
@@ -290,7 +370,7 @@
       <div class="absolute inset-0 orb-gradient opacity-90"></div>
       <div class="relative z-10 flex w-full items-start justify-center px-4 py-12 sm:px-8 lg:px-16 lg:py-20">
         <div class="w-full max-w-3xl space-y-8">
-          <header class="space-y-2 text-left text-slate-800">
+          <header id="onboardingIntro" class="space-y-2 text-left text-slate-800">
             <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Onboarding</p>
             <h1 class="text-3xl font-semibold sm:text-[34px]">Complete your AlgoHive profile</h1>
             <p class="text-sm text-slate-600">Share the information we need to tailor AlgoHive to your individual investing needs.</p>
@@ -298,7 +378,7 @@
 
           <section class="rounded-3xl border border-white/40 bg-white/90 p-6 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.55)] backdrop-blur sm:p-8">
             <div class="flex flex-col gap-6">
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div id="stepSummary" class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p id="currentStepLabel" class="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--olive-700)]">Step 1 of 5 · Basic info</p>
                   <h2 id="currentStepTitle" class="text-xl font-semibold text-slate-900">Tell us about yourself</h2>
@@ -309,7 +389,7 @@
                 </div>
               </div>
 
-              <div class="space-y-10">
+              <div id="onboardingFlow" class="space-y-10">
                 <form data-panel="1" class="tab-panel space-y-10" novalidate>
                   <div class="grid gap-6 md:grid-cols-2">
                     <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
@@ -563,7 +643,6 @@
                   </div>
 
                   <div class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm text-slate-500">We’ll use this information to personalize your AlgoHive experience.</p>
                     <div class="flex items-center gap-2">
                       <button type="button" data-step-delta="1" data-save-profile class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Save &amp; continue</button>
                     </div>
@@ -685,7 +764,6 @@
                   </div>
 
                   <div class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm text-slate-500">Tell us how you earn and invest so we can calibrate your strategies.</p>
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <button type="button" data-step-delta="-1" class="inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100">Back</button>
                       <button type="button" data-step-delta="1" data-save-profile class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Save &amp; continue</button>
@@ -726,7 +804,6 @@
                   </div>
 
                   <div class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm text-slate-500">Confirm the declarations required for AlgoHive to activate your account.</p>
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <button type="button" data-step-delta="-1" class="inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100">Back</button>
                       <button type="button" data-step-delta="1" data-save-profile class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Save &amp; continue</button>
@@ -772,7 +849,6 @@
                   </div>
 
                   <div class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm text-slate-500">Submit clear documents so our compliance team can verify you quickly.</p>
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <button type="button" data-step-delta="-1" class="inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100">Back</button>
                       <button type="button" data-step-delta="1" data-save-profile class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Save &amp; continue</button>
@@ -782,66 +858,192 @@
 
                 <form data-panel="5" class="tab-panel hidden space-y-10" novalidate>
                   <div class="space-y-6">
-                    <div class="grid gap-6 md:grid-cols-2">
-                      <label class="relative flex cursor-pointer flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[var(--olive)] hover:shadow-lg">
+                    <div data-plan-group class="grid gap-6 md:grid-cols-2">
+                      <label class="relative flex cursor-pointer flex-col gap-5 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[var(--olive)] hover:shadow-lg">
                         <input type="radio" name="plan" value="core" class="peer absolute right-6 top-6 h-4 w-4 border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]/20" />
-                        <div class="flex items-center justify-between">
+                        <div class="space-y-1">
                           <span class="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--olive)]">Core</span>
-                          <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold text-[var(--olive-700)]">R899/mo</span>
+                          <p class="text-3xl font-semibold text-slate-900">
+                            R450
+                            <span class="text-base font-medium text-slate-500">/mo</span>
+                          </p>
                         </div>
-                        <div>
-                          <p class="text-lg font-semibold text-slate-900">Starter strategies</p>
-                          <p class="mt-2 text-sm text-slate-500">Access diversified quant strategies, monthly reporting, and community sessions.</p>
-                        </div>
-                        <ul class="mt-3 space-y-1 text-sm text-slate-500">
-                          <li>• 3 live strategies</li>
-                          <li>• Monthly alpha brief</li>
-                          <li>• Community Q&amp;A</li>
+                        <ul class="space-y-2 text-sm text-slate-600">
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Funds * (CIS)</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Unsecured Lending</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>AlgoPay (Credit Facilitation &amp; Rewards &amp; Payments)</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Up to 6 strategies</span>
+                          </li>
                         </ul>
                       </label>
 
-                      <label class="relative flex cursor-pointer flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[var(--olive)] hover:shadow-lg">
+                      <label class="relative flex cursor-pointer flex-col gap-5 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[var(--olive)] hover:shadow-lg">
                         <input type="radio" name="plan" value="professional" class="peer absolute right-6 top-6 h-4 w-4 border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]/20" />
-                        <div class="flex items-center justify-between">
+                        <div class="space-y-1">
                           <span class="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--olive)]">Professional</span>
-                          <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold text-[var(--olive-700)]">R1 699/mo</span>
+                          <p class="text-3xl font-semibold text-slate-900">
+                            R899
+                            <span class="text-base font-medium text-slate-500">/mo</span>
+                          </p>
                         </div>
-                        <div>
-                          <p class="text-lg font-semibold text-slate-900">Expanded access</p>
-                          <p class="mt-2 text-sm text-slate-500">Unlock higher-frequency models, weekly performance intel, and priority support.</p>
-                        </div>
-                        <ul class="mt-3 space-y-1 text-sm text-slate-500">
-                          <li>• 6+ live strategies</li>
-                          <li>• Weekly desk commentary</li>
-                          <li>• Dedicated manager check-ins</li>
+                        <ul class="space-y-2 text-sm text-slate-600">
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Open Strategies * up to 10</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Managed V.A.S.T *</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Self-Managed V.A.S.T</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Funds * (CIS)</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>Investment Backed Lending &amp; Unsecured</span>
+                          </li>
+                          <li class="flex items-start gap-2">
+                            <span class="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-[var(--olive)]"></span>
+                            <span>AlgoPay (Credit Facilitation &amp; Rewards &amp; Payments)</span>
+                          </li>
                         </ul>
                       </label>
                     </div>
 
-                    <div class="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-                      <p class="text-sm font-medium text-slate-700">Billing preferences</p>
-                      <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                        <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 shadow-sm">
-                          <input type="radio" name="billing" value="monthly" class="h-4 w-4 border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]/20" />
-                          Monthly billing
-                        </label>
-                        <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 shadow-sm">
-                          <input type="radio" name="billing" value="annual" class="h-4 w-4 border-slate-300 text-[var(--olive)] focus:ring-[var(--olive)]/20" />
-                          Annual billing (save 2 months)
-                        </label>
-                      </div>
-                      <p class="mt-3 text-xs text-slate-400">You can upgrade, downgrade, or cancel anytime from your AlgoHive dashboard.</p>
+                    <div class="text-center">
+                      <button type="button" data-plan-skip class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 transition hover:text-slate-600">Skip for now</button>
                     </div>
                   </div>
 
                   <div class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm text-slate-500">Select the subscription that matches how you want to engage with AlgoHive.</p>
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <button type="button" data-step-delta="-1" class="inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100">Back</button>
                       <button type="button" data-complete data-save-profile class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Complete onboarding</button>
                     </div>
                   </div>
                 </form>
+              </div>
+
+              <div id="onboardingComplete" class="hidden space-y-6 rounded-3xl border border-white/40 bg-white/90 p-6 text-left shadow-[0_20px_50px_-28px_rgba(15,23,42,0.55)] backdrop-blur sm:p-8">
+                <div id="checkoutLoader" class="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+                  <span class="h-10 w-10 animate-spin rounded-full border-2 border-[var(--olive)] border-t-transparent"></span>
+                  <p class="text-sm font-semibold text-slate-800">Finalising your setup…</p>
+                </div>
+
+                <div id="explorePanel" class="hidden space-y-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Explore AlgoHive</p>
+                  <p class="text-sm text-slate-500">Pick your next step below to dive into AlgoHive.</p>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <a href="#" class="product-card product-card--invest">
+                      <p class="product-card__title">Start investing</p>
+                      <span class="product-card__cta">Explore strategies
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
+                      </span>
+                    </a>
+                    <a href="#" class="product-card product-card--loan">
+                      <p class="product-card__title">Apply for a loan</p>
+                      <span class="product-card__cta">View loan offers
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+
+                <div id="checkoutPanel" class="hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
+                  <div class="mb-6 flex items-center justify-between">
+                    <div>
+                      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Subscribe</p>
+                      <h3 id="checkoutTitle" class="mt-1 text-xl font-semibold text-slate-900">Review your plan</h3>
+                    </div>
+                    <span id="checkoutBadge" class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--olive-700)]">Plan</span>
+                  </div>
+                  <div class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+                    <form class="space-y-5">
+                      <div>
+                        <label class="text-sm font-semibold text-slate-800">Saved payment method</label>
+                        <div class="mt-2 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 shadow-sm">
+                          <span class="inline-flex h-7 w-10 items-center justify-center rounded-lg bg-white shadow-inner">VISA</span>
+                          <span>•••• 3589</span>
+                          <button type="button" class="ml-auto text-xs font-semibold text-[var(--olive)] underline-offset-2 hover:underline">Change</button>
+                        </div>
+                      </div>
+                      <div>
+                        <div class="flex items-center justify-between text-sm font-semibold text-slate-800">
+                          <span>Credit or debit card</span>
+                          <div class="flex items-center gap-1 text-slate-400">
+                            <span class="h-5 w-8 rounded bg-white shadow-inner"></span>
+                            <span class="h-5 w-8 rounded bg-white shadow-inner"></span>
+                          </div>
+                        </div>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                          <label class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                            Card holder
+                            <input type="text" name="card_name" placeholder="Full name" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/30" />
+                          </label>
+                          <label class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                            Card number
+                            <input type="text" name="card_number" placeholder="1234 5678 9012 3456" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/30" />
+                          </label>
+                          <label class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                            Expires
+                            <input type="text" name="card_expiry" placeholder="MM / YY" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/30" />
+                          </label>
+                          <label class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                            CVV
+                            <input type="text" name="card_cvv" placeholder="123" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/30" />
+                          </label>
+                          <label class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                            ZIP code
+                            <input type="text" name="card_zip" placeholder="00000" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/30" />
+                          </label>
+                        </div>
+                      </div>
+                      <button type="button" class="btn-shine inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Subscribe now</button>
+                    </form>
+                    <aside class="space-y-5 rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-inner">
+                      <div class="space-y-1">
+                        <p class="text-sm font-semibold text-slate-800">Subscription summary</p>
+                        <p id="checkoutSubtitle" class="text-xs text-slate-500">Billed monthly</p>
+                      </div>
+                      <div class="flex items-baseline gap-2 text-3xl font-semibold text-slate-900">
+                        <span id="checkoutPrice">R0.00</span>
+                        <span class="text-sm font-medium text-slate-500">ZAR</span>
+                      </div>
+                      <ul id="checkoutPerks" class="space-y-3 text-sm text-slate-600"></ul>
+                      <div class="space-y-2 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+                        <div class="flex items-center justify-between">
+                          <span>Today</span>
+                          <span id="checkoutDueToday" class="font-semibold text-slate-900">R0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                          <span>Renews</span>
+                          <span id="checkoutRenewal">1 × every month</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                          <span>Next charge</span>
+                          <span id="checkoutNextCharge">March 1, 2024</span>
+                        </div>
+                      </div>
+                      <p class="text-xs text-slate-400">Change or cancel your plan anytime.</p>
+                    </aside>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -965,6 +1167,15 @@
     }
 
     const objectivesGroup = document.getElementById("objectives-group");
+    const planGroup = document.querySelector('[data-plan-group]');
+    const planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
+    const planSkipButton = document.querySelector('[data-plan-skip]');
+    const completeButton = document.querySelector('[data-complete][data-save-profile]');
+
+    function setPlanGroupError(active) {
+      if (!planGroup) return;
+      planGroup.classList.toggle("plan-group--error", !!active);
+    }
 
     function clearFieldErrors() {
       FORM_REQUIRED_FIELDS.forEach((id) => {
@@ -972,6 +1183,7 @@
         if (el) el.classList.remove("input-error");
       });
       objectivesGroup?.classList.remove("field-error");
+      setPlanGroupError(false);
     }
 
     function syncObjectivesHighlight() {
@@ -996,6 +1208,35 @@
       });
     });
 
+    planRadios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        selectedPlanKey = radio.value;
+        planSkipped = false;
+        setPlanGroupError(false);
+        if (explorePanel && !explorePanel.classList.contains("hidden")) {
+          explorePanel.classList.add("hidden");
+        }
+      });
+    });
+
+    planSkipButton?.addEventListener("click", () => {
+      planSkipped = true;
+      selectedPlanKey = null;
+      planRadios.forEach((radio) => {
+        radio.checked = false;
+      });
+      setPlanGroupError(false);
+      if (checkoutPanel) {
+        checkoutPanel.classList.add("hidden");
+      }
+      if (explorePanel) {
+        explorePanel.classList.add("hidden");
+      }
+      window.requestAnimationFrame(() => {
+        completeButton?.click();
+      });
+    });
+
     const stepMeta = {
       1: { label: "Step 1 of 5 · Basic info", title: "Tell us about yourself" },
       2: { label: "Step 2 of 5 · Employment & income", title: "Share your work and income profile" },
@@ -1006,8 +1247,23 @@
 
     const panels = Array.from(document.querySelectorAll("[data-panel]"));
     const panelForms = panels.filter((panel) => panel instanceof HTMLFormElement);
+    const onboardingFlow = document.getElementById("onboardingFlow");
+    const onboardingComplete = document.getElementById("onboardingComplete");
+    const checkoutLoader = document.getElementById("checkoutLoader");
+    const checkoutPanel = document.getElementById("checkoutPanel");
+    const explorePanel = document.getElementById("explorePanel");
+    const checkoutBadge = document.getElementById("checkoutBadge");
+    const checkoutTitle = document.getElementById("checkoutTitle");
+    const checkoutSubtitle = document.getElementById("checkoutSubtitle");
+    const checkoutPrice = document.getElementById("checkoutPrice");
+    const checkoutPerksList = document.getElementById("checkoutPerks");
+    const checkoutDueToday = document.getElementById("checkoutDueToday");
+    const checkoutRenewal = document.getElementById("checkoutRenewal");
+    const checkoutNextCharge = document.getElementById("checkoutNextCharge");
     const stepLabel = document.getElementById("currentStepLabel");
     const stepTitle = document.getElementById("currentStepTitle");
+    const onboardingIntro = document.getElementById("onboardingIntro");
+    const stepSummary = document.getElementById("stepSummary");
     const stepItems = Array.from(document.querySelectorAll("[data-step-item]"));
     const completedSteps = new Set();
     let currentStep = 1;
@@ -1016,6 +1272,125 @@
     let profileRow = null;
     let profileComplete = false;
     let kycDone = false;
+    let selectedPlanKey = planRadios.find((radio) => radio.checked)?.value || null;
+    let planSkipped = false;
+    let checkoutRevealStarted = false;
+    let checkoutRevealTimer = null;
+
+    const formatNextCharge = (monthOffset = 1) => {
+      const base = new Date();
+      base.setDate(1);
+      base.setHours(0, 0, 0, 0);
+      base.setMonth(base.getMonth() + Math.max(1, Number(monthOffset) || 1));
+      return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(base);
+    };
+
+    const planDetails = {
+      core: {
+        badge: "Core plan",
+        title: "AlgoHive Core subscription",
+        subtitle: "R450 billed monthly",
+        price: "R450.00",
+        dueToday: "R450.00",
+        renewal: "1 × every month",
+        nextChargeOffset: 1,
+        perks: [
+          "Funds * (CIS)",
+          "Unsecured Lending",
+          "AlgoPay — credit facilitation, rewards & payments",
+          "Up to 6 strategies",
+        ],
+      },
+      professional: {
+        badge: "Professional plan",
+        title: "AlgoHive Professional subscription",
+        subtitle: "R899 billed monthly",
+        price: "R899.00",
+        dueToday: "R899.00",
+        renewal: "1 × every month",
+        nextChargeOffset: 1,
+        perks: [
+          "Open Strategies * up to 10",
+          "Managed V.A.S.T *",
+          "Self-Managed V.A.S.T",
+          "Funds * (CIS)",
+          "Investment Backed Lending & unsecured",
+          "AlgoPay — credit facilitation, rewards & payments",
+        ],
+      },
+    };
+
+    const updateCheckout = (planKey, options = {}) => {
+      const { scroll = true } = options;
+      const detail = planDetails[planKey];
+      if (!detail) return;
+
+      if (checkoutBadge) checkoutBadge.textContent = detail.badge;
+      if (checkoutTitle) checkoutTitle.textContent = detail.title;
+      if (checkoutSubtitle) checkoutSubtitle.textContent = detail.subtitle;
+      if (checkoutPrice) checkoutPrice.textContent = detail.price;
+      if (checkoutPerksList) {
+        checkoutPerksList.innerHTML = "";
+        if (Array.isArray(detail.perks)) {
+          detail.perks.forEach((perk) => {
+            const li = document.createElement("li");
+            li.className = "flex items-start gap-2";
+            li.innerHTML =
+              '<svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--olive)]" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 6L8.5 14L4 9.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+              `<span>${perk}</span>`;
+            checkoutPerksList.appendChild(li);
+          });
+        }
+      }
+      if (checkoutDueToday) checkoutDueToday.textContent = detail.dueToday;
+      if (checkoutRenewal) checkoutRenewal.textContent = detail.renewal;
+      if (checkoutNextCharge) checkoutNextCharge.textContent = formatNextCharge(detail.nextChargeOffset);
+
+      if (explorePanel && !explorePanel.classList.contains("hidden")) {
+        explorePanel.classList.add("hidden");
+        explorePanel.classList.remove("swap-anim");
+      }
+
+      if (checkoutPanel && checkoutPanel.classList.contains("hidden")) {
+        checkoutPanel.classList.remove("hidden");
+        checkoutPanel.classList.add("swap-anim");
+      }
+
+      if (scroll) {
+        checkoutPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    const beginCheckoutReveal = () => {
+      if (checkoutRevealStarted) return;
+      checkoutRevealStarted = true;
+
+      if (checkoutLoader) checkoutLoader.classList.remove("hidden");
+      checkoutPanel?.classList.add("hidden");
+      checkoutPanel?.classList.remove("swap-anim");
+      if (explorePanel) explorePanel.classList.add("hidden");
+      explorePanel?.classList.remove("swap-anim");
+
+      checkoutRevealTimer = window.setTimeout(() => {
+        if (checkoutLoader) checkoutLoader.classList.add("hidden");
+
+        if (planSkipped || !selectedPlanKey) {
+          if (explorePanel) {
+            explorePanel.classList.remove("hidden");
+            explorePanel.classList.add("swap-anim");
+          }
+          return;
+        }
+
+        updateCheckout(selectedPlanKey, { scroll: false });
+      }, 5000);
+    };
+
+    if (onboardingComplete && !onboardingComplete.classList.contains("hidden")) {
+      if (onboardingIntro) onboardingIntro.classList.add("hidden");
+      if (stepSummary) stepSummary.classList.add("hidden");
+      beginCheckoutReveal();
+    }
 
     function syncStepIndicators() {
       stepItems.forEach((item) => {
@@ -1132,6 +1507,14 @@
           missing.push(key);
         }
       });
+      if (step >= totalSteps) {
+        const hasPlan = planRadios.some((radio) => radio.checked);
+        const requirePlan = !planSkipped;
+        setPlanGroupError(requirePlan && !hasPlan);
+        if (requirePlan && !hasPlan) missing.push("plan");
+      } else {
+        setPlanGroupError(false);
+      }
       return missing;
     }
 
@@ -1142,6 +1525,10 @@
         objectivesGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
         const firstCb = objectivesGroup?.querySelector('input[name="objectives"]');
         firstCb?.focus();
+      } else if (firstKey === "plan") {
+        planGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const firstPlan = planRadios[0];
+        firstPlan?.focus();
       } else {
         const el = document.getElementById(firstKey);
         if (el) {
@@ -1376,6 +1763,16 @@
           button.disabled = true;
           button.textContent = "All steps saved";
           button.classList.add("opacity-80");
+          if (onboardingFlow) onboardingFlow.classList.add("hidden");
+          if (onboardingIntro) onboardingIntro.classList.add("hidden");
+          if (stepSummary) stepSummary.classList.add("hidden");
+          if (onboardingComplete) {
+            onboardingComplete.classList.remove("hidden");
+            onboardingComplete.classList.add("swap-anim");
+            beginCheckoutReveal();
+          }
+          if (stepLabel) stepLabel.textContent = "";
+          if (stepTitle) stepTitle.textContent = "";
           banner("Onboarding complete.", "ok");
           return;
         }
