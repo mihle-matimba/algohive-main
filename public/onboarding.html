@@ -948,15 +948,19 @@
 
                 <div id="explorePanel" class="hidden space-y-4">
                   <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Explore AlgoHive</p>
+                  <h3 class="text-xl font-semibold text-slate-900">Welcome to AlgoHive</h3>
+                  <p class="text-sm text-slate-500">You're officially part of the hive! Explore tailored investing opportunities and smart lending tools crafted to help you reach your goals.</p>
                   <p class="text-sm text-slate-500">Pick your next step below to dive into AlgoHive.</p>
                   <div class="grid gap-4 sm:grid-cols-2">
                     <a href="#" class="product-card product-card--invest">
+                      <p class="product-card__eyebrow">Welcome</p>
                       <p class="product-card__title">Start investing</p>
                       <span class="product-card__cta">Explore strategies
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
                       </span>
                     </a>
                     <a href="#" class="product-card product-card--loan">
+                      <p class="product-card__eyebrow">Welcome</p>
                       <p class="product-card__title">Apply for a loan</p>
                       <span class="product-card__cta">View loan offers
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 5l4 5-4 5"/></svg>
@@ -973,7 +977,7 @@
                     </div>
                     <span id="checkoutBadge" class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--olive-700)]">Plan</span>
                   </div>
-                  <div class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+                  <div id="checkoutReview" class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
                     <form class="space-y-5">
                       <div>
                         <label class="text-sm font-semibold text-slate-800">Saved payment method</label>
@@ -1043,6 +1047,44 @@
                       <p class="text-xs text-slate-400">Change or cancel your plan anytime.</p>
                     </aside>
                   </div>
+                </div>
+                <div id="professionalPaymentContainer" class="hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Subscribe</p>
+                      <h3 class="mt-1 text-xl font-semibold text-slate-900">AlgoHive Professional subscription</h3>
+                      <p class="mt-3 text-sm text-slate-600">Complete your secure checkout to unlock AlgoHive Professional.</p>
+                    </div>
+                    <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--olive-700)]">Professional plan</span>
+                  </div>
+                  <iframe
+                    id="professionalPaymentFrame"
+                    src="https://paystack.shop/pay/8v7rlnuobj"
+                    title="AlgoHive Professional plan payment"
+                    loading="lazy"
+                    class="mt-6 h-[680px] w-full rounded-3xl border border-slate-200 shadow-lg"
+                    allow="payment *; clipboard-write"
+                  ></iframe>
+                  <p id="professionalPaymentStatus" class="mt-3 text-xs text-slate-500">Complete your payment in the secure Paystack window above. We'll automatically confirm when it's successful.</p>
+                </div>
+                <div id="corePaymentContainer" class="hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Subscribe</p>
+                      <h3 class="mt-1 text-xl font-semibold text-slate-900">AlgoHive Core subscription</h3>
+                      <p class="mt-3 text-sm text-slate-600">Complete your secure checkout to unlock AlgoHive Core.</p>
+                    </div>
+                    <span class="rounded-full bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--olive-700)]">Core plan</span>
+                  </div>
+                  <iframe
+                    id="corePaymentFrame"
+                    src="https://paystack.shop/pay/eo1b1n9h45"
+                    title="AlgoHive Core plan payment"
+                    loading="lazy"
+                    class="mt-6 h-[680px] w-full rounded-3xl border border-slate-200 shadow-lg"
+                    allow="payment *; clipboard-write"
+                  ></iframe>
+                  <p id="corePaymentStatus" class="mt-3 text-xs text-slate-500">Complete your payment in the secure Paystack window above. We'll automatically confirm when it's successful.</p>
                 </div>
               </div>
             </div>
@@ -1171,6 +1213,16 @@
     const planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
     const planSkipButton = document.querySelector('[data-plan-skip]');
     const completeButton = document.querySelector('[data-complete][data-save-profile]');
+    const corePaymentContainer = document.getElementById("corePaymentContainer");
+    const corePaymentFrame = document.getElementById("corePaymentFrame");
+    const corePaymentStatus = document.getElementById("corePaymentStatus");
+    const corePaymentStatusDefaultClass = corePaymentStatus?.className || "";
+    const corePaymentStatusDefaultText = corePaymentStatus?.textContent?.trim() || "";
+    const professionalPaymentContainer = document.getElementById("professionalPaymentContainer");
+    const professionalPaymentFrame = document.getElementById("professionalPaymentFrame");
+    const professionalPaymentStatus = document.getElementById("professionalPaymentStatus");
+    const professionalPaymentStatusDefaultClass = professionalPaymentStatus?.className || "";
+    const professionalPaymentStatusDefaultText = professionalPaymentStatus?.textContent?.trim() || "";
 
     function setPlanGroupError(active) {
       if (!planGroup) return;
@@ -1212,6 +1264,48 @@
       radio.addEventListener("change", () => {
         selectedPlanKey = radio.value;
         planSkipped = false;
+        const selectingPaystack = paystackPlanKeys.includes(radio.value);
+        activePaystackPlan = selectingPaystack ? radio.value : null;
+
+        paystackPlanKeys.forEach((planKey) => {
+          const context = paymentContexts[planKey];
+          if (!context) return;
+          const isTarget = radio.value === planKey;
+          const { container, statusEl } = context;
+
+          if (container) {
+            container.classList.toggle("hidden", !isTarget);
+            if (isTarget) {
+              container.classList.add("swap-anim");
+            } else {
+              container.classList.remove("swap-anim");
+            }
+          }
+
+          if (statusEl) {
+            if (isTarget) {
+              const alreadyOnPlan = paymentCompletion[planKey] || profileRow?.plan === planKey;
+              if (alreadyOnPlan) {
+                paymentCompletion[planKey] = true;
+                statusEl.className = "mt-3 text-xs font-semibold text-[var(--olive)]";
+                statusEl.textContent = `Payment confirmed — your profile is already on the ${planLabels[planKey]} plan.`;
+              } else {
+                resetPaymentStatus(planKey);
+              }
+            } else {
+              resetPaymentStatus(planKey);
+            }
+          }
+        });
+
+        if (checkoutPanel) {
+          checkoutPanel.classList.toggle("hidden", selectingPaystack);
+          checkoutPanel.classList.toggle("swap-anim", !selectingPaystack);
+          if (selectingPaystack) checkoutPanel.classList.remove("swap-anim");
+        }
+        if (checkoutReview) {
+          checkoutReview.classList.toggle("hidden", selectingPaystack);
+        }
         setPlanGroupError(false);
         if (explorePanel && !explorePanel.classList.contains("hidden")) {
           explorePanel.classList.add("hidden");
@@ -1222,9 +1316,19 @@
     planSkipButton?.addEventListener("click", () => {
       planSkipped = true;
       selectedPlanKey = null;
+      activePaystackPlan = null;
       planRadios.forEach((radio) => {
         radio.checked = false;
       });
+      paystackPlanKeys.forEach((planKey) => {
+        const context = paymentContexts[planKey];
+        if (!context) return;
+        context.container?.classList.add("hidden");
+        context.container?.classList.remove("swap-anim");
+        resetPaymentStatus(planKey);
+      });
+      activePaystackPlan = null;
+      if (checkoutReview) checkoutReview.classList.remove("hidden");
       setPlanGroupError(false);
       if (checkoutPanel) {
         checkoutPanel.classList.add("hidden");
@@ -1251,6 +1355,7 @@
     const onboardingComplete = document.getElementById("onboardingComplete");
     const checkoutLoader = document.getElementById("checkoutLoader");
     const checkoutPanel = document.getElementById("checkoutPanel");
+    const checkoutReview = document.getElementById("checkoutReview");
     const explorePanel = document.getElementById("explorePanel");
     const checkoutBadge = document.getElementById("checkoutBadge");
     const checkoutTitle = document.getElementById("checkoutTitle");
@@ -1276,6 +1381,127 @@
     let planSkipped = false;
     let checkoutRevealStarted = false;
     let checkoutRevealTimer = null;
+    const paystackPlanKeys = ["core", "professional"];
+    const planLabels = { core: "Core", professional: "Professional" };
+    const paymentCompletion = { core: false, professional: false };
+    let activePaystackPlan = null;
+    const paymentContexts = {
+      core: {
+        container: corePaymentContainer,
+        frame: corePaymentFrame,
+        statusEl: corePaymentStatus,
+        defaultClass: corePaymentStatusDefaultClass,
+        defaultText: corePaymentStatusDefaultText,
+      },
+      professional: {
+        container: professionalPaymentContainer,
+        frame: professionalPaymentFrame,
+        statusEl: professionalPaymentStatus,
+        defaultClass: professionalPaymentStatusDefaultClass,
+        defaultText: professionalPaymentStatusDefaultText,
+      },
+    };
+
+    const revealExplorePanel = (options = {}) => {
+      const { scroll = false } = options;
+      if (checkoutRevealTimer) {
+        window.clearTimeout(checkoutRevealTimer);
+        checkoutRevealTimer = null;
+      }
+      if (checkoutLoader) checkoutLoader.classList.add("hidden");
+      if (checkoutPanel) {
+        checkoutPanel.classList.add("hidden");
+        checkoutPanel.classList.remove("swap-anim");
+      }
+      if (checkoutReview) checkoutReview.classList.remove("hidden");
+      paystackPlanKeys.forEach((planKey) => {
+        const context = paymentContexts[planKey];
+        if (!context) return;
+        context.container?.classList.add("hidden");
+        context.container?.classList.remove("swap-anim");
+        resetPaymentStatus(planKey);
+      });
+      activePaystackPlan = null;
+      if (explorePanel) {
+        explorePanel.classList.remove("hidden");
+        explorePanel.classList.add("swap-anim");
+        if (scroll) {
+          explorePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    };
+
+    const resolvePlanFromSource = (source) => {
+      if (!source) return null;
+      return paystackPlanKeys.find((planKey) => paymentContexts[planKey]?.frame?.contentWindow === source) || null;
+    };
+
+    const resetPaymentStatus = (planKey) => {
+      const context = paymentContexts[planKey];
+      if (!context?.statusEl) return;
+      context.statusEl.className = context.defaultClass;
+      context.statusEl.textContent = context.defaultText;
+    };
+
+    const setPaymentStatus = (planKey, className, text) => {
+      const context = paymentContexts[planKey];
+      if (!context?.statusEl) return;
+      context.statusEl.className = className;
+      context.statusEl.textContent = text;
+    };
+
+    const markPaymentFailure = (planKey) => {
+      paymentCompletion[planKey] = false;
+      setPaymentStatus(planKey, "mt-3 text-xs text-red-500", "Payment wasn't completed. Please try again above.");
+      banner("Payment wasn't completed. Please try again.", "err");
+    };
+
+    const markPaymentUpdating = (planKey) => {
+      setPaymentStatus(planKey, "mt-3 text-xs font-semibold text-[var(--olive)]", "Payment confirmed. Updating your profile…");
+    };
+
+    const markPaymentAdvance = (planKey, message) => {
+      setPaymentStatus(planKey, "mt-3 text-xs font-semibold text-[var(--olive)]", message);
+    };
+
+    const planSuccessMessage = (planKey, { includeNext = false } = {}) => {
+      const label = planLabels[planKey] || planKey;
+      return includeNext
+        ? `Payment confirmed — your profile is now on the ${label} plan. Taking you to what's next…`
+        : `Payment confirmed — your profile is now on the ${label} plan.`;
+    };
+
+    const planErrorMessage = () => "We received a success signal but could not update your plan. Please try again or contact support.";
+
+    const successBannerMessage = (planKey) => {
+      const label = planLabels[planKey] || planKey;
+      return `${label} plan activated successfully.`;
+    };
+
+    const handleSuccessfulPayment = async (planKey) => {
+      paymentCompletion[planKey] = true;
+      paystackPlanKeys.forEach((key) => {
+        if (key !== planKey) paymentCompletion[key] = false;
+      });
+      markPaymentUpdating(planKey);
+
+      try {
+        await updateProfilePlan(planKey);
+        paystackPlanKeys.forEach((key) => {
+          paymentCompletion[key] = profileRow?.plan === key;
+        });
+        markPaymentAdvance(planKey, planSuccessMessage(planKey, { includeNext: true }));
+        banner(successBannerMessage(planKey), "ok");
+        window.setTimeout(() => {
+          revealExplorePanel({ scroll: true });
+        }, 1200);
+      } catch (error) {
+        console.error(error);
+        paymentCompletion[planKey] = false;
+        setPaymentStatus(planKey, "mt-3 text-xs text-red-500", error.message || planErrorMessage());
+        banner(error.message || "Could not update plan after payment.", "err");
+      }
+    };
 
     const formatNextCharge = (monthOffset = 1) => {
       const base = new Date();
@@ -1283,6 +1509,82 @@
       base.setHours(0, 0, 0, 0);
       base.setMonth(base.getMonth() + Math.max(1, Number(monthOffset) || 1));
       return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(base);
+    };
+
+    const PAYSTACK_ORIGINS = [/^https:\/\/([a-z0-9-]+\.)*paystack\.shop$/i, /^https:\/\/([a-z0-9-]+\.)*paystack\.com$/i];
+    const isPaystackOrigin = (origin) => typeof origin === "string" && PAYSTACK_ORIGINS.some((regex) => regex.test(origin));
+
+    const coerceMessagePayload = (payload) => {
+      if (typeof payload === "string") {
+        const trimmed = payload.trim();
+        if (!trimmed) return trimmed;
+        try {
+          return JSON.parse(trimmed);
+        } catch (error) {
+          return trimmed;
+        }
+      }
+      return payload;
+    };
+
+    const containsAnyToken = (value, tokens) => {
+      if (value == null) return false;
+      const lower = String(value).toLowerCase();
+      return tokens.some((token) => lower.includes(token));
+    };
+
+    const isSuccessfulPaymentPayload = (payload) => {
+      if (!payload) return false;
+      const successTokens = ["success", "completed", "paid", "approved"];
+      if (typeof payload === "string") {
+        return containsAnyToken(payload, successTokens);
+      }
+      if (typeof payload === "object") {
+        return [
+          payload.event,
+          payload.type,
+          payload.action,
+          payload.status,
+          payload.state,
+          payload.message,
+          payload.reason,
+          payload.data?.status,
+          payload.data?.message,
+        ].some((value) => containsAnyToken(value, successTokens));
+      }
+      return false;
+    };
+
+    const isFailedPaymentPayload = (payload) => {
+      if (!payload) return false;
+      const failureTokens = [
+        "fail",
+        "error",
+        "declin",
+        "cancel",
+        "close",
+        "abort",
+        "reject",
+        "timeout",
+        "expired",
+      ];
+      if (typeof payload === "string") {
+        return containsAnyToken(payload, failureTokens);
+      }
+      if (typeof payload === "object") {
+        return [
+          payload.event,
+          payload.type,
+          payload.action,
+          payload.status,
+          payload.state,
+          payload.message,
+          payload.reason,
+          payload.data?.status,
+          payload.data?.message,
+        ].some((value) => containsAnyToken(value, failureTokens));
+      }
+      return false;
     };
 
     const planDetails = {
@@ -1325,6 +1627,11 @@
       const detail = planDetails[planKey];
       if (!detail) return;
 
+      const showPaystackFrame = paystackPlanKeys.includes(planKey);
+      const showCoreFrame = planKey === "core";
+      const showProfessionalFrame = planKey === "professional";
+      activePaystackPlan = showPaystackFrame ? planKey : null;
+
       if (checkoutBadge) checkoutBadge.textContent = detail.badge;
       if (checkoutTitle) checkoutTitle.textContent = detail.title;
       if (checkoutSubtitle) checkoutSubtitle.textContent = detail.subtitle;
@@ -1346,18 +1653,59 @@
       if (checkoutRenewal) checkoutRenewal.textContent = detail.renewal;
       if (checkoutNextCharge) checkoutNextCharge.textContent = formatNextCharge(detail.nextChargeOffset);
 
+      paystackPlanKeys.forEach((key) => {
+        const context = paymentContexts[key];
+        if (!context) return;
+        const { container, statusEl, defaultClass, defaultText } = context;
+        const isTarget = planKey === key;
+
+        if (container) {
+          container.classList.toggle("hidden", !isTarget);
+          if (isTarget) {
+            container.classList.add("swap-anim");
+          } else {
+            container.classList.remove("swap-anim");
+          }
+        }
+
+        if (statusEl) {
+          if (isTarget) {
+            const alreadyOnPlan = paymentCompletion[key] || profileRow?.plan === key;
+            if (alreadyOnPlan) {
+              paymentCompletion[key] = true;
+              statusEl.className = "mt-3 text-xs font-semibold text-[var(--olive)]";
+              statusEl.textContent = planSuccessMessage(key);
+            } else {
+              resetPaymentStatus(key);
+            }
+          } else {
+            resetPaymentStatus(key);
+          }
+        }
+      });
+
+      if (checkoutPanel) {
+        checkoutPanel.classList.toggle("hidden", showPaystackFrame);
+        checkoutPanel.classList.toggle("swap-anim", !showPaystackFrame);
+        if (showPaystackFrame) checkoutPanel.classList.remove("swap-anim");
+      }
+
+      if (checkoutReview) {
+        checkoutReview.classList.toggle("hidden", showPaystackFrame);
+      }
+
       if (explorePanel && !explorePanel.classList.contains("hidden")) {
         explorePanel.classList.add("hidden");
         explorePanel.classList.remove("swap-anim");
       }
 
-      if (checkoutPanel && checkoutPanel.classList.contains("hidden")) {
-        checkoutPanel.classList.remove("hidden");
-        checkoutPanel.classList.add("swap-anim");
-      }
-
+      const scrollTarget = showCoreFrame
+        ? corePaymentContainer
+        : showProfessionalFrame
+          ? professionalPaymentContainer
+          : checkoutPanel;
       if (scroll) {
-        checkoutPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+        scrollTarget?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     };
 
@@ -1368,6 +1716,13 @@
       if (checkoutLoader) checkoutLoader.classList.remove("hidden");
       checkoutPanel?.classList.add("hidden");
       checkoutPanel?.classList.remove("swap-anim");
+      paystackPlanKeys.forEach((planKey) => {
+        const context = paymentContexts[planKey];
+        if (!context) return;
+        context.container?.classList.add("hidden");
+        context.container?.classList.remove("swap-anim");
+        resetPaymentStatus(planKey);
+      });
       if (explorePanel) explorePanel.classList.add("hidden");
       explorePanel?.classList.remove("swap-anim");
 
@@ -1375,10 +1730,7 @@
         if (checkoutLoader) checkoutLoader.classList.add("hidden");
 
         if (planSkipped || !selectedPlanKey) {
-          if (explorePanel) {
-            explorePanel.classList.remove("hidden");
-            explorePanel.classList.add("swap-anim");
-          }
+          revealExplorePanel({ scroll: false });
           return;
         }
 
@@ -1632,6 +1984,18 @@
       return totalSteps;
     }
 
+    async function updateProfilePlan(planKey) {
+      if (!supabaseUser) throw new Error("Please sign in again.");
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert({ id: supabaseUser.id, plan: planKey, updated_at: new Date().toISOString() }, { onConflict: "id" })
+        .select("*")
+        .single();
+      if (error) throw error;
+      profileRow = { ...profileRow, ...data };
+      return data;
+    }
+
     async function persistProfile(button) {
       if (!supabaseUser) {
         banner("Please sign in again.", "err");
@@ -1740,6 +2104,38 @@
       }
     });
 
+    window.addEventListener("message", async (event) => {
+      if (!isPaystackOrigin(event.origin)) return;
+
+      const planKey = resolvePlanFromSource(event.source) || activePaystackPlan;
+      if (!planKey || !paystackPlanKeys.includes(planKey)) return;
+
+      const payload = coerceMessagePayload(event.data);
+      if (!payload || paymentCompletion[planKey]) return;
+
+      if (isFailedPaymentPayload(payload)) {
+        markPaymentFailure(planKey);
+        return;
+      }
+
+      if (!isSuccessfulPaymentPayload(payload)) return;
+
+      await handleSuccessfulPayment(planKey);
+    });
+
+    window.addEventListener("message", async (event) => {
+      if (event.origin !== window.location.origin) return;
+
+      const payload = coerceMessagePayload(event.data);
+      if (!payload || typeof payload !== "object") return;
+      if (payload.source !== "algohive-paystack-success" || payload.status !== "success") return;
+
+      const planKey = resolvePlanFromSource(event.source) || activePaystackPlan;
+      if (!planKey || paymentCompletion[planKey]) return;
+
+      await handleSuccessfulPayment(planKey);
+    });
+
     document.querySelectorAll("[data-save-profile]").forEach((button) => {
       button.addEventListener("click", async () => {
         const validationStep = button.hasAttribute("data-complete") ? totalSteps : currentStep;
@@ -1808,6 +2204,9 @@
         supabaseUser = user;
         const row = await ensureProfile(user.id, user.email || null);
         profileRow = row;
+        paystackPlanKeys.forEach((planKey) => {
+          paymentCompletion[planKey] = row?.plan === planKey;
+        });
 
         setFieldValue("first_name", row?.first_name);
         setFieldValue("last_name", row?.last_name);
