@@ -9,8 +9,24 @@ class SamSubService {
     this.secretKey = process.env.SAMSUB_SECRET_KEY;
     this.appId = process.env.SAMSUB_APP_ID;
 
-    if (!this.appToken || !this.secretKey || !this.appId) {
-      throw new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+    // Don't throw during module load, check when methods are called
+    this.isConfigured = !!(this.appToken && this.secretKey && this.appId);
+  }
+
+  /**
+   * Check if credentials are configured
+   */
+  checkCredentials() {
+    if (!this.isConfigured) {
+      const missing = [];
+      if (!this.appToken) missing.push('SAMSUB_APP_TOKEN');
+      if (!this.secretKey) missing.push('SAMSUB_SECRET_KEY');
+      if (!this.appId) missing.push('SAMSUB_APP_ID');
+      
+      throw new Error(
+        `SumSub credentials not configured. Missing environment variables: ${missing.join(', ')}. ` +
+        `Please add them in your Vercel project settings: https://vercel.com/dashboard → Project → Settings → Environment Variables`
+      );
     }
   }
 
@@ -18,6 +34,8 @@ class SamSubService {
    * Generate signature for SamSub API requests
    */
   generateSignature(method, url, body = '') {
+    this.checkCredentials();
+    
     const timestamp = Math.floor(Date.now() / 1000);
     const message = `${timestamp}${method.toUpperCase()}${url}${body}`;
     
