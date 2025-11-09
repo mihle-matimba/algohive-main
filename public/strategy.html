@@ -2254,15 +2254,15 @@
             const labels = [];
             const curveVals = [];
 
-            let level = 100; // start at 100
-            let firstLevel = null;
+            const startLevel = 100; // baseline before any daily return is applied
+            let level = startLevel;
 
             for (const point of (src || [])) {
                 const d = point.date;
                 const rDec = Number(point.pct); // decimal
                 if (!Number.isFinite(rDec)) continue;
 
-                // compound
+                // compound and record rounded level for the chart display
                 level = level * (1 + rDec);
                 const lvlRounded = Number(level.toFixed(2));
                 curveVals.push(lvlRounded);
@@ -2272,8 +2272,6 @@
                 labels.push(
                     dt.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' })
                 );
-
-                if (firstLevel === null) firstLevel = lvlRounded;
             }
 
             if (!curveVals.length) {
@@ -2285,15 +2283,14 @@
                 };
             }
 
-            const lastLevel = curveVals[curveVals.length - 1];
-
-            // headline change
-            const pctChange = ((lastLevel - firstLevel) / firstLevel) * 100;
-            const mult = (lastLevel / firstLevel);
+            // Use the unrounded level so that the headline change captures the
+            // full period move, including the very first daily return.
+            const pctChange = ((level - startLevel) / startLevel) * 100;
+            const mult = (level / startLevel);
 
             return {
                 labels,
-                curve: curveVals,      // e.g. [100,101.2,104.8,...]
+                curve: curveVals,      // e.g. [101.2,104.8,...]
                 headlinePct: pctChange, // e.g. 54.3 (%)
                 headlineX: mult         // e.g. 1.54 (x)
             };
