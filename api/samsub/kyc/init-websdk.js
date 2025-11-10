@@ -31,6 +31,31 @@ async function sumsubFetch(method, pathWithQuery, bodyObj) {
   return { ok: r.ok, status: r.status, data };
 }
 
+function extractApplicant(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const extracted = extractApplicant(item);
+      if (extracted) return extracted;
+    }
+    return null;
+  }
+
+  if (payload.id || payload.applicantId) return payload;
+  if (payload.applicant && typeof payload.applicant === 'object') return extractApplicant(payload.applicant);
+  if (Array.isArray(payload.applicants)) return extractApplicant(payload.applicants);
+  if (Array.isArray(payload.items)) return extractApplicant(payload.items);
+  if (payload.data) return extractApplicant(payload.data);
+
+  return null;
+}
+
+function extractApplicantId(payload) {
+  const applicant = extractApplicant(payload);
+  if (!applicant) return null;
+  return applicant.id || applicant.applicantId || applicant.applicant_id || applicant.inspectionId || null;
+}
+
 // POST /api/samsub/kyc/init-websdk
 // body: { externalUserId, levelName, ttlInSecs?, email?, phone?, firstName?, lastName?, redirect? }
 module.exports = async (req, res) => {
@@ -61,20 +86,30 @@ module.exports = async (req, res) => {
     if (typeof phone === 'string' && phone.trim()) payload.phone = phone.trim();
 
     let createResp = await sumsubFetch('POST', createPath, payload);
+    let reusedApplicant = false;
+    let applicantPayload = createResp.data;
+
     if (!createResp.ok && createResp.status === 409) {
       // duplicate → fetch existing by externalUserId (OK)
       const getPath = `/resources/applicants?${new URLSearchParams({ externalUserId: userId })}`;
       const found = await sumsubFetch('GET', getPath);
-      if (!found.ok) return res.status(409).json({ success:false, error:{ message:'Duplicate userId and fetch failed' }, data: createResp.data });
+      if (!found.ok) {
+        return res.status(409).json({ success:false, error:{ message:'Duplicate userId and fetch failed' }, data: createResp.data });
+      }
+      reusedApplicant = true;
+      applicantPayload = found.data;
     } else if (!createResp.ok) {
       return res.status(createResp.status).json({ success:false, error:{ message:'Sumsub error (create)' }, data: createResp.data });
     }
 
+    const applicantId = extractApplicantId(applicantPayload);
+
     // 2) Generate WebSDK link (this is the “proper” endpoint)
     // POST /resources/sdkIntegrations/levels/-/websdkLink
+    const ttl = Number(ttlInSecs) || 1800;
     const websdkPath = `/resources/sdkIntegrations/levels/-/websdkLink`;
     const body = {
-      ttlInSecs: Number(ttlInSecs) || 1800,
+      ttlInSecs: ttl,
       levelName: levelName.trim(),
       userId, // this is your externalUserId
       // optional helpers:
@@ -90,8 +125,19 @@ module.exports = async (req, res) => {
       return res.status(ws.status).json({ success:false, error:{ message:'Sumsub error (websdkLink)' }, data: ws.data });
     }
 
-    // Usually returns { url: 'https://in.sumsub.com/websdk/p/...' }
-    return res.status(200).json({ success:true, data: ws.data });
+    const websdkUrl = ws.data?.url || ws.data?.link || ws.data?.href || ws.data;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        applicantId,
+        externalUserId: userId,
+        levelName: levelName.trim(),
+        ttlInSecs: ttl,
+        websdkUrl,
+        reusedApplicant
+      }
+    });
   } catch (e) {
     return res.status(500).json({ success:false, error:{ message: e.message }});
   }
