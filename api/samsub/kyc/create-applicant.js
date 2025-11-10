@@ -1,56 +1,60 @@
-import crypto from 'crypto';
+// CommonJS version (works without "type":"module")
+const crypto = require('crypto');
 
 const SUMSUB_BASE = process.env.SUMSUB_BASE_URL || 'https://api.sumsub.com';
+// Support both env names so you don't get tripped up
 const APP_TOKEN = process.env.SUMSUB_APP_TOKEN;
-const SECRET = process.env.SUMSUB_SECRET_KEY;
+const SECRET = process.env.SUMSUB_APP_SECRET || process.env.SUMSUB_SECRET_KEY;
 
-function sign(ts, method, path, body = '') {
-  const toSign = ts + method.toUpperCase() + path + body;
+// HMAC signing per Sumsub: ts + METHOD + path(+query) + body
+function sign(ts, method, pathWithQuery, bodyStr = '') {
+  const toSign = String(ts) + method.toUpperCase() + pathWithQuery + bodyStr;
   return crypto.createHmac('sha256', SECRET).update(toSign).digest('hex');
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
   }
 
   if (!APP_TOKEN || !SECRET) {
-    return res.status(500).json({ error: 'Sumsub credentials are not configured' });
+    return res.status(500).json({ success: false, error: { message: 'Sumsub credentials are not configured' } });
   }
 
   try {
     const {
       externalUserId,
-      levelName = 'idv-and-phone-verification',
+      levelName = 'basic-kyc-level', // <-- make sure this exists in your Sumsub account
       email,
       firstName,
       lastName,
-      phone,
+      phone
     } = req.body || {};
-    const trimmedExternalId = typeof externalUserId === 'string' ? externalUserId.trim() : String(externalUserId || '');
-    const normalizedLevel = typeof levelName === 'string' && levelName.trim() ? levelName.trim() : 'idv-and-phone-verification';
+
+    const trimmedExternalId =
+      typeof externalUserId === 'string' ? externalUserId.trim() : String(externalUserId || '');
     if (!trimmedExternalId) {
-      return res.status(400).json({ error: 'externalUserId required' });
+      return res.status(400).json({ success: false, error: { message: 'externalUserId required' } });
     }
 
-    const path = `/resources/applicants`;
-    const url = `${SUMSUB_BASE}${path}`;
-    const ts = Math.floor(Date.now() / 1000);
-    const payload = { externalUserId: trimmedExternalId, levelName: normalizedLevel };
-    const normalizedEmail = typeof email === 'string' ? email.trim() : '';
-    const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
-    if (normalizedEmail) payload.email = normalizedEmail;
-    if (normalizedPhone) payload.phone = normalizedPhone;
+    // Sumsub expects levelName as a query param (docs)
+    const basePath = '/resources/applicants';
+    const query = new URLSearchParams({ levelName: String(levelName).trim() || 'basic-kyc-level' });
+    const pathWithQuery = `${basePath}?${query.toString()}`;
+    const url = `${SUMSUB_BASE}${pathWithQuery}`;
+
+    // Build payload
+    const payload = { externalUserId: trimmedExternalId };
     const fixedInfo = {};
-    const normalizedFirstName = typeof firstName === 'string' ? firstName.trim() : '';
-    const normalizedLastName = typeof lastName === 'string' ? lastName.trim() : '';
-    if (normalizedFirstName) fixedInfo.firstName = normalizedFirstName;
-    if (normalizedLastName) fixedInfo.lastName = normalizedLastName;
+    if (typeof firstName === 'string' && firstName.trim()) fixedInfo.firstName = firstName.trim();
+    if (typeof lastName === 'string' && lastName.trim()) fixedInfo.lastName = lastName.trim();
     if (Object.keys(fixedInfo).length) payload.fixedInfo = fixedInfo;
+    if (typeof email === 'string' && email.trim()) payload.email = email.trim();
+    if (typeof phone === 'string' && phone.trim()) payload.phone = phone.trim();
 
-    const body = JSON.stringify(payload);
-
-    const sig = sign(ts, 'POST', path, body);
+    const bodyStr = JSON.stringify(payload);
+    const ts = Math.floor(Date.now() / 1000);
+    const sig = sign(ts, 'POST', pathWithQuery, bodyStr);
 
     const r = await fetch(url, {
       method: 'POST',
@@ -58,25 +62,22 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'X-App-Token': APP_TOKEN,
         'X-App-Access-Ts': String(ts),
-        'X-App-Access-Sig': sig,
+        'X-App-Access-Sig': sig
       },
-      body,
+      body: bodyStr
     });
 
     const text = await r.text();
     let data;
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch (error) {
-      data = { raw: text };
-    }
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
 
     if (!r.ok) {
-      return res.status(r.status).json({ error: 'Sumsub error', data });
+      // Forward Sumsub error payload so we can see why (level name mismatch, etc.)
+      return res.status(r.status).json({ success: false, error: { message: 'Sumsub error' }, data });
     }
 
-    return res.status(200).json(data);
+    return res.status(200).json({ success: true, data });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ success: false, error: { message: e.message } });
   }
-}
+};
