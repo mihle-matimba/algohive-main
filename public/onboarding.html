@@ -2755,35 +2755,32 @@
             banner("SamSub verification complete. You're good to go!", "ok");
         }
 
-        async function startSamsubVerification() {
-            const externalUserId = "tester-1234"; // your user id
-            const levelName = 'id-and-liveness';
+        async function startSamsubVerificationLink() {
+            const externalUserId = "tester-1234";
+            const levelName = "id-and-liveness";
 
-            const res = await fetch('/api/samsub/kyc/init', {
+            const res = await fetch('/api/samsub/kyc/init-websdk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ externalUserId, levelName })
+                body: JSON.stringify({
+                    externalUserId,
+                    levelName,
+                    ttlInSecs: 1800,
+                    // optional redirects:
+                    // redirect: { successUrl: 'https://www.thealgohive.com/kyc/success', failUrl: 'https://www.thealgohive.com/kyc/failed' }
+                })
             });
             const json = await res.json();
-            if (!res.ok) {
-                console.error(json);
-                throw new Error(json?.error?.message || 'Failed to init KYC');
-            }
+            if (!res.ok) throw new Error(json?.error?.message || 'Failed to get WebSDK link');
 
-            const token = json.data.token;
+            const link = json?.data?.url;
+            if (!link) throw new Error('No WebSDK URL returned');
 
-            const sdk = window.SUMSUB.init(
-                token,
-                {
-                    lang: 'en',
-                    onMessage: (type, payload) => console.log('[Sumsub]', type, payload),
-                    onError: (err) => console.error('[Sumsub error]', err),
-                },
-                { uiConf: { type: 'modal' } } // or { type: 'inline', elementId: 'sumsub-sdk' }
-            );
-
-            sdk.launch(); // opens the modal
+            // open it (pick one)
+            window.location.href = link;       // new page
+            // OR document.getElementById('sumsub-frame').src = link; // iframe embed
         }
+
 
 
 
