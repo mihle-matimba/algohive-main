@@ -1,286 +1,168 @@
+// ./api/samsub/kyc.js  (Vercel serverless function)
 const express = require('express');
+const serverless = require('serverless-http');
 const multer = require('multer');
-const samsubService = require('./samsubService');
+const samsubService = require('../../samsubServices'); // <- path to your service file
 
-const router = express.Router();
+const app = express();
 
-// Configure multer for file uploads
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  }
-});
-
-// Helper functions (merged from utils/helpers.js)
+// ---------- helpers ----------
 const helpers = {
-  /**
-   * Validate email format
-   */
   isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   },
-
-  /**
-   * Validate phone number (basic validation)
-   */
   isValidPhone(phone) {
     const phoneRegex = /^\+?[\d\s\-\(\)]{7,15}$/;
     return phoneRegex.test(phone);
   },
-
-  /**
-   * Sanitize filename for document uploads
-   */
   sanitizeFilename(filename) {
     return filename.replace(/[^a-zA-Z0-9\.\-_]/g, '_');
   },
-
-  /**
-   * Get file extension from filename
-   */
-  getFileExtension(filename) {
-    return filename.split('.').pop().toLowerCase();
-  },
-
-  /**
-   * Validate document file type
-   */
+  getFileExtension(filename) { return filename.split('.').pop().toLowerCase(); },
   isValidDocumentType(filename) {
-    const allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-    const extension = this.getFileExtension(filename);
-    return allowedExtensions.includes(extension);
+    const allowed = ['jpg', 'jpeg', 'png', 'pdf'];
+    return allowed.includes(helpers.getFileExtension(filename));
   },
-
-  /**
-   * Format response for consistent API responses
-   */
   formatResponse(success, data = null, error = null) {
-    const response = { success };
-
-    if (success && data) {
-      response.data = data;
-    }
-
-    if (!success && error) {
-      response.error = error;
-    }
-
-    response.timestamp = new Date().toISOString();
-
+    const response = { success, timestamp: new Date().toISOString() };
+    if (success && data) response.data = data;
+    if (!success && error) response.error = error;
     return response;
   },
-
-  handleError(res, error, fallbackMessage, logContext = 'SamSub KYC error') {
+  handleError(res, error, fallbackMessage, logContext = 'Sumsub KYC error') {
     const status = error?.code === 'SAMSUB_CONFIG_MISSING' ? 503 : 500;
     const message = status === 503
-      ? 'SamSub integration is not configured. Please contact support.'
+      ? 'Sumsub integration is not configured. Please contact support.'
       : fallbackMessage;
-
     console.error(logContext, error);
-
-    const errorPayload = {
-      message,
-      error: error.message,
-    };
-
-    if (error.code) {
-      errorPayload.code = error.code;
-    }
-
-    return res.status(status).json(this.formatResponse(false, null, errorPayload));
+    const payload = { message, error: error.message };
+    if (error.code) payload.code = error.code;
+    return res.status(status).json(helpers.formatResponse(false, null, payload));
   },
-
-  /**
-   * Generate random external user ID
-   */
   generateExternalUserId(prefix = 'user') {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substr(2, 9);
-    return `${prefix}_${timestamp}_${random}`;
+    const ts = Date.now();
+    const rnd = Math.random().toString(36).slice(2, 9);
+    return `${prefix}_${ts}_${rnd}`;
   },
-
-  /**
-   * Parse SamSub webhook payload type
-   */
   parseWebhookType(payload) {
-    const typeMap = {
-      'applicantReviewed': 'Applicant verification completed',
-      'applicantPending': 'Applicant pending review',
-      'applicantActionPending': 'Applicant action required',
-      'applicantOnHold': 'Applicant on hold',
-      'applicantActionOnHold': 'Applicant action on hold'
+    const map = {
+      applicantReviewed: 'Applicant verification completed',
+      applicantPending: 'Applicant pending review',
+      applicantActionPending: 'Applicant action required',
+      applicantOnHold: 'Applicant on hold',
+      applicantActionOnHold: 'Applicant action on hold'
     };
-    
-    return typeMap[payload.type] || `Unknown webhook type: ${payload.type}`;
+    return map[payload.type] || `Unknown webhook type: ${payload.type}`;
   },
-
-  /**
-   * Log request details for debugging
-   */
   logRequest(req, endpoint) {
     console.log(`[${new Date().toISOString()}] ${req.method} ${endpoint}`);
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    if (req.body && Object.keys(req.body).length > 0) {
-      console.log('Body:', JSON.stringify(req.body, null, 2));
-    }
   }
 };
 
-/**
- * Health check endpoint
- * GET /api/samsub/kyc/health
- */
-router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'online', 
+// ---------- body parsers ----------
+// RAW only for webhook (for HMAC). This must be mounted BEFORE JSON parser.
+app.post('/webhook', express.raw({ type: '*/*', limit: '1mb' }), (req, res, next) => next());
+
+// JSON for everything else
+app.use(express.json({ limit: '1mb' }));
+
+// ---------- multer ----------
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+// ---------- routes (mounted at /api/samsub/kyc/* by Vercel) ----------
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'online',
     timestamp: new Date().toISOString(),
-    service: 'SamSub KYC API',
+    service: 'Sumsub KYC API',
     environment: process.env.NODE_ENV || 'development'
   });
 });
 
-/**
- * Create a new applicant
- * POST /api/samsub/kyc/create-applicant
- */
-router.post('/create-applicant', async (req, res) => {
+app.post('/create-applicant', async (req, res) => {
   try {
     const { externalUserId, levelName, email, firstName, lastName, phone } = req.body;
-
-    // Validation
     if (!externalUserId || !levelName) {
       return res.status(400).json(helpers.formatResponse(false, null, {
         message: 'Missing required fields',
         required: ['externalUserId', 'levelName']
       }));
     }
-
-    // Validate email if provided
     if (email && !helpers.isValidEmail(email)) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Invalid email format'
-      }));
+      return res.status(400).json(helpers.formatResponse(false, null, { message: 'Invalid email format' }));
     }
-
-    // Validate phone if provided
     if (phone && !helpers.isValidPhone(phone)) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Invalid phone format'
-      }));
+      return res.status(400).json(helpers.formatResponse(false, null, { message: 'Invalid phone format' }));
     }
-
     helpers.logRequest(req, '/create-applicant');
-
-    const applicant = await samsubService.createApplicant({
-      externalUserId,
-      levelName,
-      email,
-      firstName,
-      lastName,
-      phone
-    });
-
+    const applicant = await samsubService.createApplicant({ externalUserId, levelName, email, firstName, lastName, phone });
     res.json(helpers.formatResponse(true, applicant));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to create applicant', 'Create applicant error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to create applicant', 'Create applicant error:');
+  }
 });
 
-/**
- * Upload document for KYC verification
- * POST /api/samsub/kyc/upload-document
- */
-router.post('/upload-document', upload.single('document'), async (req, res) => {
+app.post('/upload-document', upload.single('document'), async (req, res) => {
   try {
     const { applicantId, documentType } = req.body;
     const file = req.file;
-
-    // Validation
     if (!applicantId || !documentType || !file) {
       return res.status(400).json(helpers.formatResponse(false, null, {
         message: 'Missing required fields',
         required: ['applicantId', 'documentType', 'document (file)']
       }));
     }
-
-    // Validate file type
     if (!helpers.isValidDocumentType(file.originalname)) {
       return res.status(400).json(helpers.formatResponse(false, null, {
         message: 'Invalid file type. Allowed: jpg, jpeg, png, pdf'
       }));
     }
-
     helpers.logRequest(req, '/upload-document');
-
     const sanitizedFilename = helpers.sanitizeFilename(file.originalname);
-
     const result = await samsubService.uploadDocument(applicantId, {
       documentType,
       fileName: sanitizedFilename,
       fileBuffer: file.buffer,
       mimeType: file.mimetype
     });
-
     res.json(helpers.formatResponse(true, result));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to upload document', 'Upload document error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to upload document', 'Upload document error:');
+  }
 });
 
-/**
- * Get applicant verification status
- * GET /api/samsub/kyc/status/:applicantId
- */
-router.get('/status/:applicantId', async (req, res) => {
+app.get('/status/:applicantId', async (req, res) => {
   try {
     const { applicantId } = req.params;
-
-    if (!applicantId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Applicant ID is required'
-      }));
-    }
-
+    if (!applicantId) return res.status(400).json(helpers.formatResponse(false, null, { message: 'Applicant ID is required' }));
     helpers.logRequest(req, `/status/${applicantId}`);
-
     const status = await samsubService.getApplicantStatus(applicantId);
-
     res.json(helpers.formatResponse(true, status));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to get applicant status', 'Get status error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to get applicant status', 'Get status error:');
+  }
 });
 
-/**
- * Handle SamSub webhooks
- * POST /api/samsub/kyc/webhook
- */
-router.post('/webhook', async (req, res) => {
+app.post('/webhook', async (req, res) => {
   try {
-    const payload = req.body;
+    const raw = req.body; // Buffer (express.raw())
     const signature = req.headers['x-payload-digest'];
+    const alg = (req.headers['x-payload-digest-alg'] || 'sha256').toLowerCase();
 
-    // Verify webhook signature
-    const isValid = samsubService.verifyWebhookSignature(payload, signature);
-    
+    const isValid = samsubService.verifyWebhookSignature(raw, signature, alg);
     if (!isValid) {
-      return res.status(401).json(helpers.formatResponse(false, null, {
-        message: 'Invalid webhook signature'
-      }));
+      return res.status(401).json(helpers.formatResponse(false, null, { message: 'Invalid webhook signature' }));
     }
 
+    const payload = JSON.parse(raw.toString('utf8'));
     helpers.logRequest(req, '/webhook');
-
-    // Process webhook payload
-    console.log('Webhook received:', JSON.stringify(payload, null, 2));
     console.log('Webhook type:', helpers.parseWebhookType(payload));
 
-    // Handle different webhook types
     switch (payload.type) {
       case 'applicantReviewed':
         console.log(`Applicant ${payload.applicantId} reviewed: ${payload.reviewStatus}`);
@@ -295,120 +177,58 @@ router.post('/webhook', async (req, res) => {
         console.log(`Unknown webhook type: ${payload.type}`);
     }
 
-    res.json(helpers.formatResponse(true, { received: true }));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to process webhook', 'Webhook error:');
-    }
+    return res.json(helpers.formatResponse(true, { received: true }));
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to process webhook', 'Webhook error:');
+  }
 });
 
-/**
- * Get access token for SamSub SDK
- * POST /api/samsub/kyc/access-token
- */
-router.post('/access-token', async (req, res) => {
+app.post('/access-token', async (req, res) => {
   try {
     const { applicantId, levelName } = req.body;
-
-    if (!applicantId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Applicant ID is required'
-      }));
-    }
-
+    if (!applicantId) return res.status(400).json(helpers.formatResponse(false, null, { message: 'Applicant ID is required' }));
     helpers.logRequest(req, '/access-token');
-
     const token = await samsubService.generateAccessToken(applicantId, levelName);
-
     res.json(helpers.formatResponse(true, { token }));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to generate access token', 'Access token error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to generate access token', 'Access token error:');
+  }
 });
 
-/**
- * Generate external user ID
- * GET /api/samsub/kyc/generate-user-id
- */
-router.get('/generate-user-id', (req, res) => {
+app.get('/generate-user-id', (req, res) => {
   try {
     const { prefix } = req.query;
     const userId = helpers.generateExternalUserId(prefix);
-    
     res.json(helpers.formatResponse(true, { externalUserId: userId }));
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to generate user ID', 'Generate user ID error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to generate user ID', 'Generate user ID error:');
+  }
 });
 
-/**
- * Generate WebSDK link for automated verification
- * POST /api/samsub/kyc/websdk-link
- */
-router.post('/websdk-link', async (req, res) => {
+app.post('/websdk-link', async (req, res) => {
   try {
-    const { applicantId, externalUserId, levelName = 'test-level' } = req.body;
-
+    const { applicantId, externalUserId, levelName = 'basic-kyc-level' } = req.body;
     if (!applicantId && !externalUserId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Either applicantId or externalUserId is required'
-      }));
+      return res.status(400).json(helpers.formatResponse(false, null, { message: 'Either applicantId or externalUserId is required' }));
     }
-
     helpers.logRequest(req, '/websdk-link');
-
-    const linkData = await samsubService.generateWebSDKLink({
-      applicantId,
-      externalUserId,
-      levelName
-    });
-
+    const linkData = await samsubService.generateWebSDKLink({ applicantId, externalUserId, levelName });
     res.json(helpers.formatResponse(true, linkData));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to generate WebSDK link', 'WebSDK link error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to generate WebSDK link', 'WebSDK link error:');
+  }
 });
 
-/**
- * Initialize automated verification flow
- * POST /api/samsub/kyc/init-automated
- */
-router.post('/init-automated', async (req, res) => {
+app.post('/init-automated', async (req, res) => {
   try {
-    const { externalUserId, levelName = 'test-level', email, firstName, lastName, phone } = req.body;
-
+    const { externalUserId, levelName = 'basic-kyc-level', email, firstName, lastName, phone } = req.body;
     if (!externalUserId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'External user ID is required'
-      }));
+      return res.status(400).json(helpers.formatResponse(false, null, { message: 'External user ID is required' }));
     }
-
     helpers.logRequest(req, '/init-automated');
-
-    // 1. Create applicant
-    const applicant = await samsubService.createApplicant({
-      externalUserId,
-      levelName,
-      email,
-      firstName,
-      lastName,
-      phone
-    });
-
-    // 2. Generate access token for SDK
+    const applicant = await samsubService.createApplicant({ externalUserId, levelName, email, firstName, lastName, phone });
     const accessToken = await samsubService.generateAccessToken(applicant.id, levelName);
-
-    // 3. Generate WebSDK link using the proper external link endpoint
-    const webSDKLink = await samsubService.generateWebSDKLink({
-      applicantId: applicant.id,
-      externalUserId,
-      levelName,
-      email,
-      phone
-    });
-
+    const webSDKLink = await samsubService.generateWebSDKLink({ applicantId: applicant.id, externalUserId, levelName, email, phone });
     res.json(helpers.formatResponse(true, {
       applicant,
       accessToken,
@@ -416,109 +236,64 @@ router.post('/init-automated', async (req, res) => {
       instructions: {
         message: 'Automated verification initialized successfully',
         nextSteps: [
-          'Direct user to the webSDKLink for automated document scanning',
-          'User will scan documents with camera (auto-capture)',
-          'All data will be extracted automatically via OCR',
-          'Monitor verification status via webhook or polling'
+          'Open the webSDKLink',
+          'Auto-capture documents',
+          'Wait for OCR + checks',
+          'Track via webhook or polling'
         ]
       }
     }));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to initialize automated verification', 'Init automated error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to initialize automated verification', 'Init automated error:');
+  }
 });
 
-/**
- * Get available verification levels
- * GET /api/samsub/kyc/levels
- */
-router.get('/levels', async (req, res) => {
+app.get('/levels', async (req, res) => {
   try {
     helpers.logRequest(req, '/levels');
-
     const levels = await samsubService.getApplicantLevels();
-
     res.json(helpers.formatResponse(true, levels));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to get verification levels', 'Get levels error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to get verification levels', 'Get levels error:');
+  }
 });
 
-/**
- * Request applicant check (start verification process)
- * POST /api/samsub/kyc/request-check
- */
-router.post('/request-check', async (req, res) => {
+app.post('/request-check', async (req, res) => {
   try {
     const { applicantId } = req.body;
-
-    if (!applicantId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Applicant ID is required'
-      }));
-    }
-
+    if (!applicantId) return res.status(400).json(helpers.formatResponse(false, null, { message: 'Applicant ID is required' }));
     helpers.logRequest(req, '/request-check');
-
     const result = await samsubService.requestApplicantCheck(applicantId);
-
     res.json(helpers.formatResponse(true, result));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to request applicant check', 'Request check error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to request applicant check', 'Request check error:');
+  }
 });
 
-/**
- * Get applicant data (full profile information)
- * GET /api/samsub/kyc/applicant/:applicantId
- */
-router.get('/applicant/:applicantId', async (req, res) => {
+app.get('/applicant/:applicantId', async (req, res) => {
   try {
     const { applicantId } = req.params;
-
-    if (!applicantId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Applicant ID is required'
-      }));
-    }
-
+    if (!applicantId) return res.status(400).json(helpers.formatResponse(false, null, { message: 'Applicant ID is required' }));
     helpers.logRequest(req, `/applicant/${applicantId}`);
-
-    const applicantData = await samsubService.getApplicantData(applicantId);
-
-    res.json(helpers.formatResponse(true, applicantData));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to get applicant data', 'Get applicant data error:');
-    }
+    const data = await samsubService.getApplicantData(applicantId);
+    res.json(helpers.formatResponse(true, data));
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to get applicant data', 'Get applicant data error:');
+  }
 });
 
-/**
- * Reset applicant for resubmission
- * POST /api/samsub/kyc/reset
- */
-router.post('/reset', async (req, res) => {
+app.post('/reset', async (req, res) => {
   try {
     const { applicantId } = req.body;
-
-    if (!applicantId) {
-      return res.status(400).json(helpers.formatResponse(false, null, {
-        message: 'Applicant ID is required'
-      }));
-    }
-
+    if (!applicantId) return res.status(400).json(helpers.formatResponse(false, null, { message: 'Applicant ID is required' }));
     helpers.logRequest(req, '/reset');
-
     const result = await samsubService.resetApplicant(applicantId);
-
     res.json(helpers.formatResponse(true, result));
-
-    } catch (error) {
-      return helpers.handleError(res, error, 'Failed to reset applicant', 'Reset applicant error:');
-    }
+  } catch (error) {
+    return helpers.handleError(res, error, 'Failed to reset applicant', 'Reset applicant error:');
+  }
 });
 
-module.exports = router;
+// Export for Vercel (Node runtime, not Edge)
+module.exports = (req, res) => serverless(app)(req, res);
+module.exports.config = { runtime: 'nodejs20.x' };
