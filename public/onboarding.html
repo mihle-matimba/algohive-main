@@ -2756,80 +2756,35 @@
         }
 
         async function startSamsubVerification() {
-            if (!supabaseUser) {
-                banner("Please sign in again.", "err");
-                return;
+            const externalUserId = window.currentUserId; // your user id
+            const levelName = 'basic-kyc-level';
+
+            const res = await fetch('/api/samsub/kyc/init', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ externalUserId, levelName })
+            });
+            const json = await res.json();
+            if (!res.ok) {
+                console.error(json);
+                throw new Error(json?.error?.message || 'Failed to init KYC');
             }
 
-            try {
-                samsubExternalUserId = samsubExternalUserId || supabaseUser.id || null;
-                const externalUserId = "tester-abc";
-                if (!externalUserId) {
-                    throw new Error("We couldn't determine your verification ID. Please refresh and try again.");
-                }
+            const token = json.data.token;
 
-                const levelName = "id-and-liveness";
-                const basePayload = {
-                    externalUserId,
-                    levelName,
-                    email: profileRow?.email || supabaseUser.email || undefined,
-                    firstName: profileRow?.first_name || undefined,
-                    lastName: profileRow?.last_name || undefined,
-                    phone: profileRow?.phone || undefined,
-                };
+            const sdk = window.SUMSUB.init(
+                token,
+                {
+                    lang: 'en',
+                    onMessage: (type, payload) => console.log('[Sumsub]', type, payload),
+                    onError: (err) => console.error('[Sumsub error]', err),
+                },
+                { uiConf: { type: 'modal' } } // or { type: 'inline', elementId: 'sumsub-sdk' }
+            );
 
-                const createRes = await fetch("/api/samsub/kyc/create-applicant", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(basePayload),
-                });
-                const createJson = await createRes.json();
-                if (!createRes.ok) throw new Error(createJson?.error?.message || "Create failed");
-
-                const applicant = createJson.data;
-                const applicantId = applicant?.id || applicant?.applicantId || applicant?.applicant?.id || null;
-                if (applicantId) {
-                    samsubApplicantId = applicantId;
-                    mergeSamsubState({ userId: supabaseUser.id, applicantId, externalUserId });
-                    await markSamsubPending(applicantId);
-                    setSamsubStatus("pending", {
-                        showCheck: true,
-                        message: "SamSub verification started. Complete the steps in the popup to continue.",
-                    });
-                }
-
-                const tokRes = await fetch("/api/samsub/kyc/access-token", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ externalUserId, levelName }),
-                });
-                const tokJson = await tokRes.json();
-                if (!tokRes.ok) throw new Error(tokJson?.error?.message || "Token failed");
-                const token = tokJson.data?.token;
-                if (!token) throw new Error("Missing verification token from SamSub.");
-
-                const sdk = window.SUMSUB?.init(
-                    token,
-                    {
-                        lang: "en",
-                        onMessage: (type, payload) => console.log("[Sumsub]", type, payload),
-                        onError: (err) => console.error("[Sumsub error]", err),
-                    },
-                    {
-                        uiConf: { type: "modal" },
-                    }
-                );
-
-                if (!sdk || typeof sdk.launch !== "function") {
-                    throw new Error("SamSub SDK unavailable. Please refresh the page.");
-                }
-
-                sdk.launch();
-            } catch (e) {
-                console.error(e);
-                alert(e.message || "Failed to start verification");
-            }
+            sdk.launch(); // opens the modal
         }
+
 
 
         async function checkSamsubStatus({ silent = false } = {}) {
@@ -3243,6 +3198,10 @@
     <!-- Put this once (allowed by your CSP) -->
     <script src="https://static.sumsub.com/idensic/static/sumsub-kyc.js" nonce="ALGOHIVE"></script>
     <div id="sumsub-sdk" style="display:none;"></div>
+
+    <!-- add once; your CSP must allow this script host (see note below) -->
+    <script src="https://web.sumsub.com/idensic/static/sumsub-kyc.js" nonce="ALGOHIVE"></script>
+
 
 </body>
 
