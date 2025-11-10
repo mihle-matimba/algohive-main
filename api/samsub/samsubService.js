@@ -1,265 +1,165 @@
+// samsubService.js
 const axios = require('axios');
 const crypto = require('crypto');
 const FormData = require('form-data');
 
-class SamSubService {
-  constructor() {
-    this.apiUrl = process.env.SAMSUB_API_URL || 'https://api.sumsub.com';
-    this.appToken = process.env.SAMSUB_APP_TOKEN;
-    this.secretKey = process.env.SAMSUB_SECRET_KEY;
-    this.appId = process.env.SAMSUB_APP_ID;
-    this.isConfigured = Boolean(this.appToken && this.secretKey && this.appId);
+const BASE_URL = process.env.SUMSUB_BASE_URL || 'https://api.sumsub.com';
+const APP_TOKEN = process.env.SUMSUB_APP_TOKEN;
+const APP_SECRET = process.env.SUMSUB_APP_SECRET;
+const WEBHOOK_SECRET = process.env.SUMSUB_WEBHOOK_SECRET;
+const DEFAULT_LEVEL = process.env.SUMSUB_DEFAULT_LEVEL || 'basic-kyc-level';
+const DEFAULT_TTL = parseInt(process.env.SUMSUB_DEFAULT_TTL || '600', 10);
+
+// --- signing helper (X-App-* headers) ---
+function sign(method, pathWithQuery, body = '') {
+  if (!APP_TOKEN || !APP_SECRET) {
+    const err = new Error('Missing Sumsub app token/secret');
+    err.code = 'SAMSUB_CONFIG_MISSING';
+    throw err;
   }
+  const ts = Math.floor(Date.now() / 1000).toString();
+  const payload = ts + method.toUpperCase() + pathWithQuery + body;
+  const sig = crypto.createHmac('sha256', APP_SECRET)
+    .update(Buffer.isBuffer(payload) ? payload : Buffer.from(payload))
+    .digest('hex');
 
-  /**
-   * Generate signature for SamSub API requests
-   */
-  generateSignature(method, url, body = '') {
-    this.ensureConfigured();
-    const timestamp = Math.floor(Date.now() / 1000);
-    const message = `${timestamp}${method.toUpperCase()}${url}${body}`;
-    
-    const signature = crypto
-      .createHmac('sha256', this.secretKey)
-      .update(message)
-      .digest('hex');
-
-    return {
-      timestamp,
-      signature
-    };
-  }
-
-  /**
-   * Make authenticated request to SamSub API
-   */
-  async makeRequest(method, endpoint, data = null, isFormData = false) {
-    this.ensureConfigured();
-    const url = endpoint;
-    const body = data ? (isFormData ? '' : JSON.stringify(data)) : '';
-    const { timestamp, signature } = this.generateSignature(method, url, body);
-
-    const headers = {
-      'X-App-Token': this.appToken,
-      'X-App-Access-Sig': signature,
-      'X-App-Access-Ts': timestamp.toString(),
-    };
-
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    try {
-      const config = {
-        method,
-        url: `${this.apiUrl}${url}`,
-        headers,
-      };
-
-      if (data) {
-        config.data = data;
-      }
-
-      const response = await axios(config);
-      return response.data;
-    } catch (error) {
-      console.error('SamSub API Error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.description || error.message);
-    }
-  }
-
-  /**
-   * Create a new applicant
-   */
-  async createApplicant({ externalUserId, levelName, email, firstName, lastName, phone }) {
-    const applicantData = {
-      externalUserId,
-      info: {}
-    };
-
-    if (email) applicantData.info.email = email;
-    if (firstName) applicantData.info.firstName = firstName;
-    if (lastName) applicantData.info.lastName = lastName;
-    if (phone) applicantData.info.phone = phone;
-
-    const endpoint = `/resources/applicants?levelName=${levelName}`;
-    return await this.makeRequest('POST', endpoint, applicantData);
-  }
-
-  /**
-   * Upload document for verification
-   */
-  async uploadDocument(applicantId, { documentType, fileName, fileBuffer, mimeType }) {
-    const formData = new FormData();
-    formData.append('content', fileBuffer, {
-      filename: fileName,
-      contentType: mimeType
-    });
-
-    const endpoint = `/resources/applicants/${applicantId}/info/idDoc`;
-    const url = endpoint;
-    const { timestamp, signature } = this.generateSignature('POST', url, '');
-
-    try {
-      const response = await axios.post(`${this.apiUrl}${endpoint}`, formData, {
-        headers: {
-          ...formData.getHeaders(),
-          'X-App-Token': this.appToken,
-          'X-App-Access-Sig': signature,
-          'X-App-Access-Ts': timestamp.toString(),
-        },
-        params: {
-          idDocType: documentType
-        }
-      });
-
-      return response.data;
-    } catch (error) {
-      console.error('Document upload error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.description || error.message);
-    }
-  }
-
-  /**
-   * Get applicant status and verification results
-   */
-  async getApplicantStatus(applicantId) {
-    const endpoint = `/resources/applicants/${applicantId}/status`;
-    return await this.makeRequest('GET', endpoint);
-  }
-
-  /**
-   * Generate access token for SamSub SDK
-   */
-  async generateAccessToken(applicantId, levelName) {
-    const endpoint = `/resources/accessTokens?userId=${applicantId}&levelName=${levelName || 'test-level'}`;
-    const response = await this.makeRequest('POST', endpoint);
-    return response.token;
-  }
-
-  /**
-   * Verify webhook signature
-   */
-  verifyWebhookSignature(payload, receivedSignature) {
-    if (!this.isConfigured) {
-      return false;
-    }
-    if (!receivedSignature) {
-      return false;
-    }
-
-    const payloadString = JSON.stringify(payload);
-    const expectedSignature = crypto
-      .createHmac('sha256', this.secretKey)
-      .update(payloadString)
-      .digest('hex');
-
-    return crypto.timingSafeEqual(
-      Buffer.from(receivedSignature, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
-    );
-  }
-
-  /**
-   * Get applicant data
-   */
-  async getApplicantData(applicantId) {
-    const endpoint = `/resources/applicants/${applicantId}/one`;
-    return await this.makeRequest('GET', endpoint);
-  }
-
-  /**
-   * Reset applicant (for resubmission)
-   */
-  async resetApplicant(applicantId) {
-    const endpoint = `/resources/applicants/${applicantId}/reset`;
-    return await this.makeRequest('POST', endpoint);
-  }
-
-  /**
-   * Get verification documents
-   */
-  async getDocuments(applicantId) {
-    const endpoint = `/resources/applicants/${applicantId}/info/idDoc`;
-    return await this.makeRequest('GET', endpoint);
-  }
-
-  /**
-   * Get applicant levels (simplified mock for now)
-   */
-  async getApplicantLevels() {
-    // Mock response since this endpoint might not be available in all Sumsub accounts
-    return {
-      levels: [
-        { name: 'test-level', description: 'Test verification level' },
-        { name: 'basic-kyc-level', description: 'Basic KYC verification' },
-        { name: 'advanced-kyc-level', description: 'Advanced KYC verification' }
-      ]
-    };
-  }
-
-  /**
-   * Request applicant check (starts the verification process)
-   */
-  async requestApplicantCheck(applicantId) {
-    const endpoint = `/resources/applicants/${applicantId}/status/pending`;
-    return await this.makeRequest('POST', endpoint);
-  }
-
-  /**
-   * Generate WebSDK link for automated verification UI
-   * Uses the proper SamSub API endpoint to generate external shareable links
-   */
-  async generateWebSDKLink({ applicantId, externalUserId, levelName, email, phone }) {
-    try {
-      // Use the correct SamSub API endpoint for generating external WebSDK links
-      const endpoint = `/resources/sdkIntegrations/levels/-/websdkLink`;
-      
-      const requestBody = {
-        levelName: levelName || 'test-level',
-        ttlInSecs: 1800 // 30 minutes expiry
-      };
-
-      // Use applicantId if available, otherwise use externalUserId
-      if (applicantId) {
-        requestBody.applicantId = applicantId;
-      } else if (externalUserId) {
-        requestBody.userId = externalUserId;
-        
-        // Add optional applicant identifiers for new users
-        if (email || phone) {
-          requestBody.applicantIdentifiers = {};
-          if (email) requestBody.applicantIdentifiers.email = email;
-          if (phone) requestBody.applicantIdentifiers.phone = phone;
-        }
-      } else {
-        throw new Error('Either applicantId or externalUserId must be provided');
-      }
-
-      const response = await this.makeRequest('POST', endpoint, requestBody);
-      
-      return {
-        url: response.url, // This is the proper external shareable link from SamSub
-        applicantId: applicantId,
-        externalUserId: externalUserId,
-        levelName: levelName || 'test-level',
-        expiresInSeconds: 1800,
-        instructions: 'External WebSDK link for automated document verification - can be shared directly or used as QR code',
-        type: 'external_permalink'
-      };
-    } catch (error) {
-      console.error('WebSDK link generation failed:', error.message);
-      throw new Error(`Failed to generate verification link: ${error.message}`);
-    }
-  }
-
-  ensureConfigured() {
-    if (this.isConfigured) {
-      return;
-    }
-    const error = new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
-    error.code = 'SAMSUB_CONFIG_MISSING';
-    throw error;
-  }
+  return {
+    'X-App-Token': APP_TOKEN,
+    'X-App-Access-Ts': ts,
+    'X-App-Access-Sig': sig,
+  };
 }
-module.exports = new SamSubService();
+
+// low-level request wrapper
+async function call(method, path, { query = {}, data, headers = {} } = {}) {
+  const usp = new URLSearchParams(query);
+  const pathWithQuery = usp.toString() ? `${path}?${usp.toString()}` : path;
+
+  let bodyToSend = undefined;
+  let extraHeaders = {};
+
+  if (data instanceof FormData) {
+    bodyToSend = data;
+    extraHeaders = data.getHeaders();
+  } else if (data) {
+    bodyToSend = typeof data === 'string' ? data : JSON.stringify(data);
+    extraHeaders['Content-Type'] = 'application/json';
+  }
+
+  const sigHeaders = sign(method, pathWithQuery, typeof bodyToSend === 'string' ? bodyToSend : '');
+
+  const res = await axios.request({
+    method,
+    baseURL: BASE_URL,
+    url: pathWithQuery,
+    data: bodyToSend,
+    headers: {
+      Accept: 'application/json',
+      ...extraHeaders,
+      ...sigHeaders,
+      ...headers,
+    },
+    // important: do not transform JSON string (we sign the exact body)
+    transformRequest: (reqBody, reqHeaders) => reqBody,
+  });
+
+  return res.data;
+}
+
+// --- public methods used by your router ---
+
+async function createApplicant({ externalUserId, levelName = DEFAULT_LEVEL, email, firstName, lastName, phone }) {
+  const path = '/resources/applicants';
+  const query = { levelName };
+  const data = {
+    externalUserId,
+    email,
+    phone,
+    fixedInfo: { firstName, lastName }
+  };
+  return call('POST', path, { query, data });
+} // Docs: create applicant → start with levelName. :contentReference[oaicite:0]{index=0}
+
+async function uploadDocument(applicantId, { documentType, fileName, fileBuffer, mimeType, country = 'ZA' }) {
+  // POST /resources/applicants/{id}/info/idDoc (multipart: metadata + content)
+  const path = `/resources/applicants/${encodeURIComponent(applicantId)}/info/idDoc`;
+
+  const form = new FormData();
+  form.append('metadata', JSON.stringify({
+    idDocType: documentType, // e.g., "PASSPORT", "ID_CARD", "DRIVERS"
+    country
+  }));
+  form.append('content', fileBuffer, { filename: fileName, contentType: mimeType });
+
+  // optional: return doc warnings early
+  const headers = { 'X-Return-Doc-Warnings': 'true' };
+
+  return call('POST', path, { data: form, headers });
+} // Add verification documents. :contentReference[oaicite:1]{index=1}
+
+async function generateAccessToken(applicantId, levelName = DEFAULT_LEVEL, ttlInSecs = DEFAULT_TTL) {
+  // POST /resources/accessTokens?userId=...&levelName=...&ttlInSecs=...
+  const path = '/resources/accessTokens';
+  const query = { userId: applicantId, levelName, ttlInSecs };
+  return call('POST', path, { query });
+} // Access token for WebSDK/MobileSDK. :contentReference[oaicite:2]{index=2}
+
+async function generateWebSDKLink({ applicantId, externalUserId, levelName = DEFAULT_LEVEL, ttlInSecs = DEFAULT_TTL, lang = 'en' }) {
+  // POST /resources/sdkIntegrations/levels/{levelName}/websdkLink?... (supports userId or externalUserId)
+  const path = `/resources/sdkIntegrations/levels/${encodeURIComponent(levelName)}/websdkLink`;
+  const query = {
+    ttlInSecs,
+    lang,
+    ...(applicantId ? { userId: applicantId } : {}),
+    ...(externalUserId ? { externalUserId } : {}),
+  };
+  return call('POST', path, { query });
+} // External WebSDK link (permalink). :contentReference[oaicite:3]{index=3}
+
+async function getApplicantStatus(applicantId) {
+  const path = `/resources/applicants/${encodeURIComponent(applicantId)}/status`;
+  return call('GET', path);
+}
+
+async function getApplicantLevels() {
+  const path = '/resources/levels';
+  return call('GET', path);
+}
+
+async function requestApplicantCheck(applicantId) {
+  // In Sandbox, checks aren’t auto-started; moving to 'pending' triggers checks.
+  const path = `/resources/applicants/${encodeURIComponent(applicantId)}/status/pending`;
+  return call('POST', path);
+} // Sandbox note on manual start. :contentReference[oaicite:4]{index=4}
+
+async function getApplicantData(applicantId) {
+  const path = `/resources/applicants/${encodeURIComponent(applicantId)}/one`;
+  return call('GET', path);
+}
+
+async function resetApplicant(applicantId) {
+  const path = `/resources/applicants/${encodeURIComponent(applicantId)}/reset`;
+  return call('POST', path);
+}
+
+function verifyWebhookSignature(rawBodyBuffer, headerDigest, headerAlg = 'sha256') {
+  // Sumsub sends: x-payload-digest, x-payload-digest-alg
+  if (!WEBHOOK_SECRET) return false;
+  const algo = (headerAlg || 'sha256').toLowerCase();
+  const expected = crypto.createHmac(algo, WEBHOOK_SECRET).update(rawBodyBuffer).digest('hex');
+  // constant-time compare
+  return headerDigest && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(headerDigest));
+} // Webhook verification flow. :contentReference[oaicite:5]{index=5}
+
+module.exports = {
+  createApplicant,
+  uploadDocument,
+  generateAccessToken,
+  generateWebSDKLink,
+  getApplicantStatus,
+  getApplicantData,
+  getApplicantLevels,
+  requestApplicantCheck,
+  resetApplicant,
+  verifyWebhookSignature,
+};
