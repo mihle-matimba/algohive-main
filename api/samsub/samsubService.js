@@ -8,16 +8,14 @@ class SamSubService {
     this.appToken = process.env.SAMSUB_APP_TOKEN;
     this.secretKey = process.env.SAMSUB_SECRET_KEY;
     this.appId = process.env.SAMSUB_APP_ID;
-
-    if (!this.appToken || !this.secretKey || !this.appId) {
-      throw new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
-    }
+    this.isConfigured = Boolean(this.appToken && this.secretKey && this.appId);
   }
 
   /**
    * Generate signature for SamSub API requests
    */
   generateSignature(method, url, body = '') {
+    this.ensureConfigured();
     const timestamp = Math.floor(Date.now() / 1000);
     const message = `${timestamp}${method.toUpperCase()}${url}${body}`;
     
@@ -36,6 +34,7 @@ class SamSubService {
    * Make authenticated request to SamSub API
    */
   async makeRequest(method, endpoint, data = null, isFormData = false) {
+    this.ensureConfigured();
     const url = endpoint;
     const body = data ? (isFormData ? '' : JSON.stringify(data)) : '';
     const { timestamp, signature } = this.generateSignature(method, url, body);
@@ -142,6 +141,9 @@ class SamSubService {
    * Verify webhook signature
    */
   verifyWebhookSignature(payload, receivedSignature) {
+    if (!this.isConfigured) {
+      return false;
+    }
     if (!receivedSignature) {
       return false;
     }
@@ -250,6 +252,14 @@ class SamSubService {
       throw new Error(`Failed to generate verification link: ${error.message}`);
     }
   }
-}
 
+  ensureConfigured() {
+    if (this.isConfigured) {
+      return;
+    }
+    const error = new Error('SamSub credentials not configured. Please set SAMSUB_APP_TOKEN, SAMSUB_SECRET_KEY, and SAMSUB_APP_ID environment variables.');
+    error.code = 'SAMSUB_CONFIG_MISSING';
+    throw error;
+  }
+}
 module.exports = new SamSubService();
