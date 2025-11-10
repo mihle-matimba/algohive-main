@@ -2755,31 +2755,23 @@
             banner("SamSub verification complete. You're good to go!", "ok");
         }
 
-        async function startSamsubVerification() {
-            const externalUserId = supabaseUser.id;
-            const levelName = "id-and-liveness";
+        window.startSamsubVerification = async function () {
+            const externalUserId = currentUserId;      // stable per user
+            const levelName = 'id-and-liveness';       // must exist in Sumsub
 
-            const res = await fetch('/api/samsub/kyc/init-websdk', {
+            const res = await fetch('/api/samsub/kyc/init', {  // <-- NOT /create-applicant
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    externalUserId,
-                    levelName,
-                    ttlInSecs: 1800,
-                    // optional redirects:
-                    // redirect: { successUrl: 'https://www.thealgohive.com/kyc/success', failUrl: 'https://www.thealgohive.com/kyc/failed' }
-                })
+                body: JSON.stringify({ externalUserId, levelName })
             });
             const json = await res.json();
-            if (!res.ok) throw new Error(json?.error?.message || 'Failed to get WebSDK link');
+            if (!res.ok) { console.error(json); alert(json?.error?.message || 'KYC init failed'); return; }
 
-            const link = json?.data?.url;
-            if (!link) throw new Error('No WebSDK URL returned');
+            const token = json.data.token;             // fresh every time
+            const sdk = window.SUMSUB.init(token, { onError: console.error }, { uiConf: { type: 'modal' } });
+            sdk.launch();
+        };
 
-            // open it (pick one)
-            window.location.href = link;       // new page
-            // OR document.getElementById('sumsub-frame').src = link; // iframe embed
-        }
 
 
 
