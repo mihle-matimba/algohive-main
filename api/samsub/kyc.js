@@ -58,18 +58,38 @@ const helpers = {
    */
   formatResponse(success, data = null, error = null) {
     const response = { success };
-    
+
     if (success && data) {
       response.data = data;
     }
-    
+
     if (!success && error) {
       response.error = error;
     }
-    
+
     response.timestamp = new Date().toISOString();
-    
+
     return response;
+  },
+
+  handleError(res, error, fallbackMessage, logContext = 'SamSub KYC error') {
+    const status = error?.code === 'SAMSUB_CONFIG_MISSING' ? 503 : 500;
+    const message = status === 503
+      ? 'SamSub integration is not configured. Please contact support.'
+      : fallbackMessage;
+
+    console.error(logContext, error);
+
+    const errorPayload = {
+      message,
+      error: error.message,
+    };
+
+    if (error.code) {
+      errorPayload.code = error.code;
+    }
+
+    return res.status(status).json(this.formatResponse(false, null, errorPayload));
   },
 
   /**
@@ -164,13 +184,9 @@ router.post('/create-applicant', async (req, res) => {
 
     res.json(helpers.formatResponse(true, applicant));
 
-  } catch (error) {
-    console.error('Create applicant error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to create applicant',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to create applicant', 'Create applicant error:');
+    }
 });
 
 /**
@@ -210,13 +226,9 @@ router.post('/upload-document', upload.single('document'), async (req, res) => {
 
     res.json(helpers.formatResponse(true, result));
 
-  } catch (error) {
-    console.error('Upload document error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to upload document',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to upload document', 'Upload document error:');
+    }
 });
 
 /**
@@ -239,13 +251,9 @@ router.get('/status/:applicantId', async (req, res) => {
 
     res.json(helpers.formatResponse(true, status));
 
-  } catch (error) {
-    console.error('Get status error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to get applicant status',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to get applicant status', 'Get status error:');
+    }
 });
 
 /**
@@ -289,13 +297,9 @@ router.post('/webhook', async (req, res) => {
 
     res.json(helpers.formatResponse(true, { received: true }));
 
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to process webhook',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to process webhook', 'Webhook error:');
+    }
 });
 
 /**
@@ -318,13 +322,9 @@ router.post('/access-token', async (req, res) => {
 
     res.json(helpers.formatResponse(true, { token }));
 
-  } catch (error) {
-    console.error('Access token error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to generate access token',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to generate access token', 'Access token error:');
+    }
 });
 
 /**
@@ -337,13 +337,9 @@ router.get('/generate-user-id', (req, res) => {
     const userId = helpers.generateExternalUserId(prefix);
     
     res.json(helpers.formatResponse(true, { externalUserId: userId }));
-  } catch (error) {
-    console.error('Generate user ID error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to generate user ID',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to generate user ID', 'Generate user ID error:');
+    }
 });
 
 /**
@@ -370,13 +366,9 @@ router.post('/websdk-link', async (req, res) => {
 
     res.json(helpers.formatResponse(true, linkData));
 
-  } catch (error) {
-    console.error('WebSDK link error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to generate WebSDK link',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to generate WebSDK link', 'WebSDK link error:');
+    }
 });
 
 /**
@@ -432,13 +424,9 @@ router.post('/init-automated', async (req, res) => {
       }
     }));
 
-  } catch (error) {
-    console.error('Init automated error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to initialize automated verification',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to initialize automated verification', 'Init automated error:');
+    }
 });
 
 /**
@@ -453,13 +441,9 @@ router.get('/levels', async (req, res) => {
 
     res.json(helpers.formatResponse(true, levels));
 
-  } catch (error) {
-    console.error('Get levels error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to get verification levels',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to get verification levels', 'Get levels error:');
+    }
 });
 
 /**
@@ -482,13 +466,9 @@ router.post('/request-check', async (req, res) => {
 
     res.json(helpers.formatResponse(true, result));
 
-  } catch (error) {
-    console.error('Request check error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to request applicant check',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to request applicant check', 'Request check error:');
+    }
 });
 
 /**
@@ -511,13 +491,9 @@ router.get('/applicant/:applicantId', async (req, res) => {
 
     res.json(helpers.formatResponse(true, applicantData));
 
-  } catch (error) {
-    console.error('Get applicant data error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to get applicant data',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to get applicant data', 'Get applicant data error:');
+    }
 });
 
 /**
@@ -540,13 +516,9 @@ router.post('/reset', async (req, res) => {
 
     res.json(helpers.formatResponse(true, result));
 
-  } catch (error) {
-    console.error('Reset applicant error:', error);
-    res.status(500).json(helpers.formatResponse(false, null, {
-      message: 'Failed to reset applicant',
-      error: error.message
-    }));
-  }
+    } catch (error) {
+      return helpers.handleError(res, error, 'Failed to reset applicant', 'Reset applicant error:');
+    }
 });
 
 module.exports = router;

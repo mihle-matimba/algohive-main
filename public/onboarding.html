@@ -1413,17 +1413,29 @@
       });
     }
 
-    function loadSamsubState() {
-      try {
-        const raw = localStorage.getItem(SAMSUB_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return typeof parsed === "object" && parsed ? parsed : null;
-      } catch (error) {
-        console.error(error);
-        return null;
+      async function parseJsonResponse(response, context = "request") {
+        const raw = await response.text();
+        if (!raw) return {};
+        try {
+          return JSON.parse(raw);
+        } catch (error) {
+          const statusText = `${response.status || ""} ${response.statusText || ""}`.trim() || "unknown status";
+          console.error(`Failed to parse ${context} response.`, { error, raw, status: response.status });
+          throw new Error(`The server returned an unreadable response (${statusText}). Please try again later.`);
+        }
       }
-    }
+
+      function loadSamsubState() {
+        try {
+          const raw = localStorage.getItem(SAMSUB_STORAGE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          return typeof parsed === "object" && parsed ? parsed : null;
+        } catch (error) {
+          console.error(error);
+          return null;
+        }
+      }
 
     function saveSamsubState(state) {
       try {
@@ -2430,7 +2442,7 @@
           }),
         });
 
-        const payload = await response.json();
+        const payload = await parseJsonResponse(response, "SamSub verification setup");
         if (!response.ok || !payload?.success) {
           throw new Error(payload?.error?.message || payload?.error || "Could not start SamSub verification.");
         }
@@ -2490,7 +2502,7 @@
       if (samsubCheckButton) setBusy(samsubCheckButton, true);
       try {
         const response = await fetch(`/api/samsub/kyc/status/${encodeURIComponent(samsubApplicantId)}`);
-        const payload = await response.json();
+        const payload = await parseJsonResponse(response, "SamSub status check");
         if (!response.ok || !payload?.success) {
           throw new Error(payload?.error?.message || payload?.error || "Could not check SamSub status.");
         }
