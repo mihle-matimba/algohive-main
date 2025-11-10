@@ -10,6 +10,26 @@ function sign(ts, method, pathWithQuery, bodyStr = '') {
   return crypto.createHmac('sha256', SECRET).update(toSign).digest('hex');
 }
 
+function extractApplicant(candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  if (Array.isArray(candidate)) return candidate.length ? extractApplicant(candidate[0]) : null;
+  if (candidate.data) return extractApplicant(candidate.data);
+  if (Array.isArray(candidate.items)) return extractApplicant(candidate.items[0]);
+  if (Array.isArray(candidate.list)) return extractApplicant(candidate.list[0]);
+  return candidate;
+}
+
+function extractApplicantId(candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  return (
+    candidate.id ||
+    candidate.applicantId ||
+    candidate.applicant_id ||
+    (candidate.applicant && (candidate.applicant.id || candidate.applicant.applicantId)) ||
+    null
+  );
+}
+
 async function sumsubFetch(method, pathWithQuery, bodyObj) {
   const ts = Math.floor(Date.now() / 1000);
   const bodyStr = bodyObj ? JSON.stringify(bodyObj) : '';
@@ -61,14 +81,20 @@ module.exports = async (req, res) => {
     if (typeof phone === 'string' && phone.trim()) payload.phone = phone.trim();
 
     let createResp = await sumsubFetch('POST', createPath, payload);
+    let applicantRecord = null;
     if (!createResp.ok && createResp.status === 409) {
       // duplicate → fetch existing by externalUserId (OK)
       const getPath = `/resources/applicants?${new URLSearchParams({ externalUserId: userId })}`;
       const found = await sumsubFetch('GET', getPath);
       if (!found.ok) return res.status(409).json({ success:false, error:{ message:'Duplicate userId and fetch failed' }, data: createResp.data });
+      applicantRecord = extractApplicant(found.data);
     } else if (!createResp.ok) {
       return res.status(createResp.status).json({ success:false, error:{ message:'Sumsub error (create)' }, data: createResp.data });
+    } else {
+      applicantRecord = extractApplicant(createResp.data);
     }
+
+    const applicantId = extractApplicantId(applicantRecord);
 
     // 2) Generate WebSDK link (this is the “proper” endpoint)
     // POST /resources/sdkIntegrations/levels/-/websdkLink
@@ -90,8 +116,16 @@ module.exports = async (req, res) => {
       return res.status(ws.status).json({ success:false, error:{ message:'Sumsub error (websdkLink)' }, data: ws.data });
     }
 
+    const wsData = typeof ws.data === 'object' && ws.data !== null ? { ...ws.data } : {};
+    if (typeof ws.data === 'string' && !wsData.url) wsData.url = ws.data;
+    if (applicantId && !wsData.applicantId) wsData.applicantId = applicantId;
+    if (applicantRecord && !wsData.applicant) wsData.applicant = applicantRecord;
+    if (!wsData.url) {
+      return res.status(502).json({ success:false, error:{ message:'Sumsub did not return a WebSDK URL' }, data: ws.data });
+    }
+
     // Usually returns { url: 'https://in.sumsub.com/websdk/p/...' }
-    return res.status(200).json({ success:true, data: ws.data });
+    return res.status(200).json({ success:true, data: wsData });
   } catch (e) {
     return res.status(500).json({ success:false, error:{ message: e.message }});
   }

@@ -1662,6 +1662,10 @@
         let samsubLastCheckedAt = null;
         let kycDone = false;
 
+        if (samsubStartButton) {
+            samsubStartButton.dataset.savingText = "Preparing…";
+        }
+
         const SAMSUB_STATUS_META = {
             idle: {
                 badge:
@@ -2756,29 +2760,100 @@
         }
 
         async function startSamsubVerification() {
-            const externalUserId = supabaseUser.id;
-            const levelName = "id-and-liveness";
+            if (!supabaseUser) {
+                banner("Please sign in again.", "err");
+                return;
+            }
 
-            const res = await fetch('/api/samsub/kyc/init-websdk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    externalUserId,
-                    levelName,
-                    ttlInSecs: 1800,
-                    // optional redirects:
-                    // redirect: { successUrl: 'https://www.thealgohive.com/kyc/success', failUrl: 'https://www.thealgohive.com/kyc/failed' }
-                })
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json?.error?.message || 'Failed to get WebSDK link');
+            if (samsubStartButton) setBusy(samsubStartButton, true);
 
-            const link = json?.data?.url;
-            if (!link) throw new Error('No WebSDK URL returned');
+            try {
+                const externalUserId = supabaseUser.id;
+                const levelName = SAMSUB_LEVEL_NAME;
+                const email = supabaseUser.email || undefined;
+                const firstName = (document.getElementById("first_name")?.value || "").trim() || undefined;
+                const lastName = (document.getElementById("last_name")?.value || "").trim() || undefined;
+                const phone = (document.getElementById("phone")?.value || "").trim() || undefined;
 
-            // open it (pick one)
-            window.location.href = link;       // new page
-            // OR document.getElementById('sumsub-frame').src = link; // iframe embed
+                const response = await fetch("/api/samsub/kyc/init-websdk", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        externalUserId,
+                        levelName,
+                        ttlInSecs: 1800,
+                        email,
+                        phone,
+                        firstName,
+                        lastName,
+                    }),
+                });
+
+                const payload = await parseJsonResponse(response, "SamSub WebSDK init");
+                if (!response.ok) {
+                    const message =
+                        payload?.error?.message ||
+                        payload?.error ||
+                        payload?.description ||
+                        payload?.data?.description ||
+                        "Could not start SamSub verification.";
+                    throw new Error(message);
+                }
+
+                const data = payload && typeof payload === "object" ? payload.data : null;
+                const link =
+                    (data && typeof data === "object" && data.url) ||
+                    (typeof data === "string" ? data : null);
+                const applicantId =
+                    (data && typeof data === "object" &&
+                        (data.applicantId || data.id || data.applicant?.id || data.applicant?.applicantId)) ||
+                    null;
+
+                if (!link) {
+                    throw new Error("We couldn't get a verification link. Please try again.");
+                }
+
+                if (applicantId) {
+                    samsubApplicantId = applicantId;
+                    await markSamsubPending(applicantId);
+                }
+
+                samsubExternalUserId = externalUserId;
+
+                mergeSamsubState({
+                    userId: externalUserId,
+                    applicantId: samsubApplicantId || applicantId || null,
+                    verificationUrl: link,
+                    lastCheckedAt: null,
+                    instructions: SAMSUB_DEFAULT_NEXT_STEPS,
+                });
+
+                applySamsubLink(link, {
+                    message: "We've opened a secure SamSub window so you can finish verification.",
+                });
+                renderSamsubSteps();
+
+                if (samsubApplicantId) {
+                    setSamsubStatus("pending", {
+                        showCheck: true,
+                        message: "SamSub is reviewing your documents. Use the new window to complete any steps.",
+                    });
+                } else {
+                    setSamsubStatus("link_ready", {
+                        showCheck: true,
+                        message: "We've generated a secure SamSub window. Complete your verification to continue.",
+                    });
+                }
+
+                banner("Opening your SamSub verification in a new window…", "ok");
+
+                window.location.href = link;
+            } catch (error) {
+                console.error(error);
+                banner(error.message || "Could not start SamSub verification.", "err");
+            } finally {
+                if (samsubStartButton) setBusy(samsubStartButton, false);
+            }
         }
 
 
@@ -2794,7 +2869,7 @@
                 return;
             }
 
-            if (samsubCheckButton) setBusy(samsubCheckButton, true);
+            if (samsubCheckButton && !silent) setBusy(samsubCheckButton, true);
             try {
                 const response = await fetch(`/api/samsub/kyc/status/${encodeURIComponent(samsubApplicantId)}`);
                 const payload = await parseJsonResponse(response, "SamSub status check");
@@ -2835,10 +2910,12 @@
                 if (!silent) banner(interpretation.banner || "SamSub is still reviewing your documents.", "warn");
             } catch (error) {
                 console.error(error);
-                setSamsubStatus("error", { showCheck: true, message: error.message || "Could not check SamSub status." });
-                banner(error.message || "Could not check SamSub status.", "err");
+                if (!silent) {
+                    setSamsubStatus("error", { showCheck: true, message: error.message || "Could not check SamSub status." });
+                    banner(error.message || "Could not check SamSub status.", "err");
+                }
             } finally {
-                if (samsubCheckButton) setBusy(samsubCheckButton, false);
+                if (samsubCheckButton && !silent) setBusy(samsubCheckButton, false);
             }
         }
 
@@ -3127,6 +3204,9 @@
                 }
 
                 samsubApplicantId = row?.kyc_reference || row?.kyc_applicant_id || storedSamsubState?.applicantId || null;
+                if (samsubApplicantId && (!storedSamsubState || storedSamsubState.applicantId !== samsubApplicantId)) {
+                    mergeSamsubState({ userId: user.id, applicantId: samsubApplicantId });
+                }
                 const hasStoredLink = storedSamsubState?.verificationUrl && !kycDone;
                 if (hasStoredLink && (!storedSamsubState?.applicantId || storedSamsubState.applicantId === samsubApplicantId)) {
                     applySamsubLink(storedSamsubState.verificationUrl, { message: samsubLinkMessageDefault });
@@ -3186,6 +3266,10 @@
                 }
 
                 activateStep(initialStep);
+
+                if (samsubApplicantId && !kycDone) {
+                    checkSamsubStatus({ silent: true });
+                }
             } catch (error) {
                 console.error(error);
                 banner(error.message || "Could not load your profile.", "err");
