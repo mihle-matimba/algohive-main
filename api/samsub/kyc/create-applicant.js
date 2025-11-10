@@ -29,6 +29,14 @@ async function sumsubFetch(method, pathWithQuery, bodyObj) {
 }
 
 module.exports = async (req, res) => {
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      success: false,
+      error: {
+        message: 'Use POST with an externalUserId payload to create or fetch a Sumsub applicant'
+      }
+    });
+  }
   if (req.method !== 'POST') return res.status(405).json({ success:false, error:{message:'Method not allowed'}});
   if (!APP_TOKEN || !SECRET) return res.status(500).json({ success:false, error:{message:'Sumsub credentials are not configured'}});
 
