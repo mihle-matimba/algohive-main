@@ -859,12 +859,20 @@
                         </button>
                       </div>
                       <p id="samsubLinkMessage" class="mt-3 text-xs text-slate-500">Verification links expire quickly, so complete the process in one sitting.</p>
+                      <iframe
+                        id="sumsub-iframe"
+                        title="SamSub verification"
+                        class="mt-6 hidden h-[44rem] w-full rounded-3xl border-0 bg-white shadow-inner"
+                        style="height: 700px;"
+                        allow="camera *; microphone *; fullscreen"
+                        referrerpolicy="no-referrer"
+                      ></iframe>
                     </div>
 
                     <div class="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
                       <p class="text-sm font-medium text-slate-700">What happens next?</p>
-                      <ul id="samsubNextSteps" class="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-500">
-                        <li>Complete the SamSub verification in one sitting for the smoothest experience.</li>
+                        <ul id="samsubNextSteps" class="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-500">
+                          <li>Complete the SamSub verification in the secure window below for the smoothest experience.</li>
                         <li>Return to this page and use “Check status” to confirm your approval.</li>
                         <li>Once approved, you can continue to subscription plans.</li>
                       </ul>
@@ -1305,12 +1313,14 @@
     const samsubCopyLinkButton = document.getElementById("samsubCopyLink");
     const samsubLinkMessage = document.getElementById("samsubLinkMessage");
     const samsubNextStepsList = document.getElementById("samsubNextSteps");
+    const sumsubIframe = document.getElementById("sumsub-iframe");
     const kycContinueButton = document.querySelector('[data-panel="4"] [data-step-delta="1"][data-save-profile]');
     const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
     const SAMSUB_STORAGE_KEY = "ah:samsub:kyc";
+    const SAMSUB_LEVEL_NAME = "idv-and-phone-verification";
     const SAMSUB_DEFAULT_MESSAGE = "Start your SamSub identity verification to unlock AlgoHive.";
     const SAMSUB_DEFAULT_NEXT_STEPS = [
-      "Complete the SamSub verification in one sitting for the smoothest experience.",
+      "Complete the SamSub verification in the secure window below for the smoothest experience.",
       "Return to this page and use “Check status” to confirm your approval.",
       "Once approved, you can continue to subscription plans.",
     ];
@@ -1332,7 +1342,7 @@
         badge:
           "inline-flex items-center justify-center rounded-full border border-[var(--olive)]/50 bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--olive-700)]",
         label: "Link ready",
-        message: "We've generated a secure SamSub link. Complete your verification to continue.",
+        message: "We've generated a secure SamSub window. Complete your verification to continue.",
       },
       pending: {
         badge:
@@ -1493,12 +1503,20 @@
       if (url) {
         samsubLinkCard.classList.remove("hidden");
         if (samsubLinkHref) samsubLinkHref.href = url;
+        if (sumsubIframe) {
+          sumsubIframe.classList.remove("hidden");
+          sumsubIframe.src = url;
+        }
         if (samsubLinkMessage) {
           samsubLinkMessage.textContent = options.message || samsubLinkMessageDefault;
         }
       } else {
         samsubLinkCard.classList.add("hidden");
         if (samsubLinkHref) samsubLinkHref.removeAttribute("href");
+        if (sumsubIframe) {
+          sumsubIframe.classList.add("hidden");
+          sumsubIframe.removeAttribute("src");
+        }
         if (samsubLinkMessage) samsubLinkMessage.textContent = samsubLinkMessageDefault;
       }
     }
@@ -2401,6 +2419,7 @@
       syncKycContinueButton();
       setSamsubStatus("completed", { showCheck: true, message: "Your identity is verified. You're all set!", lastChecked: new Date() });
       renderSamsubSteps();
+      applySamsubLink(null);
       clearSamsubState();
       banner("SamSub verification complete. You're good to go!", "ok");
     }
@@ -2424,17 +2443,25 @@
         const firstName = profilePayload.first_name || profileRow?.first_name || "";
         const lastName = profilePayload.last_name || profileRow?.last_name || "";
         const phone = profilePayload.phone || profileRow?.phone || "";
-        const externalUserId = profileRow?.kyc_external_user_id || supabaseUser.id;
+        const rawExternalUserId = profileRow?.kyc_external_user_id || supabaseUser.id;
+        const externalUserId =
+          typeof rawExternalUserId === "string"
+            ? rawExternalUserId.trim()
+            : String(rawExternalUserId || "").trim();
+        if (!externalUserId) {
+          banner("We couldn't determine your verification reference. Please refresh and try again.", "err");
+          return;
+        }
         samsubExternalUserId = externalUserId;
 
-        const response = await fetch("/api/samsub/kyc/init-automated", {
+        const createResponse = await fetch("/api/samsub/kyc/create-applicant", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             externalUserId,
-            levelName: "basic-kyc-level",
+            levelName: SAMSUB_LEVEL_NAME,
             email: supabaseUser.email,
             firstName,
             lastName,
@@ -2442,33 +2469,78 @@
           }),
         });
 
-        const payload = await parseJsonResponse(response, "SamSub verification setup");
-        if (!response.ok || !payload?.success) {
-          throw new Error(payload?.error?.message || payload?.error || "Could not start SamSub verification.");
+        const createPayload = await parseJsonResponse(createResponse, "SamSub applicant setup");
+        if (!createResponse.ok) {
+          const message =
+            createPayload?.error?.message ||
+            createPayload?.error ||
+            createPayload?.description ||
+            createPayload?.data?.description ||
+            "Could not create SamSub applicant.";
+          throw new Error(message);
         }
 
-        const data = payload.data || {};
-        const applicant = data.applicant || {};
-        const webSDKLink = data.webSDKLink || {};
-        const applicantId = applicant.id || applicant.applicantId;
+        const applicantData = createPayload && typeof createPayload === "object" ? createPayload : {};
+        const applicantId =
+          applicantData.id ||
+          applicantData.applicantId ||
+          applicantData.applicant_id ||
+          applicantData.inspectionId ||
+          applicantData?.applicant?.id ||
+          applicantData?.applicant?.applicantId ||
+          null;
         if (!applicantId) throw new Error("SamSub did not return an applicant reference.");
-        if (!webSDKLink.url) throw new Error("SamSub did not return a verification link.");
+
+        const websdkResponse = await fetch("/api/samsub/kyc/websdk-link", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            applicantId,
+            externalUserId,
+            levelName: SAMSUB_LEVEL_NAME,
+            ttlInSecs: 600,
+          }),
+        });
+
+        const websdkPayload = await parseJsonResponse(websdkResponse, "SamSub WebSDK link");
+        if (!websdkResponse.ok) {
+          const message =
+            websdkPayload?.error?.message ||
+            websdkPayload?.error ||
+            websdkPayload?.description ||
+            websdkPayload?.data?.description ||
+            "Could not generate SamSub verification link.";
+          throw new Error(message);
+        }
+
+        const iframeUrl = websdkPayload?.url || websdkPayload?.link || websdkPayload?.raw;
+        if (!iframeUrl || !String(iframeUrl).includes("web.sumsub.com")) {
+          throw new Error("SamSub did not return a verification link.");
+        }
 
         samsubApplicantId = applicantId;
-        samsubVerificationUrl = webSDKLink.url;
+        samsubVerificationUrl = iframeUrl;
 
-        const expiresSeconds = Number(webSDKLink.expiresInSeconds || data.expiresInSeconds || 0);
+        const expiresSeconds = Number(
+          websdkPayload?.ttlInSecs ||
+            websdkPayload?.ttl ||
+            websdkPayload?.expiresInSeconds ||
+            websdkPayload?.expiresInSec ||
+            0,
+        );
         const expiresMinutes = expiresSeconds ? Math.max(1, Math.round(expiresSeconds / 60)) : null;
         const expiryMessage = expiresMinutes
           ? `Link expires in ${expiresMinutes} minute${expiresMinutes === 1 ? "" : "s"}. Complete the process before it closes.`
           : "Verification links expire quickly, so complete the process in one sitting.";
 
         applySamsubLink(samsubVerificationUrl, { message: expiryMessage });
-        renderSamsubSteps(data.instructions?.nextSteps);
+        renderSamsubSteps();
         await markSamsubPending(applicantId);
         setSamsubStatus("link_ready", {
           showCheck: true,
-          message: "We've generated a secure SamSub link. Complete your verification to continue.",
+          message: "We've generated a secure SamSub window. Complete your verification to continue.",
           preserveLastChecked: true,
         });
         updateSamsubLastChecked(null);
@@ -2478,9 +2550,10 @@
           verificationUrl: samsubVerificationUrl,
           createdAt: new Date().toISOString(),
           expiresInSeconds: expiresSeconds || null,
-          instructions: data.instructions?.nextSteps || null,
+          levelName: SAMSUB_LEVEL_NAME,
+          ttlInSeconds: expiresSeconds || 600,
         });
-        banner("SamSub verification link ready. Open it to continue.", "ok");
+        banner("SamSub verification window ready. Complete it below to continue.", "ok");
       } catch (error) {
         console.error(error);
         banner(error.message || "Could not start SamSub verification.", "err");
@@ -2503,11 +2576,17 @@
       try {
         const response = await fetch(`/api/samsub/kyc/status/${encodeURIComponent(samsubApplicantId)}`);
         const payload = await parseJsonResponse(response, "SamSub status check");
-        if (!response.ok || !payload?.success) {
-          throw new Error(payload?.error?.message || payload?.error || "Could not check SamSub status.");
+        if (!response.ok) {
+          const message =
+            payload?.error?.message ||
+            payload?.error ||
+            payload?.description ||
+            payload?.data?.description ||
+            "Could not check SamSub status.";
+          throw new Error(message);
         }
 
-        const statusPayload = payload.data || {};
+        const statusPayload = payload && typeof payload === "object" ? payload : {};
         const interpretation = resolveSamsubState(statusPayload);
         const checkedAt = new Date();
         updateSamsubLastChecked(checkedAt);

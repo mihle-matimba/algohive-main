@@ -181,8 +181,9 @@
         <div class="form-group">
             <label for="autoLevelName">Verification Level</label>
             <select id="autoLevelName">
-                <option value="test-level" selected>Test Level</option>
+                <option value="idv-and-phone-verification" selected>IDV + Phone Verification</option>
                 <option value="basic-kyc-level">Basic KYC Level</option>
+                <option value="test-level">Test Level</option>
             </select>
         </div>
         <button class="generate-btn" onclick="initAutomatedVerification()">Generate Verification Link</button>
@@ -206,40 +207,74 @@
                 responseDiv.className = 'loading';
                 responseDiv.innerHTML = '<div class="loading">⏳ Generating verification link...</div>';
 
-                const response = await fetch('/api/samsub/kyc/init-automated', {
+                const parseJson = async (response) => {
+                    const text = await response.text();
+                    if (!text) return {};
+                    try {
+                        return JSON.parse(text);
+                    } catch (err) {
+                        console.error('Failed to parse response', err, text);
+                        return { raw: text };
+                    }
+                };
+
+                const applicantResponse = await fetch('/api/samsub/kyc/create-applicant', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        externalUserId: externalUserId,
-                        levelName: levelName
+                        externalUserId,
+                        levelName
                     })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    if (data.data && data.data.webSDKLink && data.data.webSDKLink.url) {
-                        responseDiv.innerHTML = `
-                            <div class="verification-result">
-                                <div class="success-title">✅ Link Generated Successfully</div>
-                                <a href="${data.data.webSDKLink.url}" target="_blank" class="verification-btn">
-                                    Start Verification
-                                </a>
-                                <div class="user-info">
-                                    User ID: ${data.data.applicant.externalUserId}<br>
-                                    Ready for mobile or desktop verification
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        responseDiv.className = 'error';
-                        responseDiv.innerHTML = 'Verification initialized but no link generated';
-                    }
-                } else {
-                    throw new Error(data.error?.message || data.error || 'Unknown error');
+                const applicantData = await parseJson(applicantResponse);
+                if (!applicantResponse.ok) {
+                    throw new Error(applicantData.error?.message || applicantData.error || 'Could not create applicant');
                 }
+
+                const applicantId = applicantData.id || applicantData.applicantId || applicantData.applicant_id || applicantData?.applicant?.id;
+                if (!applicantId) {
+                    throw new Error('SamSub did not return an applicant ID');
+                }
+
+                const linkResponse = await fetch('/api/samsub/kyc/websdk-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        applicantId,
+                        externalUserId,
+                        levelName,
+                        ttlInSecs: 600
+                    })
+                });
+
+                const linkData = await parseJson(linkResponse);
+                if (!linkResponse.ok) {
+                    throw new Error(linkData.error?.message || linkData.error || 'Could not generate WebSDK link');
+                }
+
+                const url = linkData.url || linkData.link || linkData.raw;
+                if (!url || !String(url).includes('web.sumsub.com')) {
+                    throw new Error('SamSub did not return a verification link');
+                }
+
+                responseDiv.className = 'response';
+                responseDiv.innerHTML = `
+                    <div class="verification-result">
+                        <div class="success-title">✅ Link Generated Successfully</div>
+                        <a href="${url}" target="_blank" class="verification-btn">
+                            Launch Verification
+                        </a>
+                        <div class="user-info">
+                            Applicant ID: ${applicantId}<br>
+                            Link expires in ~10 minutes
+                        </div>
+                    </div>
+                `;
             } catch (error) {
                 responseDiv.className = 'error';
                 responseDiv.innerHTML = `❌ ${error.message}`;
