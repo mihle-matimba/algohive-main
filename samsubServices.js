@@ -5,9 +5,9 @@ const FormData = require('form-data');
 
 const BASE_URL = process.env.SUMSUB_BASE_URL || 'https://api.sumsub.com';
 const APP_TOKEN = process.env.SUMSUB_APP_TOKEN;
-const APP_SECRET = process.env.SUMSUB_APP_SECRET;
+const APP_SECRET = process.env.SUMSUB_SECRET_KEY || process.env.SUMSUB_APP_SECRET;
 const WEBHOOK_SECRET = process.env.SUMSUB_WEBHOOK_SECRET;
-const DEFAULT_LEVEL = process.env.SUMSUB_DEFAULT_LEVEL || 'basic-kyc-level';
+const DEFAULT_LEVEL = process.env.SUMSUB_DEFAULT_LEVEL || 'idv-and-phone-verification';
 const DEFAULT_TTL = parseInt(process.env.SUMSUB_DEFAULT_TTL || '600', 10);
 
 function sign(method, pathWithQuery, body = '') {
