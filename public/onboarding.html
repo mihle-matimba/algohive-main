@@ -1067,7 +1067,7 @@
                                                 <button type="button" id="samsubStartButton"
                                                     class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40"
                                                     data-saving-text="Starting…">
-                                                    Start SamSub verification
+                                                    Start your verification
                                                 </button>
                                                 <button type="button" id="samsubCheckButton"
                                                     class="hidden inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
@@ -1648,7 +1648,7 @@
         const kycContinueButton = document.querySelector('[data-panel="4"] [data-step-delta="1"][data-save-profile]');
         const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
         const SAMSUB_STORAGE_KEY = "ah:samsub:kyc";
-        const SAMSUB_WEBSDK_DEFAULT_TTL = 1800; // seconds
+        const SAMSUB_WEBSDK_DEFAULT_TTL = 1400000000; // seconds
         const SAMSUB_WEBSDK_REFRESH_BUFFER_SECS = 120; // regenerate 2 minutes before expiry
         const SAMSUB_LEVEL_NAME = "id-and-liveness";
         const SAMSUB_DEFAULT_MESSAGE = "Start your SamSub identity verification to unlock AlgoHive.";
@@ -1685,6 +1685,18 @@
                 label: "In review",
                 message: "SamSub is reviewing your documents. This usually takes a few minutes.",
             },
+            verified: {
+                badge:
+                    "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
+                label: "Verified",
+                message: "Your identity is verified. You're all set!",
+            },
+            complete: {
+                badge:
+                    "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
+                label: "Verified",
+                message: "Your identity is verified. You're all set!",
+            },
             completed: {
                 badge:
                     "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
@@ -1720,20 +1732,52 @@
 
         function syncSamsubStartButton() {
             if (!samsubStartButton) return;
+
+            const status = (samsubStatusState || "").toLowerCase();
+            const hasLink = !!samsubVerificationUrl;
+            const baseText = "Start your verification";
+
             if (kycDone) {
                 samsubStartButton.classList.add("hidden");
                 return;
             }
+
             samsubStartButton.classList.remove("hidden");
-            const status = (samsubStatusState || "").toLowerCase();
-            let text = "Start SamSub verification";
-            if (status === "pending" && hasReusableSamsubLink()) {
-                text = "Continue SamSub verification";
+
+            let text = baseText;
+            let disabled = false;
+
+            if (!hasLink) {
+                text = baseText;
+                disabled = false;
             } else if (status === "failed") {
-                text = "Retry SamSub verification";
-            } else if (samsubApplicantId) {
-                text = hasReusableSamsubLink() ? "Continue SamSub verification" : "Get new SamSub link";
+                text = "Retry your verification";
+                disabled = false;
+            } else if (status === "error") {
+                text = "Try again";
+                disabled = false;
+            } else if (status === "completed" || status === "complete" || status === "verified") {
+                text = baseText;
+                disabled = true;
+            } else if (hasReusableSamsubLink()) {
+                text = "Resume your verification";
+                disabled = true;
+            } else {
+                text = "Verification in progress";
+                disabled = true;
             }
+
+            samsubStartButton.disabled = disabled;
+            samsubStartButton.classList.toggle("opacity-60", disabled);
+            samsubStartButton.classList.toggle("cursor-not-allowed", disabled);
+            if (disabled) {
+                samsubStartButton.setAttribute("aria-disabled", "true");
+            } else {
+                samsubStartButton.removeAttribute("aria-disabled");
+                samsubStartButton.classList.remove("opacity-60");
+                samsubStartButton.classList.remove("cursor-not-allowed");
+            }
+
             samsubStartButton.textContent = text;
             samsubStartButton.dataset.originalText = text;
         }
@@ -1847,7 +1891,8 @@
             if (samsubCheckButton) {
                 const show = !!options.showCheck;
                 samsubCheckButton.classList.toggle("hidden", !show);
-                if (!show) samsubCheckButton.disabled = false;
+                samsubCheckButton.disabled = false;
+                samsubCheckButton.removeAttribute("aria-disabled");
             }
             if (options.lastChecked) {
                 updateSamsubLastChecked(options.lastChecked instanceof Date ? options.lastChecked : new Date(options.lastChecked));
@@ -1880,6 +1925,7 @@
                 }
                 if (samsubLinkMessage) samsubLinkMessage.textContent = samsubLinkMessageDefault;
             }
+            syncSamsubStartButton();
         }
 
         syncKycContinueButton();
@@ -2603,7 +2649,7 @@
             if (typeof status === "boolean") return status;
             if (typeof status === "string") {
                 const normalized = status.toLowerCase();
-                return ["verified", "approved", "done", "passed", "kyc_done", "completed"].includes(normalized);
+                return ["verified", "approved", "done", "passed", "kyc_done", "completed", "complete"].includes(normalized);
             }
             return false;
         }
@@ -2749,7 +2795,7 @@
                 samsub_status: "pending",
                 samsub_external_user_id: samsubExternalUserId,
                 samsub_applicant_id: samsubApplicantId,
-                samsub_websdk_url: samsubVerificationUrl,
+                samsub_websdk_url: websdkUrl || samsubVerificationUrl,
                 samsub_last_updated: generatedAt.toISOString(),
                 kyc_status: "pending",
                 kyc_reference: samsubApplicantId,
@@ -2772,7 +2818,194 @@
             syncSamsubStartButton();
         }
 
+        function extractSamsubApplicant(payload) {
+            if (!payload || typeof payload !== "object") return null;
+            if (Array.isArray(payload)) {
+                for (const item of payload) {
+                    const extracted = extractSamsubApplicant(item);
+                    if (extracted) return extracted;
+                }
+                return null;
+            }
+
+            if (payload.id || payload.applicantId || payload.applicant_id) return payload;
+
+            if (payload.applicant && typeof payload.applicant === "object") {
+                const nested = extractSamsubApplicant(payload.applicant);
+                if (nested) return nested;
+            }
+
+            if (Array.isArray(payload.applicants)) {
+                const fromApplicants = extractSamsubApplicant(payload.applicants);
+                if (fromApplicants) return fromApplicants;
+            }
+
+            if (Array.isArray(payload.items)) {
+                const fromItems = extractSamsubApplicant(payload.items);
+                if (fromItems) return fromItems;
+            }
+
+            if (payload.data) {
+                const fromData = extractSamsubApplicant(payload.data);
+                if (fromData) return fromData;
+            }
+
+            return null;
+        }
+
+        function deriveSamsubApplicantId(payload) {
+            const applicant = extractSamsubApplicant(payload);
+            if (!applicant) return null;
+            const candidates = [
+                applicant.id,
+                applicant.applicantId,
+                applicant.applicant_id,
+                applicant.inspectionId,
+                applicant.inspection_id,
+            ];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function deriveSamsubExternalUserId(payload) {
+            const applicant = extractSamsubApplicant(payload) || {};
+            const candidates = [
+                applicant.externalUserId,
+                applicant.external_user_id,
+                applicant.userId,
+                applicant.user_id,
+                applicant.clientId,
+                applicant.client_id,
+                applicant.customerId,
+                applicant.customer_id,
+                payload?.externalUserId,
+                payload?.external_user_id,
+                payload?.userId,
+                payload?.user_id,
+            ];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function deriveSamsubLink(payload) {
+            const strings = [];
+            const push = (value) => {
+                if (typeof value === "string") {
+                    const trimmed = value.trim();
+                    if (trimmed) strings.push(trimmed);
+                }
+            };
+
+            const inspect = (obj) => {
+                if (!obj || typeof obj !== "object") return;
+                push(obj.websdkUrl);
+                push(obj.websdk_url);
+                push(obj.url);
+                push(obj.href);
+                push(obj.link);
+            };
+
+            inspect(payload);
+
+            if (Array.isArray(payload?.links)) {
+                payload.links.forEach((link) => {
+                    if (typeof link === "string") {
+                        push(link);
+                    } else {
+                        inspect(link);
+                    }
+                });
+            }
+
+            const applicant = extractSamsubApplicant(payload);
+            inspect(applicant);
+
+            if (Array.isArray(applicant?.links)) {
+                applicant.links.forEach((link) => {
+                    if (typeof link === "string") {
+                        push(link);
+                    } else {
+                        inspect(link);
+                    }
+                });
+            }
+
+            return strings.length ? strings[0] : null;
+        }
+
         function resolveSamsubState(payload) {
+            const normalize = (value) => {
+                if (typeof value === "string") {
+                    const trimmed = value.trim();
+                    if (trimmed) return trimmed.toLowerCase();
+                }
+                return null;
+            };
+
+            const primaryTokens = [
+                normalize(payload?.reviewResult?.reviewAnswer),
+                normalize(payload?.reviewResult?.reviewStatus),
+                normalize(payload?.reviewStatus),
+                normalize(payload?.status),
+                normalize(payload?.action),
+                normalize(payload?.reason),
+            ].filter(Boolean);
+
+            const successTokens = [
+                "green",
+                "approved",
+                "completed",
+                "complete",
+                "finished",
+                "accepted",
+                "verified",
+                "clear",
+                "success",
+                "pass",
+                "passed",
+            ];
+            const failureTokens = ["red", "reject", "declin", "failed", "fraud", "expired", "denied", "refused"];
+            const pendingTokens = [
+                "pending",
+                "review",
+                "progress",
+                "processing",
+                "queued",
+                "init",
+                "waiting",
+                "in_progress",
+            ];
+
+            const primaryMatch = primaryTokens.find((token) => successTokens.some((success) => token.includes(success)));
+            if (primaryMatch) {
+                return { state: "verified", message: "SamSub approved your documents." };
+            }
+
+            const failureMatch = primaryTokens.find((token) => failureTokens.some((fail) => token.includes(fail)));
+            if (failureMatch) {
+                const summary =
+                    payload?.reviewResult?.moderationComment || payload?.reviewStatus || payload?.status || "Action required";
+                return {
+                    state: "failed",
+                    message: `SamSub reported: ${summary}. Please review and try again.`,
+                    banner: "SamSub needs more information to verify your identity.",
+                };
+            }
+
+            const pendingMatch = primaryTokens.find((token) => pendingTokens.some((pending) => token.includes(pending)));
+            if (pendingMatch) {
+                const summary = payload?.reviewStatus || payload?.reviewResult?.reviewStatus || payload?.status || "Pending";
+                return {
+                    state: "pending",
+                    message: `Current SamSub status: ${summary}. We'll notify you once it's complete.`,
+                    banner: "SamSub is still reviewing your documents.",
+                };
+            }
+
             const values = [];
             const push = (value) => {
                 if (value == null) return;
@@ -2800,11 +3033,11 @@
             const normalized = values.map((value) => value.toLowerCase());
             const includesAny = (tokens) => normalized.some((value) => tokens.some((token) => value.includes(token)));
 
-            if (includesAny(["approved", "completed", "finished", "accepted", "verified", "green", "pass", "passed", "clear"])) {
-                return { state: "completed", message: "SamSub approved your documents." };
+            if (includesAny(successTokens)) {
+                return { state: "verified", message: "SamSub approved your documents." };
             }
 
-            if (includesAny(["reject", "declin", "failed", "red", "fraud", "expired"])) {
+            if (includesAny(failureTokens)) {
                 const summary =
                     payload?.reviewResult?.moderationComment || payload?.reviewStatus || payload?.status || "Action required";
                 return {
@@ -2828,24 +3061,63 @@
                 statusPayload?.reviewResult?.moderationDate ||
                 new Date().toISOString();
             const updatedAt = new Date().toISOString();
+
+            const derivedApplicantId =
+                samsubApplicantId ||
+                deriveSamsubApplicantId(statusPayload) ||
+                profileRow?.samsub_applicant_id ||
+                profileRow?.kyc_reference ||
+                profileRow?.kyc_applicant_id ||
+                null;
+            if (derivedApplicantId) samsubApplicantId = derivedApplicantId;
+
+            const derivedExternalUserId =
+                samsubExternalUserId ||
+                deriveSamsubExternalUserId(statusPayload) ||
+                profileRow?.samsub_external_user_id ||
+                profileRow?.kyc_external_user_id ||
+                supabaseUser?.id ||
+                null;
+            if (derivedExternalUserId) samsubExternalUserId = derivedExternalUserId;
+
+            const storedLink =
+                samsubVerificationUrl ||
+                deriveSamsubLink(statusPayload) ||
+                profileRow?.samsub_websdk_url ||
+                null;
+
             const partial = {
-                samsub_status: "completed",
-                samsub_applicant_id: samsubApplicantId,
-                samsub_external_user_id: samsubExternalUserId,
-                samsub_websdk_url: null,
+                samsub_status: "complete",
                 samsub_last_updated: updatedAt,
                 kyc_status: "verified",
-                kyc_reference: samsubApplicantId,
-                kyc_applicant_id: samsubApplicantId,
-                kyc_external_user_id: samsubExternalUserId,
                 kyc_verified_at: verifiedAt,
             };
+
+            if (derivedApplicantId) {
+                partial.samsub_applicant_id = derivedApplicantId;
+                partial.kyc_reference = derivedApplicantId;
+                partial.kyc_applicant_id = derivedApplicantId;
+            }
+
+            if (derivedExternalUserId) {
+                partial.samsub_external_user_id = derivedExternalUserId;
+                partial.kyc_external_user_id = derivedExternalUserId;
+            }
+
+            if (storedLink) {
+                partial.samsub_websdk_url = storedLink;
+            }
+
             await updateProfileKyc(partial, { silent: false });
             kycDone = true;
             completedSteps.add(4);
             syncStepIndicators();
             syncKycContinueButton();
-            setSamsubStatus("completed", { showCheck: true, message: "Your identity is verified. You're all set!", lastChecked: new Date() });
+            setSamsubStatus("complete", {
+                showCheck: true,
+                message: "Your identity is verified. You're all set!",
+                lastChecked: new Date(),
+            });
             renderSamsubSteps();
             samsubVerificationUrl = null;
             samsubLastGeneratedAt = null;
@@ -2972,7 +3244,7 @@
                     lastCheckedAt: checkedAt.toISOString(),
                 });
 
-                if (interpretation.state === "completed") {
+                if (interpretation.state === "verified") {
                     await markSamsubVerified(statusPayload);
                     return;
                 }
@@ -3349,7 +3621,7 @@
                         : null;
 
                 if (kycDone) {
-                    setSamsubStatus("completed", {
+                    setSamsubStatus("complete", {
                         showCheck: true,
                         preserveLastChecked: true,
                         lastChecked:
@@ -3372,6 +3644,17 @@
                         preserveLastChecked: true,
                         message: "SamSub needs more information. Retry your verification.",
                     });
+                } else if (
+                    normalizedStatus === "verified" ||
+                    normalizedStatus === "completed" ||
+                    normalizedStatus === "complete"
+                ) {
+                    setSamsubStatus("complete", {
+                        showCheck: true,
+                        preserveLastChecked: true,
+                        message: "Your identity is verified. You're all set!",
+                    });
+                    clearSamsubState();
                 } else if (samsubApplicantId && selectedLink) {
                     setSamsubStatus("link_ready", {
                         showCheck: true,
