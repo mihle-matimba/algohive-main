@@ -1691,6 +1691,12 @@
                 label: "Verified",
                 message: "Your identity is verified. You're all set!",
             },
+            complete: {
+                badge:
+                    "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
+                label: "Verified",
+                message: "Your identity is verified. You're all set!",
+            },
             completed: {
                 badge:
                     "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
@@ -1750,7 +1756,7 @@
             } else if (status === "error") {
                 text = "Try again";
                 disabled = false;
-            } else if (status === "completed" || status === "verified") {
+            } else if (status === "completed" || status === "complete" || status === "verified") {
                 text = baseText;
                 disabled = true;
             } else if (hasReusableSamsubLink()) {
@@ -2643,7 +2649,7 @@
             if (typeof status === "boolean") return status;
             if (typeof status === "string") {
                 const normalized = status.toLowerCase();
-                return ["verified", "approved", "done", "passed", "kyc_done", "completed"].includes(normalized);
+                return ["verified", "approved", "done", "passed", "kyc_done", "completed", "complete"].includes(normalized);
             }
             return false;
         }
@@ -2932,6 +2938,74 @@
         }
 
         function resolveSamsubState(payload) {
+            const normalize = (value) => {
+                if (typeof value === "string") {
+                    const trimmed = value.trim();
+                    if (trimmed) return trimmed.toLowerCase();
+                }
+                return null;
+            };
+
+            const primaryTokens = [
+                normalize(payload?.reviewResult?.reviewAnswer),
+                normalize(payload?.reviewResult?.reviewStatus),
+                normalize(payload?.reviewStatus),
+                normalize(payload?.status),
+                normalize(payload?.action),
+                normalize(payload?.reason),
+            ].filter(Boolean);
+
+            const successTokens = [
+                "green",
+                "approved",
+                "completed",
+                "complete",
+                "finished",
+                "accepted",
+                "verified",
+                "clear",
+                "success",
+                "pass",
+                "passed",
+            ];
+            const failureTokens = ["red", "reject", "declin", "failed", "fraud", "expired", "denied", "refused"];
+            const pendingTokens = [
+                "pending",
+                "review",
+                "progress",
+                "processing",
+                "queued",
+                "init",
+                "waiting",
+                "in_progress",
+            ];
+
+            const primaryMatch = primaryTokens.find((token) => successTokens.some((success) => token.includes(success)));
+            if (primaryMatch) {
+                return { state: "verified", message: "SamSub approved your documents." };
+            }
+
+            const failureMatch = primaryTokens.find((token) => failureTokens.some((fail) => token.includes(fail)));
+            if (failureMatch) {
+                const summary =
+                    payload?.reviewResult?.moderationComment || payload?.reviewStatus || payload?.status || "Action required";
+                return {
+                    state: "failed",
+                    message: `SamSub reported: ${summary}. Please review and try again.`,
+                    banner: "SamSub needs more information to verify your identity.",
+                };
+            }
+
+            const pendingMatch = primaryTokens.find((token) => pendingTokens.some((pending) => token.includes(pending)));
+            if (pendingMatch) {
+                const summary = payload?.reviewStatus || payload?.reviewResult?.reviewStatus || payload?.status || "Pending";
+                return {
+                    state: "pending",
+                    message: `Current SamSub status: ${summary}. We'll notify you once it's complete.`,
+                    banner: "SamSub is still reviewing your documents.",
+                };
+            }
+
             const values = [];
             const push = (value) => {
                 if (value == null) return;
@@ -2959,11 +3033,11 @@
             const normalized = values.map((value) => value.toLowerCase());
             const includesAny = (tokens) => normalized.some((value) => tokens.some((token) => value.includes(token)));
 
-            if (includesAny(["approved", "completed", "finished", "accepted", "verified", "green", "pass", "passed", "clear"])) {
+            if (includesAny(successTokens)) {
                 return { state: "verified", message: "SamSub approved your documents." };
             }
 
-            if (includesAny(["reject", "declin", "failed", "red", "fraud", "expired"])) {
+            if (includesAny(failureTokens)) {
                 const summary =
                     payload?.reviewResult?.moderationComment || payload?.reviewStatus || payload?.status || "Action required";
                 return {
@@ -3013,7 +3087,7 @@
                 null;
 
             const partial = {
-                samsub_status: "verified",
+                samsub_status: "complete",
                 samsub_last_updated: updatedAt,
                 kyc_status: "verified",
                 kyc_verified_at: verifiedAt,
@@ -3039,7 +3113,7 @@
             completedSteps.add(4);
             syncStepIndicators();
             syncKycContinueButton();
-            setSamsubStatus("verified", {
+            setSamsubStatus("complete", {
                 showCheck: true,
                 message: "Your identity is verified. You're all set!",
                 lastChecked: new Date(),
@@ -3547,7 +3621,7 @@
                         : null;
 
                 if (kycDone) {
-                    setSamsubStatus("verified", {
+                    setSamsubStatus("complete", {
                         showCheck: true,
                         preserveLastChecked: true,
                         lastChecked:
@@ -3570,8 +3644,12 @@
                         preserveLastChecked: true,
                         message: "SamSub needs more information. Retry your verification.",
                     });
-                } else if (normalizedStatus === "verified" || normalizedStatus === "completed") {
-                    setSamsubStatus("verified", {
+                } else if (
+                    normalizedStatus === "verified" ||
+                    normalizedStatus === "completed" ||
+                    normalizedStatus === "complete"
+                ) {
+                    setSamsubStatus("complete", {
                         showCheck: true,
                         preserveLastChecked: true,
                         message: "Your identity is verified. You're all set!",
