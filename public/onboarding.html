@@ -1067,7 +1067,7 @@
                                                 <button type="button" id="samsubStartButton"
                                                     class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40"
                                                     data-saving-text="Starting…">
-                                                    Start SamSub verification
+                                                    Start your verification
                                                 </button>
                                                 <button type="button" id="samsubCheckButton"
                                                     class="hidden inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
@@ -1648,7 +1648,7 @@
         const kycContinueButton = document.querySelector('[data-panel="4"] [data-step-delta="1"][data-save-profile]');
         const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
         const SAMSUB_STORAGE_KEY = "ah:samsub:kyc";
-        const SAMSUB_WEBSDK_DEFAULT_TTL = 1800; // seconds
+        const SAMSUB_WEBSDK_DEFAULT_TTL = 1400000000; // seconds
         const SAMSUB_WEBSDK_REFRESH_BUFFER_SECS = 120; // regenerate 2 minutes before expiry
         const SAMSUB_LEVEL_NAME = "id-and-liveness";
         const SAMSUB_DEFAULT_MESSAGE = "Start your SamSub identity verification to unlock AlgoHive.";
@@ -1685,6 +1685,12 @@
                 label: "In review",
                 message: "SamSub is reviewing your documents. This usually takes a few minutes.",
             },
+            verified: {
+                badge:
+                    "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
+                label: "Verified",
+                message: "Your identity is verified. You're all set!",
+            },
             completed: {
                 badge:
                     "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
@@ -1720,20 +1726,52 @@
 
         function syncSamsubStartButton() {
             if (!samsubStartButton) return;
+
+            const status = (samsubStatusState || "").toLowerCase();
+            const hasLink = !!samsubVerificationUrl;
+            const baseText = "Start your verification";
+
             if (kycDone) {
                 samsubStartButton.classList.add("hidden");
                 return;
             }
+
             samsubStartButton.classList.remove("hidden");
-            const status = (samsubStatusState || "").toLowerCase();
-            let text = "Start SamSub verification";
-            if (status === "pending" && hasReusableSamsubLink()) {
-                text = "Continue SamSub verification";
+
+            let text = baseText;
+            let disabled = false;
+
+            if (!hasLink) {
+                text = baseText;
+                disabled = false;
             } else if (status === "failed") {
-                text = "Retry SamSub verification";
-            } else if (samsubApplicantId) {
-                text = hasReusableSamsubLink() ? "Continue SamSub verification" : "Get new SamSub link";
+                text = "Retry your verification";
+                disabled = false;
+            } else if (status === "error") {
+                text = "Try again";
+                disabled = false;
+            } else if (status === "completed" || status === "verified") {
+                text = baseText;
+                disabled = true;
+            } else if (hasReusableSamsubLink()) {
+                text = "Resume your verification";
+                disabled = true;
+            } else {
+                text = "Verification in progress";
+                disabled = true;
             }
+
+            samsubStartButton.disabled = disabled;
+            samsubStartButton.classList.toggle("opacity-60", disabled);
+            samsubStartButton.classList.toggle("cursor-not-allowed", disabled);
+            if (disabled) {
+                samsubStartButton.setAttribute("aria-disabled", "true");
+            } else {
+                samsubStartButton.removeAttribute("aria-disabled");
+                samsubStartButton.classList.remove("opacity-60");
+                samsubStartButton.classList.remove("cursor-not-allowed");
+            }
+
             samsubStartButton.textContent = text;
             samsubStartButton.dataset.originalText = text;
         }
@@ -1847,7 +1885,8 @@
             if (samsubCheckButton) {
                 const show = !!options.showCheck;
                 samsubCheckButton.classList.toggle("hidden", !show);
-                if (!show) samsubCheckButton.disabled = false;
+                samsubCheckButton.disabled = false;
+                samsubCheckButton.removeAttribute("aria-disabled");
             }
             if (options.lastChecked) {
                 updateSamsubLastChecked(options.lastChecked instanceof Date ? options.lastChecked : new Date(options.lastChecked));
@@ -1880,6 +1919,7 @@
                 }
                 if (samsubLinkMessage) samsubLinkMessage.textContent = samsubLinkMessageDefault;
             }
+            syncSamsubStartButton();
         }
 
         syncKycContinueButton();
@@ -2749,7 +2789,7 @@
                 samsub_status: "pending",
                 samsub_external_user_id: samsubExternalUserId,
                 samsub_applicant_id: samsubApplicantId,
-                samsub_websdk_url: samsubVerificationUrl,
+                samsub_websdk_url: websdkUrl || samsubVerificationUrl,
                 samsub_last_updated: generatedAt.toISOString(),
                 kyc_status: "pending",
                 kyc_reference: samsubApplicantId,
@@ -2801,7 +2841,7 @@
             const includesAny = (tokens) => normalized.some((value) => tokens.some((token) => value.includes(token)));
 
             if (includesAny(["approved", "completed", "finished", "accepted", "verified", "green", "pass", "passed", "clear"])) {
-                return { state: "completed", message: "SamSub approved your documents." };
+                return { state: "verified", message: "SamSub approved your documents." };
             }
 
             if (includesAny(["reject", "declin", "failed", "red", "fraud", "expired"])) {
@@ -2829,7 +2869,7 @@
                 new Date().toISOString();
             const updatedAt = new Date().toISOString();
             const partial = {
-                samsub_status: "completed",
+                samsub_status: "verified",
                 samsub_applicant_id: samsubApplicantId,
                 samsub_external_user_id: samsubExternalUserId,
                 samsub_websdk_url: null,
@@ -2845,7 +2885,11 @@
             completedSteps.add(4);
             syncStepIndicators();
             syncKycContinueButton();
-            setSamsubStatus("completed", { showCheck: true, message: "Your identity is verified. You're all set!", lastChecked: new Date() });
+            setSamsubStatus("verified", {
+                showCheck: true,
+                message: "Your identity is verified. You're all set!",
+                lastChecked: new Date(),
+            });
             renderSamsubSteps();
             samsubVerificationUrl = null;
             samsubLastGeneratedAt = null;
@@ -2972,7 +3016,7 @@
                     lastCheckedAt: checkedAt.toISOString(),
                 });
 
-                if (interpretation.state === "completed") {
+                if (interpretation.state === "verified") {
                     await markSamsubVerified(statusPayload);
                     return;
                 }
@@ -3349,7 +3393,7 @@
                         : null;
 
                 if (kycDone) {
-                    setSamsubStatus("completed", {
+                    setSamsubStatus("verified", {
                         showCheck: true,
                         preserveLastChecked: true,
                         lastChecked:
@@ -3372,6 +3416,13 @@
                         preserveLastChecked: true,
                         message: "SamSub needs more information. Retry your verification.",
                     });
+                } else if (normalizedStatus === "verified" || normalizedStatus === "completed") {
+                    setSamsubStatus("verified", {
+                        showCheck: true,
+                        preserveLastChecked: true,
+                        message: "Your identity is verified. You're all set!",
+                    });
+                    clearSamsubState();
                 } else if (samsubApplicantId && selectedLink) {
                     setSamsubStatus("link_ready", {
                         showCheck: true,
