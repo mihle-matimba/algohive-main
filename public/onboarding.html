@@ -1685,6 +1685,12 @@
                 label: "In review",
                 message: "SamSub is reviewing your documents. This usually takes a few minutes.",
             },
+            verified: {
+                badge:
+                    "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
+                label: "Verified",
+                message: "Your identity is verified. You're all set!",
+            },
             completed: {
                 badge:
                     "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700",
@@ -1744,7 +1750,7 @@
             } else if (status === "error") {
                 text = "Try again";
                 disabled = false;
-            } else if (status === "completed") {
+            } else if (status === "completed" || status === "verified") {
                 text = baseText;
                 disabled = true;
             } else if (hasReusableSamsubLink()) {
@@ -2783,7 +2789,7 @@
                 samsub_status: "pending",
                 samsub_external_user_id: samsubExternalUserId,
                 samsub_applicant_id: samsubApplicantId,
-                samsub_websdk_url: samsubVerificationUrl,
+                samsub_websdk_url: websdkUrl || samsubVerificationUrl,
                 samsub_last_updated: generatedAt.toISOString(),
                 kyc_status: "pending",
                 kyc_reference: samsubApplicantId,
@@ -2835,7 +2841,7 @@
             const includesAny = (tokens) => normalized.some((value) => tokens.some((token) => value.includes(token)));
 
             if (includesAny(["approved", "completed", "finished", "accepted", "verified", "green", "pass", "passed", "clear"])) {
-                return { state: "completed", message: "SamSub approved your documents." };
+                return { state: "verified", message: "SamSub approved your documents." };
             }
 
             if (includesAny(["reject", "declin", "failed", "red", "fraud", "expired"])) {
@@ -2863,7 +2869,7 @@
                 new Date().toISOString();
             const updatedAt = new Date().toISOString();
             const partial = {
-                samsub_status: "completed",
+                samsub_status: "verified",
                 samsub_applicant_id: samsubApplicantId,
                 samsub_external_user_id: samsubExternalUserId,
                 samsub_websdk_url: null,
@@ -2879,7 +2885,11 @@
             completedSteps.add(4);
             syncStepIndicators();
             syncKycContinueButton();
-            setSamsubStatus("completed", { showCheck: true, message: "Your identity is verified. You're all set!", lastChecked: new Date() });
+            setSamsubStatus("verified", {
+                showCheck: true,
+                message: "Your identity is verified. You're all set!",
+                lastChecked: new Date(),
+            });
             renderSamsubSteps();
             samsubVerificationUrl = null;
             samsubLastGeneratedAt = null;
@@ -3006,7 +3016,7 @@
                     lastCheckedAt: checkedAt.toISOString(),
                 });
 
-                if (interpretation.state === "completed") {
+                if (interpretation.state === "verified") {
                     await markSamsubVerified(statusPayload);
                     return;
                 }
@@ -3383,7 +3393,7 @@
                         : null;
 
                 if (kycDone) {
-                    setSamsubStatus("completed", {
+                    setSamsubStatus("verified", {
                         showCheck: true,
                         preserveLastChecked: true,
                         lastChecked:
@@ -3406,6 +3416,13 @@
                         preserveLastChecked: true,
                         message: "SamSub needs more information. Retry your verification.",
                     });
+                } else if (normalizedStatus === "verified" || normalizedStatus === "completed") {
+                    setSamsubStatus("verified", {
+                        showCheck: true,
+                        preserveLastChecked: true,
+                        message: "Your identity is verified. You're all set!",
+                    });
+                    clearSamsubState();
                 } else if (samsubApplicantId && selectedLink) {
                     setSamsubStatus("link_ready", {
                         showCheck: true,
