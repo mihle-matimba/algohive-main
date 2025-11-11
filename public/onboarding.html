@@ -2812,6 +2812,125 @@
             syncSamsubStartButton();
         }
 
+        function extractSamsubApplicant(payload) {
+            if (!payload || typeof payload !== "object") return null;
+            if (Array.isArray(payload)) {
+                for (const item of payload) {
+                    const extracted = extractSamsubApplicant(item);
+                    if (extracted) return extracted;
+                }
+                return null;
+            }
+
+            if (payload.id || payload.applicantId || payload.applicant_id) return payload;
+
+            if (payload.applicant && typeof payload.applicant === "object") {
+                const nested = extractSamsubApplicant(payload.applicant);
+                if (nested) return nested;
+            }
+
+            if (Array.isArray(payload.applicants)) {
+                const fromApplicants = extractSamsubApplicant(payload.applicants);
+                if (fromApplicants) return fromApplicants;
+            }
+
+            if (Array.isArray(payload.items)) {
+                const fromItems = extractSamsubApplicant(payload.items);
+                if (fromItems) return fromItems;
+            }
+
+            if (payload.data) {
+                const fromData = extractSamsubApplicant(payload.data);
+                if (fromData) return fromData;
+            }
+
+            return null;
+        }
+
+        function deriveSamsubApplicantId(payload) {
+            const applicant = extractSamsubApplicant(payload);
+            if (!applicant) return null;
+            const candidates = [
+                applicant.id,
+                applicant.applicantId,
+                applicant.applicant_id,
+                applicant.inspectionId,
+                applicant.inspection_id,
+            ];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function deriveSamsubExternalUserId(payload) {
+            const applicant = extractSamsubApplicant(payload) || {};
+            const candidates = [
+                applicant.externalUserId,
+                applicant.external_user_id,
+                applicant.userId,
+                applicant.user_id,
+                applicant.clientId,
+                applicant.client_id,
+                applicant.customerId,
+                applicant.customer_id,
+                payload?.externalUserId,
+                payload?.external_user_id,
+                payload?.userId,
+                payload?.user_id,
+            ];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function deriveSamsubLink(payload) {
+            const strings = [];
+            const push = (value) => {
+                if (typeof value === "string") {
+                    const trimmed = value.trim();
+                    if (trimmed) strings.push(trimmed);
+                }
+            };
+
+            const inspect = (obj) => {
+                if (!obj || typeof obj !== "object") return;
+                push(obj.websdkUrl);
+                push(obj.websdk_url);
+                push(obj.url);
+                push(obj.href);
+                push(obj.link);
+            };
+
+            inspect(payload);
+
+            if (Array.isArray(payload?.links)) {
+                payload.links.forEach((link) => {
+                    if (typeof link === "string") {
+                        push(link);
+                    } else {
+                        inspect(link);
+                    }
+                });
+            }
+
+            const applicant = extractSamsubApplicant(payload);
+            inspect(applicant);
+
+            if (Array.isArray(applicant?.links)) {
+                applicant.links.forEach((link) => {
+                    if (typeof link === "string") {
+                        push(link);
+                    } else {
+                        inspect(link);
+                    }
+                });
+            }
+
+            return strings.length ? strings[0] : null;
+        }
+
         function resolveSamsubState(payload) {
             const values = [];
             const push = (value) => {
@@ -2868,18 +2987,53 @@
                 statusPayload?.reviewResult?.moderationDate ||
                 new Date().toISOString();
             const updatedAt = new Date().toISOString();
+
+            const derivedApplicantId =
+                samsubApplicantId ||
+                deriveSamsubApplicantId(statusPayload) ||
+                profileRow?.samsub_applicant_id ||
+                profileRow?.kyc_reference ||
+                profileRow?.kyc_applicant_id ||
+                null;
+            if (derivedApplicantId) samsubApplicantId = derivedApplicantId;
+
+            const derivedExternalUserId =
+                samsubExternalUserId ||
+                deriveSamsubExternalUserId(statusPayload) ||
+                profileRow?.samsub_external_user_id ||
+                profileRow?.kyc_external_user_id ||
+                supabaseUser?.id ||
+                null;
+            if (derivedExternalUserId) samsubExternalUserId = derivedExternalUserId;
+
+            const storedLink =
+                samsubVerificationUrl ||
+                deriveSamsubLink(statusPayload) ||
+                profileRow?.samsub_websdk_url ||
+                null;
+
             const partial = {
                 samsub_status: "verified",
-                samsub_applicant_id: samsubApplicantId,
-                samsub_external_user_id: samsubExternalUserId,
-                samsub_websdk_url: null,
                 samsub_last_updated: updatedAt,
                 kyc_status: "verified",
-                kyc_reference: samsubApplicantId,
-                kyc_applicant_id: samsubApplicantId,
-                kyc_external_user_id: samsubExternalUserId,
                 kyc_verified_at: verifiedAt,
             };
+
+            if (derivedApplicantId) {
+                partial.samsub_applicant_id = derivedApplicantId;
+                partial.kyc_reference = derivedApplicantId;
+                partial.kyc_applicant_id = derivedApplicantId;
+            }
+
+            if (derivedExternalUserId) {
+                partial.samsub_external_user_id = derivedExternalUserId;
+                partial.kyc_external_user_id = derivedExternalUserId;
+            }
+
+            if (storedLink) {
+                partial.samsub_websdk_url = storedLink;
+            }
+
             await updateProfileKyc(partial, { silent: false });
             kycDone = true;
             completedSteps.add(4);
