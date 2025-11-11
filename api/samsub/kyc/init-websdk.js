@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
     const {
       externalUserId,
       levelName = 'id-and-liveness',
-      ttlInSecs = 1800,
+      ttlInSecs = 1400000000,
       email, phone,
       firstName, lastName,
       redirect // { successUrl, failUrl, // optional: jwt, keepParams, paramFilter }
@@ -106,7 +106,7 @@ module.exports = async (req, res) => {
 
     // 2) Generate WebSDK link (this is the “proper” endpoint)
     // POST /resources/sdkIntegrations/levels/-/websdkLink
-    const ttl = Number(ttlInSecs) || 1800;
+    const ttl = Number(ttlInSecs) || 1400000000;
     const websdkPath = `/resources/sdkIntegrations/levels/-/websdkLink`;
     const body = {
       ttlInSecs: ttl,
