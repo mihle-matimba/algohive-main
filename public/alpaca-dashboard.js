@@ -160,7 +160,7 @@ function attachFilterListeners() {
 
 async function loadAssets() {
   try {
-    const response = await fetch("/alpaca-assets.json");
+    const response = await fetch("alpaca-assets.json");
     if (!response.ok) throw new Error("Unable to load alpaca-assets.json");
     const data = await response.json();
     rawAssets = Array.isArray(data) ? data : data.assets ?? [];
