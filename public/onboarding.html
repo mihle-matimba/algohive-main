@@ -206,6 +206,12 @@
             border-color: var(--olive);
         }
 
+        .step-item--error .step-circle {
+            border-color: rgba(248, 113, 113, 0.7);
+            background: rgba(248, 113, 113, 0.12);
+            color: #b91c1c;
+        }
+
         .toast-stack {
             position: fixed;
             top: 1.5rem;
@@ -1059,7 +1065,7 @@
                                                     </li>
                                                     <li>Ensure your documents are well lit and all details are clearly
                                                         visible.</li>
-                                                    <li>The verification portal will open in a secure SamSub window.
+                                                    <li>The verification portal loads inside the secure SamSub window below.
                                                     </li>
                                                 </ul>
                                             </div>
@@ -1091,27 +1097,23 @@
                                                         finish your SamSub identity check.</p>
                                                 </div>
                                             </div>
-                                            <div class="mt-4 flex flex-wrap items-center gap-3">
-                                                <a id="samsubLinkHref" href="#" target="_blank" rel="noreferrer"
-                                                    class="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
-                                                    Open verification portal
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                        viewBox="0 0 20 20" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="1.6" d="M7 13l6-6m0 0H8m5 0v5" />
-                                                    </svg>
-                                                </a>
-                                                <button type="button" id="samsubCopyLink"
-                                                    class="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--olive)] px-4 py-2 text-xs font-semibold text-[var(--olive-700)] transition hover:bg-[var(--olive)] hover:text-white">
-                                                    Copy link
-                                                </button>
-                                            </div>
                                             <p id="samsubLinkMessage" class="mt-3 text-xs text-slate-500">Verification
                                                 links expire quickly, so complete the process in one sitting.</p>
                                             <iframe id="sumsub-iframe" title="SamSub verification"
                                                 class="mt-6 hidden h-[44rem] w-full rounded-3xl border-0 bg-white shadow-inner"
                                                 style="height: 700px;" allow="camera *; microphone *; fullscreen"
                                                 referrerpolicy="no-referrer"></iframe>
+                                            <div class="mt-4 flex flex-wrap items-center gap-3">
+                                                <button type="button" id="samsubCompleteButton"
+                                                    class="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]"
+                                                    data-saving-text="Checking…">
+                                                    Complete
+                                                </button>
+                                                <button type="button" id="samsubCopyLink"
+                                                    class="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--olive)] px-4 py-2 text-xs font-semibold text-[var(--olive-700)] transition hover:bg-[var(--olive)] hover:text-white">
+                                                    Copy link
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div class="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
@@ -1120,7 +1122,7 @@
                                                 class="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-500">
                                                 <li>Complete the SamSub verification in the secure window below for the
                                                     smoothest experience.</li>
-                                                <li>Return to this page and use “Check status” to confirm your approval.
+                                                <li>Use “Complete” below to run a status check and confirm your approval.
                                                 </li>
                                                 <li>Once approved, you can continue to subscription plans.</li>
                                             </ul>
@@ -1640,7 +1642,7 @@
         const samsubCheckButton = document.getElementById("samsubCheckButton");
         const samsubLastCheckedLabel = document.getElementById("samsubLastChecked");
         const samsubLinkCard = document.getElementById("samsubLinkCard");
-        const samsubLinkHref = document.getElementById("samsubLinkHref");
+        const samsubCompleteButton = document.getElementById("samsubCompleteButton");
         const samsubCopyLinkButton = document.getElementById("samsubCopyLink");
         const samsubLinkMessage = document.getElementById("samsubLinkMessage");
         const samsubNextStepsList = document.getElementById("samsubNextSteps");
@@ -1653,7 +1655,7 @@
         const SAMSUB_DEFAULT_MESSAGE = "Start your SamSub identity verification to unlock AlgoHive.";
         const SAMSUB_DEFAULT_NEXT_STEPS = [
             "Complete the SamSub verification in the secure window below for the smoothest experience.",
-            "Return to this page and use “Check status” to confirm your approval.",
+            "Use “Complete” below to run a status check and confirm your approval.",
             "Once approved, you can continue to subscription plans.",
         ];
         let samsubApplicantId = null;
@@ -1676,7 +1678,7 @@
                 badge:
                     "inline-flex items-center justify-center rounded-full border border-[var(--olive)]/50 bg-[var(--olive)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--olive-700)]",
                 label: "Link ready",
-                message: "We've generated a secure SamSub window. Complete your verification to continue.",
+                message: "We've generated the secure SamSub window below. Complete your verification to continue.",
             },
             pending: {
                 badge:
@@ -1833,12 +1835,6 @@
             return Date.now() < refreshThreshold;
         }
 
-        function launchSamsub(url) {
-            if (!url) return false;
-            const popup = window.open(url, "_blank", "noopener,noreferrer");
-            return !!popup;
-        }
-
         function setSamsubStatus(status, options = {}) {
             samsubStatusState = status;
             const meta = SAMSUB_STATUS_META[status] || SAMSUB_STATUS_META.idle;
@@ -1869,7 +1865,10 @@
             if (!samsubLinkCard) return;
             if (url) {
                 samsubLinkCard.classList.remove("hidden");
-                if (samsubLinkHref) samsubLinkHref.href = url;
+                if (samsubCompleteButton) {
+                    samsubCompleteButton.disabled = false;
+                    samsubCompleteButton.removeAttribute("aria-disabled");
+                }
                 if (sumsubIframe) {
                     sumsubIframe.classList.remove("hidden");
                     sumsubIframe.src = url;
@@ -1879,7 +1878,10 @@
                 }
             } else {
                 samsubLinkCard.classList.add("hidden");
-                if (samsubLinkHref) samsubLinkHref.removeAttribute("href");
+                if (samsubCompleteButton) {
+                    samsubCompleteButton.disabled = true;
+                    samsubCompleteButton.setAttribute("aria-disabled", "true");
+                }
                 if (sumsubIframe) {
                     sumsubIframe.classList.add("hidden");
                     sumsubIframe.removeAttribute("src");
@@ -2039,6 +2041,7 @@
         const stepSummary = document.getElementById("stepSummary");
         const stepItems = Array.from(document.querySelectorAll("[data-step-item]"));
         const completedSteps = new Set();
+        const errorSteps = new Set();
         let currentStep = 1;
         const totalSteps = panels.length;
         let supabaseUser = null;
@@ -2418,12 +2421,25 @@
                 const circle = item.querySelector(`[data-step-indicator="${index}"]`);
                 const isActive = currentStep === index;
                 const isComplete = completedSteps.has(index);
+                const hasError = errorSteps.has(index);
                 item.classList.toggle("step-item--active", isActive && !isComplete);
                 item.classList.toggle("step-item--complete", isComplete);
+                item.classList.toggle("step-item--error", hasError && !isComplete);
                 if (circle) {
                     circle.textContent = isComplete ? "✓" : String(index);
                 }
             });
+        }
+
+        function setErrorStepsFromMissing(missingKeys = []) {
+            errorSteps.clear();
+            missingKeys.forEach((key) => {
+                const step = getStepForField(key);
+                if (typeof step === "number") {
+                    errorSteps.add(step);
+                }
+            });
+            syncStepIndicators();
         }
 
         function autoCompleteStepsFromProfile(row) {
@@ -2485,7 +2501,13 @@
 
         if (samsubCheckButton) {
             samsubCheckButton.addEventListener("click", () => {
-                checkSamsubStatus({ silent: false });
+                checkSamsubStatus({ silent: false, trigger: samsubCheckButton });
+            });
+        }
+
+        if (samsubCompleteButton) {
+            samsubCompleteButton.addEventListener("click", () => {
+                checkSamsubStatus({ silent: false, trigger: samsubCompleteButton });
             });
         }
 
@@ -2526,6 +2548,16 @@
             if (avatarFilename) avatarFilename.textContent = text;
         }
 
+        function getStepForField(fieldKey) {
+            for (const [step, keys] of Object.entries(STEP_FIELD_GROUPS)) {
+                if (Array.isArray(keys) && keys.includes(fieldKey)) {
+                    return Number(step);
+                }
+            }
+            if (fieldKey === "plan") return totalSteps;
+            return null;
+        }
+
         function getRequiredFieldsUpTo(step) {
             const out = new Set();
             for (let s = 1; s <= step; s += 1) {
@@ -2560,26 +2592,36 @@
             } else {
                 setPlanGroupError(false);
             }
+            setErrorStepsFromMissing(missing);
             return missing;
         }
 
         function focusFirstMissing(missingKeys) {
             if (!missingKeys.length) return;
             const firstKey = missingKeys[0];
-            if (firstKey === OBJECTIVES_FIELD_KEY) {
-                objectivesGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
-                const firstCb = objectivesGroup?.querySelector('input[name="objectives"]');
-                firstCb?.focus();
-            } else if (firstKey === "plan") {
-                planGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
-                const firstPlan = planRadios[0];
-                firstPlan?.focus();
-            } else {
-                const el = document.getElementById(firstKey);
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    if (el instanceof HTMLElement) el.focus();
+            const focusTarget = () => {
+                if (firstKey === OBJECTIVES_FIELD_KEY) {
+                    objectivesGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    const firstCb = objectivesGroup?.querySelector('input[name="objectives"]');
+                    firstCb?.focus();
+                } else if (firstKey === "plan") {
+                    planGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    const firstPlan = planRadios[0];
+                    firstPlan?.focus();
+                } else {
+                    const el = document.getElementById(firstKey);
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        if (el instanceof HTMLElement) el.focus();
+                    }
                 }
+            };
+            const targetStep = getStepForField(firstKey);
+            if (typeof targetStep === "number" && targetStep !== currentStep) {
+                activateStep(targetStep);
+                window.requestAnimationFrame(focusTarget);
+            } else {
+                focusTarget();
             }
         }
 
@@ -2745,7 +2787,7 @@
             samsubLastGeneratedAt = generatedAt;
             if (websdkUrl) {
                 applySamsubLink(websdkUrl, {
-                    message: message || "We opened a new SamSub window for you to continue verification.",
+                    message: message || "We opened the SamSub window below for you to continue verification.",
                 });
             }
             kycDone = false;
@@ -2767,7 +2809,7 @@
             await updateProfileKyc(partial, { silent: true });
             setSamsubStatus("pending", {
                 showCheck: true,
-                message: message || "Your SamSub session is ready. Complete the steps in the opened window.",
+                message: message || "Your SamSub session is ready. Complete the steps in the window below.",
             });
             syncSamsubStartButton();
         }
@@ -3088,16 +3130,14 @@
             if (samsubStartButton) setBusy(samsubStartButton, true);
             try {
                 if (hasReusableSamsubLink()) {
-                    const opened = launchSamsub(samsubVerificationUrl);
-                    if (!opened) {
-                        banner("Pop-ups were blocked. Use the SamSub link card below to continue.", "warn");
-                    }
+                    applySamsubLink(samsubVerificationUrl, {
+                        message: "Continue your SamSub verification in the secure window below.",
+                    });
                     setSamsubStatus("pending", {
                         showCheck: true,
-                        message: opened
-                            ? "We reopened your SamSub verification in a new window."
-                            : "Use the saved SamSub link below to continue your verification.",
+                        message: "We reopened your SamSub verification in the window below.",
                     });
+                    banner("Your SamSub verification is ready in the window below.", "ok");
                     return;
                 }
 
@@ -3134,15 +3174,9 @@
                     externalUserId: data.externalUserId,
                     websdkUrl,
                     ttlInSecs,
-                    message: "Your SamSub session is ready. Complete the steps in the opened window.",
+                    message: "Your SamSub session is ready. Complete the steps in the window below.",
                 });
-
-                const opened = launchSamsub(websdkUrl);
-                if (!opened) {
-                    banner("SamSub link generated. If the pop-up was blocked, open the link card below.", "warn");
-                } else {
-                    banner("SamSub verification launched in a new window.", "ok");
-                }
+                banner("SamSub verification is ready in the window below.", "ok");
             } catch (error) {
                 console.error(error);
                 setSamsubStatus("error", {
@@ -3160,7 +3194,7 @@
 
 
 
-        async function checkSamsubStatus({ silent = false } = {}) {
+        async function checkSamsubStatus({ silent = false, trigger = null } = {}) {
             if (!supabaseUser) {
                 banner("Please sign in again.", "err");
                 return;
@@ -3170,7 +3204,8 @@
                 return;
             }
 
-            if (samsubCheckButton) setBusy(samsubCheckButton, true);
+            const busyTarget = trigger || samsubCheckButton;
+            if (busyTarget) setBusy(busyTarget, true);
             try {
                 const response = await fetch(`/api/samsub/kyc/status/${encodeURIComponent(samsubApplicantId)}`);
                 const payload = await parseJsonResponse(response, "SamSub status check");
@@ -3223,7 +3258,7 @@
                 setSamsubStatus("error", { showCheck: true, message: error.message || "Could not check SamSub status." });
                 banner(error.message || "Could not check SamSub status.", "err");
             } finally {
-                if (samsubCheckButton) setBusy(samsubCheckButton, false);
+                if (busyTarget) setBusy(busyTarget, false);
             }
         }
 
