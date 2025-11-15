@@ -1647,7 +1647,6 @@
         const sumsubIframe = document.getElementById("sumsub-iframe");
         const kycContinueButton = document.querySelector('[data-panel="4"] [data-step-delta="1"][data-save-profile]');
         const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
-        const SAMSUB_STORAGE_KEY = "ah:samsub:kyc";
         const SAMSUB_WEBSDK_DEFAULT_TTL = 1400000000; // seconds
         const SAMSUB_WEBSDK_REFRESH_BUFFER_SECS = 120; // regenerate 2 minutes before expiry
         const SAMSUB_LEVEL_NAME = "id-and-liveness";
@@ -1819,44 +1818,6 @@
                 const statusText = `${response.status || ""} ${response.statusText || ""}`.trim() || "unknown status";
                 console.error(`Failed to parse ${context} response.`, { error, raw, status: response.status });
                 throw new Error(`The server returned an unreadable response (${statusText}). Please try again later.`);
-            }
-        }
-
-        function loadSamsubState() {
-            try {
-                const raw = localStorage.getItem(SAMSUB_STORAGE_KEY);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                return typeof parsed === "object" && parsed ? parsed : null;
-            } catch (error) {
-                console.error(error);
-                return null;
-            }
-        }
-
-        function saveSamsubState(state) {
-            try {
-                if (!state) {
-                    localStorage.removeItem(SAMSUB_STORAGE_KEY);
-                    return;
-                }
-                localStorage.setItem(SAMSUB_STORAGE_KEY, JSON.stringify(state));
-            } catch (error) {
-                console.error(error);
-            }
-        }
-
-        function mergeSamsubState(partial) {
-            if (!partial) return;
-            const current = loadSamsubState() || {};
-            saveSamsubState({ ...current, ...partial });
-        }
-
-        function clearSamsubState() {
-            try {
-                localStorage.removeItem(SAMSUB_STORAGE_KEY);
-            } catch (error) {
-                console.error(error);
             }
         }
 
@@ -2804,13 +2765,6 @@
                 kyc_started_at: generatedAt.toISOString(),
             };
             await updateProfileKyc(partial, { silent: true });
-            mergeSamsubState({
-                userId: supabaseUser?.id || null,
-                applicantId: samsubApplicantId,
-                verificationUrl: samsubVerificationUrl,
-                ttlInSecs: samsubLinkTtlSecs,
-                lastGeneratedAt: generatedAt.toISOString(),
-            });
             setSamsubStatus("pending", {
                 showCheck: true,
                 message: message || "Your SamSub session is ready. Complete the steps in the opened window.",
@@ -3122,7 +3076,6 @@
             samsubVerificationUrl = null;
             samsubLastGeneratedAt = null;
             applySamsubLink(null);
-            clearSamsubState();
             syncSamsubStartButton();
             banner("SamSub verification complete. You're good to go!", "ok");
         }
@@ -3145,7 +3098,6 @@
                             ? "We reopened your SamSub verification in a new window."
                             : "Use the saved SamSub link below to continue your verification.",
                     });
-                    mergeSamsubState({ lastLaunchedAt: new Date().toISOString() });
                     return;
                 }
 
@@ -3236,13 +3188,6 @@
                 const interpretation = resolveSamsubState(statusPayload);
                 const checkedAt = new Date();
                 updateSamsubLastChecked(checkedAt);
-                mergeSamsubState({
-                    userId: supabaseUser.id,
-                    applicantId: samsubApplicantId,
-                    verificationUrl: samsubVerificationUrl,
-                    lastStatus: statusPayload,
-                    lastCheckedAt: checkedAt.toISOString(),
-                });
 
                 if (interpretation.state === "verified") {
                     await markSamsubVerified(statusPayload);
@@ -3560,54 +3505,21 @@
                 kycDone = resolveKycBoolean(row);
 
                 samsubExternalUserId = row?.samsub_external_user_id || row?.kyc_external_user_id || user.id || null;
-                let storedSamsubState = loadSamsubState();
-                if (storedSamsubState?.userId && storedSamsubState.userId !== user.id) {
-                    clearSamsubState();
-                    storedSamsubState = null;
-                }
+                samsubApplicantId = row?.samsub_applicant_id || row?.kyc_reference || row?.kyc_applicant_id || null;
 
-                const profileApplicantId = row?.samsub_applicant_id || row?.kyc_reference || row?.kyc_applicant_id || null;
-                const storedApplicantId = storedSamsubState?.applicantId || null;
-                samsubApplicantId = profileApplicantId || storedApplicantId || null;
-
-                const profileLink = !kycDone ? row?.samsub_websdk_url : null;
-                const storedLink =
-                    !kycDone &&
-                    storedSamsubState?.verificationUrl &&
-                    (!storedApplicantId || storedApplicantId === samsubApplicantId)
-                        ? storedSamsubState.verificationUrl
-                        : null;
-                const selectedLink = profileLink || storedLink || null;
-                if (selectedLink) {
-                    applySamsubLink(selectedLink, { message: samsubLinkMessageDefault });
+                const profileLink = !kycDone ? row?.samsub_websdk_url || null : null;
+                if (profileLink) {
+                    applySamsubLink(profileLink, { message: samsubLinkMessageDefault });
                 } else {
                     applySamsubLink(null);
                 }
 
-                const profileGeneratedAt = row?.samsub_last_updated ? new Date(row.samsub_last_updated) : null;
-                const storedGeneratedAt =
-                    storedSamsubState?.lastGeneratedAt ? new Date(storedSamsubState.lastGeneratedAt) : null;
-                const derivedGeneratedAt =
-                    profileGeneratedAt && storedGeneratedAt
-                        ? profileGeneratedAt > storedGeneratedAt
-                            ? profileGeneratedAt
-                            : storedGeneratedAt
-                        : profileGeneratedAt || storedGeneratedAt || null;
-                samsubLastGeneratedAt = derivedGeneratedAt;
-                samsubLinkTtlSecs =
-                    typeof storedSamsubState?.ttlInSecs === "number" && !Number.isNaN(storedSamsubState.ttlInSecs)
-                        ? storedSamsubState.ttlInSecs
-                        : SAMSUB_WEBSDK_DEFAULT_TTL;
+                samsubLastGeneratedAt = row?.samsub_last_updated ? new Date(row.samsub_last_updated) : null;
+                samsubLinkTtlSecs = SAMSUB_WEBSDK_DEFAULT_TTL;
 
-                if (storedSamsubState?.instructions) {
-                    renderSamsubSteps(storedSamsubState.instructions);
-                } else {
-                    renderSamsubSteps();
-                }
+                renderSamsubSteps();
 
-                if (storedSamsubState?.lastCheckedAt) {
-                    updateSamsubLastChecked(new Date(storedSamsubState.lastCheckedAt));
-                } else if (row?.samsub_last_updated) {
+                if (row?.samsub_last_updated) {
                     updateSamsubLastChecked(new Date(row.samsub_last_updated));
                 } else {
                     updateSamsubLastChecked(null);
@@ -3624,14 +3536,8 @@
                     setSamsubStatus("complete", {
                         showCheck: true,
                         preserveLastChecked: true,
-                        lastChecked:
-                            storedSamsubState?.lastCheckedAt
-                                ? new Date(storedSamsubState.lastCheckedAt)
-                                : row?.samsub_last_updated
-                                ? new Date(row.samsub_last_updated)
-                                : undefined,
+                        lastChecked: row?.samsub_last_updated ? new Date(row.samsub_last_updated) : undefined,
                     });
-                    clearSamsubState();
                 } else if (normalizedStatus === "pending") {
                     setSamsubStatus("pending", {
                         showCheck: !!samsubApplicantId,
@@ -3654,8 +3560,7 @@
                         preserveLastChecked: true,
                         message: "Your identity is verified. You're all set!",
                     });
-                    clearSamsubState();
-                } else if (samsubApplicantId && selectedLink) {
+                } else if (samsubApplicantId && profileLink) {
                     setSamsubStatus("link_ready", {
                         showCheck: true,
                         preserveLastChecked: true,
