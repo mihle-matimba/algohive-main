@@ -298,24 +298,45 @@
       return REQUIRE_KYC ? (core && resolveKycBoolean(row)) : core;
     }
 
-    async function isProfileComplete(uid) {
-      // fetch exactly the fields we need (+ kyc_status if you enable REQUIRE_KYC)
-      const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(selectCols)
-        .eq("id", uid)
-        .maybeSingle();              // no row -> null instead of throwing
-      if (error) return false;       // treat errors as incomplete
-      return computeProfileComplete(data || {});
+    function gateBannerMessage(profileComplete, kycDone) {
+      if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+      if (!profileComplete) return "Please finish Additional Info first.";
+      if (!kycDone) return "Please complete KYC first.";
+      return "";
     }
 
     async function routePostAuth(preferred = "/home.html") {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return; // email-confirm signup path
-      const complete = await isProfileComplete(session.user.id);
-      const dest = complete ? preferred : "/settings.html#extra";
-      location.replace(dest);
+
+      const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
+      let profileComplete = false;
+      let kycDone = false;
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select(selectCols)
+          .eq("id", session.user.id)
+          .maybeSingle();
+        const row = data || {};
+        profileComplete = computeProfileComplete(row);
+        kycDone = resolveKycBoolean(row);
+      } catch (error) {
+        console.warn("Could not fetch profile for routing", error);
+      }
+
+      if (!profileComplete || !kycDone) {
+        const message = gateBannerMessage(profileComplete, kycDone);
+        try {
+          if (message) sessionStorage.setItem("ah_gate_reason", message);
+        } catch (err) {
+          console.warn("Unable to persist gate reason", err);
+        }
+        location.replace(`/onboarding.html`);
+        return;
+      }
+
+      location.replace(preferred);
     }
 
     const qs = new URLSearchParams(location.search);

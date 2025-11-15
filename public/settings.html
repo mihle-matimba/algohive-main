@@ -905,6 +905,12 @@
 
         const hasValue = (value) => String(value ?? "").trim().length > 0;
         function computeProfileComplete(row) { return REQUIRED_FIELDS.every(k => hasValue(row?.[k])); }
+        function gateBannerMessage(profileComplete, kycDone) {
+            if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+            if (!profileComplete) return "Please finish Additional Info first.";
+            if (!kycDone) return "Please complete KYC first.";
+            return "";
+        }
 
         const objectivesGroup = document.getElementById("objectives-group");
 
@@ -992,6 +998,19 @@
         // ---------- hydrate ----------
         const row = await ensureProfile(user.id, user.email || null);
 
+        let profileComplete = computeProfileComplete(row || {});
+        let kycDone = resolveKycBoolean(row || {});
+        if (!profileComplete || !kycDone) {
+            const message = gateBannerMessage(profileComplete, kycDone);
+            try {
+                if (message) sessionStorage.setItem("ah_gate_reason", message);
+            } catch (err) {
+                console.warn("Unable to persist gate reason", err);
+            }
+            location.replace(`/onboarding.html`);
+            throw new Error("redirecting");
+        }
+
         // email + account no
         const emailInput = document.getElementById("email");
         if (emailInput) emailInput.value = user.email || "";
@@ -1049,9 +1068,7 @@
         document.getElementById("hdr-name").textContent = (fn || ln) ? `${fn} ${ln}`.trim() : fallback;
 
         // KYC + gating
-        let kycDone = resolveKycBoolean(row);
         setKycState(kycDone);
-        let profileComplete = computeProfileComplete(row);
         
         // Account setup tracking
         let accountsSetup = false;
