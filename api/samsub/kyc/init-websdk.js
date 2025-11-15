@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
   try {
     const {
       externalUserId,
-      levelName = 'id-and-liveness',
+      levelName = 'test-level',
       ttlInSecs = 1400000000,
       email, phone,
       firstName, lastName,
