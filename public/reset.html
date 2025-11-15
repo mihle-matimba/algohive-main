@@ -212,6 +212,66 @@
     const agree = document.getElementById("agree");
     const btn = document.getElementById("reset-btn");
 
+    const REQUIRED_PROFILE_FIELDS = [
+      "first_name", "last_name", "phone", "dob", "id_number", "nationality",
+      "country_residence", "employment_status", "occupation", "employer",
+      "income_bracket", "source_of_funds", "net_worth_range", "experience_level",
+      "risk_tolerance", "objectives",
+    ];
+    const hasValue = (value) => String(value ?? "").trim().length > 0;
+    const computeProfileComplete = (row) =>
+      REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
+    const resolveKycBoolean = (row) => {
+      const v = row?.kyc_status;
+      if (typeof v === "boolean") return v;
+      if (typeof v === "string")
+        return ["verified", "approved", "done", "passed", "kyc_done"].includes(v.toLowerCase());
+      return false;
+    };
+    const gateBannerMessage = (profileComplete, kycDone) => {
+      if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+      if (!profileComplete) return "Please finish Additional Info first.";
+      if (!kycDone) return "Please complete KYC first.";
+      return "";
+    };
+
+    async function redirectAfterReset(preferred = "/home.html") {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        location.replace(preferred);
+        return;
+      }
+
+      let profileComplete = false;
+      let kycDone = false;
+      try {
+        const selectCols = [...REQUIRED_PROFILE_FIELDS, "kyc_status"].join(",");
+        const { data } = await supabase
+          .from("profiles")
+          .select(selectCols)
+          .eq("id", session.user.id)
+          .maybeSingle();
+        const row = data || {};
+        profileComplete = computeProfileComplete(row);
+        kycDone = resolveKycBoolean(row);
+      } catch (error) {
+        console.warn("Could not fetch profile after reset", error);
+      }
+
+      if (!profileComplete || !kycDone) {
+        const message = gateBannerMessage(profileComplete, kycDone);
+        try {
+          if (message) sessionStorage.setItem("ah_gate_reason", message);
+        } catch (err) {
+          console.warn("Unable to persist gate reason", err);
+        }
+        location.replace(`/onboarding.html`);
+        return;
+      }
+
+      location.replace(preferred);
+    }
+
     function showMsg(text, type = "info") {
       msg.classList.remove("hidden", "bg-rose-50", "text-rose-700", "border-rose-200", "bg-emerald-50", "text-emerald-700", "border-emerald-200");
       msg.classList.add("border", "border-slate-200", "bg-white", "text-slate-600");
@@ -311,7 +371,7 @@
         const { error } = await supabase.auth.updateUser({ password: pass });
         if (error) throw error;
         showMsg("Password updated. Redirecting…", "success");
-        setTimeout(() => location.replace("/home.html"), 800);
+        await redirectAfterReset();
       } catch (err) {
         showMsg(err.message || "Failed to update password.", "error");
       } finally {

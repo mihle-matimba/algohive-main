@@ -1015,6 +1015,28 @@
         import { supabase } from "/js/supabase.js";
         let strategy = null;   // <— keep hoisted so handlers can see it
         let metrics = null;
+        const REQUIRED_PROFILE_FIELDS = [
+            "first_name", "last_name", "phone", "dob", "id_number", "nationality",
+            "country_residence", "employment_status", "occupation", "employer",
+            "income_bracket", "source_of_funds", "net_worth_range", "experience_level",
+            "risk_tolerance", "objectives",
+        ];
+        const hasValue = (value) => String(value ?? "").trim().length > 0;
+        const computeProfileComplete = (row) =>
+            REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
+        const resolveKycBoolean = (row) => {
+            const v = row?.kyc_status;
+            if (typeof v === "boolean") return v;
+            if (typeof v === "string")
+                return ["verified", "approved", "done", "passed", "kyc_done"].includes(v.toLowerCase());
+            return false;
+        };
+        const gateBannerMessage = (profileComplete, kycDone) => {
+            if (!profileComplete && !kycDone) return "Please finish Additional Info and complete KYC first.";
+            if (!profileComplete) return "Please finish Additional Info first.";
+            if (!kycDone) return "Please complete KYC first.";
+            return "";
+        };
         const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
         // *** ADDED: Daily Modal Function ***
@@ -1306,6 +1328,19 @@
             return up.data;
         }
         const row = await ensureProfile(user.id, user.email || null);
+
+        const profileComplete = computeProfileComplete(row || {});
+        const kycDone = resolveKycBoolean(row || {});
+        if (!profileComplete || !kycDone) {
+            const message = gateBannerMessage(profileComplete, kycDone);
+            try {
+                if (message) sessionStorage.setItem("ah_gate_reason", message);
+            } catch (err) {
+                console.warn("Unable to persist gate reason", err);
+            }
+            location.replace(`/onboarding.html`);
+            throw new Error("redirecting");
+        }
 
         // ---- Hydrate header + sidebar ----
         const hdrName = document.getElementById("hdr-name");
