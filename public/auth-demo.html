@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modern Auth Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --background: hsl(0 0% 100%);
+        --foreground: hsl(220 18% 15%);
+        --muted: hsl(220 14% 96%);
+        --card: hsl(0 0% 100%);
+        --border: hsl(220 17% 85%);
+        --focus: hsl(217 91% 60%);
+        --text-muted: hsl(220 10% 45%);
+        --skeleton: hsl(220 20% 92%);
+        --btn-border: hsl(214 32% 91%);
+        --shadow: 0px 20px 45px rgba(15, 23, 42, 0.12);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: hsl(222 47% 11%);
+          --foreground: hsl(0 0% 100%);
+          --muted: hsl(223 36% 18%);
+          --card: hsl(222 47% 12%);
+          --border: hsl(223 19% 28%);
+          --focus: hsl(217 92% 70%);
+          --text-muted: hsl(220 9% 70%);
+          --skeleton: hsl(218 36% 16%);
+          --btn-border: hsl(217 33% 18%);
+          --shadow: 0px 25px 50px rgba(2, 6, 23, 0.6);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+          'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top left, #eef2ff, var(--background));
+        color: var(--foreground);
+        line-height: 1.5;
+      }
+
+      img {
+        max-width: 100%;
+        display: block;
+      }
+
+      .auth-page {
+        display: flex;
+        min-height: 100vh;
+        position: relative;
+      }
+
+      .orbit-panel {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        padding: clamp(2rem, 4vw, 4rem);
+        background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+      }
+
+      .orbit-panel::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.35),
+            transparent 60%);
+        mix-blend-mode: multiply;
+        pointer-events: none;
+      }
+
+      .orbit-scene {
+        width: min(500px, 100%);
+        aspect-ratio: 1 / 1;
+        position: relative;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.65);
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+        backdrop-filter: blur(18px);
+        overflow: hidden;
+      }
+
+      .orbit-headline {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        font-size: clamp(2.2rem, 4vw, 3.5rem);
+        font-weight: 700;
+        background: linear-gradient(180deg, #111, rgba(15, 23, 42, 0.7));
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      .orbit {
+        position: absolute;
+        inset: 0;
+      }
+
+      .orbit-path {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: calc(var(--radius) * 2px);
+        height: calc(var(--radius) * 2px);
+        margin-left: calc(var(--radius) * -1px);
+        margin-top: calc(var(--radius) * -1px);
+        border: 1px dashed rgba(15, 23, 42, 0.15);
+        border-radius: 50%;
+        opacity: 0.6;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .orbit-path {
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+      }
+
+      .orbit-item {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(0deg)
+          translateY(calc(var(--radius) * -1px));
+        animation: orbit-spin calc(var(--duration) * 1s) linear infinite;
+        transform-origin: center center;
+      }
+
+      .orbit-item.reverse {
+        animation-direction: reverse;
+      }
+
+      .orbit-icon {
+        width: var(--size, 48px);
+        height: var(--size, 48px);
+        border-radius: 14px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .orbit-icon {
+          background: rgba(15, 23, 42, 0.75);
+          box-shadow: 0 20px 30px rgba(2, 6, 23, 0.65);
+        }
+      }
+
+      @keyframes orbit-spin {
+        0% {
+          transform: translate(-50%, -50%) rotate(0deg)
+            translateY(calc(var(--radius) * -1px));
+        }
+        100% {
+          transform: translate(-50%, -50%) rotate(360deg)
+            translateY(calc(var(--radius) * -1px));
+        }
+      }
+
+      .ripple-backdrop {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
+      }
+
+      .ripple-backdrop span {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: calc(120px + var(--i) * 80px);
+        height: calc(120px + var(--i) * 80px);
+        border-radius: 50%;
+        border: 1px solid rgba(15, 23, 42, 0.15);
+        opacity: calc(0.25 - var(--i) * 0.02);
+        animation: ripple 4s ease calc(var(--i) * 0.2s) infinite;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .ripple-backdrop span {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: translate(-50%, -50%) scale(0.9);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(0.9);
+        }
+      }
+
+      .form-panel {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(2rem, 5vw, 5rem);
+        background: var(--background);
+      }
+
+      .form-card {
+        width: min(420px, 100%);
+        background: var(--card);
+        border-radius: 24px;
+        padding: clamp(2rem, 4vw, 3rem);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .form-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle at 80% 10%, rgba(59, 130, 246, 0.15),
+            transparent 55%);
+      }
+
+      .form-card h2 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(2rem, 3vw, 2.5rem);
+      }
+
+      .form-card p {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .google-button {
+        margin-top: 2rem;
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--btn-border);
+        background: transparent;
+        height: 48px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: border 200ms ease, transform 200ms ease;
+      }
+
+      .google-button:hover {
+        border-color: var(--focus);
+        transform: translateY(-1px);
+      }
+
+      .google-button img {
+        width: 24px;
+        height: 24px;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin: 1.75rem 0;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        border-top: 1px dashed var(--border);
+      }
+
+      .form-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      label {
+        font-size: 0.95rem;
+        font-weight: 600;
+        display: flex;
+        gap: 0.3rem;
+        align-items: baseline;
+      }
+
+      label span {
+        color: #ef4444;
+      }
+
+      .input-wrapper {
+        position: relative;
+        padding: 2px;
+        border-radius: 14px;
+        background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
+            rgba(59, 130, 246, 0.65), transparent 65%);
+        transition: opacity 200ms ease, transform 200ms ease;
+        opacity: 0.25;
+      }
+
+      .input-wrapper.active {
+        opacity: 1;
+        transform: translateY(-1px);
+      }
+
+      .input-wrapper input {
+        width: 100%;
+        border: none;
+        outline: none;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        font-size: 1rem;
+        background: var(--muted);
+        color: inherit;
+        transition: box-shadow 200ms ease, background 200ms ease;
+      }
+
+      .input-wrapper input:focus-visible {
+        box-shadow: 0 0 0 2px var(--focus);
+        background: hsl(0 0% 100%);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .input-wrapper input {
+          background: hsl(217 33% 18%);
+        }
+
+        .input-wrapper input:focus-visible {
+          background: hsl(220 25% 20%);
+        }
+      }
+
+      .toggle-visibility {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        padding: 0;
+      }
+
+      .toggle-visibility svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .input-error {
+        min-height: 1.25rem;
+        font-size: 0.8rem;
+        color: #ef4444;
+        margin: 0.35rem 0 0;
+      }
+
+      .primary-btn {
+        width: 100%;
+        border: none;
+        cursor: pointer;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        background: linear-gradient(120deg, #e0e7ff, #c7d2fe);
+        position: relative;
+        overflow: hidden;
+        transition: transform 200ms ease;
+      }
+
+      .primary-btn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+
+      .primary-btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .primary-btn:hover::after {
+        opacity: 1;
+      }
+
+      .forgot-link {
+        margin-top: 1rem;
+        text-align: center;
+      }
+
+      .forgot-link button {
+        background: none;
+        border: none;
+        color: #2563eb;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .form-message {
+        min-height: 1.5rem;
+        font-size: 0.9rem;
+        color: #ef4444;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-message.success {
+        color: #059669;
+      }
+
+      @media (max-width: 1024px) {
+        .auth-page {
+          flex-direction: column;
+        }
+
+        .orbit-panel {
+          display: none;
+        }
+
+        .form-panel {
+          flex: initial;
+          min-height: 100vh;
+        }
+
+        body {
+          background: var(--background);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="auth-page">
+      <section class="orbit-panel">
+        <div class="orbit-scene">
+          <div class="ripple-backdrop">
+            <span style="--i: 0"></span>
+            <span style="--i: 1"></span>
+            <span style="--i: 2"></span>
+            <span style="--i: 3"></span>
+            <span style="--i: 4"></span>
+          </div>
+          <div class="orbit-headline">Animated Login</div>
+
+          <div
+            class="orbit"
+            style="--radius: 100; --duration: 26"
+            aria-hidden="true"
+          >
+            <div class="orbit-path"></div>
+            <div class="orbit-item">
+              <img
+                class="orbit-icon"
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg"
+                alt="HTML icon"
+              />
+            </div>
+          </div>
+
+          <div
+            class="orbit"
+            style="--radius: 150; --duration: 20"
+            aria-hidden="true"
+          >
+            <div class="orbit-path"></div>
+            <div class="orbit-item reverse">
+              <img
+                class="orbit-icon"
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg"
+                alt="CSS icon"
+              />
+            </div>
+          </div>
+
+          <div
+            class="orbit"
+            style="--radius: 200; --duration: 30"
+            aria-hidden="true"
+          >
+            <div class="orbit-path"></div>
+            <div class="orbit-item">
+              <img
+                class="orbit-icon"
+                style="--size: 56px"
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg"
+                alt="JavaScript icon"
+              />
+            </div>
+          </div>
+
+          <div
+            class="orbit"
+            style="--radius: 250; --duration: 34"
+            aria-hidden="true"
+          >
+            <div class="orbit-path"></div>
+            <div class="orbit-item reverse">
+              <img
+                class="orbit-icon"
+                style="--size: 56px"
+                src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg"
+                alt="React icon"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-panel">
+        <article class="form-card">
+          <header>
+            <h2>Welcome back</h2>
+            <p>Sign in to your account to continue</p>
+          </header>
+
+          <button class="google-button" type="button" id="googleButton">
+            <img
+              src="https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-512.png"
+              alt="Google icon"
+            />
+            Login with Google
+          </button>
+
+          <div class="divider">or continue with email</div>
+
+          <form id="authForm" novalidate>
+            <div id="formMessage" class="form-message" aria-live="polite"></div>
+            <div class="form-fields">
+              <div class="field">
+                <label for="email">Email <span>*</span></label>
+                <div class="input-wrapper" data-field="email">
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    autocomplete="email"
+                    required
+                  />
+                </div>
+                <p class="input-error" data-error-for="email"></p>
+              </div>
+
+              <div class="field">
+                <label for="password">Password <span>*</span></label>
+                <div class="input-wrapper" data-field="password">
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    minlength="6"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="toggle-visibility"
+                    aria-label="Toggle password visibility"
+                    id="togglePassword"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path
+                        d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
+                      ></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+                <p class="input-error" data-error-for="password"></p>
+              </div>
+            </div>
+
+            <button class="primary-btn" type="submit">
+              Sign in &rarr;
+            </button>
+
+            <div class="forgot-link">
+              <button type="button" id="forgotButton">Forgot password?</button>
+            </div>
+          </form>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const wrappers = document.querySelectorAll('.input-wrapper');
+
+      wrappers.forEach((wrapper) => {
+        wrapper.addEventListener('pointermove', (event) => {
+          const rect = wrapper.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          wrapper.style.setProperty('--x', `${x}px`);
+          wrapper.style.setProperty('--y', `${y}px`);
+          wrapper.classList.add('active');
+        });
+
+        wrapper.addEventListener('pointerleave', () => {
+          wrapper.classList.remove('active');
+        });
+      });
+
+      const passwordInput = document.getElementById('password');
+      const togglePasswordButton = document.getElementById('togglePassword');
+      let showingPassword = false;
+
+      togglePasswordButton.addEventListener('click', () => {
+        showingPassword = !showingPassword;
+        passwordInput.type = showingPassword ? 'text' : 'password';
+        togglePasswordButton.setAttribute(
+          'aria-pressed',
+          String(showingPassword)
+        );
+        togglePasswordButton.innerHTML = showingPassword
+          ? `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+              <line x1="3" y1="3" x2="21" y2="21"></line>
+            </svg>
+          `
+          : `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          `;
+      });
+
+      const form = document.getElementById('authForm');
+      const message = document.getElementById('formMessage');
+      const fieldErrors = {
+        email: document.querySelector('[data-error-for="email"]'),
+        password: document.querySelector('[data-error-for="password"]'),
+      };
+
+      const validators = {
+        email(value) {
+          if (!value) return 'Email is required';
+          const emailPattern = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+          return emailPattern.test(value) ? '' : 'Enter a valid email address';
+        },
+        password(value) {
+          if (!value) return 'Password is required';
+          if (value.length < 6) {
+            return 'Password must be at least 6 characters long';
+          }
+          return '';
+        },
+      };
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        message.textContent = '';
+        message.classList.remove('success');
+        let hasError = false;
+
+        ['email', 'password'].forEach((field) => {
+          const input = form.elements[field];
+          const error = validators[field](input.value.trim());
+          fieldErrors[field].textContent = error;
+          if (error) {
+            hasError = true;
+          }
+        });
+
+        if (hasError) {
+          message.textContent = 'Please fix the fields highlighted below.';
+          return;
+        }
+
+        message.textContent = 'You are all set! Redirecting…';
+        message.classList.add('success');
+        console.log('Form submitted', {
+          email: form.elements.email.value,
+          password: form.elements.password.value,
+        });
+      });
+
+      document
+        .getElementById('googleButton')
+        .addEventListener('click', () => {
+          message.textContent = 'Google login clicked.';
+          message.classList.add('success');
+          console.log('Google login clicked');
+        });
+
+      document
+        .getElementById('forgotButton')
+        .addEventListener('click', () => {
+          alert('Redirecting to password recovery…');
+        });
+    </script>
+  </body>
+</html>
