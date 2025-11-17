@@ -3,217 +3,450 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AlgoHive Institutional – Sasfin Navigation</title>
+  <title>AlgoHive Institutional – Sasfin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --page: #0b1220;
-      --card: #ffffff;
-      --muted: #64748b;
-      --line: #e2e8f0;
       --ink: #0f172a;
+      --muted: #6b7280;
+      --panel: #ffffff;
+      --back: #f6f8fb;
+      --line: #e5e7eb;
+      --accent: #0d6efd;
+      --accent-soft: #e8f1ff;
     }
-    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #f8fafc; color: var(--ink); }
-    .nav-active { background: #0f172a; color: #fff; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--back); color: var(--ink); }
+    .card {
+      background: var(--panel);
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+    .muted { color: var(--muted); }
+    .gradient-bar {
+      background: linear-gradient(90deg, #e8f1ff 0%, #cfe4ff 40%, #b2d6ff 80%);
+    }
+    .sparkline {
+      background: linear-gradient(180deg, rgba(13,110,253,0.15), rgba(13,110,253,0));
+      position: relative;
+      overflow: hidden;
+    }
+    .sparkline::after {
+      content: "";
+      position: absolute;
+      inset: 16% 8% 10% 6%;
+      background: url('data:image/svg+xml,%3Csvg width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpolyline fill="none" stroke="%230d6efd" stroke-width="3" points="0,70 40,60 80,62 120,40 160,30 200,32 240,20 280,25 300,18"/%3E%3C/svg%3E');
+      background-size: cover;
+      opacity: 0.95;
+    }
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .heatmap div {
+      border-radius: 8px;
+      height: 32px;
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    }
+    .heatmap div:nth-child(3n) { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .donut {
+      background: conic-gradient(#0d6efd 0deg 260deg, #e5e7eb 260deg 360deg);
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      position: relative;
+      margin: auto;
+    }
+    .donut::after {
+      content: "72%";
+      position: absolute;
+      inset: 24px;
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: var(--ink);
+      box-shadow: inset 0 0 0 1px #e5e7eb;
+    }
+    /* Sidebar interactions */
+    .sidebar {
+      width: 72px;
+      transition: width 0.2s ease;
+    }
+    .sidebar.open { width: 280px; }
+    .sidebar .label { opacity: 0; transition: opacity 0.15s ease; white-space: nowrap; }
+    .sidebar.open .label { opacity: 1; }
+    .sidebar .item { transition: background 0.2s ease, color 0.2s ease; }
+    .sidebar .item.active { background: var(--accent-soft); color: var(--accent); }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-110%); width: 80%; max-width: 320px; position: fixed; inset: 0 auto 0 0; z-index: 50; box-shadow: 0 20px 60px rgba(15,23,42,0.18); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar .label { opacity: 1; }
+      body.menu-open { overflow: hidden; }
+    }
   </style>
 </head>
 <body class="min-h-screen">
-  <div class="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-    <div class="text-base font-semibold tracking-tight text-slate-900">AlgoHive Institutional — Sasfin</div>
-    <button id="menuToggle" class="h-10 px-3 rounded-lg border border-slate-200 text-sm font-semibold text-slate-800">Menu</button>
-  </div>
-
-  <div class="flex min-h-screen relative">
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-200 px-5 py-6 space-y-6 transform -translate-x-full md:translate-x-0 md:static md:block transition-transform duration-200 ease-out z-40">
-      <div class="flex items-center justify-between">
-        <div class="text-lg font-semibold tracking-tight text-slate-900">AlgoHive | Sasfin</div>
+  <div class="md:hidden fixed inset-0 bg-black/30 z-30 hidden" id="overlay"></div>
+  <aside id="sidebar" class="sidebar bg-white border-r border-slate-200 h-screen sticky top-0 px-3 py-5 flex flex-col gap-6">
+    <div class="flex items-center gap-3 px-2">
+      <img src="https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Sasfin%20Bank%20Story%20Thumbnail?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=250&qlt=100" alt="Sasfin" class="h-10 w-10 rounded-lg object-cover shadow">
+      <div class="label">
+        <div class="text-base font-semibold text-slate-900">AlgoHive · Sasfin</div>
+        <p class="text-xs text-slate-500">Institutional Desk</p>
       </div>
-      <nav class="space-y-1 text-sm font-semibold text-slate-700">
-        <a href="#dashboard" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Dashboard</span>
-          <span class="text-xs font-medium text-slate-500">Overview</span>
-        </a>
-        <a href="#portfolio" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Portfolio</span>
-          <span class="text-xs font-medium text-slate-500">Holdings</span>
-        </a>
-        <a href="#mandates" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Mandates</span>
-          <span class="text-xs font-medium text-slate-500">View</span>
-        </a>
-        <a href="#strategies" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Strategies</span>
-          <span class="text-xs font-medium text-slate-500">Filters</span>
-        </a>
-        <a href="#transactions" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Transactions</span>
-          <span class="text-xs font-medium text-slate-500">Ledger</span>
-        </a>
-        <a href="#clients" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Clients</span>
-          <span class="text-xs font-medium text-slate-500">Status</span>
-        </a>
-        <a href="#compliance" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Compliance</span>
-          <span class="text-xs font-medium text-slate-500">KYC</span>
-        </a>
-        <a href="#reports" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Reports</span>
-          <span class="text-xs font-medium text-slate-500">Statements</span>
-        </a>
-        <a href="#settings" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Settings</span>
-          <span class="text-xs font-medium text-slate-500">Roles</span>
-        </a>
-        <a href="#support" class="flex items-start justify-between px-3 py-2 rounded-lg hover:bg-slate-100">
-          <span>Support</span>
-          <span class="text-xs font-medium text-slate-500">Help</span>
-        </a>
-      </nav>
-      <div class="hidden md:block text-xs text-slate-500 font-medium leading-relaxed">Clean, minimal navigation for Sasfin’s institutional workspace. No icons, no clutter—just the essentials.</div>
-    </aside>
+      <button id="mobileClose" class="md:hidden ml-auto p-2 rounded-lg hover:bg-slate-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+    <nav class="flex-1 space-y-1 text-sm font-semibold text-slate-700">
+      <a href="#dashboard" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 active">
+        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+        <span class="label">Dashboard</span>
+      </a>
+      <a href="#portfolio" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Portfolio</span>
+      </a>
+      <a href="#mandates" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Mandates</span>
+      </a>
+      <a href="#strategies" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Strategies</span>
+      </a>
+      <a href="#transactions" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Transactions</span>
+      </a>
+      <a href="#clients" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Clients</span>
+      </a>
+      <a href="#compliance" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Compliance</span>
+      </a>
+      <a href="#reports" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Reports</span>
+      </a>
+      <a href="#settings" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Settings</span>
+      </a>
+      <a href="#support" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
+        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="label">Support</span>
+      </a>
+    </nav>
+    <div class="label text-xs text-slate-500 leading-relaxed px-2">Hover or tap to expand. Clean, responsive rail built for Sasfin’s institutional workspace.</div>
+  </aside>
 
-    <main class="flex-1 md:ml-72">
-      <section class="px-6 pt-8 pb-14 space-y-8">
-        <div class="max-w-5xl">
-          <p class="text-sm font-semibold text-indigo-700 uppercase tracking-wide">Navigation PRD</p>
-          <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 mt-2">AlgoHive Institutional Platform — Sasfin Edition</h1>
-          <p class="mt-3 text-lg text-slate-700 leading-relaxed">A composed navigation system for Sasfin’s mandates. The left sidebar anchors the experience on desktop, while a top drawer keeps things tidy on mobile. Everything is text-first and uncluttered.</p>
+  <main class="md:ml-[72px] transition-all" id="content">
+    <header class="sticky top-0 z-20 bg-[var(--back)]/80 backdrop-blur border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="menuToggle" class="md:hidden p-2 rounded-lg border border-slate-200 bg-white shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Dashboard</p>
+          <h1 class="text-xl md:text-2xl font-semibold text-slate-900">AlgoHive Institutional · Sasfin Edition</h1>
         </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl">
-          <div class="rounded-2xl bg-white border border-slate-200 p-6 space-y-4">
-            <h2 class="text-xl font-semibold text-slate-900">Tone &amp; Layout</h2>
-            <p class="text-slate-700 leading-relaxed">Institutional, minimal, and deliberate. The sidebar carries primary sections with concise secondary labels. On mobile, the drawer keeps the page serene until opened.</p>
-            <ul class="text-slate-700 space-y-2 text-sm leading-relaxed list-disc list-inside">
-              <li>No icons, no gradients; just crisp typography.</li>
-              <li>Left rail on desktop; slide-in drawer on handheld.</li>
-              <li>Carded content for quick scanning.</li>
-            </ul>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-sm font-medium">
+        <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700">Live trading</span>
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-semibold">AH</div>
+          <div>
+            <div class="text-slate-900">Institutional Desk</div>
+            <div class="text-xs text-slate-500">AlgoHive Ops</div>
           </div>
-          <div class="rounded-2xl bg-white border border-slate-200 p-6 space-y-4">
-            <h2 class="text-xl font-semibold text-slate-900">Quick Stats on Dashboard</h2>
-            <p class="text-slate-700 text-sm leading-relaxed">Surface AUM, YTD return, MTM PnL, risk score, allocation mix. Include equity curve, monthly heatmap, exposures by asset class, and notifications on audits or mandate updates.</p>
-            <div class="grid grid-cols-2 gap-3 text-sm text-slate-800">
-              <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">AUM, YTD, MTM</div>
-              <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">Risk score</div>
-              <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">Equity curve</div>
-              <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">Heatmap &amp; exposure</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="p-6 space-y-6" id="dashboard">
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <div class="xl:col-span-3 card p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm uppercase tracking-[0.18em] text-slate-500 font-semibold">Total Value</p>
+              <h2 class="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">$1,234,282,176</h2>
+              <p class="text-sm text-green-600 font-semibold mt-1">+$1.03m today</p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm uppercase tracking-[0.18em] text-slate-500 font-semibold">Profit / Loss</p>
+              <h3 class="text-2xl font-semibold text-slate-900 mt-2">$2,156,890</h3>
+              <p class="text-xs text-green-600 font-semibold mt-1">17.8% annualized</p>
             </div>
           </div>
-          <div class="rounded-2xl bg-white border border-slate-200 p-6 space-y-4">
-            <h2 class="text-xl font-semibold text-slate-900">Permissions &amp; Filters</h2>
-            <p class="text-slate-700 text-sm leading-relaxed">Mandates are view-only for Sasfin, editable only by AlgoHive. Strategies respect the approved mandate filters for risk, asset class, region, and volatility.</p>
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">Role-aware navigation cues keep Analysts, Viewers, and Admins aligned without visual noise.</div>
+          <div class="mt-6 space-y-4">
+            <div class="flex items-center justify-between text-sm text-slate-700 font-medium">
+              <span>Capital Deployed</span>
+              <span>$26,526,340</span>
+            </div>
+            <div class="h-3 rounded-full overflow-hidden gradient-bar"></div>
+            <div class="grid grid-cols-3 gap-3 text-xs text-slate-600">
+              <div class="card p-3 border border-slate-100 shadow-none bg-white">
+                <p class="text-slate-500 text-[11px] uppercase tracking-[0.18em]">Risk & Exposure</p>
+                <p class="text-base font-semibold text-slate-900">$23,378,220</p>
+                <p class="text-green-600 font-semibold text-[12px]">-0.50%</p>
+              </div>
+              <div class="card p-3 border border-slate-100 shadow-none bg-white">
+                <p class="text-slate-500 text-[11px] uppercase tracking-[0.18em]">Available Cash</p>
+                <p class="text-base font-semibold text-slate-900">$43,671.00</p>
+                <p class="text-green-600 font-semibold text-[12px]">+3.25%</p>
+              </div>
+              <div class="card p-3 border border-slate-100 shadow-none bg-white">
+                <p class="text-slate-500 text-[11px] uppercase tracking-[0.18em]">Credit Lines</p>
+                <p class="text-base font-semibold text-slate-900">$2,156,890</p>
+                <p class="text-green-600 font-semibold text-[12px]">+11.50%</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="max-w-5xl space-y-6" id="dashboard">
+        <div class="card p-5 flex flex-col gap-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-2xl font-semibold text-slate-900">Primary Menu</h2>
-            <span class="text-sm font-medium text-slate-500">Left sidebar on desktop · Top drawer on mobile</span>
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Notifications</p>
+              <h3 class="text-lg font-semibold text-slate-900">Audit & Activity</h3>
+            </div>
+            <span class="px-2 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700 font-semibold">Live</span>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="portfolio">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">1. Dashboard</h3><span class="text-xs text-slate-500">Performance snapshot</span></div>
-              <p class="text-sm text-slate-700 leading-relaxed">Overview of mandate performance with quick stats, charts, exposure, and notifications.</p>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>AUM, YTD return, MTM PnL, risk score, allocation summary.</li>
-                <li>Equity curve, monthly returns heatmap, exposure by asset class.</li>
-                <li>Notifications for audits, mandate updates, and account actions.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">2. Portfolio</h3><span class="text-xs text-slate-500">Holdings &amp; performance</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li><strong>Holdings:</strong> instruments list, weights, current price vs average cost, unrealized PnL.</li>
-                <li><strong>Allocation:</strong> model vs actual with drift alerts; rebalancing actions (view-only).</li>
-                <li><strong>Performance:</strong> time-weighted return, drawdowns, volatility, benchmarks, contribution analysis.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="mandates">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">3. Mandates</h3><span class="text-xs text-slate-500">View-only</span></div>
-              <p class="text-sm text-slate-700 leading-relaxed">Inventory of mandates created for Sasfin, with risk levels, strategy mix, and objective summaries. Editable only by AlgoHive.</p>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="strategies">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">4. Strategies</h3><span class="text-xs text-slate-500">Filtered catalog</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>List all AlgoHive strategies with filters for risk, asset class, region, and volatility band.</li>
-                <li>Detail pages show factsheet, performance chart, Sharpe/Sortino, max drawdown, win rate.</li>
-                <li>Surface capacity limits and historical allocation behaviour. Eligible strategies match the approved mandate.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="transactions">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">5. Transactions</h3><span class="text-xs text-slate-500">Ledger-ready</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>Deposits, withdrawals, trade activity from automated execution.</li>
-                <li>Management and performance fees surfaced alongside a clean ledger view.</li>
-                <li>Export to CSV/PDF with reconciliation-ready breakdowns.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="clients">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">6. Clients</h3><span class="text-xs text-slate-500">If applicable</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>Client list with AUM, subscription status, and risk profile.</li>
-                <li>Portfolio status plus compliance/KYC state.</li>
-                <li>Restricted account actions suited for Sasfin’s operating model.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="compliance">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">7. Compliance</h3><span class="text-xs text-slate-500">Oversight</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>KYC status by client or fund, mandate sign-offs, and regulatory reports.</li>
-                <li>Transaction monitoring logs (lightweight) and risk flags.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="reports">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">8. Reports</h3><span class="text-xs text-slate-500">Download center</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>Monthly reports, quarterly factsheets, tax certificates, performance summaries, statements.</li>
-                <li>Central download center with consistent formatting.</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="settings">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">9. Settings</h3><span class="text-xs text-slate-500">Control</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>Sasfin account profile, user roles &amp; permissions (Admin, Analyst, Viewer).</li>
-                <li>API integrations (optional), email notifications, brand customization (logo &amp; theme).</li>
-              </ul>
-            </article>
-
-            <article class="rounded-2xl bg-white border border-slate-200 p-6 space-y-3" id="support">
-              <div class="flex items-center justify-between"><h3 class="text-lg font-semibold text-slate-900">10. Support</h3><span class="text-xs text-slate-500">Assurance</span></div>
-              <ul class="list-disc list-inside text-sm text-slate-800 space-y-1 leading-relaxed">
-                <li>Dedicated AlgoHive institutional support chat and ticketing center.</li>
-                <li>Onboarding guide and SLA documentation to keep responses predictable.</li>
-              </ul>
-            </article>
+          <div class="space-y-3 text-sm text-slate-700">
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-blue-500"></span>
+              <div>
+                <p class="font-semibold text-slate-900">Mandate update ready</p>
+                <p class="text-slate-600">AlgoHive desk published a mandate note for Sasfin credit.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
+              <div>
+                <p class="font-semibold text-slate-900">Audit log clean</p>
+                <p class="text-slate-600">No anomalies in the last 24h transaction monitor.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
+              <div>
+                <p class="font-semibold text-slate-900">Rebalance window</p>
+                <p class="text-slate-600">Portfolio drift approaching tolerance. View-only alerts enabled.</p>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">HFT System Health</p>
+              <h3 class="text-lg font-semibold text-slate-900">Latency <span class="text-emerald-600">0.235 ms</span></h3>
+            </div>
+            <span class="text-xs text-emerald-600 font-semibold">0.0001% error</span>
+          </div>
+          <div class="h-40 rounded-xl sparkline"></div>
+          <div class="flex items-center justify-between text-sm text-slate-700">
+            <span>Success rate</span>
+            <span class="font-semibold text-emerald-600">100%</span>
+          </div>
+        </div>
+        <div class="card p-5 space-y-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Risk Sentinel</p>
+              <h3 class="text-lg font-semibold text-slate-900">Sector Exposure</h3>
+            </div>
+            <span class="text-xs font-semibold text-amber-600">72 pts</span>
+          </div>
+          <div class="grid grid-cols-2 gap-4 items-center">
+            <div class="donut"></div>
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between"><span class="text-slate-600">Tech</span><span class="font-semibold text-slate-900">34%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Financials</span><span class="font-semibold text-slate-900">24%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Energy</span><span class="font-semibold text-slate-900">18%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Healthcare</span><span class="font-semibold text-slate-900">12%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Other</span><span class="font-semibold text-slate-900">12%</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Top Strategies</p>
+              <h3 class="text-lg font-semibold text-slate-900">Live allocations</h3>
+            </div>
+            <span class="text-xs text-emerald-600 font-semibold">+12% YoY</span>
+          </div>
+          <div class="space-y-3 text-sm text-slate-800">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Momentum FX</p>
+                <p class="text-slate-500 text-xs">T0 intraday · EURUSD</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">+9.4%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Volatility Harvest</p>
+                <p class="text-slate-500 text-xs">Options · Delta neutral</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">+6.1%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Macro Overlay</p>
+                <p class="text-slate-500 text-xs">Multi-asset · Global</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">+4.3%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Credit Carry</p>
+                <p class="text-slate-500 text-xs">Corp bonds · IG</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs">-1.2%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Live Trading Snapshot</p>
+              <h3 class="text-lg font-semibold text-slate-900">Order blotter</h3>
+            </div>
+            <span class="text-xs text-emerald-600 font-semibold">+3.65%</span>
+          </div>
+          <div class="space-y-3 text-sm text-slate-800">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">EURUSD</span>
+              <span class="font-semibold text-emerald-600">⬆ 1.0654</span>
+              <span class="text-xs text-slate-500">+0.43%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">SPX</span>
+              <span class="font-semibold text-emerald-600">⬆ 4,936</span>
+              <span class="text-xs text-slate-500">+0.38%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">CL Futures</span>
+              <span class="font-semibold text-emerald-600">⬆ 84.12</span>
+              <span class="text-xs text-slate-500">+1.12%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">USDZAR</span>
+              <span class="font-semibold text-amber-600">⬇ 18.44</span>
+              <span class="text-xs text-slate-500">-0.22%</span>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Market Insights</p>
+              <h3 class="text-lg font-semibold text-slate-900">AI Assisted</h3>
+            </div>
+            <span class="text-xs text-blue-600 font-semibold">Updated</span>
+          </div>
+          <ul class="space-y-3 text-sm text-slate-800">
+            <li class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-blue-500"></span>
+              <p><strong>Energy rotation:</strong> Crude supply tightness boosting backwardation; carry strategy outperforming.</p>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
+              <p><strong>Rates:</strong> Front-end vols compressing; macro overlay trimming duration.</p>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
+              <p><strong>FX:</strong> USD softness persists; Momentum FX increasing EUR exposure within limits.</p>
+            </li>
+          </ul>
+        </div>
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Economic Calendar</p>
+              <h3 class="text-lg font-semibold text-slate-900">GMT+2</h3>
+            </div>
+            <span class="text-xs text-slate-500">Today</span>
+          </div>
+          <div class="space-y-3 text-sm text-slate-800">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">ECB Decision</p>
+                <p class="text-xs text-slate-500">13:30 · Press conference</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs">High</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">US CPI</p>
+                <p class="text-xs text-slate-500">15:00 · Inflation print</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">On track</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">SARB Briefing</p>
+                <p class="text-xs text-slate-500">17:30 · Local rates</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs">Watch</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
     const sidebar = document.getElementById('sidebar');
-    const toggle = document.getElementById('menuToggle');
-    if (toggle) {
-      toggle.addEventListener('click', () => {
-        const isOpen = sidebar.classList.contains('-translate-x-full');
-        sidebar.classList.toggle('-translate-x-full');
-        sidebar.classList.toggle('shadow-2xl');
-        toggle.textContent = isOpen ? 'Close' : 'Menu';
-      });
-    }
+    const overlay = document.getElementById('overlay');
+    const menuToggle = document.getElementById('menuToggle');
+    const mobileClose = document.getElementById('mobileClose');
+    const content = document.getElementById('content');
+
+    const setOpen = (open) => {
+      if (open) {
+        sidebar.classList.add('open');
+        overlay.classList.remove('hidden');
+        document.body.classList.add('menu-open');
+        if (window.innerWidth >= 768) content.style.marginLeft = '280px';
+      } else {
+        sidebar.classList.remove('open');
+        overlay.classList.add('hidden');
+        document.body.classList.remove('menu-open');
+        if (window.innerWidth >= 768) content.style.marginLeft = '72px';
+      }
+    };
+
+    sidebar.addEventListener('mouseenter', () => {
+      if (window.innerWidth >= 768) {
+        sidebar.classList.add('open');
+        content.style.marginLeft = '280px';
+      }
+    });
+    sidebar.addEventListener('mouseleave', () => {
+      if (window.innerWidth >= 768) {
+        sidebar.classList.remove('open');
+        content.style.marginLeft = '72px';
+      }
+    });
+    menuToggle?.addEventListener('click', () => setOpen(true));
+    mobileClose?.addEventListener('click', () => setOpen(false));
+    overlay?.addEventListener('click', () => setOpen(false));
   </script>
 </body>
 </html>
