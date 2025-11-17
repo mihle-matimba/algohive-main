@@ -124,9 +124,52 @@
     #ah-sidebar[data-collapsed="true"] details>.sub { display: none !important; }
     #ah-collapse { display: none; }
     @media (min-width: 768px) { #ah-collapse { display: inline-flex; } }
+
+    /* Welcome preloader */
+    #welcome-overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(12,68,96,0.08), transparent 40%),
+                  radial-gradient(circle at 80% 80%, rgba(12,68,96,0.08), transparent 40%),
+                  var(--accent);
+      color: white;
+      z-index: 70;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      transition: opacity .6s ease, visibility .6s ease;
+    }
+    #welcome-overlay.hidden { opacity: 0; visibility: hidden; }
+    #welcome-card {
+      width: min(640px, 90vw);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      backdrop-filter: blur(10px);
+    }
+    #welcome-card h1 { font-size: clamp(26px, 3vw, 32px); font-weight: 700; }
+    #welcome-card p { color: rgba(255,255,255,0.9); }
   </style>
 </head>
 <body class="min-h-screen">
+  <div id="welcome-overlay">
+    <div id="welcome-card" class="space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="h-12 w-12 rounded-full border border-white/40 flex items-center justify-center text-lg font-semibold bg-white/10">AH</div>
+        <div>
+          <p class="uppercase text-[11px] tracking-[0.24em] text-white/80 font-semibold">Sasfin institutional</p>
+          <h1 id="welcome-heading">Good day</h1>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed">Loading your institutional workspace with Sasfin styling and Rand base-currency context. Charts, funds, and mandates will appear in just a moment.</p>
+      <div class="flex items-center gap-3 text-sm text-white/80">
+        <span class="inline-flex h-8 w-8 rounded-full border border-white/30 items-center justify-center animate-spin">⌾</span>
+        <span>Preparing dashboards, strategies, and client views…</span>
+      </div>
+    </div>
+  </div>
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
@@ -147,6 +190,9 @@
         </a>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#funds">
           <i class="fa-solid fa-vault text-slate-500 w-4 shrink-0"></i><span class="label">My Funds</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#fund-clients">
+          <i class="fa-solid fa-people-roof text-slate-500 w-4 shrink-0"></i><span class="label">Fund Clients</span>
         </a>
         <p class="px-3 pt-4 pb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold label">Mandates & Deals</p>
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#mandates">
@@ -213,10 +259,10 @@
         <div class="hidden md:flex items-center gap-4 text-sm font-medium">
           <span class="px-3 py-1 rounded-full bg-[var(--accent-soft)] border border-transparent text-[var(--accent)] font-semibold">Live trading</span>
           <div class="flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-semibold">AH</div>
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/1558688920634.jpeg" alt="Siphesihle Siswana" class="h-10 w-10 rounded-full border border-slate-200 object-cover" loading="lazy" />
             <div>
-              <div class="text-slate-900">Institutional Desk</div>
-              <div class="text-xs text-slate-500">AlgoHive Ops</div>
+              <div class="text-slate-900">Siphesihle Siswana</div>
+              <div class="text-xs text-slate-500">Institutional Desk</div>
             </div>
           </div>
         </div>
@@ -298,17 +344,17 @@
         <div class="card p-5 space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">HFT System Health</p>
-              <h3 class="text-lg font-semibold text-slate-900">Latency <span class="text-emerald-600">0.235 ms</span></h3>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Asset Allocation</p>
+              <h3 class="text-lg font-semibold text-slate-900">Strategic weights (ZAR)</h3>
             </div>
-            <span class="text-xs text-emerald-600 font-semibold">0.0001% error</span>
+            <span class="text-xs text-[var(--accent)] font-semibold">Target vs Actual</span>
           </div>
           <div class="h-40">
-            <canvas id="latency-chart"></canvas>
+            <canvas id="allocation-chart"></canvas>
           </div>
           <div class="flex items-center justify-between text-sm text-slate-700">
-            <span>Success rate</span>
-            <span class="font-semibold text-emerald-600">100%</span>
+            <span>Cash buffer</span>
+            <span class="font-semibold text-emerald-600">5.8%</span>
           </div>
         </div>
         <div class="card p-5 space-y-5">
@@ -336,9 +382,24 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Monthly Returns</p>
-              <h3 class="text-lg font-semibold text-slate-900">Last 6 periods (vs benchmark)</h3>
+              <h3 class="text-lg font-semibold text-slate-900">Period insights (vs benchmark)</h3>
             </div>
-            <span class="text-xs text-emerald-600 font-semibold">+14.2% YTD</span>
+            <div class="flex items-center gap-2 text-xs">
+              <label class="text-slate-500">Timeframe</label>
+              <select id="timeframe-select" class="border border-slate-200 rounded-md px-2 py-1 bg-white">
+                <option value="6m">6 months</option>
+                <option value="1y">1 year</option>
+                <option value="3y">3 years</option>
+              </select>
+              <select id="performance-select" class="border border-slate-200 rounded-md px-2 py-1 bg-white">
+                <option value="mandate">Mandate composite</option>
+                <option value="income">Income Fund</option>
+                <option value="balanced">Balanced Fund</option>
+                <option value="growth">Growth Fund</option>
+                <option value="systematic">Systematic Equity</option>
+                <option value="macro">Macro Overlay</option>
+              </select>
+            </div>
           </div>
           <div class="h-48">
             <canvas id="returns-chart"></canvas>
@@ -359,16 +420,19 @@
             <div class="p-3 rounded-xl border border-[var(--line)] bg-white">
               <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Income Fund</p>
               <p class="text-2xl font-semibold text-slate-900">R482.6m</p>
+              <p class="text-xs text-slate-500">Clients: <span class="font-semibold text-slate-900">42</span></p>
               <p class="text-xs text-emerald-600 font-semibold">+0.42% today</p>
             </div>
             <div class="p-3 rounded-xl border border-[var(--line)] bg-white">
               <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Balanced</p>
               <p class="text-2xl font-semibold text-slate-900">R316.4m</p>
+              <p class="text-xs text-slate-500">Clients: <span class="font-semibold text-slate-900">33</span></p>
               <p class="text-xs text-emerald-600 font-semibold">+0.21% today</p>
             </div>
             <div class="p-3 rounded-xl border border-[var(--line)] bg-white">
               <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Growth</p>
               <p class="text-2xl font-semibold text-slate-900">R142.3m</p>
+              <p class="text-xs text-slate-500">Clients: <span class="font-semibold text-slate-900">18</span></p>
               <p class="text-xs text-amber-600 font-semibold">Rebalance window</p>
             </div>
           </div>
@@ -378,7 +442,59 @@
             <span class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700">Cash buffer: 5.8%</span>
           </div>
         </div>
-        <div class="card p-5 space-y-4" id="openstrategies">
+      </div>
+
+      <div class="card p-5 space-y-4" id="fund-clients">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Fund clients</p>
+            <h3 class="text-lg font-semibold text-slate-900">Client coverage by mandate</h3>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-semibold border border-transparent">Export CSV</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left">
+            <thead class="text-slate-500 uppercase text-[11px] tracking-[0.18em]">
+              <tr class="border-b border-slate-200">
+                <th class="py-2 pr-6">Fund</th>
+                <th class="py-2 pr-6">Clients</th>
+                <th class="py-2 pr-6">AUM (ZAR)</th>
+                <th class="py-2 pr-6">MTD</th>
+                <th class="py-2 pr-6">YTD</th>
+                <th class="py-2 pr-6">Since inception</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-800">
+              <tr>
+                <td class="py-3 pr-6 font-semibold">Income Fund</td>
+                <td class="py-3 pr-6">42</td>
+                <td class="py-3 pr-6">R482,600,000</td>
+                <td class="py-3 pr-6 text-emerald-600">+0.28%</td>
+                <td class="py-3 pr-6 text-emerald-600">+4.12%</td>
+                <td class="py-3 pr-6 text-emerald-600">+26.3%</td>
+              </tr>
+              <tr>
+                <td class="py-3 pr-6 font-semibold">Balanced Fund</td>
+                <td class="py-3 pr-6">33</td>
+                <td class="py-3 pr-6">R316,400,000</td>
+                <td class="py-3 pr-6 text-emerald-600">+0.19%</td>
+                <td class="py-3 pr-6 text-emerald-600">+8.46%</td>
+                <td class="py-3 pr-6 text-emerald-600">+41.7%</td>
+              </tr>
+              <tr>
+                <td class="py-3 pr-6 font-semibold">Growth Fund</td>
+                <td class="py-3 pr-6">18</td>
+                <td class="py-3 pr-6">R142,300,000</td>
+                <td class="py-3 pr-6 text-amber-600">-0.12%</td>
+                <td class="py-3 pr-6 text-emerald-600">+11.30%</td>
+                <td class="py-3 pr-6 text-emerald-600">+63.2%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card p-5 space-y-4" id="openstrategies">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Invest</p>
@@ -522,12 +638,12 @@
 
       Chart.register(hoverLine);
 
-        const equityEl = document.getElementById('equity-chart');
-        if (equityEl) {
-          const ctx = equityEl.getContext('2d');
-          const gradient = ctx.createLinearGradient(0, 0, 0, 240);
-          gradient.addColorStop(0, 'rgba(15,58,75,0.30)');
-          gradient.addColorStop(1, 'rgba(15,58,75,0.04)');
+      const equityEl = document.getElementById('equity-chart');
+      if (equityEl) {
+        const ctx = equityEl.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, 'rgba(15,58,75,0.30)');
+        gradient.addColorStop(1, 'rgba(15,58,75,0.04)');
         new Chart(ctx, {
           type: 'line',
           data: {
@@ -582,39 +698,45 @@
         });
       }
 
-      const latencyEl = document.getElementById('latency-chart');
-      if (latencyEl) {
-        new Chart(latencyEl.getContext('2d'), {
-          type: 'line',
+      const allocationEl = document.getElementById('allocation-chart');
+      if (allocationEl) {
+        new Chart(allocationEl.getContext('2d'), {
+          type: 'bar',
           data: {
-            labels: Array.from({ length: 18 }, (_, i) => `t${i + 1}`),
+            labels: ['Equities', 'Fixed Income', 'Cash', 'Alt / Hedge', 'Property'],
             datasets: [{
-              label: 'Round-trip latency',
-              data: [0.29, 0.3, 0.28, 0.27, 0.26, 0.24, 0.23, 0.25, 0.24, 0.235, 0.24, 0.238, 0.237, 0.236, 0.235, 0.234, 0.236, 0.235],
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16,185,129,0.12)',
-              tension: 0.3,
-              borderWidth: 2,
-              fill: true,
-              pointRadius: 0
+              label: 'Target',
+              data: [48, 26, 8, 12, 6],
+              backgroundColor: 'rgba(12,68,96,0.18)',
+              borderColor: primary,
+              borderWidth: 1,
+              borderRadius: 6,
+              barPercentage: 0.6
+            }, {
+              label: 'Actual',
+              data: [46, 29, 7, 10, 8],
+              backgroundColor: primary,
+              borderColor: primary,
+              borderWidth: 1,
+              borderRadius: 6,
+              barPercentage: 0.6
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              displayColors: false,
-              callbacks: {
-                label: c => `${c.dataset.label ?? 'Latency'}: ${c.raw.toFixed(3)} ms`
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#475569', boxWidth: 12 } },
+              tooltip: {
+                callbacks: {
+                  label: c => `${c.dataset.label}: ${c.raw}%`
+                }
               }
-            }
-          },
-          scales: {
-            x: { display: false },
-            y: { display: true, grid: { color: muted }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+              y: { grid: { color: muted, borderDash: [4, 4] }, ticks: { color: '#94a3b8', callback: v => `${v}%` } }
             }
           }
         });
@@ -650,13 +772,35 @@
       }
 
       const returnsEl = document.getElementById('returns-chart');
+      const timeframeSelect = document.getElementById('timeframe-select');
+      const performanceSelect = document.getElementById('performance-select');
       if (returnsEl) {
-        new Chart(returnsEl.getContext('2d'), {
+        const dataSets = {
+          mandate: { data: [2.1, 1.6, -0.8, 3.4, 2.9, 5.0], benchmark: [1.2, 1.1, -1.4, 2.2, 2.0, 3.8] },
+          income: { data: [0.8, 1.0, 0.9, 1.1, 1.0, 1.3], benchmark: [0.5, 0.6, 0.6, 0.7, 0.7, 0.8] },
+          balanced: { data: [1.3, 1.1, -0.4, 2.0, 1.9, 2.7], benchmark: [1.0, 0.9, -0.3, 1.6, 1.4, 2.1] },
+          growth: { data: [2.8, 2.2, -1.1, 4.1, 3.5, 5.6], benchmark: [2.1, 1.8, -1.0, 3.2, 2.8, 4.2] },
+          systematic: { data: [3.1, 2.5, -1.5, 4.8, 4.2, 6.1], benchmark: [2.4, 2.0, -1.2, 3.6, 3.0, 4.5] },
+          macro: { data: [1.9, 1.7, 0.4, 1.6, 2.1, 2.4], benchmark: [1.4, 1.2, 0.2, 1.0, 1.3, 1.6] }
+        };
+        const labelsByTimeframe = {
+          '6m': ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+          '1y': ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+          '3y': ['FY21', 'FY22', 'FY23']
+        };
+        const datasetForTimeframe = (key, timeframe) => {
+          const base = dataSets[key];
+          if (timeframe === '1y') return { data: [...base.data, 2.1, 1.8, 2.0, 2.3, 2.4, 2.6], benchmark: [...base.benchmark, 1.6, 1.5, 1.7, 1.8, 1.9, 2.0] };
+          if (timeframe === '3y') return { data: [9.2, 11.4, 12.8], benchmark: [7.1, 8.6, 9.4] };
+          return base;
+        };
+
+        const returnsChart = new Chart(returnsEl.getContext('2d'), {
           type: 'bar',
           data: {
-            labels: ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+            labels: labelsByTimeframe['6m'],
             datasets: [{
-              data: [2.1, 1.6, -0.8, 3.4, 2.9, 5.0],
+              data: dataSets.mandate.data,
               backgroundColor: ctx => ctx.raw >= 0 ? primary : '#f97316',
               borderRadius: 8,
               borderSkipped: false,
@@ -664,7 +808,7 @@
             }, {
               type: 'line',
               label: 'Benchmark',
-              data: [1.2, 1.1, -1.4, 2.2, 2.0, 3.8],
+              data: dataSets.mandate.benchmark,
               borderColor: '#94a3b8',
               backgroundColor: 'rgba(148,163,184,0.12)',
               tension: 0.32,
@@ -687,6 +831,29 @@
             }
           }
         });
+
+        const updateReturns = () => {
+          const key = performanceSelect?.value || 'mandate';
+          const timeframe = timeframeSelect?.value || '6m';
+          const dataset = datasetForTimeframe(key, timeframe);
+          returnsChart.data.labels = labelsByTimeframe[timeframe];
+          returnsChart.data.datasets[0].data = dataset.data;
+          returnsChart.data.datasets[0].label = key === 'mandate' ? 'Mandate' : performanceSelect?.selectedOptions[0]?.text || 'Strategy';
+          returnsChart.data.datasets[1].data = dataset.benchmark;
+          returnsChart.update();
+        };
+
+        timeframeSelect?.addEventListener('change', updateReturns);
+        performanceSelect?.addEventListener('change', updateReturns);
+      }
+
+      const welcomeHeading = document.getElementById('welcome-heading');
+      const overlay = document.getElementById('welcome-overlay');
+      if (welcomeHeading && overlay) {
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+        welcomeHeading.textContent = `${greeting}, Siphesihle Siswana`;
+        setTimeout(() => overlay.classList.add('hidden'), 900);
       }
     })();
   </script>
