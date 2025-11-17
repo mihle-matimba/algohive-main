@@ -1,106 +1,198 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Modern Auth Demo</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlgoHive — Auth Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
         --olive: #7e8d52;
         --olive-700: #576138;
         --ink: #0b1215;
-        --surface: #ffffff;
-        --muted: #f0f2ef;
-        --accent: #c7d2fe;
-        --shadow: 0 25px 55px -30px rgba(11, 18, 21, 0.55);
-      }
-
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
       }
 
       body {
-        margin: 0;
-        min-height: 100vh;
+        background: #f6f7f6;
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
           'Segoe UI', sans-serif;
-        background: #f6f7f6;
-        color: var(--ink);
-        line-height: 1.5;
       }
 
-      img {
-        max-width: 100%;
-        display: block;
-      }
-
-      .auth-page {
-        display: flex;
-        min-height: 100vh;
-        position: relative;
-        background: #f6f7f6;
-      }
-
-      .orbit-panel {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .btn-shine {
         position: relative;
         overflow: hidden;
-        padding: clamp(2rem, 4vw, 4rem);
-        background: radial-gradient(circle at 25% 25%, rgba(126, 141, 82, 0.08),
-            transparent 60%), #f6f7f6;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
       }
 
-      .orbit-panel::after,
-      .orbit-panel::before {
+      .btn-shine::before {
         content: '';
         position: absolute;
-        width: 60vmax;
-        height: 60vmax;
-        border: 1px solid rgba(11, 18, 21, 0.08);
-        border-radius: 50%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        inset: 0;
         pointer-events: none;
+        background: linear-gradient(
+          120deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.7) 50%,
+          transparent 100%
+        );
+        transform: translateX(-120%);
+        transition: transform 0.8s ease;
       }
 
-      .orbit-panel::before {
-        width: 80vmax;
-        height: 80vmax;
-        border-style: dashed;
-        border-color: rgba(11, 18, 21, 0.12);
+      .btn-shine:hover::before {
+        transform: translateX(120%);
+      }
+
+      .btn-shine:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px -16px rgba(11, 18, 21, 0.4);
+      }
+
+      .auth-left {
+        animation: heroSlideUp 0.7s ease-out 0.25s both;
+      }
+
+      .auth-right {
+        animation: heroScaleIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.35s both;
+      }
+
+      @keyframes heroScaleIn {
+        0% {
+          transform: scale(1.06);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes heroSlideUp {
+        0% {
+          transform: translateY(16px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .orb-gradient {
+        background-image: radial-gradient(
+            circle at 20% 20%,
+            rgba(255, 255, 255, 0.75),
+            rgba(255, 255, 255, 0) 60%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(126, 141, 82, 0.18),
+            rgba(255, 255, 255, 0) 55%
+          ),
+          radial-gradient(
+            circle at 50% 80%,
+            rgba(126, 141, 82, 0.12),
+            rgba(255, 255, 255, 0) 55%
+          );
       }
 
       .orbit-stage {
-        width: min(580px, 100%);
-        aspect-ratio: 1 / 1;
+        width: min(540px, 100%);
+        aspect-ratio: 1/1;
         position: relative;
+        margin-inline: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      .orbit-headline {
+      .orbit-stage::after {
+        content: '';
+        position: absolute;
+        inset: 10%;
+        border-radius: 50%;
+        border: 1px dashed rgba(11, 18, 21, 0.08);
+        pointer-events: none;
+      }
+
+      .market-heading {
         position: absolute;
         inset: 0;
-        z-index: 2;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 2rem;
-        font-size: clamp(2rem, 4vw, 3.5rem);
+        font-size: clamp(2.25rem, 4vw, 3.5rem);
         font-weight: 600;
-        color: rgba(11, 18, 21, 0.65);
+        color: rgba(11, 18, 21, 0.78);
+        letter-spacing: -0.01em;
         mix-blend-mode: multiply;
+      }
+
+      .ripple-backdrop {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.95),
+          transparent
+        );
+      }
+
+      .ripple-backdrop span {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        border-radius: 50%;
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        opacity: 0.25;
+        transform: translate(-50%, -50%);
+        animation: ripple 4s ease infinite;
+      }
+
+      .ripple-backdrop span:nth-child(1) {
+        width: 160px;
+        height: 160px;
+      }
+
+      .ripple-backdrop span:nth-child(2) {
+        width: 240px;
+        height: 240px;
+        animation-delay: 0.2s;
+      }
+
+      .ripple-backdrop span:nth-child(3) {
+        width: 320px;
+        height: 320px;
+        animation-delay: 0.35s;
+      }
+
+      .ripple-backdrop span:nth-child(4) {
+        width: 420px;
+        height: 420px;
+        animation-delay: 0.5s;
+      }
+
+      .ripple-backdrop span:nth-child(5) {
+        width: 520px;
+        height: 520px;
+        animation-delay: 0.65s;
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: translate(-50%, -50%) scale(0.92);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(0.92);
+        }
       }
 
       .orbit {
@@ -116,15 +208,8 @@
         height: calc(var(--radius) * 2px);
         margin-left: calc(var(--radius) * -1px);
         margin-top: calc(var(--radius) * -1px);
-        border: 2px dashed rgba(11, 18, 21, 0.25);
         border-radius: 50%;
-        opacity: 1;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        .orbit-path {
-          border-color: rgba(255, 255, 255, 0.35);
-        }
+        border: 2px dashed rgba(11, 18, 21, 0.22);
       }
 
       .orbit-item {
@@ -133,8 +218,8 @@
         left: 50%;
         transform: translate(-50%, -50%) rotate(0deg)
           translateY(calc(var(--radius) * -1px));
+        transform-origin: center;
         animation: orbit-spin calc(var(--duration) * 1s) linear infinite;
-        transform-origin: center center;
       }
 
       .orbit-item.reverse {
@@ -147,14 +232,7 @@
         border-radius: 14px;
         padding: 8px;
         background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-      }
-
-      @media (prefers-color-scheme: dark) {
-        .orbit-icon {
-          background: rgba(15, 23, 42, 0.75);
-          box-shadow: 0 20px 30px rgba(2, 6, 23, 0.65);
-        }
+        box-shadow: 0 18px 45px -30px rgba(15, 23, 42, 0.6);
       }
 
       @keyframes orbit-spin {
@@ -168,154 +246,17 @@
         }
       }
 
-      .ripple-backdrop {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none;
-        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
-      }
-
-      .ripple-backdrop span {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: calc(120px + var(--i) * 80px);
-        height: calc(120px + var(--i) * 80px);
-        border-radius: 50%;
-        border: 1px solid rgba(15, 23, 42, 0.15);
-        opacity: calc(0.25 - var(--i) * 0.02);
-        animation: ripple 4s ease calc(var(--i) * 0.2s) infinite;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        .ripple-backdrop span {
-          border-color: rgba(255, 255, 255, 0.15);
-        }
-      }
-
-      @keyframes ripple {
-        0% {
-          transform: translate(-50%, -50%) scale(0.9);
-        }
-        50% {
-          transform: translate(-50%, -50%) scale(1.05);
-        }
-        100% {
-          transform: translate(-50%, -50%) scale(0.9);
-        }
-      }
-
-      .form-panel {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: clamp(2rem, 5vw, 5rem);
-        background: #f6f7f6;
-      }
-
-      .form-card {
-        width: min(420px, 100%);
-        background: var(--surface);
-        border-radius: 24px;
-        padding: clamp(2rem, 4vw, 3rem);
-        box-shadow: var(--shadow);
-        position: relative;
-        overflow: hidden;
-      }
-
-      .form-card::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background: radial-gradient(circle at 80% 10%, rgba(59, 130, 246, 0.15),
-            transparent 55%);
-      }
-
-      .form-card h2 {
-        margin: 0 0 0.5rem;
-        font-size: clamp(2rem, 3vw, 2.5rem);
-      }
-
-      .form-card p {
-        margin: 0;
-        color: rgba(11, 18, 21, 0.6);
-      }
-
-      .google-button {
-        margin-top: 2rem;
-        width: 100%;
-        border-radius: 14px;
-        border: 1px solid rgba(11, 18, 21, 0.1);
-        background: transparent;
-        height: 48px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        transition: border 200ms ease, transform 200ms ease;
-      }
-
-      .google-button:hover {
-        border-color: var(--focus);
-        transform: translateY(-1px);
-      }
-
-      .google-button img {
-        width: 24px;
-        height: 24px;
-      }
-
-      .divider {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: rgba(11, 18, 21, 0.55);
-        font-size: 0.9rem;
-        margin: 1.75rem 0;
-      }
-
-      .divider::before,
-      .divider::after {
-        content: '';
-        flex: 1;
-        border-top: 1px dashed var(--border);
-      }
-
-      .form-fields {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-      }
-
-      label {
-        font-size: 0.95rem;
-        font-weight: 600;
-        display: flex;
-        gap: 0.3rem;
-        align-items: baseline;
-      }
-
-      label span {
-        color: #ef4444;
-      }
-
       .input-wrapper {
         position: relative;
         padding: 2px;
-        border-radius: 14px;
-        background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
-            rgba(126, 141, 82, 0.65), transparent 65%);
+        border-radius: 16px;
+        background: radial-gradient(
+          circle at var(--x, 50%) var(--y, 50%),
+          rgba(126, 141, 82, 0.65),
+          transparent 65%
+        );
+        opacity: 0.2;
         transition: opacity 200ms ease, transform 200ms ease;
-        opacity: 0.25;
       }
 
       .input-wrapper.active {
@@ -327,280 +268,274 @@
         width: 100%;
         border: none;
         outline: none;
-        border-radius: 12px;
-        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
         font-size: 1rem;
-        background: var(--muted);
-        color: inherit;
-        transition: box-shadow 200ms ease, background 200ms ease;
+        background: #f0f2ef;
+        color: var(--ink);
       }
 
       .input-wrapper input:focus-visible {
-        box-shadow: 0 0 0 2px rgba(126, 141, 82, 0.25);
         background: #fff;
-      }
-
-      .toggle-visibility {
-        position: absolute;
-        right: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: rgba(11, 18, 21, 0.55);
-        display: flex;
-        align-items: center;
-        padding: 0;
-      }
-
-      .toggle-visibility svg {
-        width: 20px;
-        height: 20px;
+        box-shadow: 0 0 0 2px rgba(126, 141, 82, 0.25);
       }
 
       .input-error {
         min-height: 1.25rem;
         font-size: 0.8rem;
         color: #ef4444;
-        margin: 0.35rem 0 0;
-      }
-
-      .primary-btn {
-        width: 100%;
-        border: none;
-        cursor: pointer;
-        border-radius: 14px;
-        padding: 0.9rem 1rem;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #0f172a;
-        background: linear-gradient(120deg, #dfe6cc, #c4cfad);
-        position: relative;
-        overflow: hidden;
-        transition: transform 200ms ease;
-      }
-
-      .primary-btn::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        opacity: 0;
-        transition: opacity 200ms ease;
-      }
-
-      .primary-btn:hover {
-        transform: translateY(-2px);
-      }
-
-      .primary-btn:hover::after {
-        opacity: 1;
-      }
-
-      .forgot-link {
-        margin-top: 1rem;
-        text-align: center;
-      }
-
-      .forgot-link button {
-        background: none;
-        border: none;
-        color: var(--olive);
-        font-weight: 600;
-        cursor: pointer;
+        margin-top: 0.35rem;
       }
 
       .form-message {
         min-height: 1.5rem;
         font-size: 0.9rem;
-        color: #ef4444;
-        margin-bottom: 0.5rem;
       }
 
       .form-message.success {
         color: #059669;
       }
-
-      @media (max-width: 1024px) {
-        .auth-page {
-          flex-direction: column;
-        }
-
-        .orbit-panel {
-          display: none;
-        }
-
-        .form-panel {
-          flex: initial;
-          min-height: 100vh;
-        }
-
-        body {
-          background: #f6f7f6;
-        }
-      }
     </style>
   </head>
-  <body>
-    <main class="auth-page">
-      <section class="orbit-panel">
-        <div class="ripple-backdrop">
-          <span style="--i: 0"></span>
-          <span style="--i: 1"></span>
-          <span style="--i: 2"></span>
-          <span style="--i: 3"></span>
-          <span style="--i: 4"></span>
+  <body class="min-h-screen antialiased text-slate-900">
+    <div class="flex min-h-screen flex-col bg-transparent lg:flex-row lg:items-stretch">
+      <main
+        class="auth-left relative mx-auto w-full max-w-2xl bg-white px-6 py-12 shadow-sm sm:px-10 sm:py-14 lg:flex lg:min-h-screen lg:max-w-lg lg:flex-col lg:justify-between lg:px-16 lg:py-20 lg:shadow"
+      >
+        <div class="flex items-center gap-2">
+          <img
+            src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
+            alt="AlgoHive"
+            class="h-8 w-auto"
+          />
+          <span class="text-lg font-semibold tracking-tight text-[var(--ink)]"
+            >AlgoHive</span
+          >
         </div>
-        <div class="orbit-stage">
-          <div class="orbit-headline">Market Leaders</div>
 
-          <div class="orbit" style="--radius: 90; --duration: 22" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item">
-              <img class="orbit-icon" src="https://logo.clearbit.com/apple.com" alt="Apple logo" />
+        <div class="mt-10 flex-1 lg:mt-16">
+          <header class="mb-9 space-y-3">
+            <div class="space-y-2">
+              <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">
+                Welcome back
+              </p>
+              <h1 class="text-3xl font-semibold text-slate-900 sm:text-[34px]">
+                Sign in to AlgoHive
+              </h1>
+              <p class="text-sm text-slate-500">
+                Need to register?
+                <button
+                  id="toggleMode"
+                  type="button"
+                  class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]"
+                >
+                  Create an account.
+                </button>
+              </p>
             </div>
-          </div>
-
-          <div class="orbit" style="--radius: 130; --duration: 24" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item reverse">
-              <img class="orbit-icon" src="https://logo.clearbit.com/tesla.com" alt="Tesla logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 170; --duration: 26" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item">
-              <img class="orbit-icon" src="https://logo.clearbit.com/amazon.com" alt="Amazon logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 210; --duration: 28" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item reverse">
-              <img class="orbit-icon" src="https://logo.clearbit.com/microsoft.com" alt="Microsoft logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 240; --duration: 30" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item">
-              <img class="orbit-icon" src="https://logo.clearbit.com/google.com" alt="Google logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 270; --duration: 32" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item reverse">
-              <img class="orbit-icon" src="https://logo.clearbit.com/nvidia.com" alt="Nvidia logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 300; --duration: 34" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item">
-              <img class="orbit-icon" src="https://logo.clearbit.com/meta.com" alt="Meta logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 330; --duration: 36" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item reverse">
-              <img class="orbit-icon" src="https://logo.clearbit.com/netflix.com" alt="Netflix logo" />
-            </div>
-          </div>
-
-          <div class="orbit" style="--radius: 360; --duration: 38" aria-hidden="true">
-            <div class="orbit-path"></div>
-            <div class="orbit-item">
-              <img class="orbit-icon" src="https://logo.clearbit.com/jpmorganchase.com" alt="JPMorgan logo" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="form-panel">
-        <article class="form-card">
-          <header>
-            <h2>Welcome back</h2>
-            <p>Sign in to your account to continue</p>
           </header>
 
-          <button class="google-button" type="button" id="googleButton">
-            <img
-              src="https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-512.png"
-              alt="Google icon"
-            />
-            Login with Google
-          </button>
+          <div id="msg" class="form-message text-sm text-rose-600"></div>
 
-          <div class="divider">or continue with email</div>
+          <section class="space-y-8">
+            <button
+              id="googleButton"
+              type="button"
+              class="group/btn bg-transparent w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:border-[var(--olive)]"
+            >
+              <span class="flex items-center justify-center gap-3">
+                <img
+                  src="https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-512.png"
+                  width="24"
+                  height="24"
+                  alt="Google"
+                />
+                Sign in with Google
+              </span>
+            </button>
 
-          <form id="authForm" novalidate>
-            <div id="formMessage" class="form-message" aria-live="polite"></div>
-            <div class="form-fields">
-              <div class="field">
-                <label for="email">Email <span>*</span></label>
+            <div class="flex items-center gap-4 text-sm text-slate-500">
+              <span class="flex-1 border-t border-dashed border-slate-200"></span>
+              or
+              <span class="flex-1 border-t border-dashed border-slate-200"></span>
+            </div>
+
+            <form id="authForm" class="space-y-5 text-left sm:max-w-md">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="email">
+                  Email address <span class="text-red-500">*</span>
+                </label>
                 <div class="input-wrapper" data-field="email">
                   <input
-                    type="email"
                     id="email"
-                    name="email"
-                    placeholder="Enter your email address"
-                    autocomplete="email"
+                    type="email"
+                    placeholder="you@example.com"
                     required
                   />
                 </div>
                 <p class="input-error" data-error-for="email"></p>
               </div>
 
-              <div class="field">
-                <label for="password">Password <span>*</span></label>
+              <div>
+                <div class="flex items-center justify-between text-sm">
+                  <label class="font-medium text-slate-700" for="password">
+                    Password <span class="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    id="forgotButton"
+                    class="font-medium text-[var(--olive)] hover:text-[var(--olive-700)]"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div class="input-wrapper" data-field="password">
                   <input
-                    type="password"
                     id="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    autocomplete="current-password"
+                    type="password"
+                    placeholder="••••••••"
                     minlength="6"
                     required
                   />
-                  <button
-                    type="button"
-                    class="toggle-visibility"
-                    aria-label="Toggle password visibility"
-                    id="togglePassword"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path
-                        d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
-                      ></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
                 </div>
                 <p class="input-error" data-error-for="password"></p>
               </div>
+
+              <button
+                type="submit"
+                class="btn-shine w-full rounded-2xl bg-[var(--olive)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]"
+              >
+                Sign in
+              </button>
+            </form>
+          </section>
+        </div>
+
+        <footer class="mt-14 border-t border-slate-100 pt-6 text-left text-[11px] leading-5 text-slate-500">
+          AlgoHive (Pty) Ltd is an authorised Financial Services Provider
+          (<b>FSP 55118</b>) regulated by the Financial Sector Conduct Authority and a
+          registered Credit Provider (<b>NCRCP22892</b>) under the National Credit Act.
+        </footer>
+      </main>
+
+      <aside class="auth-right relative hidden w-full bg-[#f7f9ff] px-6 py-14 shadow-inner lg:flex lg:flex-1 lg:items-center lg:justify-center lg:rounded-none lg:px-20 lg:py-20">
+        <div class="absolute inset-0 orb-gradient opacity-95"></div>
+        <div class="relative z-10 w-full max-w-5xl">
+          <div class="orbit-stage">
+            <div class="ripple-backdrop" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p class="market-heading">Market Leaders</p>
+
+            <div class="orbit" style="--radius: 100; --duration: 22">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/apple.com"
+                  alt="Apple logo"
+                />
+              </div>
             </div>
 
-            <button class="primary-btn" type="submit">
-              Sign in &rarr;
-            </button>
-
-            <div class="forgot-link">
-              <button type="button" id="forgotButton">Forgot password?</button>
+            <div class="orbit" style="--radius: 140; --duration: 24">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/tesla.com"
+                  alt="Tesla logo"
+                />
+              </div>
             </div>
-          </form>
-        </article>
-      </section>
-    </main>
+
+            <div class="orbit" style="--radius: 180; --duration: 26">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/amazon.com"
+                  alt="Amazon logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 220; --duration: 28">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/microsoft.com"
+                  alt="Microsoft logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 250; --duration: 30">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/google.com"
+                  alt="Google logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 280; --duration: 32">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/nvidia.com"
+                  alt="Nvidia logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 310; --duration: 34">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/meta.com"
+                  alt="Meta logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 340; --duration: 36">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/netflix.com"
+                  alt="Netflix logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 370; --duration: 38">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/jpmorganchase.com"
+                  alt="JPMorgan logo"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
 
     <script>
       const wrappers = document.querySelectorAll('.input-wrapper');
-
       wrappers.forEach((wrapper) => {
         wrapper.addEventListener('pointermove', (event) => {
           const rect = wrapper.getBoundingClientRect();
@@ -610,41 +545,13 @@
           wrapper.style.setProperty('--y', `${y}px`);
           wrapper.classList.add('active');
         });
-
         wrapper.addEventListener('pointerleave', () => {
           wrapper.classList.remove('active');
         });
       });
 
-      const passwordInput = document.getElementById('password');
-      const togglePasswordButton = document.getElementById('togglePassword');
-      let showingPassword = false;
-
-      togglePasswordButton.addEventListener('click', () => {
-        showingPassword = !showingPassword;
-        passwordInput.type = showingPassword ? 'text' : 'password';
-        togglePasswordButton.setAttribute(
-          'aria-pressed',
-          String(showingPassword)
-        );
-        togglePasswordButton.innerHTML = showingPassword
-          ? `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-              <line x1="3" y1="3" x2="21" y2="21"></line>
-            </svg>
-          `
-          : `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          `;
-      });
-
       const form = document.getElementById('authForm');
-      const message = document.getElementById('formMessage');
+      const message = document.getElementById('msg');
       const fieldErrors = {
         email: document.querySelector('[data-error-for="email"]'),
         password: document.querySelector('[data-error-for="password"]'),
@@ -693,19 +600,42 @@
         });
       });
 
-      document
-        .getElementById('googleButton')
-        .addEventListener('click', () => {
-          message.textContent = 'Google login clicked.';
-          message.classList.add('success');
-          console.log('Google login clicked');
-        });
+      document.getElementById('googleButton').addEventListener('click', () => {
+        message.textContent = 'Google login clicked.';
+        message.classList.add('success');
+        console.log('Google login clicked');
+      });
 
-      document
-        .getElementById('forgotButton')
-        .addEventListener('click', () => {
-          alert('Redirecting to password recovery…');
-        });
+      document.getElementById('forgotButton').addEventListener('click', () => {
+        alert('Redirecting to password recovery…');
+      });
+
+      document.getElementById('toggleMode').addEventListener('click', () => {
+        alert('Switching to sign-up flow…');
+      });
+
+      const orbitItems = Array.from(document.querySelectorAll('[data-orbit-item]'));
+      let reverseCount = 0;
+      orbitItems.forEach((item) => {
+        const styles = getComputedStyle(item);
+        const duration = parseFloat(styles.getPropertyValue('--duration')) || 24;
+        const offset = Math.random() * duration;
+        item.style.animationDelay = `-${offset}s`;
+        if (Math.random() > 0.5) {
+          item.classList.add('reverse');
+          reverseCount += 1;
+        } else {
+          item.classList.remove('reverse');
+        }
+      });
+
+      if (reverseCount === 0 && orbitItems.length) {
+        orbitItems[0].classList.add('reverse');
+      }
+
+      if (reverseCount === orbitItems.length && orbitItems.length) {
+        orbitItems[0].classList.remove('reverse');
+      }
     </script>
   </body>
 </html>
