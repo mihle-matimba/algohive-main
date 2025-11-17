@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlgoHive — Auth Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --olive: #7e8d52;
+        --olive-700: #576138;
+        --ink: #0b1215;
+      }
+
+      body {
+        background: #f6f7f6;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+          'Segoe UI', sans-serif;
+      }
+
+      .btn-shine {
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .btn-shine::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          120deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.7) 50%,
+          transparent 100%
+        );
+        transform: translateX(-120%);
+        transition: transform 0.8s ease;
+      }
+
+      .btn-shine:hover::before {
+        transform: translateX(120%);
+      }
+
+      .btn-shine:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px -16px rgba(11, 18, 21, 0.4);
+      }
+
+      .auth-left {
+        animation: heroSlideUp 0.7s ease-out 0.25s both;
+      }
+
+      .auth-right {
+        animation: heroScaleIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.35s both;
+      }
+
+      @keyframes heroScaleIn {
+        0% {
+          transform: scale(1.06);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes heroSlideUp {
+        0% {
+          transform: translateY(16px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .orb-gradient {
+        background-image: radial-gradient(
+            circle at 20% 20%,
+            rgba(255, 255, 255, 0.75),
+            rgba(255, 255, 255, 0) 60%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(126, 141, 82, 0.18),
+            rgba(255, 255, 255, 0) 55%
+          ),
+          radial-gradient(
+            circle at 50% 80%,
+            rgba(126, 141, 82, 0.12),
+            rgba(255, 255, 255, 0) 55%
+          );
+      }
+
+      .orbit-stage {
+        width: min(540px, 100%);
+        aspect-ratio: 1/1;
+        position: relative;
+        margin-inline: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .orbit-stage::after {
+        content: '';
+        position: absolute;
+        inset: 10%;
+        border-radius: 50%;
+        border: 1px dashed rgba(11, 18, 21, 0.08);
+        pointer-events: none;
+      }
+
+      .market-heading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: clamp(2.25rem, 4vw, 3.5rem);
+        font-weight: 600;
+        color: rgba(11, 18, 21, 0.78);
+        letter-spacing: -0.01em;
+        mix-blend-mode: multiply;
+      }
+
+      .ripple-backdrop {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.95),
+          transparent
+        );
+      }
+
+      .ripple-backdrop span {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        border-radius: 50%;
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        opacity: 0.25;
+        transform: translate(-50%, -50%);
+        animation: ripple 4s ease infinite;
+      }
+
+      .ripple-backdrop span:nth-child(1) {
+        width: 160px;
+        height: 160px;
+      }
+
+      .ripple-backdrop span:nth-child(2) {
+        width: 240px;
+        height: 240px;
+        animation-delay: 0.2s;
+      }
+
+      .ripple-backdrop span:nth-child(3) {
+        width: 320px;
+        height: 320px;
+        animation-delay: 0.35s;
+      }
+
+      .ripple-backdrop span:nth-child(4) {
+        width: 420px;
+        height: 420px;
+        animation-delay: 0.5s;
+      }
+
+      .ripple-backdrop span:nth-child(5) {
+        width: 520px;
+        height: 520px;
+        animation-delay: 0.65s;
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: translate(-50%, -50%) scale(0.92);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(0.92);
+        }
+      }
+
+      .orbit {
+        position: absolute;
+        inset: 0;
+      }
+
+      .orbit-path {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: calc(var(--radius) * 2px);
+        height: calc(var(--radius) * 2px);
+        margin-left: calc(var(--radius) * -1px);
+        margin-top: calc(var(--radius) * -1px);
+        border-radius: 50%;
+        border: 2px dashed rgba(11, 18, 21, 0.22);
+      }
+
+      .orbit-item {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        --start-angle: 0deg;
+        transform: translate(-50%, -50%) rotate(var(--start-angle))
+          translateY(calc(var(--radius) * -1px));
+        transform-origin: center;
+        animation: orbit-spin calc(var(--duration) * 1s) linear infinite;
+      }
+
+      .orbit-item.reverse {
+        animation-direction: reverse;
+      }
+
+      .orbit-icon {
+        width: var(--size, 48px);
+        height: var(--size, 48px);
+        border-radius: 14px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 18px 45px -30px rgba(15, 23, 42, 0.6);
+      }
+
+      @keyframes orbit-spin {
+        0% {
+          transform: translate(-50%, -50%) rotate(var(--start-angle))
+            translateY(calc(var(--radius) * -1px));
+        }
+        100% {
+          transform: translate(-50%, -50%)
+            rotate(calc(var(--start-angle) + 360deg))
+            translateY(calc(var(--radius) * -1px));
+        }
+      }
+
+      .input-wrapper {
+        position: relative;
+        padding: 2px;
+        border-radius: 16px;
+        background: radial-gradient(
+          circle at var(--x, 50%) var(--y, 50%),
+          rgba(126, 141, 82, 0.65),
+          transparent 65%
+        );
+        opacity: 0.2;
+        transition: opacity 200ms ease, transform 200ms ease;
+      }
+
+      .input-wrapper.active {
+        opacity: 1;
+        transform: translateY(-1px);
+      }
+
+      .input-wrapper input {
+        width: 100%;
+        border: none;
+        outline: none;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        font-size: 1rem;
+        background: #f0f2ef;
+        color: var(--ink);
+      }
+
+      .input-wrapper input:focus-visible {
+        background: #fff;
+        box-shadow: 0 0 0 2px rgba(126, 141, 82, 0.25);
+      }
+
+      .input-error {
+        min-height: 1.25rem;
+        font-size: 0.8rem;
+        color: #ef4444;
+        margin-top: 0.35rem;
+      }
+
+      .form-message {
+        min-height: 1.5rem;
+        font-size: 0.9rem;
+      }
+
+      .form-message.success {
+        color: #059669;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen antialiased text-slate-900">
+    <div class="flex min-h-screen flex-col bg-transparent lg:flex-row lg:items-stretch">
+      <main
+        class="auth-left relative mx-auto w-full max-w-2xl bg-white px-6 py-12 shadow-sm sm:px-10 sm:py-14 lg:flex lg:min-h-screen lg:max-w-lg lg:flex-col lg:justify-between lg:px-16 lg:py-20 lg:shadow"
+      >
+        <div class="flex items-center gap-2">
+          <img
+            src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
+            alt="AlgoHive"
+            class="h-8 w-auto"
+          />
+          <span class="text-lg font-semibold tracking-tight text-[var(--ink)]"
+            >AlgoHive</span
+          >
+        </div>
+
+        <div class="mt-10 flex-1 lg:mt-16">
+          <header class="mb-9 space-y-3">
+            <div class="space-y-2">
+              <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">
+                Welcome back
+              </p>
+              <h1 class="text-3xl font-semibold text-slate-900 sm:text-[34px]">
+                Sign in to AlgoHive
+              </h1>
+              <p class="text-sm text-slate-500">
+                Need to register?
+                <button
+                  id="toggleMode"
+                  type="button"
+                  class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]"
+                >
+                  Create an account.
+                </button>
+              </p>
+            </div>
+          </header>
+
+          <div id="msg" class="form-message text-sm text-rose-600"></div>
+
+          <section class="space-y-8">
+            <button
+              id="googleButton"
+              type="button"
+              class="group/btn bg-transparent w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:border-[var(--olive)]"
+            >
+              <span class="flex items-center justify-center gap-3">
+                <img
+                  src="https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-512.png"
+                  width="24"
+                  height="24"
+                  alt="Google"
+                />
+                Sign in with Google
+              </span>
+            </button>
+
+            <div class="flex items-center gap-4 text-sm text-slate-500">
+              <span class="flex-1 border-t border-dashed border-slate-200"></span>
+              or
+              <span class="flex-1 border-t border-dashed border-slate-200"></span>
+            </div>
+
+            <form id="authForm" class="space-y-5 text-left sm:max-w-md">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="email">
+                  Email address <span class="text-red-500">*</span>
+                </label>
+                <div class="input-wrapper" data-field="email">
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <p class="input-error" data-error-for="email"></p>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-sm">
+                  <label class="font-medium text-slate-700" for="password">
+                    Password <span class="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    id="forgotButton"
+                    class="font-medium text-[var(--olive)] hover:text-[var(--olive-700)]"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div class="input-wrapper" data-field="password">
+                  <input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    minlength="6"
+                    required
+                  />
+                </div>
+                <p class="input-error" data-error-for="password"></p>
+              </div>
+
+              <button
+                type="submit"
+                class="btn-shine w-full rounded-2xl bg-[var(--olive)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]"
+              >
+                Sign in
+              </button>
+            </form>
+          </section>
+        </div>
+
+        <footer class="mt-14 border-t border-slate-100 pt-6 text-left text-[11px] leading-5 text-slate-500">
+          AlgoHive (Pty) Ltd is an authorised Financial Services Provider
+          (<b>FSP 55118</b>) regulated by the Financial Sector Conduct Authority and a
+          registered Credit Provider (<b>NCRCP22892</b>) under the National Credit Act.
+        </footer>
+      </main>
+
+      <aside class="auth-right relative hidden w-full bg-[#f7f9ff] px-6 py-14 shadow-inner lg:flex lg:flex-1 lg:items-center lg:justify-center lg:rounded-none lg:px-20 lg:py-20">
+        <div class="absolute inset-0 orb-gradient opacity-95"></div>
+        <div class="relative z-10 w-full max-w-5xl">
+          <div class="orbit-stage">
+            <div class="ripple-backdrop" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p class="market-heading">Market Leaders</p>
+
+            <div class="orbit" style="--radius: 100; --duration: 22">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/apple.com"
+                  alt="Apple logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 140; --duration: 24">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/tesla.com"
+                  alt="Tesla logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 180; --duration: 26">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/amazon.com"
+                  alt="Amazon logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 220; --duration: 28">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/microsoft.com"
+                  alt="Microsoft logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 250; --duration: 30">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/google.com"
+                  alt="Google logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 280; --duration: 32">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/nvidia.com"
+                  alt="Nvidia logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 310; --duration: 34">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/meta.com"
+                  alt="Meta logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 340; --duration: 36">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/netflix.com"
+                  alt="Netflix logo"
+                />
+              </div>
+            </div>
+
+            <div class="orbit" style="--radius: 370; --duration: 38">
+              <div class="orbit-path"></div>
+              <div class="orbit-item" data-orbit-item>
+                <img
+                  class="orbit-icon"
+                  src="https://logo.clearbit.com/jpmorganchase.com"
+                  alt="JPMorgan logo"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      const wrappers = document.querySelectorAll('.input-wrapper');
+      wrappers.forEach((wrapper) => {
+        wrapper.addEventListener('pointermove', (event) => {
+          const rect = wrapper.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          wrapper.style.setProperty('--x', `${x}px`);
+          wrapper.style.setProperty('--y', `${y}px`);
+          wrapper.classList.add('active');
+        });
+        wrapper.addEventListener('pointerleave', () => {
+          wrapper.classList.remove('active');
+        });
+      });
+
+      const form = document.getElementById('authForm');
+      const message = document.getElementById('msg');
+      const fieldErrors = {
+        email: document.querySelector('[data-error-for="email"]'),
+        password: document.querySelector('[data-error-for="password"]'),
+      };
+
+      const validators = {
+        email(value) {
+          if (!value) return 'Email is required';
+          const emailPattern = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+          return emailPattern.test(value) ? '' : 'Enter a valid email address';
+        },
+        password(value) {
+          if (!value) return 'Password is required';
+          if (value.length < 6) {
+            return 'Password must be at least 6 characters long';
+          }
+          return '';
+        },
+      };
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        message.textContent = '';
+        message.classList.remove('success');
+        let hasError = false;
+
+        ['email', 'password'].forEach((field) => {
+          const input = form.elements[field];
+          const error = validators[field](input.value.trim());
+          fieldErrors[field].textContent = error;
+          if (error) {
+            hasError = true;
+          }
+        });
+
+        if (hasError) {
+          message.textContent = 'Please fix the fields highlighted below.';
+          return;
+        }
+
+        message.textContent = 'You are all set! Redirecting…';
+        message.classList.add('success');
+        console.log('Form submitted', {
+          email: form.elements.email.value,
+          password: form.elements.password.value,
+        });
+      });
+
+      document.getElementById('googleButton').addEventListener('click', () => {
+        message.textContent = 'Google login clicked.';
+        message.classList.add('success');
+        console.log('Google login clicked');
+      });
+
+      document.getElementById('forgotButton').addEventListener('click', () => {
+        alert('Redirecting to password recovery…');
+      });
+
+      document.getElementById('toggleMode').addEventListener('click', () => {
+        alert('Switching to sign-up flow…');
+      });
+
+      const orbitItems = Array.from(document.querySelectorAll('[data-orbit-item]'));
+      let reverseCount = 0;
+      orbitItems.forEach((item) => {
+        const styles = getComputedStyle(item);
+        const duration = parseFloat(styles.getPropertyValue('--duration')) || 24;
+        const offset = Math.random() * duration;
+        const startAngle = Math.random() * 360;
+        item.style.setProperty('--start-angle', `${startAngle}deg`);
+        item.style.animationDelay = `-${offset}s`;
+        if (Math.random() > 0.5) {
+          item.classList.add('reverse');
+          reverseCount += 1;
+        } else {
+          item.classList.remove('reverse');
+        }
+      });
+
+      if (reverseCount === 0 && orbitItems.length) {
+        orbitItems[0].classList.add('reverse');
+      }
+
+      if (reverseCount === orbitItems.length && orbitItems.length) {
+        orbitItems[0].classList.remove('reverse');
+      }
+    </script>
+  </body>
+</html>
