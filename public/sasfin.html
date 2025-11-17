@@ -6,6 +6,7 @@
   <title>AlgoHive Institutional – Sasfin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <style>
     :root {
       --ink: #0f172a;
@@ -23,6 +24,17 @@
       border: 1px solid #e5e7eb;
       border-radius: 16px;
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 .875rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-weight: 600;
     }
     .muted { color: var(--muted); }
     .gradient-bar {
@@ -72,106 +84,118 @@
       color: var(--ink);
       box-shadow: inset 0 0 0 1px #e5e7eb;
     }
-    /* Sidebar interactions */
-    .sidebar {
-      width: 72px;
-      transition: width 0.2s ease;
+    /* Layout + sidebar (match home.html behavior) */
+    #layout {
+      --sb: 240px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
     }
-    .sidebar.open { width: 280px; }
-    .sidebar .label { opacity: 0; transition: opacity 0.15s ease; white-space: nowrap; }
-    .sidebar.open .label { opacity: 1; }
-    .sidebar .item { transition: background 0.2s ease, color 0.2s ease; }
-    .sidebar .item.active { background: var(--accent-soft); color: var(--accent); }
-    @media (max-width: 768px) {
-      .sidebar { transform: translateX(-110%); width: 80%; max-width: 320px; position: fixed; inset: 0 auto 0 0; z-index: 50; box-shadow: 0 20px 60px rgba(15,23,42,0.18); }
-      .sidebar.open { transform: translateX(0); }
-      .sidebar .label { opacity: 1; }
-      body.menu-open { overflow: hidden; }
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 280px;
+      max-width: 85vw;
+      position: fixed;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%);
     }
+    #ah-sidebar.is-open { transform: translateX(0); }
+    @media (min-width: 768px) {
+      #layout { grid-template-columns: var(--sb) 1fr; }
+      #layout.is-collapsed { --sb: 72px; }
+      #ah-sidebar {
+        position: sticky;
+        width: var(--sb);
+        max-width: none;
+        transform: translateX(0);
+        z-index: auto;
+      }
+    }
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details>summary { justify-content: center; gap: .25rem; }
+    #ah-sidebar[data-collapsed="true"] details>.sub { display: none !important; }
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) { #ah-collapse { display: inline-flex; } }
   </style>
 </head>
 <body class="min-h-screen">
-  <div class="md:hidden fixed inset-0 bg-black/30 z-30 hidden" id="overlay"></div>
-  <aside id="sidebar" class="sidebar bg-white border-r border-slate-200 h-screen sticky top-0 px-3 py-5 flex flex-col gap-6">
-    <div class="flex items-center gap-3 px-2">
-      <img src="https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Sasfin%20Bank%20Story%20Thumbnail?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=250&qlt=100" alt="Sasfin" class="h-10 w-10 rounded-lg object-cover shadow">
-      <div class="label">
-        <div class="text-base font-semibold text-slate-900">AlgoHive · Sasfin</div>
-        <p class="text-xs text-slate-500">Institutional Desk</p>
-      </div>
-      <button id="mobileClose" class="md:hidden ml-auto p-2 rounded-lg hover:bg-slate-100">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-      </button>
-    </div>
-    <nav class="flex-1 space-y-1 text-sm font-semibold text-slate-700">
-      <a href="#dashboard" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 active">
-        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-        <span class="label">Dashboard</span>
-      </a>
-      <a href="#portfolio" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Portfolio</span>
-      </a>
-      <a href="#mandates" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Mandates</span>
-      </a>
-      <a href="#strategies" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Strategies</span>
-      </a>
-      <a href="#transactions" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Transactions</span>
-      </a>
-      <a href="#clients" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Clients</span>
-      </a>
-      <a href="#compliance" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Compliance</span>
-      </a>
-      <a href="#reports" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Reports</span>
-      </a>
-      <a href="#settings" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Settings</span>
-      </a>
-      <a href="#support" class="item flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100">
-        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-        <span class="label">Support</span>
-      </a>
-    </nav>
-    <div class="label text-xs text-slate-500 leading-relaxed px-2">Hover or tap to expand. Clean, responsive rail built for Sasfin’s institutional workspace.</div>
-  </aside>
-
-  <main class="md:ml-[72px] transition-all" id="content">
-    <header class="sticky top-0 z-20 bg-[var(--back)]/80 backdrop-blur border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <button id="menuToggle" class="md:hidden p-2 rounded-lg border border-slate-200 bg-white shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-        </button>
-        <div>
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Dashboard</p>
-          <h1 class="text-xl md:text-2xl font-semibold text-slate-900">AlgoHive Institutional · Sasfin Edition</h1>
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Sasfin%20Bank%20Story%20Thumbnail?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=250&qlt=100" alt="Sasfin" class="w-10 h-10 object-cover rounded-lg shadow" />
+        <div class="min-w-0 label">
+          <div class="font-bold text-[15px] text-slate-900">AlgoHive · Sasfin</div>
+          <div class="text-[11px] text-slate-500">Institutional Desk</div>
         </div>
       </div>
-      <div class="hidden md:flex items-center gap-4 text-sm font-medium">
-        <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700">Live trading</span>
-        <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-semibold">AH</div>
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#dashboard">
+          <i class="fa-solid fa-gauge text-slate-500 w-4 shrink-0"></i><span class="label">Dashboard</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#portfolio">
+          <i class="fa-regular fa-user text-slate-500 w-4 shrink-0"></i><span class="label">Portfolio</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#mandates">
+          <i class="fa-solid fa-shield-halved text-slate-500 w-4 shrink-0"></i><span class="label">Mandates</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#strategies">
+          <i class="fa-solid fa-chart-line text-slate-500 w-4 shrink-0"></i><span class="label">Strategies</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#transactions">
+          <i class="fa-solid fa-money-check-dollar text-slate-500 w-4 shrink-0"></i><span class="label">Transactions</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#clients">
+          <i class="fa-solid fa-users text-slate-500 w-4 shrink-0"></i><span class="label">Clients</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#compliance">
+          <i class="fa-solid fa-scale-balanced text-slate-500 w-4 shrink-0"></i><span class="label">Compliance</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#reports">
+          <i class="fa-solid fa-file-lines text-slate-500 w-4 shrink-0"></i><span class="label">Reports</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#settings">
+          <i class="fa-solid fa-gear text-slate-500 w-4 shrink-0"></i><span class="label">Settings</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#support">
+          <i class="fa-solid fa-life-ring text-slate-500 w-4 shrink-0"></i><span class="label">Support</span>
+        </a>
+      </nav>
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <span class="label text-xs text-slate-500 leading-relaxed">Built for Sasfin’s institutional workspace.</span>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200" title="Collapse">
+          <i class="fa-solid fa-arrow-left text-slate-600"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border border-slate-200 bg-white" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
           <div>
-            <div class="text-slate-900">Institutional Desk</div>
-            <div class="text-xs text-slate-500">AlgoHive Ops</div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Dashboard</p>
+            <h1 class="text-xl md:text-2xl font-semibold text-slate-900">AlgoHive Institutional · Sasfin Edition</h1>
+          </div>
+        </div>
+        <div class="hidden md:flex items-center gap-4 text-sm font-medium">
+          <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700">Live trading</span>
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-semibold">AH</div>
+            <div>
+              <div class="text-slate-900">Institutional Desk</div>
+              <div class="text-xs text-slate-500">AlgoHive Ops</div>
+            </div>
           </div>
         </div>
       </div>
-    </header>
 
-    <section class="p-6 space-y-6" id="dashboard">
+      <section class="p-6 space-y-6" id="dashboard">
       <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
         <div class="xl:col-span-3 card p-6">
           <div class="flex items-start justify-between">
@@ -410,43 +434,44 @@
       </div>
     </section>
   </main>
+  </div>
 
   <script>
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    const menuToggle = document.getElementById('menuToggle');
-    const mobileClose = document.getElementById('mobileClose');
-    const content = document.getElementById('content');
+    (function () {
+      const btn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+      const sidebar = document.getElementById('ah-sidebar');
 
-    const setOpen = (open) => {
-      if (open) {
-        sidebar.classList.add('open');
+      function openMenu() {
+        sidebar.classList.add('is-open');
         overlay.classList.remove('hidden');
-        document.body.classList.add('menu-open');
-        if (window.innerWidth >= 768) content.style.marginLeft = '280px';
-      } else {
-        sidebar.classList.remove('open');
+      }
+      function closeMenu() {
+        sidebar.classList.remove('is-open');
         overlay.classList.add('hidden');
-        document.body.classList.remove('menu-open');
-        if (window.innerWidth >= 768) content.style.marginLeft = '72px';
       }
-    };
 
-    sidebar.addEventListener('mouseenter', () => {
-      if (window.innerWidth >= 768) {
-        sidebar.classList.add('open');
-        content.style.marginLeft = '280px';
-      }
-    });
-    sidebar.addEventListener('mouseleave', () => {
-      if (window.innerWidth >= 768) {
-        sidebar.classList.remove('open');
-        content.style.marginLeft = '72px';
-      }
-    });
-    menuToggle?.addEventListener('click', () => setOpen(true));
-    mobileClose?.addEventListener('click', () => setOpen(false));
-    overlay?.addEventListener('click', () => setOpen(false));
+      btn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+      sidebar?.querySelectorAll('nav a').forEach(link => link.addEventListener('click', closeMenu));
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+      const saved = localStorage.getItem('ah_sasfin_collapsed') === 'true';
+      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+      btn?.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_sasfin_collapsed', String(!isCollapsed));
+        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
+      });
+    })();
   </script>
 </body>
 </html>
