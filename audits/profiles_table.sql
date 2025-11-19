@@ -1,3 +1,4 @@
+-- canonical schema for the profiles table used by onboarding + KYC flows
 create table if not exists public.profiles (
     id uuid primary key references auth.users (id) on delete cascade,
     created_at timestamptz not null default now(),
@@ -66,7 +67,7 @@ create table if not exists public.profiles (
     fatca_crs boolean default false,
     plan text,
     profile_complete boolean generated always as (
-        (coalesce(first_name, '') <> '' and coalesce(last_name, '') <> '')
+        coalesce(first_name, '') <> '' and coalesce(last_name, '') <> ''
     ) stored,
     has_uploaded_id_doc boolean default false,
     has_uploaded_address_proof boolean default false,
@@ -77,7 +78,7 @@ create table if not exists public.profiles (
     samsub_applicant_id text,
     samsub_websdk_url text,
     samsub_status text default 'not_started',
-    samsub_last_updated timestamptz,
+    samsub_last_updated timestamptz default now(),
     kyc_status text default 'unverified',
     kyc_applicant_id text,
     kyc_reference text,
