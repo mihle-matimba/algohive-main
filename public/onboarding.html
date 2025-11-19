@@ -3380,9 +3380,14 @@
                 if (!saved) return;
 
                 if (currentStep === 4 && !kycDone) {
-                    banner("Complete your SamSub verification before continuing.", "warn");
-                    syncKycContinueButton();
-                    return;
+                    if (samsubApplicantId) {
+                        await checkSamsubStatus({ silent: true, trigger: button });
+                    }
+                    if (!kycDone) {
+                        banner("Complete your SamSub verification before continuing.", "warn");
+                        syncKycContinueButton();
+                        return;
+                    }
                 }
 
                 completedSteps.add(currentStep);
