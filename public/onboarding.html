@@ -1435,7 +1435,7 @@
                                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                                             <button type="button" data-step-delta="-1"
                                                 class="inline-flex items-center justify-center rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100">Back</button>
-                                            <button type="button" data-complete data-save-profile
+                                            <button type="button" data-complete data-save-profile data-save-scope="all"
                                                 class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40">Complete
                                                 onboarding</button>
                                         </div>
@@ -1816,6 +1816,79 @@
                 "income_bracket",
             ],
         };
+        const STEP_SAVE_FIELD_GROUPS = {
+            1: ["first_name", "middle_name", "last_name", "email_address", "phone"],
+            2: [
+                "dob",
+                "id_number",
+                "tax_id",
+                "tax_id_type",
+                "nationality",
+                "country_residence",
+                "country_of_tax_residence",
+                "country_of_birth",
+                "street_address",
+                "street_address_line1",
+                "street_address_line2",
+                "street_address_line3",
+                "street_address_unit",
+                "unit",
+                "city",
+                "state",
+                "postal_code",
+                FUNDING_SOURCE_FIELD_KEY,
+                OBJECTIVES_FIELD_KEY,
+                "liquidity_needs",
+                "investment_experience_with_stocks",
+                "investment_experience_with_options",
+                "investment_objective",
+                "investment_time_horizon",
+                "annual_income_min",
+                "annual_income_max",
+                "liquid_net_worth_min",
+                "liquid_net_worth_max",
+                "total_net_worth_min",
+                "total_net_worth_max",
+                "visa_type",
+                "visa_expiration_date",
+                "date_of_departure_from_usa",
+                "permanent_resident",
+                "marital_status",
+                "number_of_dependents",
+            ],
+            3: [
+                "employment_status",
+                "occupation",
+                "employer",
+                "income_bracket",
+                "source_of_funds",
+                "net_worth_range",
+                "experience_level",
+                "risk_tolerance",
+            ],
+            4: ["pep", "fatca_crs"],
+            5: [],
+            6: [],
+        };
+        const SAVEABLE_STEP_KEYS = Object.entries(STEP_SAVE_FIELD_GROUPS)
+            .filter(([, keys]) => Array.isArray(keys))
+            .map(([step]) => Number(step));
+        const SAVEABLE_STEPS_WITH_FIELDS = SAVEABLE_STEP_KEYS.filter(
+            (step) => (STEP_SAVE_FIELD_GROUPS[step] || []).length > 0,
+        );
+
+        function getSaveKeysForSteps(steps = []) {
+            const normalized = Array.isArray(steps) ? steps : [];
+            const collector = new Set();
+            normalized.forEach((step) => {
+                const numeric = Number(step);
+                if (Number.isNaN(numeric)) return;
+                const keys = STEP_SAVE_FIELD_GROUPS[numeric];
+                if (!Array.isArray(keys)) return;
+                keys.forEach((key) => collector.add(key));
+            });
+            return Array.from(collector);
+        }
 
         const hasValue = (value) => String(value ?? "").trim().length > 0;
         function computeProfileComplete(row) {
@@ -2409,6 +2482,31 @@
                 defaultText: professionalPaymentStatusDefaultText,
             },
         };
+
+        function resolveStepsForButton(button) {
+            const scope = button?.dataset.saveScope || "step";
+            if (scope === "all") {
+                return SAVEABLE_STEPS_WITH_FIELDS.length ? SAVEABLE_STEPS_WITH_FIELDS : SAVEABLE_STEP_KEYS;
+            }
+            if (scope === "completed") {
+                const saved = Array.from(completedSteps);
+                return saved.length ? saved : [currentStep];
+            }
+            if (button?.dataset.saveStep) {
+                const explicit = Number(button.dataset.saveStep);
+                if (!Number.isNaN(explicit)) {
+                    return [explicit];
+                }
+            }
+            const panel = button?.closest?.("[data-panel]");
+            if (panel) {
+                const panelStep = Number(panel.dataset.panel);
+                if (!Number.isNaN(panelStep)) {
+                    return [panelStep];
+                }
+            }
+            return [currentStep];
+        }
 
         const revealExplorePanel = (options = {}) => {
             const { scroll = false } = options;
@@ -3127,7 +3225,8 @@
             return Number.isFinite(num) ? num : null;
         }
 
-        function collectProfilePayload() {
+        function collectProfilePayload(options = {}) {
+            const { steps = null } = options;
             if (!supabaseUser) throw new Error("Please sign in again.");
             const firstName = (document.getElementById("first_name")?.value || "").trim();
             const lastName = (document.getElementById("last_name")?.value || "").trim();
@@ -3238,7 +3337,23 @@
                 fatca_crs: !!document.getElementById("fatca_crs")?.checked,
                 updated_at: new Date().toISOString(),
             };
-            return payload;
+
+            if (!Array.isArray(steps) || steps.length === 0) {
+                return payload;
+            }
+
+            const allowedKeys = getSaveKeysForSteps(steps);
+            if (!allowedKeys.length) {
+                return { id: payload.id, updated_at: payload.updated_at };
+            }
+
+            const filtered = { id: payload.id, updated_at: payload.updated_at };
+            allowedKeys.forEach((key) => {
+                if (Object.prototype.hasOwnProperty.call(payload, key)) {
+                    filtered[key] = payload[key];
+                }
+            });
+            return filtered;
         }
 
 
@@ -3832,7 +3947,8 @@
             }
             setBusy(button, true);
             try {
-                const payload = collectProfilePayload();
+                const stepsToSave = resolveStepsForButton(button);
+                const payload = collectProfilePayload({ steps: stepsToSave });
                 const { data: saved, error } = await supabase
                     .from("profiles")
                     .upsert(payload, { onConflict: "id" })
