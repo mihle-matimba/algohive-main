@@ -613,6 +613,46 @@
                                         </label>
                                     </div>
 
+                                    <div class="space-y-4 rounded-2xl border border-slate-100 bg-white/70 p-5">
+                                        <div class="space-y-1">
+                                            <p class="text-sm font-semibold text-slate-900">Residential address</p>
+                                            <p class="text-sm text-slate-500">Use the address that appears on your proof of
+                                                residence document.</p>
+                                        </div>
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                Street address line 1
+                                                <input type="text" id="address_line1" name="address_line1"
+                                                    placeholder="Building, street and number"
+                                                    class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                            </label>
+                                            <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                Street address line 2 (optional)
+                                                <input type="text" id="address_line2" name="address_line2"
+                                                    placeholder="Apartment, suite, etc."
+                                                    class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                            </label>
+                                            <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                City / Town
+                                                <input type="text" id="address_city" name="address_city"
+                                                    placeholder="e.g. Cape Town"
+                                                    class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                            </label>
+                                            <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                State / Province
+                                                <input type="text" id="address_state" name="address_state"
+                                                    placeholder="e.g. Western Cape"
+                                                    class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                            </label>
+                                            <label class="flex flex-col gap-2 text-sm font-medium text-slate-700 md:col-span-2 lg:col-span-1">
+                                                Postal / ZIP code
+                                                <input type="text" id="address_postal_code" name="address_postal_code"
+                                                    placeholder="e.g. 7441"
+                                                    class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div
                                         class="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
                                         <div class="flex items-center gap-2">
@@ -1539,6 +1579,10 @@
             "first_name",
             "last_name",
             "phone",
+            "address_line1",
+            "address_city",
+            "address_state",
+            "address_postal_code",
             "dob",
             "id_number",
             "tax_id_type",
@@ -1559,7 +1603,15 @@
         const OBJECTIVES_FIELD_KEY = "objectives";
         const FORM_REQUIRED_FIELDS = REQUIRED_FIELDS.filter((key) => key !== OBJECTIVES_FIELD_KEY);
         const STEP_FIELD_GROUPS = {
-            1: ["first_name", "last_name", "phone"],
+            1: [
+                "first_name",
+                "last_name",
+                "phone",
+                "address_line1",
+                "address_city",
+                "address_state",
+                "address_postal_code",
+            ],
             2: ["dob", "id_number", "tax_id_type", "tax_id_number", "country_birth", "nationality", "country_residence"],
             3: [
                 "employment_status",
@@ -2773,6 +2825,11 @@
                 first_name: (document.getElementById("first_name")?.value || "").trim(),
                 last_name: (document.getElementById("last_name")?.value || "").trim(),
                 phone: (document.getElementById("phone")?.value || "").trim(),
+                address_line1: getTrimmedValue("address_line1") || null,
+                address_line2: getTrimmedValue("address_line2") || null,
+                address_city: getTrimmedValue("address_city") || null,
+                address_state: getTrimmedValue("address_state") || null,
+                address_postal_code: getTrimmedValue("address_postal_code") || null,
                 dob: document.getElementById("dob")?.value || null,
                 id_number: (document.getElementById("id_number")?.value || "").trim() || null,
                 tax_id_type: normalizedTaxIdType,
@@ -2836,10 +2893,18 @@
             });
 
             const emailAddress = (supabaseUser?.email || profileRow?.email || "").trim();
+            const streetLines = [getTrimmedValue("address_line1"), getTrimmedValue("address_line2")].filter(Boolean);
             const contact = cleanObject({
                 email_address: emailAddress || null,
                 phone_number: getTrimmedValue("phone") || null,
+                city: getTrimmedValue("address_city") || null,
+                state: getTrimmedValue("address_state") || null,
+                postal_code: getTrimmedValue("address_postal_code") || null,
+                country: sanitizeIsoValue(document.getElementById("country_residence")?.value) || null,
             });
+            if (streetLines.length) {
+                contact.street_address = streetLines;
+            }
 
             const disclosures = {
                 is_control_person: !!document.getElementById("alpacaControlPerson")?.checked,
@@ -2907,6 +2972,10 @@
             if (shouldRequireTaxIdNumber() && !previewPayload.identity?.tax_id) {
                 missingFields.push("tax_id_number");
             }
+            if (!previewPayload.contact?.street_address?.length) missingFields.push("address_line1");
+            if (!previewPayload.contact?.city) missingFields.push("address_city");
+            if (!previewPayload.contact?.state) missingFields.push("address_state");
+            if (!previewPayload.contact?.postal_code) missingFields.push("address_postal_code");
 
             if (missingFields.length) {
                 focusFirstMissing(missingFields);
@@ -3760,6 +3829,11 @@
                 setFieldValue("first_name", row?.first_name);
                 setFieldValue("last_name", row?.last_name);
                 setFieldValue("phone", row?.phone);
+                setFieldValue("address_line1", row?.address_line1);
+                setFieldValue("address_line2", row?.address_line2);
+                setFieldValue("address_city", row?.address_city);
+                setFieldValue("address_state", row?.address_state);
+                setFieldValue("address_postal_code", row?.address_postal_code);
                 setFieldValue("dob", row?.dob);
                 setFieldValue("id_number", row?.id_number);
                 setFieldValue("tax_id_type", row?.tax_id_type);
