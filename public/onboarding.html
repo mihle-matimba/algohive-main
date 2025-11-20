@@ -1152,30 +1152,62 @@
                                                 </div>
                                                 <div class="grid gap-3 md:grid-cols-2">
                                                     <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
-                                                        Account type
-                                                        <select id="alpacaAchAccountType" name="alpacaAchAccountType"
+                                                        Bank name
+                                                        <input id="alpacaBankName" type="text" autocomplete="organization"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="My Bank" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Bank code type
+                                                        <select id="alpacaBankCodeType" name="alpacaBankCodeType"
                                                             class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20">
-                                                            <option value="CHECKING">Checking</option>
-                                                            <option value="SAVINGS">Savings</option>
+                                                            <option value="ABA">ABA (USA)</option>
+                                                            <option value="BIC">BIC / SWIFT (International)</option>
                                                         </select>
                                                     </label>
                                                     <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
-                                                        Routing number
-                                                        <input id="alpacaAchRouting" type="text" inputmode="numeric" autocomplete="off"
+                                                        Bank code
+                                                        <input id="alpacaBankCode" type="text" inputmode="text" autocomplete="off"
                                                             class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
                                                             placeholder="021000021" />
                                                     </label>
                                                     <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
                                                         Account number
-                                                        <input id="alpacaAchAccount" type="text" inputmode="numeric" autocomplete="off"
+                                                        <input id="alpacaBankAccount" type="text" inputmode="numeric" autocomplete="off"
                                                             class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
                                                             placeholder="123456789" />
                                                     </label>
+                                                </div>
+                                                <div id="alpacaBicFields" class="grid gap-3 md:grid-cols-2 hidden">
                                                     <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
-                                                        Nickname (optional)
-                                                        <input id="alpacaAchNickname" type="text" autocomplete="off"
+                                                        Street address
+                                                        <input id="alpacaBankStreet" type="text" autocomplete="street-address"
                                                             class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
-                                                            placeholder="Primary checking" />
+                                                            placeholder="123 Market St" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        City
+                                                        <input id="alpacaBankCity" type="text" autocomplete="address-level2"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="New York" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        State / Province (optional)
+                                                        <input id="alpacaBankState" type="text" autocomplete="address-level1"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="NY" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Postal code
+                                                        <input id="alpacaBankPostal" type="text" autocomplete="postal-code"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="10001" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Country (ISO alpha-3)
+                                                        <input id="alpacaBankCountry" type="text" autocomplete="country"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="USA" />
                                                     </label>
                                                 </div>
                                                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1974,10 +2006,16 @@
         const alpacaAchContainer = document.getElementById("alpacaAchContainer");
         const alpacaAchStatusBadge = document.getElementById("alpacaAchStatusBadge");
         const alpacaAchStatusText = document.getElementById("alpacaAchStatusText");
-        const alpacaAchAccountType = document.getElementById("alpacaAchAccountType");
-        const alpacaAchRouting = document.getElementById("alpacaAchRouting");
-        const alpacaAchAccount = document.getElementById("alpacaAchAccount");
-        const alpacaAchNickname = document.getElementById("alpacaAchNickname");
+        const alpacaBankName = document.getElementById("alpacaBankName");
+        const alpacaBankCodeType = document.getElementById("alpacaBankCodeType");
+        const alpacaBankCode = document.getElementById("alpacaBankCode");
+        const alpacaBankAccount = document.getElementById("alpacaBankAccount");
+        const alpacaBankStreet = document.getElementById("alpacaBankStreet");
+        const alpacaBankCity = document.getElementById("alpacaBankCity");
+        const alpacaBankState = document.getElementById("alpacaBankState");
+        const alpacaBankPostal = document.getElementById("alpacaBankPostal");
+        const alpacaBankCountry = document.getElementById("alpacaBankCountry");
+        const alpacaBicFields = document.getElementById("alpacaBicFields");
         const alpacaAchExisting = document.getElementById("alpacaAchExisting");
         const alpacaAchExistingValue = document.getElementById("alpacaAchExistingValue");
         const alpacaAchCreateButton = document.getElementById("alpacaAchCreate");
@@ -2158,7 +2196,7 @@
 
         async function fetchAchRelationships(accountId) {
             if (!accountId) return [];
-            const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(accountId)}/ach_relationships`;
+            const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(accountId)}/recipient_banks`;
             try {
                 const response = await fetch(url, {
                     method: "GET",
@@ -2169,14 +2207,14 @@
                 });
                 const data = await response.json().catch(() => null);
                 if (!response.ok) {
-                    console.warn("ACH lookup failed", data || response.status);
+                    console.warn("Bank relationship lookup failed", data || response.status);
                     return [];
                 }
                 if (Array.isArray(data)) return data;
                 if (data && typeof data === "object") return [data];
                 return [];
             } catch (error) {
-                console.warn("Could not reach ACH endpoint.", error);
+                console.warn("Could not reach bank relationship endpoint.", error);
                 return [];
             }
         }
@@ -2199,26 +2237,42 @@
                 banner("Create your brokerage account first.", "err");
                 return;
             }
-            const routing = alpacaAchRouting?.value?.trim();
-            const account = alpacaAchAccount?.value?.trim();
-            const type = alpacaAchAccountType?.value || "CHECKING";
-            const nickname = alpacaAchNickname?.value?.trim();
+            const name = alpacaBankName?.value?.trim();
+            const bankCodeType = (alpacaBankCodeType?.value || "ABA").toUpperCase();
+            const bankCode = alpacaBankCode?.value?.trim();
+            const account = alpacaBankAccount?.value?.trim();
+            const street = alpacaBankStreet?.value?.trim();
+            const city = alpacaBankCity?.value?.trim();
+            const state = alpacaBankState?.value?.trim();
+            const postal = alpacaBankPostal?.value?.trim();
+            const country = alpacaBankCountry?.value?.trim();
 
-            if (!routing || !account) {
-                banner("Enter your routing and account numbers to link a bank.", "err");
+            if (!name || !bankCode || !account) {
+                banner("Enter the bank name, code, and account number to link a bank.", "err");
                 return;
             }
 
+            const payload = {
+                name,
+                bank_code: bankCode,
+                bank_code_type: bankCodeType,
+                account_number: account,
+            };
+
+            if (bankCodeType === "BIC") {
+                if (!street || !city || !postal || !country) {
+                    banner("International banks need address, city, postal code, and country.", "err");
+                    return;
+                }
+                payload.street_address = street;
+                payload.city = city;
+                payload.postal_code = postal;
+                payload.country = country;
+                if (state) payload.state_province = state;
+            }
             setBusy(button, true);
             try {
-                const payload = {
-                    bank_account_type: type,
-                    bank_account_number: account,
-                    bank_routing_number: routing,
-                };
-                if (nickname) payload.nickname = nickname;
-
-                const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(alpacaAccountId)}/ach_relationships`;
+                const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(alpacaAccountId)}/recipient_banks`;
                 const response = await fetch(url, {
                     method: "POST",
                     headers: {
@@ -2242,6 +2296,16 @@
                 banner(error.message || "Could not link bank.", "err");
             } finally {
                 setBusy(button, false);
+            }
+        }
+
+        function syncBankCodeFields() {
+            const type = (alpacaBankCodeType?.value || "ABA").toUpperCase();
+            if (alpacaBankCode) {
+                alpacaBankCode.placeholder = type === "BIC" ? "BOFAUS3N" : "021000021";
+            }
+            if (alpacaBicFields) {
+                alpacaBicFields.classList.toggle("hidden", type !== "BIC");
             }
         }
         let clientIpAddress = null;
@@ -3139,6 +3203,11 @@
             alpacaSummaryRefresh.addEventListener("click", () => refreshBrokerageSummary({ silent: false }));
         }
 
+        if (alpacaBankCodeType) {
+            alpacaBankCodeType.addEventListener("change", syncBankCodeFields);
+            syncBankCodeFields();
+        }
+
         if (alpacaAchCreateButton) {
             alpacaAchCreateButton.addEventListener("click", async () => {
                 await createAchRelationship(alpacaAchCreateButton);
@@ -3556,10 +3625,12 @@
             if (alpacaAchStatusText) alpacaAchStatusText.textContent = statusText;
 
             if (relationship && alpacaAchExisting && alpacaAchExistingValue) {
-                const nickname = relationship.nickname || relationship.bank_name || "Bank";
+                const nickname = relationship.name || relationship.nickname || relationship.bank_name || "Bank";
                 const last4 =
+                    relationship.account_number_last4 ||
                     relationship.bank_account_number_last4 ||
                     relationship.bank_account_last4 ||
+                    (relationship.account_number && String(relationship.account_number).slice(-4)) ||
                     (relationship.bank_account_number && String(relationship.bank_account_number).slice(-4)) ||
                     "";
                 alpacaAchExisting.classList.remove("hidden");
