@@ -1140,8 +1140,6 @@
                                                 </div>
                                                 <dl id="alpacaAccountSummaryBody" class="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2"></dl>
                                             </div>
-                                            <pre id="alpacaStatusLog"
-                                                class="mt-4 hidden overflow-x-auto rounded-2xl bg-slate-900/90 p-4 text-xs text-white"></pre>
                                         </div>
                                     </div>
 
@@ -1916,7 +1914,6 @@
         const samsubNextStepsList = document.getElementById("samsubNextSteps");
         const alpacaStatusBadge = document.getElementById("alpacaStatusBadge");
         const alpacaStatusText = document.getElementById("alpacaStatusText");
-        const alpacaStatusLog = document.getElementById("alpacaStatusLog");
         const alpacaCreateButton = document.getElementById("alpacaCreateButton");
         const alpacaAccountExisting = document.getElementById("alpacaAccountExisting");
         const alpacaAccountIdValue = document.getElementById("alpacaAccountIdValue");
@@ -3346,6 +3343,12 @@
             addRow("Currency", alpacaAccountProfile.currency || alpacaAccountProfile.base_currency);
             addRow("Buying power", alpacaAccountProfile.buying_power || alpacaAccountProfile.trading_buying_power);
             addRow("Cash", alpacaAccountProfile.cash);
+            addRow(
+                "Equity",
+                alpacaAccountProfile.equity ||
+                    alpacaAccountProfile.portfolio_value ||
+                    alpacaAccountProfile.long_market_value,
+            );
             addRow("Pattern day trader", String(alpacaAccountProfile.pattern_day_trader ?? ""));
 
             alpacaAccountSummaryBody.innerHTML = rows.join("");
@@ -3370,15 +3373,6 @@
                 alpacaAccountProfile = response;
             }
             renderBrokerageAccountSummary();
-            if (alpacaStatusLog) {
-                if (response) {
-                    alpacaStatusLog.textContent = JSON.stringify(response, null, 2);
-                    alpacaStatusLog.classList.remove("hidden");
-                } else {
-                    alpacaStatusLog.textContent = "";
-                    alpacaStatusLog.classList.add("hidden");
-                }
-            }
         }
 
         function hydrateBrokerageFromRow(row) {
@@ -3386,6 +3380,9 @@
             alpacaAccountId = row.alpaca_account_id || alpacaAccountId || null;
             alpacaAccountStatus = row.alpaca_account_status || alpacaAccountStatus || null;
             renderBrokerageAccountSummary();
+            if (alpacaAccountId && !alpacaAccountProfile) {
+                refreshBrokerageSummary({ silent: true });
+            }
         }
 
         async function hydrateBrokerageFromApi(emailAddress, { silent = true } = {}) {
@@ -3432,6 +3429,9 @@
                     alpacaAccountId = data.alpaca_account_id;
                     alpacaAccountStatus = data.alpaca_account_status || alpacaAccountStatus || null;
                     renderBrokerageAccountSummary();
+                    if (alpacaAccountId) {
+                        await refreshBrokerageSummary({ silent: true });
+                    }
                 }
                 return data;
             } catch (error) {
