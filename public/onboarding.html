@@ -1975,6 +1975,72 @@
         let alpacaAccountId = null;
         let alpacaAccountStatus = null;
         let alpacaAccountState = "idle";
+
+        const normalizeEmail = (value) => (value || "").trim().toLowerCase();
+
+        function deriveBrokerageAccountId(payload) {
+            const candidates = [payload?.id, payload?.account_id, payload?.accountId];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function deriveBrokerageAccountStatus(payload) {
+            const candidates = [payload?.status, payload?.account_status, payload?.application_status];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function extractBrokerageEmail(payload) {
+            const candidates = [payload?.email, payload?.email_address, payload?.identity?.email_address, payload?.contact?.email_address];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function selectAccountByEmail(payload, emailAddress) {
+            if (!emailAddress) return null;
+            const normalized = normalizeEmail(emailAddress);
+            const candidates = [];
+            if (Array.isArray(payload)) candidates.push(...payload);
+            if (payload && typeof payload === "object") {
+                if (Array.isArray(payload.accounts)) candidates.push(...payload.accounts);
+                if (payload.account && typeof payload.account === "object") candidates.push(payload.account);
+                candidates.push(payload);
+            }
+            for (const candidate of candidates) {
+                const candidateEmail = normalizeEmail(extractBrokerageEmail(candidate));
+                if (candidateEmail && candidateEmail === normalized) return candidate;
+            }
+            return null;
+        }
+
+        async function fetchExistingBrokerageAccountFromApi(emailAddress) {
+            if (!emailAddress) return null;
+            const searchUrl = `${ALPACA_ACCOUNT_URL}?email=${encodeURIComponent(emailAddress)}`;
+            try {
+                const response = await fetch(searchUrl, {
+                    method: "GET",
+                    headers: {
+                        accept: "application/json",
+                        authorization: ALPACA_AUTH_HEADER,
+                    },
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok) {
+                    console.warn("Brokerage lookup failed", data || response.status);
+                    return null;
+                }
+                return selectAccountByEmail(data, emailAddress);
+            } catch (error) {
+                console.warn("Could not reach brokerage lookup endpoint.", error);
+                return null;
+            }
+        }
         let clientIpAddress = null;
         let clientIpLookupPromise = null;
 
@@ -3237,6 +3303,37 @@
             renderBrokerageAccountSummary();
         }
 
+        async function hydrateBrokerageFromApi(emailAddress, { silent = true } = {}) {
+            if (!emailAddress) return null;
+            const existingAccount = await fetchExistingBrokerageAccountFromApi(emailAddress);
+            if (!existingAccount) return null;
+            const accountId = deriveBrokerageAccountId(existingAccount);
+            const accountStatus = deriveBrokerageAccountStatus(existingAccount);
+
+            if (accountId) {
+                alpacaAccountId = accountId;
+                alpacaAccountStatus = accountStatus || alpacaAccountStatus || null;
+                renderBrokerageAccountSummary();
+                await persistBrokerageAccountRecord(accountId, accountStatus);
+                await updateProfileBrokerage(
+                    { alpaca_account_id: accountId, alpaca_account_status: accountStatus || "on file" },
+                    { silent },
+                );
+            }
+
+            if (!silent) {
+                updateAlpacaStatus("success", {
+                    message: accountId
+                        ? `Brokerage account already exists (ID: ${accountId}).`
+                        : "Brokerage account already exists on file.",
+                    response: existingAccount,
+                });
+                banner("Existing brokerage account found.", "ok");
+            }
+
+            return existingAccount;
+        }
+
         async function fetchBrokerageAccountRow() {
             if (!supabaseUser) return null;
             try {
@@ -3281,6 +3378,9 @@
                     },
                     { silent: true },
                 );
+            }
+            if (!alpacaAccountId && emailAddress) {
+                await hydrateBrokerageFromApi(emailAddress, { silent: true });
             }
             return data;
         }
@@ -3347,6 +3447,12 @@
                 });
                 banner("Brokerage account already on file.", "ok");
                 return;
+            }
+
+            const emailAddress = (supabaseUser?.email || "").trim();
+            if (emailAddress) {
+                const existingAccount = await hydrateBrokerageFromApi(emailAddress, { silent: false });
+                if (existingAccount) return;
             }
 
             const previewPayload = buildAlpacaAccountPayload();
