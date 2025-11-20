@@ -1127,7 +1127,7 @@
                                                     submission</span>
                                             </div>
                                             <p id="alpacaAccountExisting" class="hidden text-sm text-slate-600">
-                                                Existing brokerage account on file:
+                                                Existing brokerage account number:
                                                 <span id="alpacaAccountIdValue" class="font-semibold text-slate-800"></span>
                                             </p>
                                             <div id="alpacaAccountSummary" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1139,6 +1139,57 @@
                                                     </button>
                                                 </div>
                                                 <dl id="alpacaAccountSummaryBody" class="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2"></dl>
+                                            </div>
+                                            <div id="alpacaAchContainer" class="hidden space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-slate-800">Bank relationship</p>
+                                                        <p id="alpacaAchStatusText" class="text-sm text-slate-500">Link a bank account to fund your brokerage profile.</p>
+                                                    </div>
+                                                    <span id="alpacaAchStatusBadge"
+                                                        class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600">Not
+                                                        linked</span>
+                                                </div>
+                                                <div class="grid gap-3 md:grid-cols-2">
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Account type
+                                                        <select id="alpacaAchAccountType" name="alpacaAchAccountType"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20">
+                                                            <option value="CHECKING">Checking</option>
+                                                            <option value="SAVINGS">Savings</option>
+                                                        </select>
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Routing number
+                                                        <input id="alpacaAchRouting" type="text" inputmode="numeric" autocomplete="off"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="021000021" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Account number
+                                                        <input id="alpacaAchAccount" type="text" inputmode="numeric" autocomplete="off"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="123456789" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                                        Nickname (optional)
+                                                        <input id="alpacaAchNickname" type="text" autocomplete="off"
+                                                            class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="Primary checking" />
+                                                    </label>
+                                                </div>
+                                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    <p id="alpacaAchExisting" class="hidden text-sm text-slate-600">Existing bank link:
+                                                        <span id="alpacaAchExistingValue" class="font-semibold text-slate-800"></span>
+                                                    </p>
+                                                    <div class="flex flex-1 justify-end">
+                                                        <button type="button" id="alpacaAchCreate"
+                                                            class="btn-shine inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--olive)]/30 transition hover:shadow-xl hover:shadow-[var(--olive)]/40"
+                                                            data-saving-text="Linking…">
+                                                            Create bank relationship
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1920,6 +1971,16 @@
         const alpacaAccountSummary = document.getElementById("alpacaAccountSummary");
         const alpacaAccountSummaryBody = document.getElementById("alpacaAccountSummaryBody");
         const alpacaSummaryRefresh = document.getElementById("alpacaSummaryRefresh");
+        const alpacaAchContainer = document.getElementById("alpacaAchContainer");
+        const alpacaAchStatusBadge = document.getElementById("alpacaAchStatusBadge");
+        const alpacaAchStatusText = document.getElementById("alpacaAchStatusText");
+        const alpacaAchAccountType = document.getElementById("alpacaAchAccountType");
+        const alpacaAchRouting = document.getElementById("alpacaAchRouting");
+        const alpacaAchAccount = document.getElementById("alpacaAchAccount");
+        const alpacaAchNickname = document.getElementById("alpacaAchNickname");
+        const alpacaAchExisting = document.getElementById("alpacaAchExisting");
+        const alpacaAchExistingValue = document.getElementById("alpacaAchExistingValue");
+        const alpacaAchCreateButton = document.getElementById("alpacaAchCreate");
         const sumsubIframe = document.getElementById("sumsub-iframe");
         const kycContinueButton = document.querySelector('[data-panel="6"] [data-step-delta="1"][data-save-profile]');
         const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
@@ -1983,6 +2044,8 @@
         let alpacaAccountStatus = null;
         let alpacaAccountState = "idle";
         let alpacaAccountProfile = null;
+        let alpacaAccountNumber = null;
+        let alpacaAchRelationships = [];
         const alpacaAuthHeader = ALPACA_DEFAULT_AUTH_HEADER;
 
         const normalizeEmail = (value) => (value || "").trim().toLowerCase();
@@ -2083,12 +2146,103 @@
             const profile = await fetchBrokerageAccountProfile(alpacaAccountId);
             if (profile) {
                 alpacaAccountProfile = profile;
-                renderAlpacaAccountSummary();
+                alpacaAccountNumber = deriveAccountNumber(profile) || alpacaAccountNumber || null;
+                renderBrokerageAccountSummary();
+                await loadAchRelationships({ silent: true });
                 if (!silent) banner("Refreshed account summary.", "ok");
                 return profile;
             }
             if (!silent) banner("Could not refresh account summary.", "err");
             return null;
+        }
+
+        async function fetchAchRelationships(accountId) {
+            if (!accountId) return [];
+            const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(accountId)}/ach_relationships`;
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        accept: "application/json",
+                        authorization: getAlpacaAuthHeader(),
+                    },
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok) {
+                    console.warn("ACH lookup failed", data || response.status);
+                    return [];
+                }
+                if (Array.isArray(data)) return data;
+                if (data && typeof data === "object") return [data];
+                return [];
+            } catch (error) {
+                console.warn("Could not reach ACH endpoint.", error);
+                return [];
+            }
+        }
+
+        async function loadAchRelationships({ silent = true } = {}) {
+            if (!alpacaAccountId) {
+                alpacaAchRelationships = [];
+                renderAchRelationshipSummary();
+                return [];
+            }
+            const relationships = await fetchAchRelationships(alpacaAccountId);
+            alpacaAchRelationships = relationships || [];
+            renderAchRelationshipSummary();
+            if (!silent && relationships.length) banner("Bank relationship on file.", "ok");
+            return relationships;
+        }
+
+        async function createAchRelationship(button) {
+            if (!alpacaAccountId) {
+                banner("Create your brokerage account first.", "err");
+                return;
+            }
+            const routing = alpacaAchRouting?.value?.trim();
+            const account = alpacaAchAccount?.value?.trim();
+            const type = alpacaAchAccountType?.value || "CHECKING";
+            const nickname = alpacaAchNickname?.value?.trim();
+
+            if (!routing || !account) {
+                banner("Enter your routing and account numbers to link a bank.", "err");
+                return;
+            }
+
+            setBusy(button, true);
+            try {
+                const payload = {
+                    bank_account_type: type,
+                    bank_account_number: account,
+                    bank_routing_number: routing,
+                };
+                if (nickname) payload.nickname = nickname;
+
+                const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(alpacaAccountId)}/ach_relationships`;
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        accept: "application/json",
+                        "content-type": "application/json",
+                        authorization: getAlpacaAuthHeader(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok) {
+                    const message = data?.message || data?.error || "Could not link bank.";
+                    banner(message, "err");
+                    return;
+                }
+                alpacaAchRelationships = data ? (Array.isArray(data) ? data : [data]) : [];
+                renderAchRelationshipSummary();
+                banner("Bank relationship created.", "ok");
+            } catch (error) {
+                console.error(error);
+                banner(error.message || "Could not link bank.", "err");
+            } finally {
+                setBusy(button, false);
+            }
         }
         let clientIpAddress = null;
         let clientIpLookupPromise = null;
@@ -2985,6 +3139,12 @@
             alpacaSummaryRefresh.addEventListener("click", () => refreshBrokerageSummary({ silent: false }));
         }
 
+        if (alpacaAchCreateButton) {
+            alpacaAchCreateButton.addEventListener("click", async () => {
+                await createAchRelationship(alpacaAchCreateButton);
+            });
+        }
+
         panelForms.forEach((form) => {
             form.addEventListener("submit", (event) => {
                 event.preventDefault();
@@ -3308,16 +3468,36 @@
             return payload;
         }
 
+        function deriveAccountNumber(payload) {
+            const candidates = [payload?.account_number, payload?.accountNumber, payload?.number];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return null;
+        }
+
+        function syncAlpacaCreateButton() {
+            if (!alpacaCreateButton) return;
+            const hasAccount = !!alpacaAccountId;
+            alpacaCreateButton.disabled = hasAccount;
+            alpacaCreateButton.setAttribute("aria-disabled", hasAccount ? "true" : "false");
+            alpacaCreateButton.classList.toggle("opacity-50", hasAccount);
+            alpacaCreateButton.textContent = hasAccount ? "Brokerage account created" : "Create brokerage account";
+        }
+
         function renderBrokerageAccountSummary() {
             if (!alpacaAccountExisting || !alpacaAccountIdValue) return;
-            if (alpacaAccountId) {
+            const displayNumber = alpacaAccountNumber || null;
+            if (alpacaAccountId && displayNumber) {
                 alpacaAccountExisting.classList.remove("hidden");
-                alpacaAccountIdValue.textContent = alpacaAccountId;
+                alpacaAccountIdValue.textContent = displayNumber;
             } else {
                 alpacaAccountExisting.classList.add("hidden");
                 alpacaAccountIdValue.textContent = "";
             }
+            syncAlpacaCreateButton();
             renderAlpacaAccountSummary();
+            renderAchRelationshipSummary();
         }
 
         function renderAlpacaAccountSummary() {
@@ -3337,6 +3517,7 @@
                     </div>`);
             };
 
+            addRow("Account number", alpacaAccountNumber);
             addRow("Status", alpacaAccountProfile.status || alpacaAccountProfile.account_status || "submitted");
             addRow("Type", alpacaAccountProfile.account_type || alpacaAccountProfile.type);
             addRow("Created", alpacaAccountProfile.created_at ? new Date(alpacaAccountProfile.created_at).toLocaleString() : null);
@@ -3355,6 +3536,47 @@
             alpacaAccountSummary.classList.toggle("hidden", !rows.length);
         }
 
+        function renderAchRelationshipSummary() {
+            if (!alpacaAchContainer) return;
+            const hasAccount = !!alpacaAccountId;
+            alpacaAchContainer.classList.toggle("hidden", !hasAccount);
+            if (!hasAccount) return;
+
+            const relationship = Array.isArray(alpacaAchRelationships) ? alpacaAchRelationships[0] : null;
+            const linked = !!relationship;
+            const statusBadgeClass = linked
+                ? "inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700"
+                : "inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600";
+            const statusText = linked ? "Bank relationship active." : "Link a bank account to fund your brokerage profile.";
+
+            if (alpacaAchStatusBadge) {
+                alpacaAchStatusBadge.className = statusBadgeClass;
+                alpacaAchStatusBadge.textContent = linked ? "Linked" : "Not linked";
+            }
+            if (alpacaAchStatusText) alpacaAchStatusText.textContent = statusText;
+
+            if (relationship && alpacaAchExisting && alpacaAchExistingValue) {
+                const nickname = relationship.nickname || relationship.bank_name || "Bank";
+                const last4 =
+                    relationship.bank_account_number_last4 ||
+                    relationship.bank_account_last4 ||
+                    (relationship.bank_account_number && String(relationship.bank_account_number).slice(-4)) ||
+                    "";
+                alpacaAchExisting.classList.remove("hidden");
+                alpacaAchExistingValue.textContent = last4 ? `${nickname} ••••${last4}` : nickname;
+            } else if (alpacaAchExisting && alpacaAchExistingValue) {
+                alpacaAchExisting.classList.add("hidden");
+                alpacaAchExistingValue.textContent = "";
+            }
+
+            if (alpacaAchCreateButton) {
+                alpacaAchCreateButton.disabled = linked;
+                alpacaAchCreateButton.setAttribute("aria-disabled", linked ? "true" : "false");
+                alpacaAchCreateButton.classList.toggle("opacity-50", linked);
+                alpacaAchCreateButton.textContent = linked ? "Bank linked" : alpacaAchCreateButton.dataset.originalText || "Create bank relationship";
+            }
+        }
+
         function updateAlpacaStatus(state, { message, response } = {}) {
             const meta = ALPACA_STATUS_META[state] || ALPACA_STATUS_META.idle;
             alpacaAccountState = state;
@@ -3371,6 +3593,7 @@
                 if (derivedId) alpacaAccountId = derivedId;
                 if (derivedStatus) alpacaAccountStatus = derivedStatus;
                 alpacaAccountProfile = response;
+                alpacaAccountNumber = deriveAccountNumber(response) || alpacaAccountNumber || null;
             }
             renderBrokerageAccountSummary();
         }
@@ -3395,6 +3618,8 @@
             if (accountId) {
                 alpacaAccountId = accountId;
                 alpacaAccountStatus = accountStatus || alpacaAccountStatus || null;
+                alpacaAccountNumber = deriveAccountNumber(existingAccount) || alpacaAccountNumber || null;
+                alpacaAccountProfile = existingAccount || alpacaAccountProfile;
                 renderBrokerageAccountSummary();
                 await persistBrokerageAccountRecord(accountId, accountStatus);
                 await updateProfileBrokerage(
