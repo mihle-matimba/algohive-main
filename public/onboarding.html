@@ -1126,10 +1126,44 @@
                                                 <span class="text-xs uppercase tracking-[0.35em] text-slate-400">Sandbox
                                                     submission</span>
                                             </div>
+                                            <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                                <p class="font-semibold text-slate-800">Use your Alpaca API credentials</p>
+                                                <div class="grid gap-3 sm:grid-cols-2">
+                                                    <label class="flex flex-col gap-1">
+                                                        <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">API key</span>
+                                                        <input id="alpacaApiKey" type="text"
+                                                            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-inner focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="Your Alpaca API key" />
+                                                    </label>
+                                                    <label class="flex flex-col gap-1">
+                                                        <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">API secret</span>
+                                                        <input id="alpacaApiSecret" type="password"
+                                                            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-inner focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20"
+                                                            placeholder="Your Alpaca API secret" />
+                                                    </label>
+                                                </div>
+                                                <div class="flex flex-wrap items-center gap-3">
+                                                    <button type="button" id="alpacaAuthSave"
+                                                        class="inline-flex items-center justify-center rounded-full border border-[var(--olive)]/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--olive)] transition hover:bg-[var(--olive)]/10">
+                                                        Save credentials
+                                                    </button>
+                                                    <span class="text-xs text-slate-500">Stored locally and used for account requests.</span>
+                                                </div>
+                                            </div>
                                             <p id="alpacaAccountExisting" class="hidden text-sm text-slate-600">
                                                 Existing brokerage account on file:
                                                 <span id="alpacaAccountIdValue" class="font-semibold text-slate-800"></span>
                                             </p>
+                                            <div id="alpacaAccountSummary" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                                <div class="flex items-center justify-between gap-2">
+                                                    <p class="text-sm font-semibold text-slate-800">Brokerage account summary</p>
+                                                    <button type="button" id="alpacaSummaryRefresh"
+                                                        class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--olive)] underline decoration-[var(--olive)]/60 decoration-2 underline-offset-4">
+                                                        Refresh
+                                                    </button>
+                                                </div>
+                                                <dl id="alpacaAccountSummaryBody" class="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2"></dl>
+                                            </div>
                                             <pre id="alpacaStatusLog"
                                                 class="mt-4 hidden overflow-x-auto rounded-2xl bg-slate-900/90 p-4 text-xs text-white"></pre>
                                         </div>
@@ -1910,6 +1944,12 @@
         const alpacaCreateButton = document.getElementById("alpacaCreateButton");
         const alpacaAccountExisting = document.getElementById("alpacaAccountExisting");
         const alpacaAccountIdValue = document.getElementById("alpacaAccountIdValue");
+        const alpacaAccountSummary = document.getElementById("alpacaAccountSummary");
+        const alpacaAccountSummaryBody = document.getElementById("alpacaAccountSummaryBody");
+        const alpacaSummaryRefresh = document.getElementById("alpacaSummaryRefresh");
+        const alpacaApiKeyInput = document.getElementById("alpacaApiKey");
+        const alpacaApiSecretInput = document.getElementById("alpacaApiSecret");
+        const alpacaAuthSaveButton = document.getElementById("alpacaAuthSave");
         const sumsubIframe = document.getElementById("sumsub-iframe");
         const kycContinueButton = document.querySelector('[data-panel="6"] [data-step-delta="1"][data-save-profile]');
         const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
@@ -1921,6 +1961,7 @@
                 syncRangeDisplayForInput(input);
             });
         });
+        hydrateAlpacaAuthFields();
         const SAMSUB_WEBSDK_DEFAULT_TTL = 1400000000; // seconds
         const SAMSUB_WEBSDK_REFRESH_BUFFER_SECS = 120; // regenerate 2 minutes before expiry
         const SAMSUB_LEVEL_NAME = "test-level";
@@ -1939,8 +1980,9 @@
         let samsubLinkTtlSecs = SAMSUB_WEBSDK_DEFAULT_TTL;
         let kycDone = false;
         const ALPACA_ACCOUNT_URL = "https://broker-api.sandbox.alpaca.markets/v1/accounts";
-        const ALPACA_AUTH_HEADER =
+        const ALPACA_DEFAULT_AUTH_HEADER =
             "Basic Q0tITEVEMkhHTUE2TU4zNUQ2WjZRNUFPQzU6RzZyMW9WVXpOQWlkbXVyOERvZmNjRVhlaXloQWdyY2dVTmtWWDZqZEVGc1g=";
+        const ALPACA_CREDS_STORAGE_KEY = "alpacaAuth";
         const ALPACA_REQUIRED_AGREEMENTS = ["account_agreement", "customer_agreement", "margin_agreement"];
         const CLIENT_IP_FALLBACK = "0.0.0.0";
         const ALPACA_STATUS_META = {
@@ -1972,8 +2014,66 @@
         let alpacaAccountId = null;
         let alpacaAccountStatus = null;
         let alpacaAccountState = "idle";
+        let alpacaAccountProfile = null;
+        let alpacaAuthHeader = ALPACA_DEFAULT_AUTH_HEADER;
 
         const normalizeEmail = (value) => (value || "").trim().toLowerCase();
+
+        const buildAlpacaAuthHeader = (key, secret) => {
+            const trimmedKey = (key || "").trim();
+            const trimmedSecret = (secret || "").trim();
+            if (!trimmedKey || !trimmedSecret) return null;
+            try {
+                return `Basic ${btoa(`${trimmedKey}:${trimmedSecret}`)}`;
+            } catch (error) {
+                console.warn("Could not encode Alpaca credentials", error);
+                return null;
+            }
+        };
+
+        function persistAlpacaAuthHeader(header, { key, secret } = {}) {
+            alpacaAuthHeader = header || ALPACA_DEFAULT_AUTH_HEADER;
+            if (header && key && secret && typeof localStorage !== "undefined") {
+                try {
+                    localStorage.setItem(
+                        ALPACA_CREDS_STORAGE_KEY,
+                        JSON.stringify({ key: key.trim(), secret: secret.trim() }),
+                    );
+                } catch (error) {
+                    console.warn("Could not persist Alpaca credentials", error);
+                }
+            }
+        }
+
+        function hydrateAlpacaAuthFields() {
+            if (!alpacaApiKeyInput || !alpacaApiSecretInput || typeof localStorage === "undefined") return;
+            try {
+                const stored = localStorage.getItem(ALPACA_CREDS_STORAGE_KEY);
+                if (!stored) return;
+                const parsed = JSON.parse(stored);
+                if (parsed?.key) alpacaApiKeyInput.value = parsed.key;
+                if (parsed?.secret) alpacaApiSecretInput.value = parsed.secret;
+                const header = buildAlpacaAuthHeader(parsed?.key, parsed?.secret);
+                if (header) alpacaAuthHeader = header;
+            } catch (error) {
+                console.warn("Could not hydrate Alpaca credentials", error);
+            }
+        }
+
+        function saveAlpacaCredentials() {
+            if (!alpacaApiKeyInput || !alpacaApiSecretInput) return;
+            const header = buildAlpacaAuthHeader(alpacaApiKeyInput.value, alpacaApiSecretInput.value);
+            if (!header) {
+                banner("Enter both API key and secret to use your Alpaca credentials.", "err");
+                return;
+            }
+            persistAlpacaAuthHeader(header, { key: alpacaApiKeyInput.value, secret: alpacaApiSecretInput.value });
+            banner("Saved Alpaca API credentials for this browser session.", "ok");
+        }
+
+        function getAlpacaAuthHeader() {
+            return alpacaAuthHeader || ALPACA_DEFAULT_AUTH_HEADER;
+        }
 
         function deriveBrokerageAccountId(payload) {
             const candidates = [payload?.id, payload?.account_id, payload?.accountId];
@@ -2024,7 +2124,7 @@
                     method: "GET",
                     headers: {
                         accept: "application/json",
-                        authorization: ALPACA_AUTH_HEADER,
+                        authorization: getAlpacaAuthHeader(),
                     },
                 });
                 const data = await response.json().catch(() => null);
@@ -2037,6 +2137,42 @@
                 console.warn("Could not reach brokerage lookup endpoint.", error);
                 return null;
             }
+        }
+
+        async function fetchBrokerageAccountProfile(accountId) {
+            if (!accountId) return null;
+            const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(accountId)}`;
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        accept: "application/json",
+                        authorization: getAlpacaAuthHeader(),
+                    },
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok) {
+                    console.warn("Brokerage summary lookup failed", data || response.status);
+                    return null;
+                }
+                return data;
+            } catch (error) {
+                console.warn("Could not reach brokerage summary endpoint.", error);
+                return null;
+            }
+        }
+
+        async function refreshBrokerageSummary({ silent = true } = {}) {
+            if (!alpacaAccountId) return null;
+            const profile = await fetchBrokerageAccountProfile(alpacaAccountId);
+            if (profile) {
+                alpacaAccountProfile = profile;
+                renderAlpacaAccountSummary();
+                if (!silent) banner("Refreshed account summary.", "ok");
+                return profile;
+            }
+            if (!silent) banner("Could not refresh account summary.", "err");
+            return null;
         }
         let clientIpAddress = null;
         let clientIpLookupPromise = null;
@@ -2929,6 +3065,14 @@
             });
         }
 
+        if (alpacaAuthSaveButton) {
+            alpacaAuthSaveButton.addEventListener("click", saveAlpacaCredentials);
+        }
+
+        if (alpacaSummaryRefresh) {
+            alpacaSummaryRefresh.addEventListener("click", () => refreshBrokerageSummary({ silent: false }));
+        }
+
         panelForms.forEach((form) => {
             form.addEventListener("submit", (event) => {
                 event.preventDefault();
@@ -3261,6 +3405,36 @@
                 alpacaAccountExisting.classList.add("hidden");
                 alpacaAccountIdValue.textContent = "";
             }
+            renderAlpacaAccountSummary();
+        }
+
+        function renderAlpacaAccountSummary() {
+            if (!alpacaAccountSummary || !alpacaAccountSummaryBody) return;
+            if (!alpacaAccountProfile) {
+                alpacaAccountSummary.classList.add("hidden");
+                alpacaAccountSummaryBody.innerHTML = "";
+                return;
+            }
+
+            const rows = [];
+            const addRow = (label, value) => {
+                if (value === null || value === undefined || value === "") return;
+                rows.push(`<div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                        <dt class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">${label}</dt>
+                        <dd class="text-sm font-semibold text-slate-800">${value}</dd>
+                    </div>`);
+            };
+
+            addRow("Status", alpacaAccountProfile.status || alpacaAccountProfile.account_status || "submitted");
+            addRow("Type", alpacaAccountProfile.account_type || alpacaAccountProfile.type);
+            addRow("Created", alpacaAccountProfile.created_at ? new Date(alpacaAccountProfile.created_at).toLocaleString() : null);
+            addRow("Currency", alpacaAccountProfile.currency || alpacaAccountProfile.base_currency);
+            addRow("Buying power", alpacaAccountProfile.buying_power || alpacaAccountProfile.trading_buying_power);
+            addRow("Cash", alpacaAccountProfile.cash);
+            addRow("Pattern day trader", String(alpacaAccountProfile.pattern_day_trader ?? ""));
+
+            alpacaAccountSummaryBody.innerHTML = rows.join("");
+            alpacaAccountSummary.classList.toggle("hidden", !rows.length);
         }
 
         function updateAlpacaStatus(state, { message, response } = {}) {
@@ -3278,6 +3452,7 @@
                 const derivedStatus = response.status || response.account_status || response.application_status || null;
                 if (derivedId) alpacaAccountId = derivedId;
                 if (derivedStatus) alpacaAccountStatus = derivedStatus;
+                alpacaAccountProfile = response;
             }
             renderBrokerageAccountSummary();
             if (alpacaStatusLog) {
@@ -3314,6 +3489,7 @@
                     { alpaca_account_id: accountId, alpaca_account_status: accountStatus || "on file" },
                     { silent },
                 );
+                await refreshBrokerageSummary({ silent: true });
             }
 
             if (!silent) {
@@ -3483,7 +3659,7 @@
                     headers: {
                         accept: "application/json",
                         "content-type": "application/json",
-                        authorization: ALPACA_AUTH_HEADER,
+                        authorization: getAlpacaAuthHeader(),
                     },
                     body: JSON.stringify(payload),
                 });
@@ -3510,6 +3686,9 @@
                     message: "Your brokerage application was received. Watch your inbox for the final approval.",
                     response: data,
                 });
+                if (accountId) {
+                    await refreshBrokerageSummary({ silent: true });
+                }
                 banner("Brokerage account request submitted.", "ok");
             } catch (error) {
                 console.error(error);
