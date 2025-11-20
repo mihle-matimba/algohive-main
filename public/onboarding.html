@@ -3237,6 +3237,26 @@
             renderBrokerageAccountSummary();
         }
 
+        async function fetchBrokerageAccountRow() {
+            if (!supabaseUser) return null;
+            try {
+                const emailAddress = (supabaseUser?.email || "").trim();
+                let query = supabase.from("alpaca_accounts").select("*");
+                query = emailAddress ? query.eq("email", emailAddress) : query.eq("user_id", supabaseUser.id);
+                const { data, error } = await query.maybeSingle();
+                if (error && error.code !== "PGRST116") throw error;
+                if (data?.alpaca_account_id) {
+                    alpacaAccountId = data.alpaca_account_id;
+                    alpacaAccountStatus = data.alpaca_account_status || alpacaAccountStatus || null;
+                    renderBrokerageAccountSummary();
+                }
+                return data;
+            } catch (error) {
+                console.warn("Could not load brokerage account record.", error);
+                return null;
+            }
+        }
+
         async function refreshBrokerageFromDb() {
             if (!supabaseUser) return null;
             const emailAddress = (supabaseUser?.email || "").trim();
@@ -3247,6 +3267,20 @@
             if (data) {
                 profileRow = { ...profileRow, ...data };
                 hydrateBrokerageFromRow(data);
+            }
+
+            const brokerageRow = await fetchBrokerageAccountRow();
+            if (
+                brokerageRow?.alpaca_account_id &&
+                (!profileRow?.alpaca_account_id || profileRow?.alpaca_account_id !== brokerageRow.alpaca_account_id)
+            ) {
+                await updateProfileBrokerage(
+                    {
+                        alpaca_account_id: brokerageRow.alpaca_account_id,
+                        alpaca_account_status: brokerageRow.alpaca_account_status || alpacaAccountStatus || null,
+                    },
+                    { silent: true },
+                );
             }
             return data;
         }
@@ -3267,6 +3301,34 @@
             } catch (error) {
                 console.error(error);
                 if (!silent) banner(error.message || "Could not update brokerage details.", "err");
+                return null;
+            }
+        }
+
+        async function persistBrokerageAccountRecord(accountId, accountStatus) {
+            if (!supabaseUser || !accountId) return null;
+            const payload = {
+                user_id: supabaseUser.id,
+                email: (supabaseUser?.email || "").trim() || null,
+                alpaca_account_id: accountId,
+                alpaca_account_status: accountStatus || alpacaAccountStatus || "submitted",
+                updated_at: new Date().toISOString(),
+            };
+            try {
+                const { data, error } = await supabase
+                    .from("alpaca_accounts")
+                    .upsert(payload, { onConflict: "user_id" })
+                    .select("*")
+                    .maybeSingle();
+                if (error) throw error;
+                if (data?.alpaca_account_id) {
+                    alpacaAccountId = data.alpaca_account_id;
+                    alpacaAccountStatus = data.alpaca_account_status || alpacaAccountStatus;
+                    renderBrokerageAccountSummary();
+                }
+                return data;
+            } catch (error) {
+                console.warn("Could not persist brokerage account record.", error);
                 return null;
             }
         }
@@ -3336,6 +3398,7 @@
                 const accountId = data?.id || data?.account_id || null;
                 const accountStatus = data?.status || data?.account_status || null;
                 if (accountId) {
+                    await persistBrokerageAccountRecord(accountId, accountStatus);
                     await updateProfileBrokerage(
                         { alpaca_account_id: accountId, alpaca_account_status: accountStatus || "submitted" },
                         { silent: false },
@@ -4159,6 +4222,19 @@
                 const row = await ensureProfile(user.id, user.email || null);
                 profileRow = row;
                 hydrateBrokerageFromRow(row);
+                const brokerageRow = await fetchBrokerageAccountRow();
+                if (
+                    brokerageRow?.alpaca_account_id &&
+                    (!profileRow?.alpaca_account_id || profileRow?.alpaca_account_id !== brokerageRow.alpaca_account_id)
+                ) {
+                    await updateProfileBrokerage(
+                        {
+                            alpaca_account_id: brokerageRow.alpaca_account_id,
+                            alpaca_account_status: brokerageRow.alpaca_account_status || alpacaAccountStatus || null,
+                        },
+                        { silent: true },
+                    );
+                }
                 paystackPlanKeys.forEach((planKey) => {
                     paymentCompletion[planKey] = row?.plan === planKey;
                 });
