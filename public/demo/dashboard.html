@@ -530,16 +530,6 @@
       return data;
     }
 
-    async function fetchLiveProfile(userId) {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, full_name, avatar_url")
-        .eq("id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    }
-
     async function fetchDemoAccount(userId) {
       const { data, error } = await supabase
         .from("demo_accounts")
@@ -630,19 +620,12 @@
         displayName = user.email || "Demo User";
         syncProfileChrome(currentUser);
 
-        const [profile, account, liveProfile] = await Promise.all([
+        const [profile, account] = await Promise.all([
           fetchDemoProfile(user.id).catch((err) => { setStatus("Could not fetch demo profile.", "error"); throw err; }),
           fetchDemoAccount(user.id).catch(() => null),
-          fetchLiveProfile(user.id).catch(() => null),
         ]);
 
-        const mergedProfile = {
-          ...(liveProfile || {}),
-          ...(profile || {}),
-          avatar_url: profile?.avatar_url || liveProfile?.avatar_url || null,
-        };
-
-        latestProfile = mergedProfile;
+        latestProfile = profile || {};
         latestAccount = account || {};
 
         renderProfile(latestProfile, user.email || "");
