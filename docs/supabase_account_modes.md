@@ -25,17 +25,48 @@ Use your existing live table but ensure it contains:
 - Any live-only portfolio state (balances, holdings, KYC references, etc.)
 
 ### `demo_profiles` (Paper)
-A parallel table for demo accounts:
+Keep demo users fully separated but still tied to the auth user. Store the requested profile fields so a demo sign-up lives in `auth.users` **and** `demo_profiles` (live sign-ups still use `profiles`).
 ```sql
 create table if not exists demo_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   account_mode text default 'paper' check (account_mode in ('paper')),
-  starting_balance numeric default 10000,
+  first_name text not null,
+  last_name text not null,
+  phone text,
+  risk_appetite text,
+  balance numeric default 10000,
+  strategies jsonb default '[]'::jsonb,
   created_at timestamptz default now()
 );
 ```
+- Use `balance` for the simulated wallet and `strategies` to persist demo allocations.
 - Keep simulated balances/positions here so they never mix with live data.
 - Optionally add reset columns (e.g., `last_reset_at`) for paper resets.
+
+### `demo_accounts` (Paper metrics)
+Create a per-demo-account metrics row that auto-links to the demo profile id.
+```sql
+create table if not exists demo_accounts (
+  id uuid primary key references demo_profiles(id) on delete cascade,
+  pnl numeric default 0,
+  trades_count int default 0,
+  last_activity_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+create or replace function create_demo_account()
+returns trigger as $$
+begin
+  insert into demo_accounts (id) values (new.id);
+  return new;
+end;$$ language plpgsql;
+
+drop trigger if exists trg_create_demo_account on demo_profiles;
+create trigger trg_create_demo_account
+  after insert on demo_profiles
+  for each row execute procedure create_demo_account();
+```
+- The trigger ensures every demo profile automatically gets a metrics row without extra client calls.
 
 ### Optional: `account_modes` view
 Expose a simple mode snapshot to the client:
@@ -70,9 +101,12 @@ create policy "Demo profiles are only updatable by owner" on demo_profiles
 ```
 
 ## How the app separates Live vs Paper
-- **On sign up:** create the auth user, set `account_mode` metadata, and insert into the corresponding table (`profiles` for live, `demo_profiles` for paper). Live inserts should set `verification_status = 'pending'` until KYC completes.
-- **On sign in:** read `user.user_metadata.account_mode` (or the `account_modes` view) to set the active mode and route the user. If missing, default to `paper` for safety.
-- **Switching modes in-app:** update auth metadata and fetch the matching table. Never join paper data with live tables; keep API calls table-specific to avoid leakage.
+- **On sign up:**
+  - Create the auth user and set `account_mode` metadata based on the chosen pill.
+  - If `paper` (demo): insert into `demo_profiles` with first/last name, phone, risk appetite, balance, and strategies; the trigger auto-creates `demo_accounts` so the metrics row is ready. No live `profiles` insert is needed.
+  - If `live`: insert into `profiles` (with `verification_status = 'pending'` until KYC completes). No `demo_profiles` row is created unless the user later opts into paper mode.
+- **On sign in:** read `user.user_metadata.account_mode` (or the `account_modes` view) and/or the UI toggle to decide whether to hydrate from `profiles` or `demo_profiles` + `demo_accounts`. If metadata is absent, default to paper to keep new users safe.
+- **Switching modes in-app:** update auth metadata and fetch the matching table. Avoid mixing queries; paper flows read/write `demo_profiles`/`demo_accounts`, while live flows read/write `profiles`.
 - **Live verification:** block trading/transfer actions when `verification_status != 'verified'` and show the "Will Require Additional Verification" messaging on sign-up when `account_mode = 'live'`.
 
 ## Safety checklist
