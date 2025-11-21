@@ -231,9 +231,23 @@
           </button>
           <h1 class="text-xl font-bold text-slate-800 truncate">Demo Dashboard</h1>
         </div>
-        <div class="flex items-center gap-3">
-          <span id="guard-account-type" class="rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1">Paper Account</span>
-          <button id="sign-out" class="btn h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border-slate-200">Sign out</button>
+      </div>
+
+      <div class="px-4 md:px-6 pt-6">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="h-11 w-11 rounded-lg bg-white border border-emerald-200 grid place-items-center text-emerald-700 text-lg">
+              📈
+            </div>
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700">Paper Account</p>
+              <p id="banner-copy" class="text-sm text-emerald-800">You’re in demo mode. Balances and trades are simulated.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="banner-account" class="rounded-full bg-white border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1">Paper — —</span>
+            <button id="sign-out" class="btn h-10 rounded-xl bg-white hover:bg-emerald-100 border-emerald-200 text-emerald-800">Sign out</button>
+          </div>
         </div>
       </div>
 
@@ -365,7 +379,7 @@
     const updatedAt = document.getElementById("updated-at");
     const statusBox = document.getElementById("status");
     const statusText = document.getElementById("status-text");
-    const accountTypeLabel = document.getElementById("guard-account-type");
+    const bannerAccount = document.getElementById("banner-account");
     const pfTitle = document.getElementById("pf-title");
     const pfName = document.getElementById("pf-name");
     const pfValue = document.getElementById("pf-value");
@@ -567,7 +581,9 @@
       const trades = typeof account?.trades === "number" ? account.trades : (Array.isArray(account?.trade_history) ? account.trade_history.length : null);
       statTrades.textContent = trades ?? "—";
       updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
-      if (sidebarAccount) sidebarAccount.textContent = `Paper — ${account?.id || userId || "—"}`;
+      const label = `Paper — ${account?.id || userId || "—"}`;
+      if (sidebarAccount) sidebarAccount.textContent = label;
+      if (bannerAccount) bannerAccount.textContent = label;
     }
 
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
@@ -600,7 +616,6 @@
         const user = await guard();
         if (!user) return;
         clearStatus();
-        accountTypeLabel.textContent = "Paper Account";
         setActiveRange("6M");
 
         const [profile, account] = await Promise.all([
