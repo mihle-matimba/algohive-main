@@ -188,7 +188,7 @@
             Live Account
           </button>
         </div>
-        <p id="live-note" class="hidden text-sm font-semibold text-amber-700">Require verification</p>
+        <p id="live-note" class="hidden text-sm font-semibold text-amber-700">Will Require Additional Verification</p>
       </section>
 
         <!-- Messages -->
@@ -571,10 +571,19 @@
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm-password");
     const confirmHint = document.getElementById("confirm-hint");
+    const liveNote = document.getElementById("live-note");
     const accountButtons = Array.from(document.querySelectorAll("[data-account]"));
     let accountType = "paper";
+    let currentTab = "in";
 
     // ---- UI helpers ----
+    function updateLiveNote() {
+      if (!liveNote) return;
+      const show = accountType === "live" && currentTab === "up";
+      liveNote.classList.toggle("hidden", !show);
+      liveNote.textContent = show ? "Will Require Additional Verification" : "";
+    }
+
     function setAccountType(type = "paper") {
       accountType = type;
       try { localStorage.setItem("ah_account_type", type); } catch (_) {}
@@ -583,8 +592,7 @@
         btn.classList.toggle("account-pill--active", active);
         btn.setAttribute("aria-pressed", active ? "true" : "false");
       });
-      const liveNote = document.getElementById("live-note");
-      if (liveNote) liveNote.classList.toggle("hidden", type !== "live");
+      updateLiveNote();
     }
 
     function showMsg(text, type = "info") { // "success" | "error" | "info"
@@ -607,6 +615,7 @@
 
     function show(tab) {
       clearMsg();
+      currentTab = tab;
       const up = tab === "up";
       const toShowPanel = up ? panelUp : panelIn;
       const toHidePanel = up ? panelIn : panelUp;
@@ -622,6 +631,7 @@
       animateSwap(toShowPanel, toShowHeading);
       forgot.classList.toggle("hidden", up);
       forgotWrap.classList.add("hidden");
+      updateLiveNote();
     }
 
     switchToSignup?.addEventListener("click", () => show("up"));
