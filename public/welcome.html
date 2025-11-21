@@ -35,38 +35,7 @@
   <section class="relative min-h-[100svh] flex flex-col pb-24">
     <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-full max-w-[80rem] bg-[radial-gradient(ellipse_at_center,rgba(69,98,67,.12),transparent_55%)]"></div>
 
-    <header class="w-full sticky top-3 z-50 px-3 sm:px-4 lg:px-6">
-      <div class="mx-auto max-w-5xl">
-        <nav aria-label="Primary" class="relative flex items-center justify-between gap-2 rounded-full border border-black/10 bg-white px-3 py-2 shadow-lg">
-          <a href="index.html" class="flex flex-shrink-0 items-center gap-2 rounded-full px-2 py-1.5 hover:bg-black/5">
-            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="h-7 w-auto">
-            <span class="hidden md:inline text-sm font-extrabold tracking-tight text-[var(--ink)]">AlgoHive</span>
-          </a>
-
-          <div class="hidden md:flex items-center gap-1">
-            <span class="h-6 w-px bg-black/10 mx-1"></span>
-            <a href="who-we-are.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Who We Are</a>
-            <a href="how-we-work.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">How We Work</a>
-            <a href="pricing.html" class="px-3 py-2 rounded-full text-sm font-medium text-[var(--ink)] hover:bg-black/5">Pricing</a>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <a href="/auth.html?redirect=/home.html" class="btn-shine inline-flex items-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--olive-700)]">Login</a>
-            <button id="hamburger-button" class="md:hidden p-2 rounded-full hover:bg-black/5" aria-label="Open navigation menu">
-              <svg class="w-6 h-6 text-[var(--ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-            </button>
-          </div>
-
-          <div id="mobile-menu" class="hidden md:hidden absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-black/10">
-            <a href="who-we-are.html" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">Who We Are</a>
-            <a href="how-we-work.html" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">How We Work</a>
-            <a href="pricing.html" class="block px-4 py-2 text-sm text-[var(--ink)] hover:bg-black/5">Pricing</a>
-          </div>
-        </nav>
-      </div>
-    </header>
-
-    <main class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 flex-1 flex flex-col">
+    <main class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 flex-1 flex flex-col pt-8 lg:pt-12">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center grow py-8 lg:py-12">
         <div class="lg:col-span-6 hero-left">
           <span id="inviteTag" class="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-xs text-black/60">
@@ -122,8 +91,10 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const friendParam = params.get('Friend') ?? params.get('friend');
-    const rawFriend = friendParam && friendParam.trim() ? friendParam.trim() : 'A friend';
-    const friendName = rawFriend.slice(0, 60);
+    const cleanedFriend = friendParam && friendParam.trim()
+      ? friendParam.trim().replace(/^['"]+|['"]+$/g, '')
+      : 'A friend';
+    const friendName = cleanedFriend.slice(0, 60) || 'A friend';
     const inviteLine = `${friendName}, wants you to start investing`;
 
     const heroTitle = document.getElementById('heroTitle');
@@ -131,14 +102,6 @@
     if (heroTitle) heroTitle.textContent = inviteLine;
     if (inviteTag) inviteTag.textContent = `${friendName} invited you`;
     document.title = inviteLine;
-
-    const hamburgerButton = document.getElementById('hamburger-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (hamburgerButton && mobileMenu) {
-      hamburgerButton.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-      });
-    }
   </script>
 </body>
 </html>
