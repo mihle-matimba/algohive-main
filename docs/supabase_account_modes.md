@@ -3,9 +3,9 @@
 This guide outlines a minimal Supabase schema to support both **Paper (demo)** and **Live** investment flows. It keeps Live records in the existing `profiles` table and adds a dedicated `demo_profiles` table so data stays separated while still sharing the same authenticated user.
 
 ## Auth metadata and mode tracking
-- Store the chosen account mode in the user's auth metadata so the client can default to the last selection.
+- Store the chosen account mode in the user's auth metadata (the current UI uses the `account_type` key) so the client can default to the last selection.
 - Suggested auth metadata fields (set during sign-up and updateable on toggle):
-  - `account_mode`: `'paper' | 'live'`
+  - `account_mode` (or `account_type` in the UI): `'paper' | 'live'`
   - `verification_status`: `'pending' | 'verified' | 'n/a'` (use `pending` for live until KYC completes)
 
 Example (Node client):
@@ -108,6 +108,11 @@ create policy "Demo profiles are only updatable by owner" on demo_profiles
 - **On sign in:** read `user.user_metadata.account_mode` (or the `account_modes` view) and/or the UI toggle to decide whether to hydrate from `profiles` or `demo_profiles` + `demo_accounts`. If metadata is absent, default to paper to keep new users safe.
 - **Switching modes in-app:** update auth metadata and fetch the matching table. Avoid mixing queries; paper flows read/write `demo_profiles`/`demo_accounts`, while live flows read/write `profiles`.
 - **Live verification:** block trading/transfer actions when `verification_status != 'verified'` and show the "Will Require Additional Verification" messaging on sign-up when `account_mode = 'live'`.
+
+## Front-end wiring (auth.html)
+- The auth page now upserts into `demo_profiles` immediately after sign-up/sign-in when **Paper** is selected. It pulls defaults from the user's auth `user_metadata` when present and falls back to safe placeholders (`Demo`/`User`, `balanced` risk appetite, `10000` balance, and empty strategies array) so the row always exists for paper users.
+- The auth metadata `account_type` is updated on every successful auth so subsequent sessions default to the last selected mode.
+- Live mode keeps the existing live profile gating. Paper mode skips live gating and simply redirects after ensuring the `demo_profiles` row exists (the `demo_accounts` trigger will populate metrics automatically).
 
 ## Safety checklist
 - Enforce foreign keys to `auth.users` on both tables and cascade deletes so demo data is dropped when the user is removed.

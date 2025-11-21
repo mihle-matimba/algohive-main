@@ -514,10 +514,51 @@
       return "";
     }
 
+    async function ensureDemoProfile(accountTypeValue = "paper") {
+      if (accountTypeValue !== "paper") return null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const meta = user.user_metadata || {};
+      const payload = {
+        id: user.id,
+        account_mode: "paper",
+        first_name: meta.first_name || "Demo",
+        last_name: meta.last_name || "User",
+        phone: meta.phone || null,
+        risk_appetite: meta.risk_appetite || "balanced",
+        balance: typeof meta.balance === "number" ? meta.balance : 10000,
+        strategies: Array.isArray(meta.strategies) ? meta.strategies : [],
+      };
+
+      const { error } = await supabase
+        .from("demo_profiles")
+        .upsert(payload, { onConflict: "id" });
+
+      if (error) throw error;
+      return payload;
+    }
+
     async function routePostAuth(preferred = "/home.html", accountTypeValue = "paper") {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return; // email-confirm signup path
       try { sessionStorage.setItem("ah_account_type", accountTypeValue); } catch (err) { console.warn("Unable to cache account type", err); }
+
+      try {
+        await supabase.auth.updateUser({ data: { account_type: accountTypeValue } });
+      } catch (err) {
+        console.warn("Unable to persist account type on auth user", err);
+      }
+
+      if (accountTypeValue === "paper") {
+        try {
+          await ensureDemoProfile(accountTypeValue);
+        } catch (err) {
+          console.warn("Unable to ensure demo profile exists", err);
+        }
+        location.replace(preferred);
+        return;
+      }
 
       const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
       let profileComplete = false;
