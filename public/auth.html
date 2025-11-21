@@ -64,6 +64,40 @@
       gap: 1.5rem;
       padding: 0.5rem 0;
     }
+    .account-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-radius: 9999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      padding: 0.55rem 0.95rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #0b1215;
+      box-shadow: 0 10px 30px -22px rgba(11, 18, 21, 0.35);
+      transition: all .2s ease;
+    }
+    .account-pill__dot {
+      height: 10px;
+      width: 10px;
+      border-radius: 9999px;
+      background: #d1d5db;
+      box-shadow: 0 0 0 6px rgba(126,141,82,0.14);
+      transition: all .2s ease;
+    }
+    .account-pill--active {
+      border-color: rgba(126,141,82,0.7);
+      background: linear-gradient(135deg, rgba(126,141,82,0.12), rgba(126,141,82,0.05));
+      color: #2f361d;
+    }
+    .account-pill--active .account-pill__dot {
+      background: var(--olive);
+      box-shadow: 0 0 0 8px rgba(126,141,82,0.18);
+    }
+    .account-pill:hover { border-color: rgba(126,141,82,0.55); transform: translateY(-1px); }
+    .account-pill:focus-visible { outline: 2px solid rgba(126,141,82,0.4); outline-offset: 2px; }
+    .mini-logos img { height: 26px; width: auto; filter: grayscale(1); opacity: 0.9; }
     .testimonial-quote {
       font-size: clamp(1.4rem, 2.3vw, 1.85rem);
       line-height: 1.4;
@@ -136,6 +170,28 @@
             <p class="text-sm text-slate-500">Already have an account? <button id="switch-to-signin" type="button" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Log in.</button></p>
           </div>
         </header>
+
+        <section class="mb-8 space-y-3">
+          <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--olive)]">
+            <span>Account mode</span>
+            <span class="h-[1px] w-10 bg-[var(--olive)]/30"></span>
+            <div class="mini-logos flex items-center gap-3">
+              <img src="https://logo.clearbit.com/blackrock.com" alt="BlackRock logo">
+              <img src="https://logo.clearbit.com/nvidia.com" alt="Nvidia logo">
+              <img src="https://logo.clearbit.com/mastercard.com" alt="Mastercard logo">
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button type="button" class="account-pill" data-account="paper">
+              <span class="account-pill__dot" aria-hidden="true"></span>
+              Paper Account
+            </button>
+            <button type="button" class="account-pill" data-account="live">
+              <span class="account-pill__dot" aria-hidden="true"></span>
+              Live Account
+            </button>
+          </div>
+        </section>
 
         <!-- Messages -->
         <div id="msg" class="hidden mb-5 max-w-md rounded-lg border px-3 py-2 text-sm text-left"></div>
@@ -305,9 +361,10 @@
       return "";
     }
 
-    async function routePostAuth(preferred = "/home.html") {
+    async function routePostAuth(preferred = "/home.html", accountTypeValue = "paper") {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return; // email-confirm signup path
+      try { sessionStorage.setItem("ah_account_type", accountTypeValue); } catch (err) { console.warn("Unable to cache account type", err); }
 
       const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
       let profileComplete = false;
@@ -361,8 +418,20 @@
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm-password");
     const confirmHint = document.getElementById("confirm-hint");
+    const accountButtons = Array.from(document.querySelectorAll("[data-account]"));
+    let accountType = "paper";
 
     // ---- UI helpers ----
+    function setAccountType(type = "paper") {
+      accountType = type;
+      try { localStorage.setItem("ah_account_type", type); } catch (_) {}
+      accountButtons.forEach((btn) => {
+        const active = btn.dataset.account === type;
+        btn.classList.toggle("account-pill--active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
     function showMsg(text, type = "info") { // "success" | "error" | "info"
       msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
       if (type === "success") msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200");
@@ -402,6 +471,8 @@
 
     switchToSignup?.addEventListener("click", () => show("up"));
     switchToSignin?.addEventListener("click", () => show("in"));
+    accountButtons.forEach((btn) => btn.addEventListener("click", () => setAccountType(btn.dataset.account)));
+    setAccountType(localStorage.getItem("ah_account_type") || "paper");
 
     // enable/disable signup by checkbox
     const passwordsMatch = () => signupConfirm.value === signupPassword.value;
@@ -447,7 +518,7 @@
         setLoading(inBtn, true, "Log in", "Logging in…");
         await signIn(email, password);
         showMsg("Signed in. Redirecting…", "success");
-        await routePostAuth(redirectTo);
+        await routePostAuth(redirectTo, accountType);
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -469,7 +540,7 @@
       }
       try {
         setLoading(signupBtn, true, "Create account", "Creating account…");
-        const { data } = await signUp(email, password); // { user, session }
+        const { data } = await signUp(email, password, { account_type: accountType }); // { user, session }
         const needsConfirm = !data?.session;
         if (needsConfirm) {
           showMsg("Account created. Please confirm your email, then sign in.", "success");
@@ -477,7 +548,7 @@
           signupBtn.textContent = "Check your email to confirm";
         } else {
           showMsg("Account created. Redirecting…", "success");
-          await routePostAuth(redirectTo);
+          await routePostAuth(redirectTo, accountType);
         }
       } catch (err) {
         const m = (err?.message || "").toLowerCase();
@@ -522,11 +593,11 @@
       if (qs.get("tab") === "up") show("up"); else show("in");
       if (qs.get("confirmed") === "1") showMsg("Email confirmed — you can sign in now.", "success");
 
-      // If user is already logged in and lands here, route them
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) await routePostAuth(redirectTo);
-      } catch (_) {}
+        // If user is already logged in and lands here, route them
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) await routePostAuth(redirectTo, accountType);
+        } catch (_) {}
   </script>
 </body>
 </html>
