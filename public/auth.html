@@ -636,6 +636,24 @@
       updateLiveNote();
     }
 
+    async function hydrateAccountType() {
+      const stored = (() => {
+        try { return localStorage.getItem("ah_account_type"); } catch (_) { return null; }
+      })();
+      let metaType = null;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        metaType = session?.user?.user_metadata?.account_type;
+      } catch (err) {
+        console.warn("Unable to read auth metadata for account type", err);
+      }
+
+      const resolved = [metaType, stored, "paper"].find((v) => v === "paper" || v === "live");
+      setAccountType(resolved || "paper");
+      return resolved || "paper";
+    }
+
     function showMsg(text, type = "info") { // "success" | "error" | "info"
       msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
       if (type === "success") msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200");
@@ -678,7 +696,7 @@
     switchToSignup?.addEventListener("click", () => show("up"));
     switchToSignin?.addEventListener("click", () => show("in"));
     accountButtons.forEach((btn) => btn.addEventListener("click", () => setAccountType(btn.dataset.account)));
-    setAccountType(localStorage.getItem("ah_account_type") || "paper");
+    const hydratedAccountType = await hydrateAccountType();
 
     // enable/disable signup by checkbox
     const passwordsMatch = () => signupConfirm.value === signupPassword.value;
@@ -722,9 +740,12 @@
       const password = e.target.password.value;
       try {
         setLoading(inBtn, true, "Log in", "Logging in…");
-        await signIn(email, password);
+        const { user } = await signIn(email, password) ?? {};
+        const metaType = user?.user_metadata?.account_type;
+        const effectiveType = [metaType, accountType, hydratedAccountType, "paper"].find((v) => v === "paper" || v === "live");
+        if (metaType && metaType !== accountType) setAccountType(metaType);
         showMsg("Signed in. Redirecting…", "success");
-        await routePostAuth(redirectTo, accountType);
+        await routePostAuth(redirectTo, effectiveType || "paper");
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -802,7 +823,9 @@
         // If user is already logged in and lands here, route them
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (session) await routePostAuth(redirectTo, accountType);
+          const metaType = session?.user?.user_metadata?.account_type;
+          const fallbackType = [metaType, accountType, hydratedAccountType, "paper"].find((v) => v === "paper" || v === "live");
+          if (session) await routePostAuth(redirectTo, fallbackType || "paper");
         } catch (_) {}
   </script>
 </body>

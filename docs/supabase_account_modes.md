@@ -112,6 +112,7 @@ create policy "Demo profiles are only updatable by owner" on demo_profiles
 ## Front-end wiring (auth.html)
 - The auth page now upserts into `demo_profiles` immediately after sign-up/sign-in when **Paper** is selected. It pulls defaults from the user's auth `user_metadata` when present and falls back to safe placeholders (`Demo`/`User`, `balanced` risk appetite, `10000` balance, and empty strategies array) so the row always exists for paper users.
 - The auth metadata `account_type` is updated on every successful auth so subsequent sessions default to the last selected mode.
+- On sign-in, the UI now hydrates the account toggle from `user_metadata.account_type` when available (falling back to local storage, then paper) so routing honors the user’s saved mode even if the toggle wasn’t manually set before logging in.
 - Live mode keeps the existing live profile gating. Paper mode skips live gating and simply redirects after ensuring the `demo_profiles` row exists (the `demo_accounts` trigger will populate metrics automatically).
 
 ## Safety checklist
