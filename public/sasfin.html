@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://aazofjsssobejhkyyiqv.supabase.co; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'nonce-ALGOHIVE' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self'">
+  <title>Sasfin</title>
+  <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" nonce="ALGOHIVE"></script>
+  <style>
+    :root {
+      --ink: #0f2430;
+      --muted: #5b6c78;
+      --panel: #ffffff;
+      --back: #f2f6f8;
+      --line: #dbe5eb;
+      --accent: #0c4460;
+      --accent-soft: #d6e6f1;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--back); color: var(--ink); }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 36, 48, 0.06);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 .875rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+    .muted { color: var(--muted); }
+    .gradient-bar {
+      background: linear-gradient(90deg, rgba(15,58,75,0.06) 0%, rgba(15,58,75,0.12) 45%, rgba(15,58,75,0.18) 80%);
+    }
+    .sparkline {
+      background: linear-gradient(180deg, rgba(15,58,75,0.14), rgba(15,58,75,0));
+      position: relative;
+      overflow: hidden;
+    }
+    .sparkline::after {
+      content: "";
+      position: absolute;
+      inset: 16% 8% 10% 6%;
+        background: url('data:image/svg+xml,%3Csvg width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpolyline fill="none" stroke="%230f3a4b" stroke-width="3" points="0,70 40,60 80,62 120,40 160,30 200,32 240,20 280,25 300,18"/%3E%3C/svg%3E');
+      background-size: cover;
+      opacity: 0.95;
+    }
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+    }
+      .heatmap div {
+        border-radius: 8px;
+        height: 32px;
+        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      }
+      .heatmap div:nth-child(3n) { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+
+      .donut {
+        background: conic-gradient(#0f3a4b 0deg 260deg, #e5e7eb 260deg 360deg);
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        position: relative;
+        margin: auto;
+      }
+      .donut::after {
+      content: "72%";
+      position: absolute;
+      inset: 24px;
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: var(--ink);
+      box-shadow: inset 0 0 0 1px #e5e7eb;
+    }
+    /* Layout + sidebar (match home.html behavior) */
+    #layout {
+      --sb: 240px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+    }
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 280px;
+      max-width: 85vw;
+      position: fixed;
+      top: 0;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%);
+    }
+    #ah-sidebar.is-open { transform: translateX(0); }
+    @media (min-width: 768px) {
+      #layout { grid-template-columns: var(--sb) 1fr; }
+      #layout.is-collapsed { --sb: 72px; }
+      #ah-sidebar {
+        position: sticky;
+        top: 0;
+        width: var(--sb);
+        max-width: none;
+        transform: translateX(0);
+        z-index: auto;
+      }
+    }
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details>summary { justify-content: center; gap: .25rem; }
+    #ah-sidebar[data-collapsed="true"] details>.sub { display: none !important; }
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) { #ah-collapse { display: inline-flex; } }
+
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/Sasfin_New_Logo_2021.svg.png" alt="Sasfin" class="h-10 w-auto object-contain" loading="lazy" />
+        <div class="min-w-0 label">
+          <div class="font-bold text-[15px] text-slate-900">Sasfin</div>
+          <div class="text-[11px] text-slate-500">Institutional Desk</div>
+        </div>
+      </div>
+      <nav class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <p class="px-3 pt-1 pb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold label">Overview</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#dashboard">
+          <i class="fa-solid fa-gauge text-slate-500 w-4 shrink-0"></i><span class="label">Dashboard</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#portfolio">
+          <i class="fa-regular fa-user text-slate-500 w-4 shrink-0"></i><span class="label">Portfolio</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#funds">
+          <i class="fa-solid fa-vault text-slate-500 w-4 shrink-0"></i><span class="label">My Funds</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#fund-clients">
+          <i class="fa-solid fa-people-roof text-slate-500 w-4 shrink-0"></i><span class="label">Fund Clients</span>
+        </a>
+        <p class="px-3 pt-4 pb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold label">Mandates & Deals</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#mandates">
+          <i class="fa-solid fa-shield-halved text-slate-500 w-4 shrink-0"></i><span class="label">Mandates</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#strategies">
+          <i class="fa-solid fa-chart-line text-slate-500 w-4 shrink-0"></i><span class="label">Strategies</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#transactions">
+          <i class="fa-solid fa-money-check-dollar text-slate-500 w-4 shrink-0"></i><span class="label">Transactions</span>
+        </a>
+        <p class="px-3 pt-4 pb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold label">Invest</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#openstrategies">
+          <i class="fa-solid fa-folder-open text-slate-500 w-4 shrink-0"></i><span class="label">OpenStrategies</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#vast">
+          <i class="fa-solid fa-layer-group text-slate-500 w-4 shrink-0"></i><span class="label">VAST</span>
+        </a>
+        <p class="px-3 pt-4 pb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold label">Clients & Risk</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#clients">
+          <i class="fa-solid fa-users text-slate-500 w-4 shrink-0"></i><span class="label">Clients</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#compliance">
+          <i class="fa-solid fa-scale-balanced text-slate-500 w-4 shrink-0"></i><span class="label">Compliance</span>
+        </a>
+        <p class="px-3 pt-4 pb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold label">Ops</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#reports">
+          <i class="fa-solid fa-file-lines text-slate-500 w-4 shrink-0"></i><span class="label">Reports</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#settings">
+          <i class="fa-solid fa-gear text-slate-500 w-4 shrink-0"></i><span class="label">Settings</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent-soft)] font-medium text-slate-900" href="#support">
+          <i class="fa-solid fa-life-ring text-slate-500 w-4 shrink-0"></i><span class="label">Support</span>
+        </a>
+      </nav>
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <span class="label text-xs text-slate-500 leading-relaxed">Built for Sasfin’s institutional workspace.</span>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200" title="Collapse">
+          <i class="fa-solid fa-arrow-left text-slate-600"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="w-full bg-[var(--accent)] text-white px-6 py-3 flex flex-wrap items-center gap-3 text-sm">
+        <span class="font-semibold inline-flex items-center gap-2"><i class="fa-solid fa-bullhorn text-white/90"></i>Latest announcement</span>
+        <span class="px-2 py-1 rounded-full bg-white/15 border border-white/20">New institutional reporting suite live</span>
+        <span class="px-2 py-1 rounded-full bg-white/10 border border-white/20">Base currency: ZAR (R)</span>
+        <span class="px-2 py-1 rounded-full bg-white/10 border border-white/20">Performance & mandates synced to desk</span>
+      </div>
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border border-slate-200 bg-white" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Sasfin</p>
+            <h1 class="text-xl md:text-2xl font-semibold text-slate-900">Institutional Dashboard</h1>
+          </div>
+        </div>
+        <div class="hidden md:flex items-center gap-4 text-sm font-medium">
+          <span class="px-3 py-1 rounded-full bg-[var(--accent-soft)] border border-transparent text-[var(--accent)] font-semibold">Live trading</span>
+          <div class="flex items-center gap-3">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/1558688920634.jpeg" alt="Siphesihle Siswana" class="h-10 w-10 rounded-full border border-slate-200 object-cover" loading="lazy" />
+            <div>
+              <div class="text-slate-900">Siphesihle Siswana</div>
+              <div class="text-xs text-slate-500">Institutional Desk</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section class="p-6 space-y-6" id="dashboard">
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <div class="xl:col-span-3 card p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm uppercase tracking-[0.18em] text-slate-500 font-semibold">Total Value</p>
+              <h2 class="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">R1,234,282,176</h2>
+              <p class="text-sm text-green-600 font-semibold mt-1">+R19.3m today</p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm uppercase tracking-[0.18em] text-slate-500 font-semibold">Profit / Loss</p>
+              <h3 class="text-2xl font-semibold text-slate-900 mt-2">R2,156,890</h3>
+              <p class="text-xs text-green-600 font-semibold mt-1">17.8% annualised</p>
+            </div>
+          </div>
+          <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            <div class="lg:col-span-2 h-64">
+              <canvas id="equity-chart"></canvas>
+            </div>
+            <div class="grid grid-cols-1 gap-3 text-xs text-slate-600">
+              <div class="card p-3 border border-slate-100 shadow-none bg-white">
+                <p class="text-slate-500 text-[11px] uppercase tracking-[0.18em]">Risk & Exposure</p>
+                <p class="text-base font-semibold text-slate-900">R23,378,220</p>
+                <p class="text-green-600 font-semibold text-[12px]">-0.50% (ZAR)</p>
+              </div>
+              <div class="card p-3 border border-slate-100 shadow-none bg-white">
+                <p class="text-slate-500 text-[11px] uppercase tracking-[0.18em]">Available Cash</p>
+                <p class="text-base font-semibold text-slate-900">R43,671</p>
+                <p class="text-green-600 font-semibold text-[12px]">+3.25% (cash)</p>
+              </div>
+              <div class="card p-3 border border-slate-100 shadow-none bg-white">
+                <p class="text-slate-500 text-[11px] uppercase tracking-[0.18em]">Credit Lines</p>
+                <p class="text-base font-semibold text-slate-900">R2,156,890</p>
+                <p class="text-green-600 font-semibold text-[12px]">+11.50% headroom</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Notifications</p>
+              <h3 class="text-lg font-semibold text-slate-900">Audit & Activity</h3>
+            </div>
+            <span class="px-2 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700 font-semibold">Live</span>
+          </div>
+          <div class="space-y-3 text-sm text-slate-700">
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-blue-500"></span>
+              <div>
+                <p class="font-semibold text-slate-900">Mandate update ready</p>
+                <p class="text-slate-600">AlgoHive desk published a mandate note for Sasfin credit.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
+              <div>
+                <p class="font-semibold text-slate-900">Audit log clean</p>
+                <p class="text-slate-600">No anomalies in the last 24h transaction monitor.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
+              <div>
+                <p class="font-semibold text-slate-900">Rebalance window</p>
+                <p class="text-slate-600">Portfolio drift approaching tolerance. View-only alerts enabled.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Asset Allocation</p>
+              <h3 class="text-lg font-semibold text-slate-900">Strategic weights (ZAR)</h3>
+            </div>
+            <span class="text-xs text-[var(--accent)] font-semibold">Target vs Actual</span>
+          </div>
+          <div class="h-40">
+            <canvas id="allocation-chart"></canvas>
+          </div>
+          <div class="flex items-center justify-between text-sm text-slate-700">
+            <span>Cash buffer</span>
+            <span class="font-semibold text-emerald-600">5.8%</span>
+          </div>
+        </div>
+        <div class="card p-5 space-y-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Risk Sentinel</p>
+              <h3 class="text-lg font-semibold text-slate-900">Sector Exposure (ZAR weights)</h3>
+            </div>
+            <span class="text-xs font-semibold text-amber-600">72 pts</span>
+          </div>
+          <div class="grid grid-cols-2 gap-4 items-center">
+            <div class="h-48">
+              <canvas id="sector-chart"></canvas>
+            </div>
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between"><span class="text-slate-600">Tech</span><span class="font-semibold text-slate-900">34%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Financials</span><span class="font-semibold text-slate-900">24%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Energy</span><span class="font-semibold text-slate-900">18%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Healthcare</span><span class="font-semibold text-slate-900">12%</span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-600">Other</span><span class="font-semibold text-slate-900">12%</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Monthly Returns</p>
+              <h3 class="text-lg font-semibold text-slate-900">Period insights (vs benchmark)</h3>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <label class="text-slate-500">Timeframe</label>
+              <select id="timeframe-select" class="border border-slate-200 rounded-md px-2 py-1 bg-white">
+                <option value="6m">6 months</option>
+                <option value="1y">1 year</option>
+                <option value="3y">3 years</option>
+              </select>
+              <select id="performance-select" class="border border-slate-200 rounded-md px-2 py-1 bg-white">
+                <option value="mandate">Mandate composite</option>
+                <option value="income">Income Fund</option>
+                <option value="balanced">Balanced Fund</option>
+                <option value="growth">Growth Fund</option>
+                <option value="systematic">Systematic Equity</option>
+                <option value="macro">Macro Overlay</option>
+              </select>
+            </div>
+          </div>
+          <div class="h-48">
+            <canvas id="returns-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-4" id="funds">
+        <div class="card p-5 space-y-4 xl:col-span-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">My Funds</p>
+              <h3 class="text-lg font-semibold text-slate-900">Sasfin mandates overview</h3>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-semibold border border-transparent">Aligned</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-slate-800">
+            <div class="p-3 rounded-xl border border-[var(--line)] bg-white">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Income Fund</p>
+              <p class="text-2xl font-semibold text-slate-900">R482.6m</p>
+              <p class="text-xs text-slate-500">Clients: <span class="font-semibold text-slate-900">42</span></p>
+              <p class="text-xs text-emerald-600 font-semibold">+0.42% today</p>
+            </div>
+            <div class="p-3 rounded-xl border border-[var(--line)] bg-white">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Balanced</p>
+              <p class="text-2xl font-semibold text-slate-900">R316.4m</p>
+              <p class="text-xs text-slate-500">Clients: <span class="font-semibold text-slate-900">33</span></p>
+              <p class="text-xs text-emerald-600 font-semibold">+0.21% today</p>
+            </div>
+            <div class="p-3 rounded-xl border border-[var(--line)] bg-white">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Growth</p>
+              <p class="text-2xl font-semibold text-slate-900">R142.3m</p>
+              <p class="text-xs text-slate-500">Clients: <span class="font-semibold text-slate-900">18</span></p>
+              <p class="text-xs text-amber-600 font-semibold">Rebalance window</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3 text-xs text-slate-700">
+            <span class="px-3 py-2 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] font-semibold">Risk score: 12.4</span>
+            <span class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700">Drift: 0.38%</span>
+            <span class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700">Cash buffer: 5.8%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-5 space-y-4" id="fund-clients">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Fund clients</p>
+            <h3 class="text-lg font-semibold text-slate-900">Client coverage by mandate</h3>
+          </div>
+          <span class="text-xs px-3 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-semibold border border-transparent">Export CSV</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left">
+            <thead class="text-slate-500 uppercase text-[11px] tracking-[0.18em]">
+              <tr class="border-b border-slate-200">
+                <th class="py-2 pr-6">Fund</th>
+                <th class="py-2 pr-6">Clients</th>
+                <th class="py-2 pr-6">AUM (ZAR)</th>
+                <th class="py-2 pr-6">MTD</th>
+                <th class="py-2 pr-6">YTD</th>
+                <th class="py-2 pr-6">Since inception</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-800">
+              <tr>
+                <td class="py-3 pr-6 font-semibold">Income Fund</td>
+                <td class="py-3 pr-6">42</td>
+                <td class="py-3 pr-6">R482,600,000</td>
+                <td class="py-3 pr-6 text-emerald-600">+0.28%</td>
+                <td class="py-3 pr-6 text-emerald-600">+4.12%</td>
+                <td class="py-3 pr-6 text-emerald-600">+26.3%</td>
+              </tr>
+              <tr>
+                <td class="py-3 pr-6 font-semibold">Balanced Fund</td>
+                <td class="py-3 pr-6">33</td>
+                <td class="py-3 pr-6">R316,400,000</td>
+                <td class="py-3 pr-6 text-emerald-600">+0.19%</td>
+                <td class="py-3 pr-6 text-emerald-600">+8.46%</td>
+                <td class="py-3 pr-6 text-emerald-600">+41.7%</td>
+              </tr>
+              <tr>
+                <td class="py-3 pr-6 font-semibold">Growth Fund</td>
+                <td class="py-3 pr-6">18</td>
+                <td class="py-3 pr-6">R142,300,000</td>
+                <td class="py-3 pr-6 text-amber-600">-0.12%</td>
+                <td class="py-3 pr-6 text-emerald-600">+11.30%</td>
+                <td class="py-3 pr-6 text-emerald-600">+63.2%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card p-5 space-y-4" id="openstrategies">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Invest</p>
+              <h3 class="text-lg font-semibold text-slate-900">OpenStrategies</h3>
+            </div>
+            <span class="text-xs text-slate-500">Risk-tiered</span>
+          </div>
+          <ul class="space-y-3 text-sm text-slate-800">
+            <li class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Systematic Equity</p>
+                <p class="text-xs text-slate-500">Sharpe 1.9 · Capacity 42%</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-xs font-semibold">Enabled</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Macro Overlay</p>
+                <p class="text-xs text-slate-500">VaR 3.2% · Max DD 6.4%</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs">Reviewing</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Income Ladder</p>
+                <p class="text-xs text-slate-500">Duration 2.4y · IG 86%</p>
+              </div>
+              <span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">Stable</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="vast" class="sr-only">VAST</div>
+
+    </section>
+  </main>
+  </div>
+
+  <script nonce="ALGOHIVE">
+    (() => {
+      const styles = getComputedStyle(document.documentElement);
+      const primary = styles.getPropertyValue('--accent').trim() || '#0f3a4b';
+      const muted = 'rgba(15,36,48,0.12)';
+      const formatRand = (value, digits = 0) => new Intl.NumberFormat('en-ZA', {
+        style: 'currency',
+        currency: 'ZAR',
+        maximumFractionDigits: digits,
+        minimumFractionDigits: digits
+      }).format(value);
+
+      const hoverLine = {
+        id: 'hoverLine',
+        afterDatasetsDraw(chart) {
+          const { ctx, tooltip, chartArea } = chart;
+          if (!tooltip?.getActiveElements()?.length) return;
+          const x = tooltip.caretX;
+          ctx.save();
+          ctx.strokeStyle = 'rgba(12,68,96,0.25)';
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(x, chartArea.top);
+          ctx.lineTo(x, chartArea.bottom);
+          ctx.stroke();
+          ctx.restore();
+        }
+      };
+
+      Chart.register(hoverLine);
+
+      const equityEl = document.getElementById('equity-chart');
+      if (equityEl) {
+        const ctx = equityEl.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, 'rgba(15,58,75,0.30)');
+        gradient.addColorStop(1, 'rgba(15,58,75,0.04)');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+            datasets: [{
+              label: 'NAV (ZAR m)',
+              data: [1234, 1248, 1262, 1250, 1269, 1288, 1295, 1308, 1320, 1312],
+              borderColor: primary,
+              backgroundColor: gradient,
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: true
+            }, {
+              label: 'Benchmark (SWIX)',
+              data: [1220, 1229, 1238, 1232, 1240, 1249, 1258, 1266, 1274, 1278],
+              borderColor: '#94a3b8',
+              backgroundColor: 'rgba(148,163,184,0.12)',
+              tension: 0.28,
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false,
+              borderDash: [6, 4]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: true, labels: { color: '#475569', boxWidth: 12 } },
+              tooltip: {
+                displayColors: true,
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${formatRand(ctx.raw * 1_000_000)}`
+                }
+              }
+            },
+            scales: {
+              x: { display: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
+              y: {
+                display: true,
+                grid: { color: muted, borderDash: [4, 4] },
+                ticks: {
+                  color: '#94a3b8',
+                  maxTicksLimit: 5,
+                  callback: v => `R${(v / 1000).toFixed(1)}bn`
+                }
+              }
+            }
+          }
+        });
+      }
+
+      const allocationEl = document.getElementById('allocation-chart');
+      if (allocationEl) {
+        new Chart(allocationEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['Equities', 'Fixed Income', 'Cash', 'Alt / Hedge', 'Property'],
+            datasets: [{
+              label: 'Target',
+              data: [48, 26, 8, 12, 6],
+              backgroundColor: 'rgba(12,68,96,0.18)',
+              borderColor: primary,
+              borderWidth: 1,
+              borderRadius: 6,
+              barPercentage: 0.6
+            }, {
+              label: 'Actual',
+              data: [46, 29, 7, 10, 8],
+              backgroundColor: primary,
+              borderColor: primary,
+              borderWidth: 1,
+              borderRadius: 6,
+              barPercentage: 0.6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#475569', boxWidth: 12 } },
+              tooltip: {
+                callbacks: {
+                  label: c => `${c.dataset.label}: ${c.raw}%`
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+              y: { grid: { color: muted, borderDash: [4, 4] }, ticks: { color: '#94a3b8', callback: v => `${v}%` } }
+            }
+          }
+        });
+      }
+
+      const sectorEl = document.getElementById('sector-chart');
+      if (sectorEl) {
+        new Chart(sectorEl.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Tech', 'Financials', 'Energy', 'Healthcare', 'Other'],
+            datasets: [{
+              data: [34, 24, 18, 12, 12],
+              backgroundColor: [primary, '#10b981', '#f59e0b', '#6366f1', '#94a3b8'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, color: '#475569' } },
+              tooltip: {
+                displayColors: true,
+                callbacks: {
+                  label: ({ label, raw }) => `${label}: ${raw}% weight`
+                }
+              }
+            }
+          }
+        });
+      }
+
+      const returnsEl = document.getElementById('returns-chart');
+      const timeframeSelect = document.getElementById('timeframe-select');
+      const performanceSelect = document.getElementById('performance-select');
+      if (returnsEl) {
+        const dataSets = {
+          mandate: { data: [2.1, 1.6, -0.8, 3.4, 2.9, 5.0], benchmark: [1.2, 1.1, -1.4, 2.2, 2.0, 3.8] },
+          income: { data: [0.8, 1.0, 0.9, 1.1, 1.0, 1.3], benchmark: [0.5, 0.6, 0.6, 0.7, 0.7, 0.8] },
+          balanced: { data: [1.3, 1.1, -0.4, 2.0, 1.9, 2.7], benchmark: [1.0, 0.9, -0.3, 1.6, 1.4, 2.1] },
+          growth: { data: [2.8, 2.2, -1.1, 4.1, 3.5, 5.6], benchmark: [2.1, 1.8, -1.0, 3.2, 2.8, 4.2] },
+          systematic: { data: [3.1, 2.5, -1.5, 4.8, 4.2, 6.1], benchmark: [2.4, 2.0, -1.2, 3.6, 3.0, 4.5] },
+          macro: { data: [1.9, 1.7, 0.4, 1.6, 2.1, 2.4], benchmark: [1.4, 1.2, 0.2, 1.0, 1.3, 1.6] }
+        };
+        const labelsByTimeframe = {
+          '6m': ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+          '1y': ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+          '3y': ['FY21', 'FY22', 'FY23']
+        };
+        const datasetForTimeframe = (key, timeframe) => {
+          const base = dataSets[key];
+          if (timeframe === '1y') return { data: [...base.data, 2.1, 1.8, 2.0, 2.3, 2.4, 2.6], benchmark: [...base.benchmark, 1.6, 1.5, 1.7, 1.8, 1.9, 2.0] };
+          if (timeframe === '3y') return { data: [9.2, 11.4, 12.8], benchmark: [7.1, 8.6, 9.4] };
+          return base;
+        };
+
+        const returnsChart = new Chart(returnsEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: labelsByTimeframe['6m'],
+            datasets: [{
+              data: dataSets.mandate.data,
+              backgroundColor: ctx => ctx.raw >= 0 ? primary : '#f97316',
+              borderRadius: 8,
+              borderSkipped: false,
+              label: 'Mandate'
+            }, {
+              type: 'line',
+              label: 'Benchmark',
+              data: dataSets.mandate.benchmark,
+              borderColor: '#94a3b8',
+              backgroundColor: 'rgba(148,163,184,0.12)',
+              tension: 0.32,
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#94a3b8'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: true, labels: { color: '#475569', boxWidth: 12 } },
+              tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.toFixed(1)}%` } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+              y: { grid: { color: muted, borderDash: [4, 4] }, ticks: { color: '#94a3b8', callback: v => `${v}%`, maxTicksLimit: 5 } }
+            }
+          }
+        });
+
+        const updateReturns = () => {
+          const key = performanceSelect?.value || 'mandate';
+          const timeframe = timeframeSelect?.value || '6m';
+          const dataset = datasetForTimeframe(key, timeframe);
+          returnsChart.data.labels = labelsByTimeframe[timeframe];
+          returnsChart.data.datasets[0].data = dataset.data;
+          returnsChart.data.datasets[0].label = key === 'mandate' ? 'Mandate' : performanceSelect?.selectedOptions[0]?.text || 'Strategy';
+          returnsChart.data.datasets[1].data = dataset.benchmark;
+          returnsChart.update();
+        };
+
+        timeframeSelect?.addEventListener('change', updateReturns);
+        performanceSelect?.addEventListener('change', updateReturns);
+      }
+
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const btn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+      const sidebar = document.getElementById('ah-sidebar');
+
+      function openMenu() {
+        sidebar.classList.add('is-open');
+        overlay.classList.remove('hidden');
+      }
+      function closeMenu() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.add('hidden');
+      }
+
+      btn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+      sidebar?.querySelectorAll('nav a').forEach(link => link.addEventListener('click', closeMenu));
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+      const saved = localStorage.getItem('ah_sasfin_collapsed') === 'true';
+      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+      btn?.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_sasfin_collapsed', String(!isCollapsed));
+        layout.offsetHeight; window.dispatchEvent(new Event('resize'));
+      });
+    })();
+  </script>
+</body>
+</html>
