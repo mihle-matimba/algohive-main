@@ -15,40 +15,6 @@
       --ink: #0B1215;
     }
     body { background: #f6f7f6; }
-    .preloader {
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      background: #f6f7f6;
-      color: var(--ink);
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      transition: opacity .45s ease;
-    }
-    .preloader__logo {
-      height: 3rem;
-      width: auto;
-      animation: heroSlideUp .6s ease-out, preloaderPulse 2.4s ease-in-out .45s infinite;
-    }
-    .preloader__brand {
-      font-size: 1.25rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      animation: heroSlideUp .6s ease-out .08s both;
-    }
-    .preloader__tagline {
-      font-size: .95rem;
-      color: rgba(11, 18, 21, 0.68);
-      animation: heroSlideUp .6s ease-out .14s both;
-    }
-    .preloader--hide {
-      opacity: 0;
-      pointer-events: none;
-    }
     .btn-shine { position: relative; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
     .btn-shine::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.7) 50%, transparent 100%); transform: translateX(-120%); transition: transform .8s ease; }
     .btn-shine:hover::before { transform: translateX(120%); }
@@ -59,7 +25,6 @@
     .auth-right { animation: heroScaleIn .9s cubic-bezier(.2,.8,.2,1) .35s both; }
     @keyframes heroScaleIn { 0% { transform: scale(1.06); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-    @keyframes preloaderPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
     .swap-anim { animation: heroSlideUp .5s ease both; }
     .testimonial-block {
       display: flex;
@@ -144,11 +109,6 @@
 </head>
 
 <body class="min-h-screen antialiased text-slate-900">
-  <div id="preloader" class="preloader">
-    <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive logo" class="preloader__logo" />
-    <span class="preloader__brand">AlgoHive</span>
-    <span class="preloader__tagline">Where Smart Capital Gathers</span>
-  </div>
   <div class="flex min-h-screen flex-col bg-transparent lg:flex-row lg:items-stretch">
     <!-- Left: Auth -->
     <main class="auth-left relative mx-auto w-full max-w-2xl bg-white px-6 py-12 shadow-sm sm:px-10 sm:py-14 lg:flex lg:min-h-screen lg:max-w-lg lg:flex-col lg:justify-between lg:px-16 lg:py-20 lg:shadow">
@@ -464,13 +424,6 @@
     import { signIn, signUp } from "/js/auth.js";
     import { supabase } from "/js/supabase.js";
 
-    const preloader = document.getElementById("preloader");
-    window.addEventListener("load", () => {
-      if (!preloader) return;
-      preloader.classList.add("preloader--hide");
-      setTimeout(() => preloader.remove(), 450);
-    });
-
     // --- SAME COMPLETENESS RULE AS SETTINGS ---
     const REQUIRED_FIELDS = [
       "first_name",
@@ -539,7 +492,7 @@
       return payload;
     }
 
-    async function routePostAuth(preferred = "/home.html", accountTypeValue = "paper") {
+    async function routePostAuth(preferred = "/home.html", accountTypeValue = "live") {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return; // email-confirm signup path
       try { sessionStorage.setItem("ah_account_type", accountTypeValue); } catch (err) { console.warn("Unable to cache account type", err); }
@@ -616,7 +569,7 @@
     const confirmHint = document.getElementById("confirm-hint");
     const liveNote = document.getElementById("live-note");
     const accountButtons = Array.from(document.querySelectorAll("[data-account]"));
-    let accountType = "paper";
+    let accountType = "live";
     let currentTab = "in";
 
     // ---- UI helpers ----
@@ -627,7 +580,7 @@
       liveNote.textContent = show ? "Will Require Additional Verification" : "";
     }
 
-    function setAccountType(type = "paper") {
+    function setAccountType(type = "live") {
       accountType = type;
       try { localStorage.setItem("ah_account_type", type); } catch (_) {}
       accountButtons.forEach((btn) => {
@@ -651,9 +604,9 @@
         console.warn("Unable to read auth metadata for account type", err);
       }
 
-      const resolved = [metaType, stored, "paper"].find((v) => v === "paper" || v === "live");
-      setAccountType(resolved || "paper");
-      return resolved || "paper";
+      const resolved = [metaType, stored, "live"].find((v) => v === "paper" || v === "live");
+      setAccountType(resolved || "live");
+      return resolved || "live";
     }
 
     function showMsg(text, type = "info") { // "success" | "error" | "info"
@@ -744,10 +697,10 @@
         setLoading(inBtn, true, "Log in", "Logging in…");
         const { user } = await signIn(email, password) ?? {};
         const metaType = user?.user_metadata?.account_type;
-        const effectiveType = [metaType, accountType, hydratedAccountType, "paper"].find((v) => v === "paper" || v === "live");
+        const effectiveType = [metaType, accountType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
         if (metaType && metaType !== accountType) setAccountType(metaType);
         showMsg("Signed in. Redirecting…", "success");
-        await routePostAuth(redirectTo, effectiveType || "paper");
+        await routePostAuth(redirectTo, effectiveType || "live");
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -825,9 +778,9 @@
         // If user is already logged in and lands here, route them
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          const metaType = session?.user?.user_metadata?.account_type;
-          const fallbackType = [metaType, accountType, hydratedAccountType, "paper"].find((v) => v === "paper" || v === "live");
-          if (session) await routePostAuth(redirectTo, fallbackType || "paper");
+        const metaType = session?.user?.user_metadata?.account_type;
+        const fallbackType = [metaType, accountType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
+        if (session) await routePostAuth(redirectTo, fallbackType || "live");
         } catch (_) {}
   </script>
 </body>
