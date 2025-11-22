@@ -7,7 +7,7 @@
   <title>AlgoHive — Demo Dashboard</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="ALGOHIVE"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js" nonce="ALGOHIVE"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
@@ -520,24 +520,32 @@
       return session.user;
     }
 
-    async function fetchDemoProfile(userId) {
-      const { data, error } = await supabase
-        .from("demo_profiles")
-        .select("id, first_name, last_name, full_name, avatar_url, phone, risk_appetite, balance, strategies")
-        .eq("id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+    async function fetchDemoProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("demo_profiles")
+          .select("*")
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.warn("demo_profiles fetch failed; falling back to defaults", error);
+        return null;
+      }
     }
 
-    async function fetchDemoAccount(userId) {
-      const { data, error } = await supabase
-        .from("demo_accounts")
-        .select("id, equity, pnl, trades, updated_at")
-        .eq("id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+    async function fetchDemoAccount() {
+      try {
+        const { data, error } = await supabase
+          .from("demo_accounts")
+          .select("*")
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.warn("demo_accounts fetch failed; using defaults", error);
+        return null;
+      }
     }
 
     function getGreeting() {
@@ -620,13 +628,14 @@
         displayName = user.email || "Demo User";
         syncProfileChrome(currentUser);
 
-        const [profile, account] = await Promise.all([
-          fetchDemoProfile(user.id).catch((err) => { setStatus("Could not fetch demo profile.", "error"); throw err; }),
-          fetchDemoAccount(user.id).catch(() => null),
-        ]);
+        const [profile, account] = await Promise.all([fetchDemoProfile(), fetchDemoAccount()]);
 
-        latestProfile = profile || {};
-        latestAccount = account || {};
+        if (!profile) {
+          setStatus("Could not load demo profile. Showing placeholder data.", "warning");
+        }
+
+        latestProfile = profile || { balance: 0, strategies: [], risk_appetite: "—", full_name: displayName };
+        latestAccount = account || { equity: latestProfile.balance ?? 0, pnl: 0, trades: 0 };
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
