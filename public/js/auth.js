@@ -9,11 +9,11 @@ export async function signIn(email, password) {
 }
 
 // SIGN UP (send them back to auth.html with a banner after confirming)
-export async function signUp(email, password) {
+export async function signUp(email, password, metadata = {}) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: "/auth.html?confirmed=1" }
+    options: { emailRedirectTo: "/auth.html?confirmed=1", data: metadata }
   });
   if (error) throw error;           // surfaces "User already registered" etc.
   return data;                      // { user, session }

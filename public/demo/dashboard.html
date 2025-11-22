@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Demo Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js" nonce="ALGOHIVE"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <style>
+    :root {
+      --page: #0b1220;
+      --bg: #ffffff;
+      --muted: #64748b;
+      --ink: #0f172a;
+      --olive: #7e8d52;
+      --olive-700: #576138;
+      --brand: #7e8d52;
+      --line: #e2e8f0
+    }
+
+    html,
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 .875rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-weight: 600
+    }
+
+    .tab {
+      height: 36px;
+      border-radius: 8px;
+      padding: 0 .75rem
+    }
+
+    .tab-active {
+      background: #111827;
+      color: #fff
+    }
+
+    #layout {
+      --sb: 220px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh
+    }
+
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 280px;
+      max-width: 85vw;
+      position: fixed;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%)
+    }
+
+    #ah-sidebar.is-open {
+      transform: translateX(0)
+    }
+
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr
+      }
+
+      #layout.is-collapsed {
+        --sb: 64px
+      }
+
+      #ah-sidebar {
+        position: sticky;
+        width: var(--sb);
+        max-width: none;
+        transform: translateX(0);
+        z-index: auto
+      }
+    }
+
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron {
+      display: none
+    }
+
+    #ah-sidebar[data-collapsed="true"] details>.sub {
+      display: none !important
+    }
+
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details>summary {
+      justify-content: center;
+      gap: .25rem
+    }
+
+    #ah-sidebar[data-collapsed="true"] details>summary span {
+      gap: 0
+    }
+
+    #ah-sidebar .footer {
+      transition: all .2s ease
+    }
+
+    #ah-sidebar[data-collapsed="true"] .footer {
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px
+    }
+
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
+      transform: rotate(180deg)
+    }
+
+    #ah-collapse {
+      display: none
+    }
+
+    @media (min-width: 768px) {
+      #ah-collapse {
+        display: inline-flex
+      }
+    }
+
+    .ps-tile {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: #fff
+    }
+
+    .ps-label {
+      color: #64748b;
+      font-weight: 500;
+      font-size: .85rem
+    }
+
+    .ps-value {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-top: 2px
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none
+    }
+  </style>
+</head>
+
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+          <div class="text-[11px] text-slate-500 label">Demo Workspace</div>
+        </div>
+      </div>
+
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/home.html" title="Home">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/auth.html">
+          <i class="fa-solid fa-right-to-bracket text-slate-500 w-4 shrink-0"></i><span class="label">Switch Account</span>
+        </a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="px-4 md:px-6 pt-4">
+        <div class="flex items-center justify-between gap-4">
+          <div class="inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
+            <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">
+              ⓘ
+            </div>
+            <p id="banner-copy" class="whitespace-normal">You are on Paper trading, no real money is being used.</p>
+          </div>
+
+          <button id="profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+            <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+            <span id="profile-name" class="text-sm font-semibold text-slate-900 hidden sm:inline">—</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="px-4 md:px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
+        <section class="col-span-12 px-1">
+          <div class="px-4 py-3 md:px-5 md:py-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Welcome back</p>
+            <h2 class="text-2xl font-semibold text-slate-900" id="welcome-name">Good afternoon</h2>
+            <p class="mt-1 text-sm text-slate-600" id="welcome-sub">Your paper portfolio snapshot is below.</p>
+          </div>
+        </section>
+
+        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-8 min-w-0">
+          <div class="px-5 pt-5">
+            <div class="text-[12px] text-slate-500 font-semibold tracking-wide">PAPER PORTFOLIO <span class="mx-1">•</span> <span id="pf-updated">—</span></div>
+            <h2 class="text-2xl md:text-3xl font-extrabold mt-1 break-words" id="pf-title">Paper Account</h2>
+          </div>
+          <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-y-3 sm:gap-y-0 px-5 py-4 border-t border-b border-slate-200">
+            <div>
+              <h3 class="font-normal text-slate-800">Equity Curve — <span id="pf-name" class="font-semibold">—</span></h3>
+              <div class="mt-1 text-sm text-slate-500" id="pf-sub">Your demo equity over time.</div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button data-range="1D" class="tab text-[13px]">1D</button>
+              <button data-range="1M" class="tab text-[13px]">1M</button>
+              <button data-range="3M" class="tab text-[13px]">3M</button>
+              <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
+              <button data-range="YTD" class="tab text-[13px]">YTD</button>
+              <button data-range="1Y" class="tab text-[13px]">1Y</button>
+              <button data-range="3Y" class="tab text-[13px]">3Y</button>
+              <button data-range="ALL" class="tab text-[13px]">All</button>
+
+              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="px-5 pt-4">
+            <div class="flex items-baseline gap-3">
+              <div class="text-2xl font-bold" id="pf-value">—</div>
+              <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+            </div>
+          </div>
+          <div class="px-2 pb-4 pt-2">
+            <div class="h-[260px]">
+              <canvas id="pf-chart" class="max-w-full"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="card col-span-12 lg:col-span-4 border border-slate-200 shadow-none">
+          <div class="px-5 pt-5 pb-3 border-b border-slate-200">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Demo account</p>
+            <h3 class="text-lg font-semibold text-slate-900">Performance</h3>
+            <p class="text-sm text-slate-600">Live metrics from your demo account.</p>
+          </div>
+          <dl class="px-5 py-4 space-y-3 text-sm text-slate-700">
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <dt class="font-semibold">Account ID</dt>
+              <dd id="stat-account" class="font-mono text-slate-900">—</dd>
+            </div>
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <dt class="font-semibold">Equity</dt>
+              <dd id="stat-equity" class="font-semibold text-slate-900">—</dd>
+            </div>
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <dt class="font-semibold">P&amp;L</dt>
+              <dd id="stat-pnl" class="font-semibold text-slate-900">—</dd>
+            </div>
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <dt class="font-semibold">Trades</dt>
+              <dd id="stat-trades" class="font-semibold text-slate-900">—</dd>
+            </div>
+          </dl>
+          <p id="updated-at" class="px-5 pb-5 text-xs text-slate-500">—</p>
+        </section>
+
+        <section id="status" class="col-span-12 hidden rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 shadow-sm">
+          <p id="status-text"></p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="profile-menu" class="fixed inset-0 z-[120] hidden">
+    <div id="profile-overlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-4 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="profile-email" class="text-xs text-slate-500 truncate">—</div>
+      </div>
+      <div class="p-2">
+        <a id="profile-settings" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="profile-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Sign out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" nonce="ALGOHIVE">
+    import { supabase } from "/js/supabase.js";
+    const welcomeName = document.getElementById("welcome-name");
+    const welcomeSub = document.getElementById("welcome-sub");
+    const statAccount = document.getElementById("stat-account");
+    const statEquity = document.getElementById("stat-equity");
+    const statPnl = document.getElementById("stat-pnl");
+    const statTrades = document.getElementById("stat-trades");
+    const updatedAt = document.getElementById("updated-at");
+    const statusBox = document.getElementById("status");
+    const statusText = document.getElementById("status-text");
+    const pfTitle = document.getElementById("pf-title");
+    const pfName = document.getElementById("pf-name");
+    const pfValue = document.getElementById("pf-value");
+    const pfChange = document.getElementById("pf-change");
+    const pfUpdated = document.getElementById("pf-updated");
+    const pfSub = document.getElementById("pf-sub");
+    const pfChartCanvas = document.getElementById("pf-chart");
+    const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
+    const pfRefresh = document.getElementById("pf-refresh");
+    const profileBtn = document.getElementById("profile-btn");
+    const profileMenu = document.getElementById("profile-menu");
+    const profileEmail = document.getElementById("profile-email");
+    const profileName = document.getElementById("profile-name");
+    const profileAvatar = document.getElementById("profile-avatar");
+    const profileLogout = document.getElementById("profile-logout");
+    let chartInstance = null;
+    let latestProfile = null;
+    let latestAccount = null;
+    let currentUser = null;
+    let displayName = "—";
+
+    const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+
+    function setAvatar(src) {
+      if (!profileAvatar) return;
+      if (src) {
+        profileAvatar.src = src;
+        return;
+      }
+
+      const initial = (displayName.match(/[A-Za-z]/)?.[0] || "?").toUpperCase();
+      const svg = encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+           <rect width='100%' height='100%' rx='12' ry='12' fill='#0f172a'/>
+           <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
+                 font-family='Inter, Arial, sans-serif' font-size='32' fill='#fff'>${initial}</text>
+         </svg>`
+      );
+      profileAvatar.src = `data:image/svg+xml;utf8,${svg}`;
+    }
+
+    function syncProfileChrome(user) {
+      if (profileName) profileName.textContent = displayName;
+      if (profileEmail) profileEmail.textContent = user?.email || displayName;
+      const avatarUrl = latestProfile?.avatar_url || user?.user_metadata?.avatar_url;
+      setAvatar(avatarUrl);
+    }
+
+    function setStatus(message, tone = "info") {
+      if (!statusBox || !statusText) return;
+      statusText.textContent = message;
+      statusBox.className = `col-span-12 rounded-2xl px-5 py-4 text-sm shadow-sm ${tone === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-amber-200 bg-amber-50 text-amber-800"}`;
+      statusBox.classList.remove("hidden");
+    }
+
+    function clearStatus() {
+      if (statusBox) statusBox.classList.add("hidden");
+      if (statusText) statusText.textContent = "";
+    }
+
+    function formatMoney(value) {
+      const num = typeof value === "number" ? value : Number(value);
+      return Number.isFinite(num) ? formatter.format(num) : "—";
+    }
+
+    function buildEquitySeries(profile = {}, account = {}) {
+      const equityRaw = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0);
+      const pnlRaw = Number(account?.pnl ?? 0);
+      const equity = Number.isFinite(equityRaw) ? equityRaw : 0;
+      const pnl = Number.isFinite(pnlRaw) ? pnlRaw : 0;
+
+      if (!Number.isFinite(equity) || equity === 0) {
+        return Array(7).fill(0);
+      }
+
+      if (pnl === 0) {
+        return Array(7).fill(equity);
+      }
+
+      const start = equity - pnl;
+      return Array.from({ length: 7 }, (_, idx) => start + (pnl * idx) / 6);
+    }
+
+    function renderChart(series = [], account = {}, profile = {}) {
+      if (!pfChartCanvas || typeof Chart === "undefined") return;
+
+      const data = Array.isArray(series) && series.length ? series : Array(7).fill(0);
+      const ctx = pfChartCanvas.getContext("2d");
+      const today = new Date();
+
+      const labels = data.map((_, idx) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (data.length - 1 - idx));
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      });
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, pfChartCanvas.height || 260);
+      gradient.addColorStop(0, "rgba(85,107,47,0.35)");
+      gradient.addColorStop(1, "rgba(85,107,47,0.06)");
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              data,
+              borderColor: "#7e8d52",
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.32,
+              pointRadius: 3,
+              pointBackgroundColor: "#7e8d52",
+              pointBorderColor: "#f8fafc",
+              borderWidth: 3,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              titleColor: "#e2e8f0",
+              bodyColor: "#e2e8f0",
+              callbacks: {
+                label: (ctx) => formatMoney(ctx.parsed.y),
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#475569", maxTicksLimit: 6 },
+            },
+            y: {
+              grid: { color: "#e2e8f0" },
+              ticks: {
+                color: "#475569",
+                callback: (value) => formatMoney(value),
+              },
+            },
+          },
+        },
+      });
+
+      const todayChange = data.length > 1 ? data[data.length - 1] - data[data.length - 2] : 0;
+      const latest = data.length ? data[data.length - 1] : (account?.equity ?? account?.balance ?? profile?.balance ?? 0);
+      const prev = data.length > 1 ? data[data.length - 2] : latest;
+      const pct = prev ? (todayChange / prev) * 100 : 0;
+
+      if (pfValue) pfValue.textContent = formatMoney(latest);
+      if (pfChange) {
+        const deltaLabel = prev ? `${todayChange >= 0 ? "+" : ""}${formatMoney(todayChange)} (${pct.toFixed(2)}%)` : "—";
+        pfChange.textContent = deltaLabel;
+        pfChange.className = `text-lg font-normal ${todayChange >= 0 ? "text-emerald-600" : "text-rose-600"}`;
+      }
+
+      if (pfUpdated) {
+        const ts = account?.updated_at ? new Date(account.updated_at).toLocaleString() : new Date().toLocaleString();
+        pfUpdated.textContent = account?.updated_at ? `Updated ${ts}` : `Today • ${ts}`;
+      }
+    }
+
+    async function guard() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        location.replace(`/auth.html?redirect=${encodeURIComponent("/demo/dashboard.html")}`);
+        return null;
+      }
+      const metaType = session.user?.user_metadata?.account_type;
+      if (metaType !== "paper") {
+        location.replace("/home.html");
+        return null;
+      }
+      return session.user;
+    }
+
+    async function fetchDemoProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("demo_profiles")
+          .select("*")
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.warn("demo_profiles fetch failed; falling back to defaults", error);
+        return null;
+      }
+    }
+
+    async function fetchDemoAccount() {
+      try {
+        const { data, error } = await supabase
+          .from("demo_accounts")
+          .select("*")
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.warn("demo_accounts fetch failed; using defaults", error);
+        return null;
+      }
+    }
+
+    function getGreeting() {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning";
+      if (hour < 17) return "Good afternoon";
+      return "Good evening";
+    }
+
+    function renderProfile(profile = {}, fallbackEmail = "") {
+      const fullName =
+        [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || profile?.full_name || fallbackEmail || "Demo User";
+      const greeting = getGreeting();
+
+      displayName = fullName || fallbackEmail || "Demo User";
+
+      if (welcomeName) welcomeName.textContent = `${greeting}, ${fullName}.`;
+      if (welcomeSub) welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+      if (pfTitle) pfTitle.textContent = fullName || "Paper Account";
+      if (pfName) pfName.textContent = fullName || "Paper Account";
+      if (pfSub) pfSub.textContent = "Your demo equity over time.";
+
+      syncProfileChrome(currentUser);
+    }
+
+    function renderAccount(account = {}, userId = "") {
+      statAccount.textContent = account?.id || userId || "—";
+      statEquity.textContent = formatMoney(account?.equity ?? account?.balance ?? "—");
+      const pnlNum = typeof account?.pnl === "number" ? account.pnl : null;
+      statPnl.textContent = pnlNum !== null ? `${pnlNum >= 0 ? "+" : ""}${formatMoney(pnlNum)}` : "—";
+      const trades = typeof account?.trades === "number" ? account.trades : (Array.isArray(account?.trade_history) ? account.trade_history.length : null);
+      statTrades.textContent = trades ?? "—";
+      updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
+    }
+
+    function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
+      const series = buildEquitySeries(profile, account);
+      renderChart(series, account, profile);
+    }
+
+    function setActiveRange(rangeKey) {
+      pfTabs.forEach((btn) => {
+        const isActive = btn.dataset.range === rangeKey;
+        btn.classList.toggle("tab-active", isActive);
+      });
+    }
+
+    function wireProfileMenu() {
+      const overlay = document.getElementById("profile-overlay");
+      profileBtn?.addEventListener("click", () => {
+        profileMenu?.classList.toggle("hidden");
+      });
+      overlay?.addEventListener("click", () => profileMenu?.classList.add("hidden"));
+      profileMenu?.addEventListener("click", (e) => {
+        if (e.target === profileMenu) profileMenu.classList.add("hidden");
+      });
+      profileLogout?.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        location.replace("/auth.html");
+      });
+    }
+
+    pfTabs.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setActiveRange(btn.dataset.range);
+        refreshChart();
+      });
+    });
+
+    pfRefresh?.addEventListener("click", () => refreshChart());
+
+    (async function init() {
+      try {
+        const user = await guard();
+        if (!user) return;
+        currentUser = user;
+        clearStatus();
+        setActiveRange("6M");
+        wireProfileMenu();
+        displayName = user.email || "Demo User";
+        syncProfileChrome(currentUser);
+
+        const [profile, account] = await Promise.all([fetchDemoProfile(), fetchDemoAccount()]);
+
+        if (!profile) {
+          setStatus("Could not load demo profile. Showing placeholder data.", "warning");
+        }
+
+        latestProfile = profile || { balance: 0, strategies: [], risk_appetite: "—", full_name: displayName };
+        latestAccount = account || { equity: latestProfile.balance ?? 0, pnl: 0, trades: 0 };
+
+        renderProfile(latestProfile, user.email || "");
+        renderAccount(latestAccount, user.id);
+        refreshChart(latestProfile, latestAccount);
+      } catch (error) {
+        console.error(error);
+        setStatus("We hit a snag loading your demo dashboard. Please try again.", "error");
+      }
+    })();
+  </script>
+</body>
+
+</html>
