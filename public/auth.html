@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AlgoHive — Sign in</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root {
       --olive: #7e8d52;
@@ -64,6 +67,39 @@
       gap: 1.5rem;
       padding: 0.5rem 0;
     }
+    .account-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      padding: 0.55rem 0.95rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #0b1215;
+      box-shadow: 0 10px 30px -22px rgba(11, 18, 21, 0.35);
+      transition: all .2s ease;
+    }
+    .account-pill__dot {
+      height: 10px;
+      width: 10px;
+      border-radius: 9999px;
+      background: #d1d5db;
+      box-shadow: 0 0 0 6px rgba(126,141,82,0.14);
+      transition: all .2s ease;
+    }
+    .account-pill--active {
+      border-color: rgba(126,141,82,0.7);
+      background: linear-gradient(135deg, rgba(126,141,82,0.12), rgba(126,141,82,0.05));
+      color: #2f361d;
+    }
+    .account-pill--active .account-pill__dot {
+      background: var(--olive);
+      box-shadow: 0 0 0 8px rgba(126,141,82,0.18);
+    }
+    .account-pill:hover { border-color: rgba(126,141,82,0.55); transform: translateY(-1px); }
+    .account-pill:focus-visible { outline: 2px solid rgba(126,141,82,0.4); outline-offset: 2px; }
     .testimonial-quote {
       font-size: clamp(1.4rem, 2.3vw, 1.85rem);
       line-height: 1.4;
@@ -136,6 +172,24 @@
             <p class="text-sm text-slate-500">Already have an account? <button id="switch-to-signin" type="button" class="font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">Log in.</button></p>
           </div>
         </header>
+
+        <section class="mb-8 space-y-3">
+          <div class="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--olive)]">
+            <span>Account mode</span>
+            <span class="h-[1px] w-10 bg-[var(--olive)]/30"></span>
+          </div>
+        <div class="flex flex-wrap gap-3">
+          <button type="button" class="account-pill" data-account="paper">
+            <span class="account-pill__dot" aria-hidden="true"></span>
+            Paper Account
+          </button>
+          <button type="button" class="account-pill" data-account="live">
+            <span class="account-pill__dot" aria-hidden="true"></span>
+            Live Account
+          </button>
+        </div>
+        <p id="live-note" class="hidden text-sm font-semibold text-amber-700">Will Require Additional Verification</p>
+      </section>
 
         <!-- Messages -->
         <div id="msg" class="hidden mb-5 max-w-md rounded-lg border px-3 py-2 text-sm text-left"></div>
@@ -216,40 +270,195 @@
     <!-- Right: Preview -->
     <aside class="auth-right relative hidden w-full bg-[#f7f9ff] px-6 py-14 shadow-inner lg:flex lg:flex-1 lg:items-stretch lg:rounded-none lg:px-20 lg:py-20">
       <div class="absolute inset-0 orb-gradient opacity-95"></div>
-      <div class="relative z-10 ml-auto flex w-full max-w-5xl flex-col items-start gap-12">
-        <section class="w-full max-w-xl space-y-6 text-left text-slate-700">
-          <article class="testimonial-block">
-            <p class="testimonial-quote">“We lift the veil so <span class="highlight">every strategy is in the open.</span>”</p>
-            <div class="testimonial-author">
-              <img
-                src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/1673431038869.jpeg"
-                alt="Lonwabo Damane"
-                class="testimonial-avatar"
-              />
-              <div>
-                <p class="text-sm font-semibold text-slate-900">Lonwabo Damane</p>
-                <p class="text-[11px] uppercase tracking-[0.3em] text-slate-500">CEO · AlgoHive</p>
-              </div>
-            </div>
-          </article>
-        </section>
-        <figure class="relative w-full overflow-hidden rounded-[10px] bg-[#0b1215] shadow-[0_45px_120px_-60px_rgba(11,18,21,0.45)]">
-          <video
-            class="block w-full"
-            autoplay
-            loop
-            muted
-            playsinline
-            preload="auto"
-          >
-            <source src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Hive%20Video.mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </figure>
-        
+      <div class="relative z-10 mx-auto flex w-full max-w-4xl flex-1 items-center justify-center">
+        <div id="authLogoSphere" class="flex w-full max-w-[620px] items-center justify-center">
+          <div class="w-full aspect-square" id="authSphereRoot"></div>
+        </div>
       </div>
     </aside>
   </div>
+
+  <script type="text/babel" nonce="ALGOHIVE">
+    const { useEffect, useRef, useState } = React;
+
+    const sphereImages = [
+      { id: "apple", src: "https://logo.clearbit.com/apple.com" },
+      { id: "microsoft", src: "https://logo.clearbit.com/microsoft.com" },
+      { id: "google", src: "https://logo.clearbit.com/google.com" },
+      { id: "amazon", src: "https://logo.clearbit.com/amazon.com" },
+      { id: "nvidia", src: "https://logo.clearbit.com/nvidia.com" },
+      { id: "meta", src: "https://logo.clearbit.com/meta.com" },
+      { id: "visa", src: "https://logo.clearbit.com/visa.com" },
+      { id: "netflix", src: "https://logo.clearbit.com/netflix.com" },
+      { id: "jpmorgan", src: "https://logo.clearbit.com/jpmorganchase.com" },
+      { id: "coca-cola", src: "https://logo.clearbit.com/coca-cola.com" },
+      { id: "nike", src: "https://logo.clearbit.com/nike.com" },
+      { id: "disney", src: "https://logo.clearbit.com/disney.com" },
+      { id: "naspers", src: "https://s3-symbol-logo.tradingview.com/naspers--big.svg" },
+      { id: "capitec", src: "https://s3-symbol-logo.tradingview.com/capitec-bank-hldgs-ltd--big.svg" },
+      { id: "mtn", src: "https://logo.clearbit.com/mtn.com" },
+      { id: "vodacom", src: "https://s3-symbol-logo.tradingview.com/vodafone--big.svg" },
+      { id: "discovery", src: "https://logo.clearbit.com/discovery.co.za" },
+      { id: "bitcoin", src: "https://cryptologos.cc/logos/bitcoin-btc-logo.png" },
+      { id: "ethereum", src: "https://cryptologos.cc/logos/ethereum-eth-logo.png" },
+      { id: "solana", src: "https://cryptologos.cc/logos/solana-sol-logo.png" },
+      { id: "shoprite", src: "https://logo.clearbit.com/shoprite.co.za" },
+      { id: "picknpay", src: "https://logo.clearbit.com/picknpay.co.za" },
+      { id: "woolworths", src: "https://logo.clearbit.com/woolworths.co.za" },
+      { id: "sasol", src: "https://logo.clearbit.com/sasol.com" },
+      { id: "anglo-american", src: "https://logo.clearbit.com/angloamerican.com" },
+      { id: "sanlam", src: "https://logo.clearbit.com/sanlam.co.za" },
+      { id: "bidvest", src: "https://logo.clearbit.com/bidvest.com" },
+      { id: "mastercard", src: "https://logo.clearbit.com/mastercard.com" },
+    ];
+
+    const Sphere = ({ images, size = 720 }) => {
+      const [rot, setRot] = useState({ x: 15, y: 0 });
+      const [vel, setVel] = useState({ x: 0, y: 0 });
+      const [dragging, setDragging] = useState(false);
+      const [points, setPoints] = useState([]);
+      const last = useRef({ x: 0, y: 0 });
+
+      const radius = size * 0.45;
+      const baseSize = size * 0.14;
+
+      useEffect(() => {
+        const pts = [];
+        const count = images.length;
+        const phi = Math.PI * (3 - Math.sqrt(5));
+
+        for (let i = 0; i < count; i++) {
+          const y = 1 - (i / (count - 1)) * 2;
+          const r = Math.sqrt(1 - y * y);
+          const theta = phi * i;
+          pts.push({
+            x: Math.cos(theta) * r * radius,
+            y: y * radius,
+            z: Math.sin(theta) * r * radius,
+          });
+        }
+        setPoints(pts);
+      }, [images.length, radius]);
+
+      useEffect(() => {
+        let id;
+        const loop = () => {
+          if (!dragging) {
+            setVel((v) => ({ x: v.x * 0.97, y: v.y * 0.97 }));
+            setRot((r) => ({
+              x: r.x + vel.x,
+              y: r.y + vel.y + 0.1,
+            }));
+          }
+          id = requestAnimationFrame(loop);
+        };
+        id = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(id);
+      }, [dragging, vel.x, vel.y]);
+
+      const start = (e) => {
+        setDragging(true);
+        setVel({ x: 0, y: 0 });
+        const x = e.clientX || e.touches?.[0]?.clientX || 0;
+        const y = e.clientY || e.touches?.[0]?.clientY || 0;
+        last.current = { x, y };
+      };
+
+      const move = (e) => {
+        if (!dragging) return;
+        const x = e.clientX || e.touches?.[0]?.clientX || 0;
+        const y = e.clientY || e.touches?.[0]?.clientY || 0;
+        const dx = x - last.current.x;
+        const dy = y - last.current.y;
+
+        setRot((r) => ({
+          x: r.x - dy * 0.45,
+          y: r.y + dx * 0.45,
+        }));
+        setVel({ x: -dy * 0.35, y: dx * 0.35 });
+        last.current = { x, y };
+      };
+
+      const end = () => setDragging(false);
+
+      const project = (p) => {
+        let { x, y, z } = p;
+        const rx = (rot.x * Math.PI) / 180;
+        const ry = (rot.y * Math.PI) / 180;
+
+        const tx = x * Math.cos(ry) + z * Math.sin(ry);
+        z = -x * Math.sin(ry) + z * Math.cos(ry);
+        x = tx;
+
+        const ty = y * Math.cos(rx) - z * Math.sin(rx);
+        z = y * Math.sin(rx) + z * Math.cos(rx);
+        y = ty;
+
+        const scale = 1 + z / (radius * 3);
+        const visible = z > -radius * 0.7;
+
+        return {
+          x,
+          y,
+          scale: Math.max(0.45, scale),
+          visible,
+          opacity: visible ? Math.max(0.5, (z + radius) / (radius * 1.5)) : 0,
+          zIndex: Math.round(z),
+        };
+      };
+
+      return (
+        <div
+          className={`relative ${dragging ? "cursor-grabbing" : "cursor-grab"} select-none`}
+          style={{ width: size, height: size }}
+          onMouseDown={start}
+          onMouseMove={move}
+          onMouseUp={end}
+          onMouseLeave={end}
+          onTouchStart={start}
+          onTouchMove={move}
+          onTouchEnd={end}
+        >
+          {points.map((p, i) => {
+            const proj = project(p);
+            if (!proj.visible) return null;
+            const s = baseSize * proj.scale;
+
+            return (
+              <div
+                key={images[i].id}
+                className="absolute"
+                style={{
+                  width: s,
+                  height: s,
+                  left: size / 2 + proj.x,
+                  top: size / 2 + proj.y,
+                  transform: "translate(-50%, -50%)",
+                  opacity: proj.opacity,
+                  zIndex: 1000 + proj.zIndex,
+                }}
+              >
+                <div className="w-full h-full rounded-full overflow-hidden shadow-2xl bg-white p-4">
+                  <img
+                    src={images[i].src}
+                    className="w-full h-full object-contain"
+                    draggable={false}
+                    loading="lazy"
+                    alt=""
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+
+    const root = document.getElementById("authSphereRoot");
+    if (root) {
+      ReactDOM.createRoot(root).render(<Sphere images={sphereImages} size={720} />);
+    }
+  </script>
 
   <script type="module" nonce="ALGOHIVE">
     import { signIn, signUp } from "/js/auth.js";
@@ -305,9 +514,53 @@
       return "";
     }
 
-    async function routePostAuth(preferred = "/home.html") {
+    async function ensureDemoProfile(accountTypeValue = "paper") {
+      if (accountTypeValue !== "paper") return null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const meta = user.user_metadata || {};
+      const payload = {
+        id: user.id,
+        account_mode: "paper",
+        first_name: meta.first_name || "Demo",
+        last_name: meta.last_name || "User",
+        phone: meta.phone || null,
+        risk_appetite: meta.risk_appetite || "balanced",
+        balance: typeof meta.balance === "number" ? meta.balance : 10000,
+        strategies: Array.isArray(meta.strategies) ? meta.strategies : [],
+      };
+
+      const { error } = await supabase
+        .from("demo_profiles")
+        .upsert(payload, { onConflict: "id" });
+
+      if (error) throw error;
+      return payload;
+    }
+
+    async function routePostAuth(preferred = "/home.html", accountTypeValue = "paper") {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return; // email-confirm signup path
+      try { sessionStorage.setItem("ah_account_type", accountTypeValue); } catch (err) { console.warn("Unable to cache account type", err); }
+
+      try {
+        await supabase.auth.updateUser({ data: { account_type: accountTypeValue } });
+      } catch (err) {
+        console.warn("Unable to persist account type on auth user", err);
+      }
+
+      const destination = accountTypeValue === "paper" ? "/demo/dashboard.html" : (preferred || "/home.html");
+
+      if (accountTypeValue === "paper") {
+        try {
+          await ensureDemoProfile(accountTypeValue);
+        } catch (err) {
+          console.warn("Unable to ensure demo profile exists", err);
+        }
+        location.replace(destination);
+        return;
+      }
 
       const selectCols = [...REQUIRED_FIELDS, "kyc_status"].join(",");
       let profileComplete = false;
@@ -336,7 +589,7 @@
         return;
       }
 
-      location.replace(preferred);
+      location.replace(destination);
     }
 
     const qs = new URLSearchParams(location.search);
@@ -361,8 +614,48 @@
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm-password");
     const confirmHint = document.getElementById("confirm-hint");
+    const liveNote = document.getElementById("live-note");
+    const accountButtons = Array.from(document.querySelectorAll("[data-account]"));
+    let accountType = "paper";
+    let currentTab = "in";
 
     // ---- UI helpers ----
+    function updateLiveNote() {
+      if (!liveNote) return;
+      const show = accountType === "live" && currentTab === "up";
+      liveNote.classList.toggle("hidden", !show);
+      liveNote.textContent = show ? "Will Require Additional Verification" : "";
+    }
+
+    function setAccountType(type = "paper") {
+      accountType = type;
+      try { localStorage.setItem("ah_account_type", type); } catch (_) {}
+      accountButtons.forEach((btn) => {
+        const active = btn.dataset.account === type;
+        btn.classList.toggle("account-pill--active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      updateLiveNote();
+    }
+
+    async function hydrateAccountType() {
+      const stored = (() => {
+        try { return localStorage.getItem("ah_account_type"); } catch (_) { return null; }
+      })();
+      let metaType = null;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        metaType = session?.user?.user_metadata?.account_type;
+      } catch (err) {
+        console.warn("Unable to read auth metadata for account type", err);
+      }
+
+      const resolved = [metaType, stored, "paper"].find((v) => v === "paper" || v === "live");
+      setAccountType(resolved || "paper");
+      return resolved || "paper";
+    }
+
     function showMsg(text, type = "info") { // "success" | "error" | "info"
       msg.classList.remove("hidden","bg-rose-50","text-rose-700","border-rose-200","bg-emerald-50","text-emerald-700","border-emerald-200");
       if (type === "success") msg.classList.add("bg-emerald-50","text-emerald-700","border-emerald-200");
@@ -383,6 +676,7 @@
 
     function show(tab) {
       clearMsg();
+      currentTab = tab;
       const up = tab === "up";
       const toShowPanel = up ? panelUp : panelIn;
       const toHidePanel = up ? panelIn : panelUp;
@@ -398,10 +692,13 @@
       animateSwap(toShowPanel, toShowHeading);
       forgot.classList.toggle("hidden", up);
       forgotWrap.classList.add("hidden");
+      updateLiveNote();
     }
 
     switchToSignup?.addEventListener("click", () => show("up"));
     switchToSignin?.addEventListener("click", () => show("in"));
+    accountButtons.forEach((btn) => btn.addEventListener("click", () => setAccountType(btn.dataset.account)));
+    const hydratedAccountType = await hydrateAccountType();
 
     // enable/disable signup by checkbox
     const passwordsMatch = () => signupConfirm.value === signupPassword.value;
@@ -445,9 +742,12 @@
       const password = e.target.password.value;
       try {
         setLoading(inBtn, true, "Log in", "Logging in…");
-        await signIn(email, password);
+        const { user } = await signIn(email, password) ?? {};
+        const metaType = user?.user_metadata?.account_type;
+        const effectiveType = [metaType, accountType, hydratedAccountType, "paper"].find((v) => v === "paper" || v === "live");
+        if (metaType && metaType !== accountType) setAccountType(metaType);
         showMsg("Signed in. Redirecting…", "success");
-        await routePostAuth(redirectTo);
+        await routePostAuth(redirectTo, effectiveType || "paper");
       } catch (err) {
         showMsg(err.message || "Sign in failed.", "error");
       } finally {
@@ -469,7 +769,7 @@
       }
       try {
         setLoading(signupBtn, true, "Create account", "Creating account…");
-        const { data } = await signUp(email, password); // { user, session }
+        const { data } = await signUp(email, password, { account_type: accountType }); // { user, session }
         const needsConfirm = !data?.session;
         if (needsConfirm) {
           showMsg("Account created. Please confirm your email, then sign in.", "success");
@@ -477,7 +777,7 @@
           signupBtn.textContent = "Check your email to confirm";
         } else {
           showMsg("Account created. Redirecting…", "success");
-          await routePostAuth(redirectTo);
+          await routePostAuth(redirectTo, accountType);
         }
       } catch (err) {
         const m = (err?.message || "").toLowerCase();
@@ -522,11 +822,13 @@
       if (qs.get("tab") === "up") show("up"); else show("in");
       if (qs.get("confirmed") === "1") showMsg("Email confirmed — you can sign in now.", "success");
 
-      // If user is already logged in and lands here, route them
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) await routePostAuth(redirectTo);
-      } catch (_) {}
+        // If user is already logged in and lands here, route them
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const metaType = session?.user?.user_metadata?.account_type;
+          const fallbackType = [metaType, accountType, hydratedAccountType, "paper"].find((v) => v === "paper" || v === "live");
+          if (session) await routePostAuth(redirectTo, fallbackType || "paper");
+        } catch (_) {}
   </script>
 </body>
 </html>
