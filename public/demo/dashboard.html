@@ -652,9 +652,17 @@
         try {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) return parsed;
+          if (parsed && typeof parsed === "object") {
+            const fromNested = ["series", "points", "data", "values"].map((k) => parsed[k]).find(Array.isArray);
+            if (fromNested) return fromNested;
+          }
         } catch (err) {
           console.warn("could not parse series", err);
         }
+      }
+      if (raw && typeof raw === "object") {
+        const fromNested = ["series", "points", "data", "values"].map((k) => raw[k]).find(Array.isArray);
+        if (fromNested) return fromNested;
       }
       return [];
     }
@@ -812,11 +820,17 @@
       items.forEach((s) => {
         const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : null);
         const perfData = s.performance || derivePerformance(metrics || {});
+        const returnVal = Number(perfData?.returnPct);
         const rawSeries = parseSeriesInput(metrics?.series_ytd).length
           ? parseSeriesInput(metrics?.series_ytd)
           : parseSeriesInput(metrics?.series_all);
-        const series = rawSeries.length ? rawSeries : Array.isArray(perfData?.series) ? perfData.series : [];
-        const returnVal = Number(perfData?.returnPct);
+        let series = rawSeries.length ? rawSeries : Array.isArray(perfData?.series) ? perfData.series : [];
+        if (!series.length && Number.isFinite(returnVal)) {
+          series = [
+            { pct: 0 },
+            { pct: (returnVal || 0) / 100 },
+          ];
+        }
         const drawdownVal = Number(perfData?.drawdownPct);
         const chartId = `watch-curve-${s.id}`;
         const cardRisk = s.risk_level || "—";
