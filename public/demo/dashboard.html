@@ -525,6 +525,7 @@
     let latestAccount = null;
     let currentUser = null;
     let displayName = "—";
+    let subscribedStrategies = [];
 
     const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
@@ -934,10 +935,7 @@
 
       try {
         const results = [];
-        const { data: byId, error } = await supabase
-          .from("strategies")
-          .select("id,name,code")
-          .in("id", targetIds);
+        const { data: byId, error } = await supabase.from("strategies").select("id,name,code,currency,style,risk_level").in("id", targetIds);
 
         if (error) throw error;
         if (Array.isArray(byId)) results.push(...byId);
@@ -948,7 +946,7 @@
         if (missing.length) {
           const { data: byCode, error: codeErr } = await supabase
             .from("strategies")
-            .select("id,name,code")
+            .select("id,name,code,currency,style,risk_level")
             .in("code", missing);
           if (codeErr) throw codeErr;
           if (Array.isArray(byCode)) {
@@ -958,7 +956,26 @@
           }
         }
 
-        return results;
+        const idsForMetrics = results.map((s) => s.id).filter(Boolean);
+        let metricsById = {};
+
+        if (idsForMetrics.length) {
+          const { data: metrics, error: metricErr } = await supabase
+            .from("strategy_metrics")
+            .select("strategy_id, perf_summary, series_ytd, series_all")
+            .in("strategy_id", idsForMetrics);
+          if (metricErr) {
+            console.warn("subscribed strategy metrics fetch failed", metricErr);
+          } else {
+            metricsById = Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m]));
+          }
+        }
+
+        return (results || []).map((s) => ({
+          ...s,
+          metrics: metricsById[s.id] || null,
+          performance: derivePerformance(metricsById[s.id] || {}),
+        }));
       } catch (err) {
         console.warn("strategies fetch failed", err);
         return [];
@@ -996,6 +1013,22 @@
       if (pfName) pfName.textContent = selectedLabel || "Strategy";
       if (pfSub) pfSub.textContent = selectedLabel ? `${selectedLabel} equity over time.` : "Your demo equity over time.";
       toggleEquityAvailability(true);
+    }
+
+    function getSelectedStrategy() {
+      if (!strategySelect || !subscribedStrategies.length) return null;
+      const val = strategySelect.value;
+      return subscribedStrategies.find((s) => `${s.id}` === val || s.code === val) || null;
+    }
+
+    function strategyCurveFromMetrics(strategy = {}, account = {}) {
+      const metrics = strategy?.metrics || {};
+      const series = Array.isArray(metrics.series_ytd) ? metrics.series_ytd : Array.isArray(metrics.series_all) ? metrics.series_all : [];
+      const pctSeries = normalizePctSeries(series);
+      if (!pctSeries.length) return [];
+      const start = Number(account?.equity ?? account?.balance ?? latestProfile?.balance ?? 0);
+      const base = Number.isFinite(start) && start > 0 ? start : 100;
+      return curveFromPct(pctSeries, base);
     }
 
     function buildEquitySeries(profile = {}, account = {}) {
@@ -1195,7 +1228,12 @@
     }
 
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
-      const series = buildEquitySeries(profile, account);
+      const selected = getSelectedStrategy();
+      const strategySeries = selected ? strategyCurveFromMetrics(selected, account) : [];
+      const baseSeries = buildEquitySeries(profile, account);
+      const series = strategySeries.length ? strategySeries : baseSeries;
+      const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
+      toggleEquityAvailability(hasData);
       renderChart(series, account, profile);
     }
 
@@ -1252,6 +1290,7 @@
         pfSub.textContent = "Your demo equity over time.";
         if (pfName) pfName.textContent = "Strategy";
       }
+      refreshChart();
     });
 
     (async function init() {
@@ -1277,8 +1316,8 @@
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
         await hydrateWatchlist(latestProfile, currentUser);
-        const subscribed = await hydrateStrategies(latestProfile, currentUser);
-        if (!subscribed.length) {
+        subscribedStrategies = await hydrateStrategies(latestProfile, currentUser);
+        if (!subscribedStrategies.length) {
           toggleEquityAvailability(false);
         }
         refreshChart(latestProfile, latestAccount);
