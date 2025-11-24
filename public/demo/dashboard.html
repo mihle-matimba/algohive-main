@@ -646,6 +646,19 @@
       return out;
     }
 
+    function parseSeriesInput(raw) {
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === "string") {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (err) {
+          console.warn("could not parse series", err);
+        }
+      }
+      return [];
+    }
+
     function normalizePctSeries(series = []) {
       const pctSeries = [];
       let prevEquity = null;
@@ -698,8 +711,8 @@
 
     function derivePerformance(metrics = {}) {
       const perf = metrics?.perf_summary || {};
-      const seriesYtd = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
-      const seriesAll = Array.isArray(metrics?.series_all) ? metrics.series_all : [];
+      const seriesYtd = parseSeriesInput(metrics?.series_ytd);
+      const seriesAll = parseSeriesInput(metrics?.series_all);
       const series = seriesYtd.length ? seriesYtd : seriesAll;
       const seriesPerf = computePerfFromSeries(series);
 
@@ -799,7 +812,10 @@
       items.forEach((s) => {
         const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : null);
         const perfData = s.performance || derivePerformance(metrics || {});
-        const series = Array.isArray(perfData?.series) ? perfData.series : [];
+        const rawSeries = parseSeriesInput(metrics?.series_ytd).length
+          ? parseSeriesInput(metrics?.series_ytd)
+          : parseSeriesInput(metrics?.series_all);
+        const series = rawSeries.length ? rawSeries : Array.isArray(perfData?.series) ? perfData.series : [];
         const returnVal = Number(perfData?.returnPct);
         const drawdownVal = Number(perfData?.drawdownPct);
         const chartId = `watch-curve-${s.id}`;
@@ -1023,7 +1039,9 @@
 
     function strategyCurveFromMetrics(strategy = {}, account = {}) {
       const metrics = strategy?.metrics || {};
-      const series = Array.isArray(metrics.series_ytd) ? metrics.series_ytd : Array.isArray(metrics.series_all) ? metrics.series_all : [];
+      const parsedYtd = parseSeriesInput(metrics.series_ytd);
+      const parsedAll = parseSeriesInput(metrics.series_all);
+      const series = parsedYtd.length ? parsedYtd : parsedAll;
       const pctSeries = normalizePctSeries(series);
       if (!pctSeries.length) return [];
       const start = Number(account?.equity ?? account?.balance ?? latestProfile?.balance ?? 0);
