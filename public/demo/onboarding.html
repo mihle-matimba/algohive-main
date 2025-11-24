@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AlgoHive — Demo Onboarding</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --olive: #7e8d52;
@@ -177,7 +178,7 @@
     <main class="flex min-h-screen w-full flex-col bg-transparent lg:flex-row lg:items-stretch">
         <!-- Left: Brand + steps -->
         <div
-            class="auth-left relative flex w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:max-w-md lg:rounded-[32px] lg:px-8 lg:py-12">
+            class="auth-left relative flex w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:sticky lg:top-0 lg:h-screen lg:w-[44%] lg:overflow-y-auto lg:border-r lg:border-slate-100 lg:px-12 lg:py-14 lg:shadow-none">
             <div class="flex items-center gap-3">
                 <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive"
                     class="h-10 w-auto" />
@@ -387,30 +388,17 @@
                                                 </select>
                                             </label>
 
-                                            <label class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-800 shadow-sm" for="guidance">
-                                                Guidance style
-                                                <select id="guidance" class="h-11 rounded-xl border border-slate-200 px-3 text-sm text-slate-800 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20">
-                                                    <option value="">How hands-on do you want to be?</option>
-                                                    <option value="autopilot">Mostly automated</option>
-                                                    <option value="assisted">Assisted with recommendations</option>
-                                                    <option value="collaborative">Collaborative decision making</option>
-                                                    <option value="self_directed">Self-directed with insights</option>
-                                                </select>
-                                            </label>
                                         </div>
 
                                         <div class="space-y-3 rounded-2xl border border-slate-100 bg-white/80 p-4 shadow-sm">
-                                            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                                <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--olive)] text-xs text-white">2B</span>
-                                                    <div>
-                                                        <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--olive-700)]">Strategies for your risk</p>
-                                                        <p>Preview OpenStrategies that match your appetite.</p>
-                                                    </div>
+                                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--olive)] text-xs text-white">2B</span>
+                                                <div>
+                                                    <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--olive-700)]">Strategies for your risk</p>
+                                                    <p>Preview OpenStrategies that match your appetite.</p>
                                                 </div>
-                                                <p id="paper-balance" class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--olive-700)]">Paper balance: —</p>
                                             </div>
-                                            <div id="strategy-recos" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
+                                            <div id="strategy-recos" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"></div>
                                             <p id="strategy-empty" class="hidden text-sm text-slate-500">Choose a risk appetite to see matching strategies.</p>
                                         </div>
 
@@ -456,10 +444,8 @@
         const returnGoal = document.getElementById("return-goal");
         const drawdown = document.getElementById("drawdown");
         const timeHorizon = document.getElementById("time-horizon");
-        const guidance = document.getElementById("guidance");
         const strategyRecos = document.getElementById("strategy-recos");
         const strategyEmpty = document.getElementById("strategy-empty");
-        const paperBalance = document.getElementById("paper-balance");
         const loader = document.getElementById("page-loader");
         const signOutButton = document.getElementById("signOutButton");
         const AVATAR_BUCKET = "avatars";
@@ -470,7 +456,6 @@
         let demoSupportsAvatar = true;
         let avatarUrl = null;
         let avatarFile = null;
-        const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
         const RISK_FILTER_MAP = {
             conservative: "Conservative",
             low: "Low",
@@ -493,15 +478,82 @@
             return mapped;
         }
 
-        function formatCurrency(value) {
+        function formatPercent(value) {
             const num = Number(value);
             if (!Number.isFinite(num)) return "—";
-            try {
-                return currencyFormatter.format(num);
-            } catch (error) {
-                console.warn("Could not format currency", error);
-                return `${num}`;
+            return `${num >= 0 ? "+" : ""}${num.toFixed(1)}%`;
+        }
+
+        function computePerfFromSeries(series = []) {
+            let level = 1;
+            let peak = 1;
+            let maxDrawdown = 0;
+
+            for (const point of series) {
+                const pct = Number(point?.pct);
+                if (!Number.isFinite(pct)) continue;
+                level *= 1 + pct;
+                if (level > peak) peak = level;
+                const dd = peak > 0 ? (peak - level) / peak : 0;
+                if (dd > maxDrawdown) maxDrawdown = dd;
             }
+
+            const totalReturn = (level - 1) * 100;
+            const drawdownPct = maxDrawdown * 100;
+
+            return { returnPct: totalReturn, drawdownPct };
+        }
+
+        function curveFromPct(points, base = 100) {
+            const out = [];
+            let level = base;
+            for (const p of points || []) {
+                const rDec = Number(p?.pct);
+                if (Number.isFinite(rDec)) level *= 1 + rDec;
+                out.push(Number(level.toFixed(2)));
+            }
+            return out;
+        }
+
+        function drawCardChart(canvasId, seriesData) {
+            const ctx = document.getElementById(canvasId)?.getContext("2d");
+            if (!ctx || typeof Chart === "undefined") return;
+
+            if (Chart.getChart(canvasId)) {
+                Chart.getChart(canvasId).destroy();
+            }
+
+            const curve = curveFromPct(seriesData?.map((x) => ({ pct: Number(x?.pct) })), 100);
+            const labels = (seriesData || []).map((x) => x.label || x.date || "");
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 120);
+            gradient.addColorStop(0, "rgba(87, 97, 56, 0.35)");
+            gradient.addColorStop(1, "rgba(87, 97, 56, 0.05)");
+
+            new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            data: curve,
+                            tension: 0.35,
+                            borderWidth: 2,
+                            borderColor: "#7e8d52",
+                            backgroundColor: gradient,
+                            fill: true,
+                            pointRadius: 0,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: { x: { display: false }, y: { display: false } },
+                },
+            });
         }
 
         function showAlert(message, tone = "info") {
@@ -546,35 +598,62 @@
             }
             strategyEmpty.classList.add("hidden");
             items.forEach((s) => {
-                const card = document.createElement("article");
-                card.className = "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm";
-                const riskChip = s.risk_level?.toLowerCase().includes("high")
+                const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : s.metrics);
+                const perf = metrics?.perf_summary || {};
+                const series = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
+                const seriesPerf = computePerfFromSeries(series);
+                const cagr = Number(
+                    perf.cagr_1y ?? perf.return ?? perf.total_return ?? perf.ytd ?? seriesPerf.returnPct,
+                );
+                const drawdownVal = Number(perf.max_drawdown ?? perf.max_dd ?? seriesPerf.drawdownPct);
+                const chartId = `curve-${s.id}`;
+                const cardRisk = s.risk_level || "—";
+                const riskChip = cardRisk.toLowerCase().includes("high")
                     ? "bg-rose-50 text-rose-700"
                     : "bg-emerald-50 text-emerald-700";
+                const perfTone = Number.isFinite(cagr)
+                    ? cagr >= 0
+                        ? "text-emerald-600"
+                        : "text-rose-600"
+                    : "text-slate-800";
+                const drawdownText = Number.isFinite(drawdownVal) ? `${Math.abs(drawdownVal).toFixed(1)}%` : "—";
+
+                const card = document.createElement("article");
+                card.className =
+                    "rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-md shadow-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-lg";
                 card.innerHTML = `
                     <div class="flex items-start justify-between gap-3">
                         <div class="space-y-1">
                             <h5 class="text-base font-semibold text-slate-900">${s.name || "Strategy"}</h5>
-                            <p class="text-sm text-slate-500">${s.creator || "AlgoHive"}</p>
+                            <p class="text-xs text-slate-500">${s.currency || "USD"}${s.style ? ` · ${s.style}` : ""}</p>
                         </div>
-                        <span class="chip ${riskChip} text-xs">${s.risk_level || "—"}</span>
+                        <span class="chip ${riskChip} text-xs">${cardRisk}</span>
                     </div>
-                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span class="chip bg-slate-100 text-slate-700">${s.currency || "USD"}</span>
-                        ${s.style ? `<span class="chip bg-blue-50 text-blue-700">${s.style}</span>` : ""}
-                    </div>
-                    <div class="mt-4 flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Minimum Allocation</p>
-                            <p class="text-lg font-semibold text-slate-900">${s.unit_price ?? "—"}</p>
+                    <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div class="rounded-xl bg-slate-50 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Return</p>
+                            <p class="text-lg font-semibold ${perfTone}">${formatPercent(cagr)}</p>
                         </div>
-                        <a class="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--olive-700)]"
-                            href="/strategy.html?strategy=${encodeURIComponent(s.id)}&source=demo-onboarding&allocate=1">
-                            Allocate
-                        </a>
+                        <div class="rounded-xl bg-slate-50 p-3">
+                            <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Drawdown</p>
+                            <p class="text-lg font-semibold text-slate-800">${drawdownText}</p>
+                        </div>
                     </div>
+                    <div class="mt-4 h-32 w-full rounded-xl bg-slate-50 p-2">
+                        ${series.length
+                            ? `<canvas id="${chartId}" class="h-full w-full"></canvas>`
+                            : '<div class="flex h-full items-center justify-center text-xs text-slate-500">No equity data yet</div>'}
+                    </div>
+                    <a class="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--olive-700)]"
+                        href="/strategy.html?strategy=${encodeURIComponent(s.id)}&source=demo-onboarding&allocate=1">
+                        Allocate
+                    </a>
                 `;
                 strategyRecos.appendChild(card);
+
+                if (series.length) {
+                    drawCardChart(chartId, series);
+                }
             });
         }
 
@@ -588,14 +667,30 @@
             strategyRecos.innerHTML = "<p class='text-sm text-slate-500'>Loading matches…</p>";
             strategyEmpty.classList.add("hidden");
             try {
-                const { data, error } = await supabase
+                const { data: strategies, error: stratError } = await supabase
                     .from("strategies")
-                    .select("id,name,creator,currency,risk_level,style,unit_price")
+                    .select("id,name,currency,risk_level,style")
                     .eq("risk_level", normalized)
                     .order("aum", { ascending: false })
                     .limit(6);
-                if (error) throw error;
-                renderStrategyCards(data || [], normalized);
+                if (stratError) throw stratError;
+
+                let metricsById = {};
+                const ids = (strategies || []).map((s) => s.id).filter(Boolean);
+                if (ids.length) {
+                    const { data: metrics, error: metricsError } = await supabase
+                        .from("strategy_metrics")
+                        .select("strategy_id, perf_summary, series_ytd")
+                        .in("strategy_id", ids);
+                    if (metricsError) {
+                        console.warn("Could not load metrics", metricsError);
+                    } else {
+                        metricsById = Object.fromEntries(metrics.map((m) => [m.strategy_id, m]));
+                    }
+                }
+
+                const merged = (strategies || []).map((s) => ({ ...s, metrics: metricsById[s.id] || null }));
+                renderStrategyCards(merged, normalized);
             } catch (error) {
                 console.warn("Could not load strategies", error);
                 strategyRecos.innerHTML = "";
@@ -626,9 +721,7 @@
             if (source.avatar_url) setAvatar(source.avatar_url);
             avatarFilename.textContent = source.avatar_url ? "Avatar on file" : "No file chosen";
 
-            const riskChoice = normalizeRisk(
-                demoRow?.risk_appetite || row?.risk_appetite || meta.risk_appetite || meta.risk_profile,
-            );
+            const riskChoice = normalizeRisk(demoRow?.risk_appetite || meta.risk_appetite || meta.risk_profile);
             if (riskChoice) {
                 const match = riskRadios.find((input) => input.value === riskChoice);
                 if (match) match.checked = true;
@@ -639,7 +732,6 @@
             if (returnGoal && preferences.return_goal) returnGoal.value = preferences.return_goal;
             if (drawdown && preferences.drawdown) drawdown.value = preferences.drawdown;
             if (timeHorizon && preferences.time_horizon) timeHorizon.value = preferences.time_horizon;
-            if (guidance && preferences.guidance) guidance.value = preferences.guidance;
         }
 
         function hideLoader() {
@@ -664,33 +756,24 @@
             location.replace("/auth.html");
         }
 
-        async function loadPaperBalance() {
-            if (!supabaseUser || !paperBalance) return;
-            paperBalance.textContent = "Paper balance: loading…";
-            try {
-                const { data, error } = await supabase
-                    .from("demo_accounts")
-                    .select("equity,balance")
-                    .eq("id", supabaseUser.id)
-                    .maybeSingle();
-                if (error && error.code !== "PGRST116") throw error;
-                const amount = typeof data?.equity === "number" ? data.equity : data?.balance;
-                paperBalance.textContent = `Paper balance: ${formatCurrency(amount)}`;
-            } catch (error) {
-                console.warn("Unable to load paper balance", error);
-                paperBalance.textContent = "Paper balance: —";
-            }
-        }
-
         async function loadProfiles() {
             if (!supabaseUser) return;
             try {
                 const emailAddress = (supabaseUser?.email || "").trim();
-                let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url, risk_appetite");
+                let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
                 liveQuery = emailAddress ? liveQuery.eq("email", emailAddress) : liveQuery.eq("id", supabaseUser.id);
                 const { data: liveData, error: liveError } = await liveQuery.maybeSingle();
-                if (liveError && liveError.code !== "PGRST116") throw liveError;
-                profileRow = liveData || {};
+                if (liveError && liveError.code === "42703") {
+                    const fallbackQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
+                    const { data: fallbackData, error: fallbackErr } = await (
+                        emailAddress ? fallbackQuery.eq("email", emailAddress) : fallbackQuery.eq("id", supabaseUser.id)
+                    ).maybeSingle();
+                    if (fallbackErr && fallbackErr.code !== "PGRST116") throw fallbackErr;
+                    profileRow = fallbackData || {};
+                } else {
+                    if (liveError && liveError.code !== "PGRST116") throw liveError;
+                    profileRow = liveData || {};
+                }
             } catch (error) {
                 console.warn("Unable to load live profile", error);
             }
@@ -742,18 +825,16 @@
         async function saveProfiles({ first_name, last_name, phone, risk_appetite, investment_preferences }) {
             if (!supabaseUser) throw new Error("Please sign in again.");
 
-            const payload = {
+            const basePayload = {
                 id: supabaseUser.id,
                 first_name,
                 last_name,
                 phone,
-                avatar_url: avatarUrl,
-                risk_appetite,
             };
 
             const demoPayload = demoSupportsAvatar
-                ? payload
-                : { id: supabaseUser.id, first_name, last_name, phone, risk_appetite };
+                ? { ...basePayload, avatar_url: avatarUrl, risk_appetite }
+                : { ...basePayload, risk_appetite };
 
             const { error: demoError } = await supabase.from("demo_profiles").upsert(demoPayload);
             if (demoError && demoError.code === "42703") {
@@ -765,7 +846,7 @@
                 throw demoError;
             }
 
-            const livePayload = { id: supabaseUser.id, first_name, last_name, phone, avatar_url: avatarUrl, risk_appetite };
+            const livePayload = { ...basePayload, avatar_url: avatarUrl };
             const { error: liveError } = await supabase.from("profiles").upsert(livePayload);
             if (liveError && liveError.code === "42703") {
                 const { error: fallbackLive } = await supabase
@@ -846,7 +927,6 @@
             const returnGoalVal = returnGoal?.value || "";
             const drawdownVal = drawdown?.value || "";
             const horizonVal = timeHorizon?.value || "";
-            const guidanceVal = guidance?.value || "";
 
             if (!first_name || !last_name || !phoneVal) {
                 showTab("basics");
@@ -854,7 +934,7 @@
                 return;
             }
 
-            if (!riskChoice || !returnGoalVal || !drawdownVal || !horizonVal || !guidanceVal) {
+            if (!riskChoice || !returnGoalVal || !drawdownVal || !horizonVal) {
                 showTab("preferences");
                 showAlert("Please answer all investment preference questions.", "error");
                 return;
@@ -869,7 +949,6 @@
                     return_goal: returnGoalVal,
                     drawdown: drawdownVal,
                     time_horizon: horizonVal,
-                    guidance: guidanceVal,
                 };
 
                 await saveProfiles({
@@ -891,7 +970,6 @@
 
         await ensureSession();
         await loadProfiles();
-        await loadPaperBalance();
     </script>
 </body>
 
