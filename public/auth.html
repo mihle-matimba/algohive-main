@@ -697,8 +697,7 @@
         setLoading(inBtn, true, "Log in", "Logging in…");
         const { user } = await signIn(email, password) ?? {};
         const metaType = user?.user_metadata?.account_type;
-        const effectiveType = [metaType, accountType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
-        if (metaType && metaType !== accountType) setAccountType(metaType);
+        const effectiveType = [accountType, metaType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
         showMsg("Signed in. Redirecting…", "success");
         await routePostAuth(redirectTo, effectiveType || "live");
       } catch (err) {
@@ -779,7 +778,7 @@
         try {
           const { data: { session } } = await supabase.auth.getSession();
         const metaType = session?.user?.user_metadata?.account_type;
-        const fallbackType = [metaType, accountType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
+        const fallbackType = [accountType, metaType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
         if (session) await routePostAuth(redirectTo, fallbackType || "live");
         } catch (_) {}
   </script>
