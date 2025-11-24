@@ -12,10 +12,19 @@ create table if not exists public.demo_profiles (
   avatar_url text,
   risk_appetite text, -- values aligned to OpenStrategies filters: Conservative, Low, Moderate, High, High Risk, Very High Risk
   investment_preferences jsonb default '{}'::jsonb,
+  watch_list jsonb default '[]'::jsonb, -- array of strategy ids the user starred during onboarding
   inserted_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 create index if not exists demo_profiles_risk_idx on public.demo_profiles (risk_appetite);
+```
+
+### Adding `watch_list` to existing environments
+Run this migration on Supabase to add the watch-list column if your `demo_profiles` table already exists:
+
+```sql
+alter table public.demo_profiles
+  add column if not exists watch_list jsonb default '[]'::jsonb;
 ```
 
 ### Investment preferences payload
