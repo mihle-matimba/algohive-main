@@ -708,6 +708,7 @@
     const forgotCancel = document.getElementById("forgot-cancel");
     const agree = document.getElementById("agree");
     const signupBtn = document.getElementById("signup-btn");
+    const signupEmail = document.getElementById("signup-email");
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm-password");
     const confirmHint = document.getElementById("confirm-hint");
@@ -876,12 +877,13 @@
           await routePostAuth(redirectTo, accountType);
         }
       } catch (err) {
-        const m = (err?.message || "").toLowerCase();
+        const raw = err?.message || "";
+        const m = raw.toLowerCase();
         if (/already (registered|exists)/.test(m)) {
           showMsg("An account with this email already exists. Please sign in or reset your password.", "error");
-          show("in");
+          signupEmail?.focus();
         } else {
-          showMsg(err.message || "Sign up failed.", "error");
+          showMsg(raw || "Sign up failed.", "error");
         }
       } finally {
         setLoading(signupBtn, false, "Create account");
