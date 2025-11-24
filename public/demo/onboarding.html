@@ -327,20 +327,20 @@
                                                 <legend class="text-sm font-semibold text-slate-800">Risk appetite (matches OpenStrategies filters)</legend>
                                                 <div class="grid gap-2">
                                                     <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:border-[var(--olive)]">
-                                                        <input type="radio" name="risk_appetite" value="Conservative" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
-                                                        Conservative
+                                                        <input type="radio" name="risk_appetite" value="All" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
+                                                        All
                                                     </label>
                                                     <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:border-[var(--olive)]">
-                                                        <input type="radio" name="risk_appetite" value="Low" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
-                                                        Low
+                                                        <input type="radio" name="risk_appetite" value="Conservative" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
+                                                        Conservative
                                                     </label>
                                                     <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:border-[var(--olive)]">
                                                         <input type="radio" name="risk_appetite" value="Moderate" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
                                                         Moderate
                                                     </label>
                                                     <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:border-[var(--olive)]">
-                                                        <input type="radio" name="risk_appetite" value="High" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
-                                                        High
+                                                        <input type="radio" name="risk_appetite" value="Balanced" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
+                                                        Balanced
                                                     </label>
                                                     <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:border-[var(--olive)]">
                                                         <input type="radio" name="risk_appetite" value="High Risk" class="h-4 w-4 text-[var(--olive)] focus:ring-[var(--olive)]" />
@@ -474,16 +474,16 @@
         let avatarFile = null;
         const RISK_FILTER_MAP = {
             conservative: "Conservative",
-            low: "Low",
             moderate: "Moderate",
-            balanced: "Moderate",
-            medium: "Moderate",
-            growth: "High",
-            high: "High",
+            balanced: "Balanced",
+            medium: "Balanced",
+            growth: "High Risk",
+            high: "High Risk",
             aggressive: "Very High Risk",
             "high risk": "High Risk",
             "very high": "Very High Risk",
             "very high risk": "Very High Risk",
+            all: "All",
         };
 
         function normalizeRisk(value) {
@@ -805,12 +805,17 @@
             strategyEmpty.classList.add("hidden");
             updateStrategyScroller();
             try {
-                const { data: strategies, error: stratError } = await supabase
+                let query = supabase
                     .from("strategies")
                     .select("id,name,currency,risk_level,style")
-                    .eq("risk_level", normalized)
                     .order("aum", { ascending: false })
                     .limit(6);
+
+                if (normalized !== "All") {
+                    query = query.eq("risk_level", normalized);
+                }
+
+                const { data: strategies, error: stratError } = await query;
                 if (stratError) throw stratError;
 
                 let metricsById = {};
