@@ -240,24 +240,32 @@
             <div class="text-[12px] text-slate-500 font-semibold tracking-wide">PAPER PORTFOLIO <span class="mx-1">•</span> <span id="pf-updated">—</span></div>
             <h2 class="text-2xl md:text-3xl font-extrabold mt-1 break-words" id="pf-title">Paper Account</h2>
           </div>
-          <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-y-3 sm:gap-y-0 px-5 py-4 border-t border-b border-slate-200">
-            <div>
-              <h3 class="font-normal text-slate-800">Equity Curve — <span id="pf-name" class="font-semibold">—</span></h3>
+          <div class="flex flex-col lg:flex-row items-start lg:items-center lg:justify-between gap-4 px-5 py-4 border-t border-b border-slate-200">
+            <div class="w-full lg:w-auto">
+              <h3 class="font-normal text-slate-800 flex items-center gap-3">Equity Curve — <span id="pf-name" class="font-semibold">—</span></h3>
               <div class="mt-1 text-sm text-slate-500" id="pf-sub">Your demo equity over time.</div>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button data-range="1D" class="tab text-[13px]">1D</button>
-              <button data-range="1M" class="tab text-[13px]">1M</button>
-              <button data-range="3M" class="tab text-[13px]">3M</button>
-              <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
-              <button data-range="YTD" class="tab text-[13px]">YTD</button>
-              <button data-range="1Y" class="tab text-[13px]">1Y</button>
-              <button data-range="3Y" class="tab text-[13px]">3Y</button>
-              <button data-range="ALL" class="tab text-[13px]">All</button>
+            <div class="w-full lg:w-auto flex flex-wrap items-center gap-3">
+              <div class="flex flex-col text-xs font-semibold text-slate-500">
+                <label for="strategy-select">Strategies</label>
+                <select id="strategy-select" class="h-10 min-w-[180px] rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]">
+                  <option>Loading…</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button data-range="1D" class="tab text-[13px]">1D</button>
+                <button data-range="1M" class="tab text-[13px]">1M</button>
+                <button data-range="3M" class="tab text-[13px]">3M</button>
+                <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
+                <button data-range="YTD" class="tab text-[13px]">YTD</button>
+                <button data-range="1Y" class="tab text-[13px]">1Y</button>
+                <button data-range="3Y" class="tab text-[13px]">3Y</button>
+                <button data-range="ALL" class="tab text-[13px]">All</button>
 
-              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
+                <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="px-5 pt-4">
@@ -267,7 +275,11 @@
             </div>
           </div>
           <div class="px-2 pb-4 pt-2">
-            <div class="h-[260px]">
+            <div class="relative h-[260px]">
+              <div id="pf-empty" class="absolute inset-0 hidden flex-col items-center justify-center text-center text-sm text-slate-500 gap-2 px-4">
+                <div class="font-semibold text-slate-800">No strategies yet</div>
+                <p class="max-w-[360px]">Allocate to a strategy to unlock its equity curve and performance here.</p>
+              </div>
               <canvas id="pf-chart" class="max-w-full"></canvas>
             </div>
           </div>
@@ -345,8 +357,10 @@
     const pfUpdated = document.getElementById("pf-updated");
     const pfSub = document.getElementById("pf-sub");
     const pfChartCanvas = document.getElementById("pf-chart");
+    const pfEmpty = document.getElementById("pf-empty");
     const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
     const pfRefresh = document.getElementById("pf-refresh");
+    const strategySelect = document.getElementById("strategy-select");
     const profileBtn = document.getElementById("profile-btn");
     const profileMenu = document.getElementById("profile-menu");
     const profileEmail = document.getElementById("profile-email");
@@ -401,6 +415,101 @@
     function formatMoney(value) {
       const num = typeof value === "number" ? value : Number(value);
       return Number.isFinite(num) ? formatter.format(num) : "—";
+    }
+
+    function toggleEquityAvailability(hasStrategies = true) {
+      if (pfChartCanvas) {
+        pfChartCanvas.classList.toggle("hidden", !hasStrategies);
+      }
+      if (pfEmpty) {
+        pfEmpty.classList.toggle("hidden", hasStrategies);
+      }
+      if (!hasStrategies && pfSub) {
+        pfSub.textContent = "Allocate to a strategy to unlock its equity curve.";
+      }
+    }
+
+    function normalizeStrategyIds(raw = []) {
+      if (!Array.isArray(raw)) return [];
+      return Array.from(
+        new Set(
+          raw
+            .map((item) => {
+              if (typeof item === "string") return item;
+              if (item && typeof item === "object") return item.id || item.strategy_id || item.code || item.slug;
+              return null;
+            })
+            .filter(Boolean)
+        )
+      );
+    }
+
+    async function fetchSubscribedStrategies(ids = []) {
+      const targetIds = normalizeStrategyIds(ids);
+      if (!targetIds.length) return [];
+
+      try {
+        const results = [];
+        const { data: byId, error } = await supabase
+          .from("strategies")
+          .select("id,name,code")
+          .in("id", targetIds);
+
+        if (error) throw error;
+        if (Array.isArray(byId)) results.push(...byId);
+
+        const found = new Set(results.map((row) => row.id));
+        const missing = targetIds.filter((id) => !found.has(id));
+
+        if (missing.length) {
+          const { data: byCode, error: codeErr } = await supabase
+            .from("strategies")
+            .select("id,name,code")
+            .in("code", missing);
+          if (codeErr) throw codeErr;
+          if (Array.isArray(byCode)) {
+            byCode.forEach((row) => {
+              if (!found.has(row.id)) results.push(row);
+            });
+          }
+        }
+
+        return results;
+      } catch (err) {
+        console.warn("strategies fetch failed", err);
+        return [];
+      }
+    }
+
+    function renderStrategyDropdown(strategies = []) {
+      if (!strategySelect) return;
+      strategySelect.innerHTML = "";
+
+      if (!strategies.length) {
+        const opt = document.createElement("option");
+        opt.textContent = "No subscribed strategies";
+        opt.value = "";
+        strategySelect.appendChild(opt);
+        strategySelect.disabled = true;
+        toggleEquityAvailability(false);
+        return;
+      }
+
+      strategySelect.disabled = false;
+      const allOpt = document.createElement("option");
+      allOpt.value = "";
+      allOpt.textContent = "All strategies";
+      strategySelect.appendChild(allOpt);
+
+      strategies.forEach((strategy) => {
+        const opt = document.createElement("option");
+        opt.value = strategy.id || strategy.code || "";
+        opt.textContent = strategy.name || strategy.code || "Strategy";
+        strategySelect.appendChild(opt);
+      });
+
+      strategySelect.value = "";
+      toggleEquityAvailability(true);
     }
 
     function buildEquitySeries(profile = {}, account = {}) {
@@ -581,6 +690,13 @@
       updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
     }
 
+    async function hydrateStrategies(profile = {}, user = {}) {
+      const ids = normalizeStrategyIds(profile?.strategies || user?.user_metadata?.strategies || []);
+      const subscribed = await fetchSubscribedStrategies(ids);
+      renderStrategyDropdown(subscribed);
+      return subscribed;
+    }
+
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
       const series = buildEquitySeries(profile, account);
       renderChart(series, account, profile);
@@ -617,6 +733,15 @@
 
     pfRefresh?.addEventListener("click", () => refreshChart());
 
+    strategySelect?.addEventListener("change", () => {
+      const label = strategySelect.selectedOptions?.[0]?.textContent?.trim();
+      if (label && strategySelect.value) {
+        pfSub.textContent = `${label} equity over time.`;
+      } else {
+        pfSub.textContent = "Your demo equity over time.";
+      }
+    });
+
     (async function init() {
       try {
         const user = await guard();
@@ -639,6 +764,10 @@
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
+        const subscribed = await hydrateStrategies(latestProfile, currentUser);
+        if (!subscribed.length) {
+          toggleEquityAvailability(false);
+        }
         refreshChart(latestProfile, latestAccount);
       } catch (error) {
         console.error(error);
