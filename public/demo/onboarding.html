@@ -1,295 +1,520 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AlgoHive — Demo Onboarding</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --olive: #7e8d52;
-      --olive-700: #576138;
-      --ink: #0B1215;
-    }
-    body { background: #f6f7f6; }
-    .orb-gradient {
-      background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.75), rgba(255,255,255,0) 60%),
-                        radial-gradient(circle at 80% 20%, rgba(126,141,82,0.18), rgba(255,255,255,0) 55%),
-                        radial-gradient(circle at 50% 80%, rgba(126,141,82,0.12), rgba(255,255,255,0) 55%);
-    }
-    .btn-shine { position: relative; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
-    .btn-shine::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.7) 50%, transparent 100%); transform: translateX(-120%); transition: transform .8s ease; }
-    .btn-shine:hover::before { transform: translateX(120%); }
-    .btn-shine:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -16px rgba(11,18,21,0.4); }
-    .btn-shine:disabled { box-shadow: none; transform: none; }
-    .btn-shine:disabled::before { display: none; }
-    .swap-anim { animation: heroSlideUp .5s ease both; }
-    @keyframes heroSlideUp { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlgoHive — Demo Onboarding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --olive: #7e8d52;
+            --olive-700: #576138;
+            --ink: #0B1215;
+        }
+
+        body {
+            background: #f6f7f6;
+        }
+
+        .preloader {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: #f6f7f6;
+            color: var(--ink);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            transition: opacity .45s ease;
+        }
+
+        .preloader__logo {
+            height: 3rem;
+            width: auto;
+            animation: heroSlideUp .6s ease-out, preloaderPulse 2.4s ease-in-out .45s infinite;
+        }
+
+        .preloader__brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            animation: heroSlideUp .6s ease-out .08s both;
+        }
+
+        .preloader__tagline {
+            font-size: .95rem;
+            color: rgba(11, 18, 21, 0.68);
+            animation: heroSlideUp .6s ease-out .14s both;
+        }
+
+        .preloader--hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .btn-shine {
+            position: relative;
+            overflow: hidden;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+
+        .btn-shine::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, .7) 50%, transparent 100%);
+            transform: translateX(-120%);
+            transition: transform .8s ease;
+        }
+
+        .btn-shine:hover::before {
+            transform: translateX(120%);
+        }
+
+        .btn-shine:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px -16px rgba(11, 18, 21, 0.4);
+        }
+
+        .btn-shine:disabled {
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-shine:disabled::before {
+            display: none;
+        }
+
+        .auth-left {
+            animation: heroSlideUp .7s ease-out .25s both;
+        }
+
+        .auth-right {
+            animation: heroScaleIn .9s cubic-bezier(.2, .8, .2, 1) .35s both;
+        }
+
+        @keyframes heroScaleIn {
+            0% {
+                transform: scale(1.06);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes heroSlideUp {
+            0% {
+                transform: translateY(16px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes preloaderPulse {
+
+            0%,
+            100% {
+                opacity: .45;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .swap-anim {
+            animation: heroSlideUp .5s ease both;
+        }
+
+        .orb-gradient {
+            background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 60%),
+                radial-gradient(circle at 80% 20%, rgba(126, 141, 82, 0.18), rgba(255, 255, 255, 0) 55%),
+                radial-gradient(circle at 50% 80%, rgba(126, 141, 82, 0.12), rgba(255, 255, 255, 0) 55%);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .input-error {
+            border-color: rgba(248, 113, 113, 0.55) !important;
+            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.28);
+        }
+
+        .field-error {
+            outline: 2px solid rgba(248, 113, 113, 0.35);
+            outline-offset: 4px;
+            border-radius: 1.25rem;
+        }
+    </style>
 </head>
 
-<body class="min-h-screen antialiased text-slate-900">
-  <div class="relative mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10 lg:flex-row lg:items-stretch lg:px-12 lg:py-14">
-    <div class="absolute inset-x-10 inset-y-10 -z-10 rounded-3xl bg-white shadow-xl shadow-slate-200/50"></div>
+<body class="min-h-screen bg-[#f6f7f6] text-slate-900">
+    <div id="page-loader" class="preloader">
+        <img class="preloader__logo" src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
+            alt="AlgoHive logo" />
+        <span class="preloader__brand">AlgoHive</span>
+        <span class="preloader__tagline">Loading your experience…</span>
+    </div>
 
-    <section class="relative w-full max-w-xl space-y-8 lg:w-1/2">
-      <div class="flex items-center gap-2">
-        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive" class="h-9 w-auto" />
-        <span class="text-lg font-semibold tracking-tight text-[var(--ink)]">AlgoHive</span>
-      </div>
-
-      <div class="space-y-3">
-        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Demo onboarding</p>
-        <h1 class="text-3xl font-semibold text-slate-900 sm:text-[34px]">Set up your paper profile</h1>
-        <p class="text-sm text-slate-500">We will use your live details when available to speed this up. These details also keep your demo dashboard personalized.</p>
-      </div>
-
-      <div id="alert" class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"></div>
-
-      <form id="demo-onboarding-form" class="space-y-5">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-2 text-sm font-medium text-slate-700" for="first-name">
-            <div>First name</div>
-            <input id="first-name" name="first_name" type="text" autocomplete="given-name" required class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" />
-          </label>
-          <label class="space-y-2 text-sm font-medium text-slate-700" for="last-name">
-            <div>Last name</div>
-            <input id="last-name" name="last_name" type="text" autocomplete="family-name" required class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" />
-          </label>
-        </div>
-
-        <label class="space-y-2 text-sm font-medium text-slate-700" for="phone">
-          <div>Phone number</div>
-          <input id="phone" name="phone" type="tel" autocomplete="tel" required class="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[rgba(126,141,82,0.25)]" />
-        </label>
-
-        <div class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-sm font-semibold text-slate-800">Avatar</p>
-              <p class="text-sm text-slate-500">Add a photo to personalize your demo dashboard.</p>
+    <main class="mx-auto flex min-h-screen max-w-6xl flex-col lg:flex-row lg:items-stretch lg:gap-8 lg:px-10 lg:py-12">
+        <!-- Left: Brand + steps -->
+        <div
+            class="auth-left relative flex w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:max-w-md lg:rounded-[32px] lg:px-8 lg:py-12">
+            <div class="flex items-center gap-3">
+                <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive"
+                    class="h-10 w-auto" />
+                <span class="text-lg font-semibold tracking-tight">AlgoHive</span>
             </div>
-            <img id="avatar-preview" src="https://api.iconify.design/solar:user-linear.svg?color=%23cbd5e1" alt="Avatar preview" class="h-14 w-14 rounded-2xl bg-slate-100 object-cover" />
-          </div>
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label class="btn-shine inline-flex cursor-pointer items-center justify-center rounded-xl bg-[var(--olive)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
-              <input id="avatar" type="file" accept="image/*" class="hidden" />
-              <span>Upload photo</span>
-            </label>
-            <p id="avatar-filename" class="text-sm text-slate-500">No file chosen</p>
-            <button type="button" id="avatar-remove" class="hidden text-sm font-semibold text-rose-700">Remove</button>
-          </div>
+
+            <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Demo onboarding</p>
+                <h1 class="text-3xl font-semibold leading-tight text-slate-900">Set up your paper profile</h1>
+                <p class="text-sm text-slate-600">We’ll mirror your live details where possible to keep your paper experience
+                    consistent.</p>
+            </div>
+
+            <div class="space-y-5 rounded-3xl border border-slate-100 bg-slate-50/70 p-5">
+                <div class="space-y-1">
+                    <p class="text-sm font-semibold text-slate-900">What you’ll share</p>
+                    <p class="text-sm text-slate-500">We only need the basics to personalize your demo dashboard.</p>
+                </div>
+                <ol class="step-flow space-y-4 text-sm text-slate-600">
+                    <li class="relative flex gap-4">
+                        <span class="step-circle flex h-10 w-10 items-center justify-center rounded-full border border-[var(--olive)]/40 bg-white text-sm font-semibold text-[var(--olive-700)] shadow-sm">1</span>
+                        <div class="space-y-1">
+                            <h2 class="text-base font-semibold text-slate-900">Your details</h2>
+                            <p class="text-sm text-slate-500">Confirm your name, phone, and avatar.</p>
+                        </div>
+                    </li>
+                    <li class="relative flex gap-4">
+                        <span class="step-circle flex h-10 w-10 items-center justify-center rounded-full border border-[var(--olive)]/40 bg-white text-sm font-semibold text-[var(--olive-700)] shadow-sm">2</span>
+                        <div class="space-y-1">
+                            <h2 class="text-base font-semibold text-slate-900">Sync</h2>
+                            <p class="text-sm text-slate-500">We save these to your demo and live profiles.</p>
+                        </div>
+                    </li>
+                    <li class="relative flex gap-4">
+                        <span class="step-circle flex h-10 w-10 items-center justify-center rounded-full border border-[var(--olive)]/40 bg-white text-sm font-semibold text-[var(--olive-700)] shadow-sm">3</span>
+                        <div class="space-y-1">
+                            <h2 class="text-base font-semibold text-slate-900">Start trading</h2>
+                            <p class="text-sm text-slate-500">Jump into your paper dashboard.</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
         </div>
 
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-slate-500">These details are saved to both your demo and live profile.</p>
-          <button type="submit" class="btn-shine inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--olive)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)] sm:w-auto" id="submit-btn">Save and continue</button>
-        </div>
-      </form>
-    </section>
+        <!-- Right: Workspace -->
+        <aside class="auth-right relative flex w-full flex-1 lg:items-stretch lg:rounded-[32px]">
+            <div class="absolute inset-0 orb-gradient opacity-90"></div>
+            <div class="relative z-10 flex w-full items-start justify-center px-4 py-10 sm:px-8 lg:px-12 lg:py-16">
+                <div class="w-full max-w-3xl space-y-8">
+                    <header class="flex flex-col gap-3 text-left text-slate-800 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                        <div class="space-y-2">
+                            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Demo onboarding</p>
+                            <h2 class="text-3xl font-semibold sm:text-[34px]">Complete your paper profile</h2>
+                            <p class="text-sm text-slate-600">Use your live details where available. These fields keep your demo dashboard personalized.</p>
+                        </div>
+                        <button id="signOutButton" type="button"
+                            class="inline-flex items-center justify-center gap-2 self-start rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]">
+                            Sign out
+                        </button>
+                    </header>
 
-    <aside class="relative hidden flex-1 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 px-10 py-12 text-white shadow-lg lg:flex lg:flex-col lg:justify-between">
-      <div class="orb-gradient absolute inset-6 -z-10 rounded-[32px] opacity-80"></div>
-      <div class="space-y-4">
-        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">What to expect</p>
-        <h2 class="text-3xl font-semibold leading-tight">Create your paper-ready profile in seconds.</h2>
-        <p class="max-w-lg text-sm text-slate-200/90">Use your live details to prefill your demo account. We keep your paper experience aligned with how you invest for real, including your photo.</p>
-      </div>
-      <div class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-5">
-        <p class="text-sm font-semibold text-white">Why we ask</p>
-        <ul class="space-y-2 text-sm text-slate-200/90">
-          <li>• Keep your demo dashboard personalized</li>
-          <li>• Make it easier to upgrade to live later</li>
-          <li>• Sync your avatar across experiences</li>
-        </ul>
-      </div>
-    </aside>
-  </div>
+                    <section class="rounded-3xl border border-white/40 bg-white/90 p-6 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.55)] backdrop-blur sm:p-8">
+                        <div class="flex flex-col gap-6">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.4em] text-[var(--olive-700)]">Step 1 of 1 · Basics</p>
+                                    <h3 class="text-xl font-semibold text-slate-900">Tell us about yourself</h3>
+                                </div>
+                                <div class="flex flex-col items-start gap-2 text-left sm:items-end sm:text-right">
+                                    <span class="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400">Need help?</span>
+                                    <a href="mailto:support@algohive.io"
+                                        class="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--olive)] px-4 py-2 text-xs font-semibold text-[var(--olive-700)] transition hover:bg-[var(--olive)] hover:text-white">Contact us</a>
+                                </div>
+                            </div>
 
-  <script type="module" nonce="ALGOHIVE">
-    import { supabase } from "/js/supabase.js";
+                            <div class="space-y-6">
+                                <div id="alert" class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"></div>
 
-    const form = document.getElementById("demo-onboarding-form");
-    const alertBox = document.getElementById("alert");
-    const submitBtn = document.getElementById("submit-btn");
-    const avatarInput = document.getElementById("avatar");
-    const avatarPreview = document.getElementById("avatar-preview");
-    const avatarFilename = document.getElementById("avatar-filename");
-    const avatarRemove = document.getElementById("avatar-remove");
-    const firstName = document.getElementById("first-name");
-    const lastName = document.getElementById("last-name");
-    const phone = document.getElementById("phone");
-    const AVATAR_BUCKET = "avatars";
+                                <form id="demo-onboarding-form" class="space-y-8" novalidate>
+                                    <div class="grid gap-6 md:grid-cols-2">
+                                        <label class="flex flex-col gap-2 text-sm font-medium text-slate-700" for="first-name">
+                                            First name
+                                            <input id="first-name" name="first_name" type="text" autocomplete="given-name"
+                                                class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                        </label>
+                                        <label class="flex flex-col gap-2 text-sm font-medium text-slate-700" for="last-name">
+                                            Last name
+                                            <input id="last-name" name="last_name" type="text" autocomplete="family-name"
+                                                class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                        </label>
+                                    </div>
 
-    let supabaseUser = null;
-    let profileRow = null;
-    let demoProfileRow = null;
-    let avatarUrl = null;
-    let avatarFile = null;
+                                    <div class="grid gap-6 md:grid-cols-[minmax(0,360px)_1fr]">
+                                        <div class="flex flex-col gap-2 text-sm font-medium text-slate-700">
+                                            <span>Avatar</span>
+                                            <div class="flex items-center gap-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4">
+                                                <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-200">
+                                                    <img id="avatar-preview"
+                                                        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23e2e8f0'/></svg>"
+                                                        alt="Profile avatar preview" class="h-16 w-16 object-cover" />
+                                                </div>
+                                                <div class="flex flex-1 flex-col gap-2 text-sm text-slate-500">
+                                                    <input type="file" id="avatar" name="avatar" accept="image/png,image/jpeg" class="hidden" />
+                                                    <label for="avatar"
+                                                        class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[var(--olive)] px-4 py-1.5 text-xs font-semibold text-[var(--olive-700)] transition hover:bg-[var(--olive)] hover:text-white">
+                                                        Choose file
+                                                    </label>
+                                                    <span id="avatar-filename" class="text-xs text-slate-400">No file chosen</span>
+                                                    <p class="text-xs text-slate-400">JPG/PNG, 2 MB. Best results: 512×512px.</p>
+                                                    <button type="button" id="avatar-remove"
+                                                        class="self-start text-xs font-medium text-rose-500 hover:underline hidden">Remove avatar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <label class="flex flex-col gap-2 text-sm font-medium text-slate-700" for="phone">
+                                            Contact phone
+                                            <input id="phone" name="phone" type="tel" autocomplete="tel"
+                                                class="h-11 rounded-xl border border-slate-200 px-4 text-base font-normal text-slate-900 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20" />
+                                        </label>
+                                    </div>
 
-    function showAlert(message, tone = "info") {
-      if (!alertBox) return;
-      alertBox.className = "rounded-2xl px-4 py-3 text-sm";
-      alertBox.classList.add(tone === "error" ? "border border-rose-200 bg-rose-50 text-rose-800" : "border border-amber-200 bg-amber-50 text-amber-800");
-      alertBox.textContent = message;
-      alertBox.classList.remove("hidden");
-    }
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <p class="text-sm text-slate-500">We’ll sync these details to your demo and live profiles.</p>
+                                        <button type="submit"
+                                            class="btn-shine inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)] sm:w-auto"
+                                            id="submit-btn">Save and continue</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </aside>
+    </main>
 
-    function clearAlert() {
-      if (!alertBox) return;
-      alertBox.className = "hidden rounded-2xl px-4 py-3 text-sm";
-      alertBox.textContent = "";
-    }
+    <script type="module" nonce="ALGOHIVE">
+        import { supabase } from "/js/supabase.js";
 
-    function setAvatar(src) {
-      avatarUrl = src || null;
-      if (avatarPreview) {
-        avatarPreview.src = src || "https://api.iconify.design/solar:user-linear.svg?color=%23cbd5e1";
-      }
-      avatarRemove?.classList.toggle("hidden", !src);
-    }
+        const form = document.getElementById("demo-onboarding-form");
+        const alertBox = document.getElementById("alert");
+        const submitBtn = document.getElementById("submit-btn");
+        const avatarInput = document.getElementById("avatar");
+        const avatarPreview = document.getElementById("avatar-preview");
+        const avatarFilename = document.getElementById("avatar-filename");
+        const avatarRemove = document.getElementById("avatar-remove");
+        const firstName = document.getElementById("first-name");
+        const lastName = document.getElementById("last-name");
+        const phone = document.getElementById("phone");
+        const loader = document.getElementById("page-loader");
+        const signOutButton = document.getElementById("signOutButton");
+        const AVATAR_BUCKET = "avatars";
 
-    function setLoading(on) {
-      submitBtn.disabled = on;
-      submitBtn.textContent = on ? "Saving…" : "Save and continue";
-    }
+        let supabaseUser = null;
+        let profileRow = null;
+        let demoProfileRow = null;
+        let avatarUrl = null;
+        let avatarFile = null;
 
-    function hydrateFields(row = {}, demoRow = {}) {
-      const source = { ...demoRow, ...row };
-      if (firstName && source.first_name) firstName.value = source.first_name;
-      if (lastName && source.last_name) lastName.value = source.last_name;
-      if (phone && source.phone) phone.value = source.phone;
-      if (source.avatar_url) setAvatar(source.avatar_url);
-      avatarFilename.textContent = source.avatar_url ? "Avatar on file" : "No file chosen";
-    }
-
-    async function ensureSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        location.replace(`/auth.html?redirect=${encodeURIComponent(location.pathname)}`);
-        return null;
-      }
-      supabaseUser = session.user;
-      return session.user;
-    }
-
-    async function loadProfiles() {
-      if (!supabaseUser) return;
-      try {
-        const emailAddress = (supabaseUser?.email || "").trim();
-        let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
-        liveQuery = emailAddress ? liveQuery.eq("email", emailAddress) : liveQuery.eq("id", supabaseUser.id);
-        const { data: liveData, error: liveError } = await liveQuery.maybeSingle();
-        if (liveError && liveError.code !== "PGRST116") throw liveError;
-        profileRow = liveData || {};
-      } catch (error) {
-        console.warn("Unable to load live profile", error);
-      }
-
-      try {
-        const { data: demoData, error: demoError } = await supabase
-          .from("demo_profiles")
-          .select("first_name, last_name, phone, avatar_url")
-          .eq("id", supabaseUser.id)
-          .maybeSingle();
-        if (demoError && demoError.code !== "PGRST116") throw demoError;
-        demoProfileRow = demoData || {};
-      } catch (error) {
-        console.warn("Unable to load demo profile", error);
-      }
-
-      hydrateFields(profileRow, demoProfileRow);
-    }
-
-    async function uploadAvatar(file) {
-      if (!file || !supabaseUser) return avatarUrl;
-      const extension = file.name.split(".").pop();
-      const path = `${supabaseUser.id}/avatar_${Date.now()}.${extension || "png"}`;
-      const { error: upErr } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: true, cacheControl: "3600" });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-      if (!pub?.publicUrl) throw new Error("Could not get public URL");
-      avatarUrl = pub.publicUrl;
-      return avatarUrl;
-    }
-
-    async function saveProfiles({ first_name, last_name, phone }) {
-      if (!supabaseUser) throw new Error("Please sign in again.");
-
-      const payload = {
-        id: supabaseUser.id,
-        first_name,
-        last_name,
-        phone,
-        avatar_url: avatarUrl,
-        account_mode: "paper",
-      };
-
-      const { error: demoError } = await supabase
-        .from("demo_profiles")
-        .upsert(payload, { onConflict: "id" });
-      if (demoError) throw demoError;
-
-      const { error: liveError } = await supabase
-        .from("profiles")
-        .upsert({ id: supabaseUser.id, first_name, last_name, phone, avatar_url: avatarUrl }, { onConflict: "id" });
-      if (liveError) throw liveError;
-
-      try {
-        await supabase.auth.updateUser({ data: { first_name, last_name, phone, avatar_url: avatarUrl, account_type: "paper" } });
-      } catch (error) {
-        console.warn("Could not persist auth metadata", error);
-      }
-    }
-
-    avatarInput?.addEventListener("change", (e) => {
-      const file = e.target.files?.[0];
-      avatarFile = file || null;
-      avatarFilename.textContent = file?.name || "No file chosen";
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => setAvatar(reader.result);
-        reader.readAsDataURL(file);
-      }
-    });
-
-    avatarRemove?.addEventListener("click", () => {
-      avatarFile = null;
-      setAvatar(null);
-      avatarFilename.textContent = "No file chosen";
-    });
-
-    form?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      clearAlert();
-
-      const first_name = firstName?.value.trim();
-      const last_name = lastName?.value.trim();
-      const phoneVal = phone?.value.trim();
-
-      if (!first_name || !last_name || !phoneVal) {
-        showAlert("Please complete all fields.", "error");
-        return;
-      }
-
-      try {
-        setLoading(true);
-        if (avatarFile) {
-          await uploadAvatar(avatarFile);
+        function showAlert(message, tone = "info") {
+            if (!alertBox) return;
+            alertBox.className = "rounded-2xl px-4 py-3 text-sm";
+            alertBox.classList.add(tone === "error" ? "border border-rose-200 bg-rose-50 text-rose-800" : "border border-amber-200 bg-amber-50 text-amber-800");
+            alertBox.textContent = message;
+            alertBox.classList.remove("hidden");
         }
-        await saveProfiles({ first_name, last_name, phone: phoneVal });
-        showAlert("Profile saved. Redirecting to your demo dashboard…", "info");
-        setTimeout(() => location.replace("/demo/dashboard.html"), 400);
-      } catch (error) {
-        console.error(error);
-        showAlert(error.message || "Could not save your details.", "error");
-      } finally {
-        setLoading(false);
-      }
-    });
 
-    await ensureSession();
-    await loadProfiles();
-  </script>
+        function clearAlert() {
+            if (!alertBox) return;
+            alertBox.className = "hidden rounded-2xl px-4 py-3 text-sm";
+            alertBox.textContent = "";
+        }
+
+        function setAvatar(src) {
+            avatarUrl = src || null;
+            if (avatarPreview) {
+                avatarPreview.src = src || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='%23e2e8f0'/></svg>";
+            }
+            avatarRemove?.classList.toggle("hidden", !src);
+        }
+
+        function setLoading(on) {
+            submitBtn.disabled = on;
+            submitBtn.textContent = on ? "Saving…" : "Save and continue";
+        }
+
+        function hydrateFields(row = {}, demoRow = {}) {
+            const source = { ...demoRow, ...row };
+            if (firstName && source.first_name) firstName.value = source.first_name;
+            if (lastName && source.last_name) lastName.value = source.last_name;
+            if (phone && source.phone) phone.value = source.phone;
+            if (source.avatar_url) setAvatar(source.avatar_url);
+            avatarFilename.textContent = source.avatar_url ? "Avatar on file" : "No file chosen";
+        }
+
+        function hideLoader() {
+            if (!loader) return;
+            loader.classList.add("preloader--hide");
+            setTimeout(() => loader.remove(), 500);
+        }
+
+        async function ensureSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                location.replace(`/auth.html?redirect=${encodeURIComponent(location.pathname)}`);
+                return null;
+            }
+            supabaseUser = session.user;
+            hideLoader();
+            return session.user;
+        }
+
+        async function signOut() {
+            await supabase.auth.signOut();
+            location.replace("/auth.html");
+        }
+
+        async function loadProfiles() {
+            if (!supabaseUser) return;
+            try {
+                const emailAddress = (supabaseUser?.email || "").trim();
+                let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
+                liveQuery = emailAddress ? liveQuery.eq("email", emailAddress) : liveQuery.eq("id", supabaseUser.id);
+                const { data: liveData, error: liveError } = await liveQuery.maybeSingle();
+                if (liveError && liveError.code !== "PGRST116") throw liveError;
+                profileRow = liveData || {};
+            } catch (error) {
+                console.warn("Unable to load live profile", error);
+            }
+
+            try {
+                const { data: demoData, error: demoError } = await supabase
+                    .from("demo_profiles")
+                    .select("first_name, last_name, phone, avatar_url")
+                    .eq("id", supabaseUser.id)
+                    .maybeSingle();
+                if (demoError && demoError.code !== "PGRST116") throw demoError;
+                demoProfileRow = demoData || {};
+            } catch (error) {
+                console.warn("Unable to load demo profile", error);
+            }
+
+            hydrateFields(profileRow, demoProfileRow);
+        }
+
+        async function uploadAvatar(file) {
+            if (!file || !supabaseUser) return avatarUrl;
+            const extension = file.name.split(".").pop();
+            const path = `${supabaseUser.id}/avatar_${Date.now()}.${extension || "png"}`;
+            const { error: upErr } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: true, cacheControl: "3600" });
+            if (upErr) throw upErr;
+            const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+            if (!pub?.publicUrl) throw new Error("Could not get public URL");
+            avatarUrl = pub.publicUrl;
+            return avatarUrl;
+        }
+
+        async function saveProfiles({ first_name, last_name, phone }) {
+            if (!supabaseUser) throw new Error("Please sign in again.");
+
+            const payload = {
+                id: supabaseUser.id,
+                first_name,
+                last_name,
+                phone,
+                avatar_url: avatarUrl,
+                account_mode: "paper",
+            };
+
+            const { error: demoError } = await supabase
+                .from("demo_profiles")
+                .upsert(payload, { onConflict: "id" });
+            if (demoError) throw demoError;
+
+            const { error: liveError } = await supabase
+                .from("profiles")
+                .upsert({ id: supabaseUser.id, first_name, last_name, phone, avatar_url: avatarUrl }, { onConflict: "id" });
+            if (liveError) throw liveError;
+
+            try {
+                await supabase.auth.updateUser({ data: { first_name, last_name, phone, avatar_url: avatarUrl, account_type: "paper" } });
+            } catch (error) {
+                console.warn("Could not persist auth metadata", error);
+            }
+        }
+
+        avatarInput?.addEventListener("change", (e) => {
+            const file = e.target.files?.[0];
+            avatarFile = file || null;
+            avatarFilename.textContent = file?.name || "No file chosen";
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => setAvatar(reader.result);
+                reader.readAsDataURL(file);
+            }
+        });
+
+        avatarRemove?.addEventListener("click", () => {
+            avatarFile = null;
+            setAvatar(null);
+            avatarFilename.textContent = "No file chosen";
+        });
+
+        signOutButton?.addEventListener("click", signOut);
+
+        form?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            clearAlert();
+
+            const first_name = firstName?.value.trim();
+            const last_name = lastName?.value.trim();
+            const phoneVal = phone?.value.trim();
+
+            if (!first_name || !last_name || !phoneVal) {
+                showAlert("Please complete all fields.", "error");
+                return;
+            }
+
+            try {
+                setLoading(true);
+                if (avatarFile) {
+                    await uploadAvatar(avatarFile);
+                }
+                await saveProfiles({ first_name, last_name, phone: phoneVal });
+                showAlert("Profile saved. Redirecting to your demo dashboard…", "info");
+                setTimeout(() => location.replace("/demo/dashboard.html"), 400);
+            } catch (error) {
+                console.error(error);
+                showAlert(error.message || "Could not save your details.", "error");
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        await ensureSession();
+        await loadProfiles();
+    </script>
 </body>
+
 </html>
