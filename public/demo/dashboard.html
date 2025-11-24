@@ -71,6 +71,7 @@
       width: 280px;
       max-width: 85vw;
       position: fixed;
+      top: 0;
       z-index: 50;
       height: 100vh;
       transform: translateX(-100%)
@@ -91,8 +92,10 @@
 
       #ah-sidebar {
         position: sticky;
+        top: 0;
         width: var(--sb);
         max-width: none;
+        height: 100vh;
         transform: translateX(0);
         z-index: auto
       }
@@ -190,12 +193,22 @@
       border-radius: 9999px;
       font-weight: 700;
     }
+
+    #toast {
+      transition: transform .2s ease, opacity .2s ease;
+    }
   </style>
 </head>
 
 <body class="min-h-screen overflow-x-hidden">
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <div id="toast" class="fixed top-4 right-4 z-[60] hidden translate-y-2 opacity-0 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-lg">
+      <div class="flex items-start gap-3">
+        <div class="mt-0.5 text-lg">⚠️</div>
+        <div id="toast-text">You are not allocated to any strategies yet.</div>
+      </div>
+    </div>
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
       <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
         <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
@@ -209,7 +222,7 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/home.html" title="Home">
           <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/auth.html">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/home.html">
           <i class="fa-solid fa-right-to-bracket text-slate-500 w-4 shrink-0"></i><span class="label">Switch Account</span>
         </a>
       </nav>
@@ -249,12 +262,14 @@
         </section>
 
         <section id="watchlist-section" class="card col-span-12 border border-slate-200 shadow-none hidden">
-          <div class="px-5 pt-5 pb-3 flex items-center justify-between gap-3">
+          <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--olive-700)]">Watchlist</p>
-              <h3 class="text-lg font-semibold text-slate-900">Strategies you’re tracking</h3>
+              <h3 class="text-lg font-semibold text-slate-900">Strategies that we think would best suit you</h3>
             </div>
             <div class="flex items-center gap-2">
+              <a href="/strategies.html"
+                class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
               <button type="button" id="watch-prev"
                 class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]"
                 aria-label="Previous strategy">‹</button>
@@ -268,6 +283,9 @@
             <div id="watch-fade-right" class="watch-fade absolute inset-y-3 right-0 w-10 bg-gradient-to-l from-white to-transparent hidden lg:block"></div>
             <div id="watchlist-recos" class="no-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2 pr-1 snap-x snap-mandatory"></div>
             <p id="watchlist-empty" class="hidden text-sm text-slate-500">Pick strategies during onboarding to see them here.</p>
+            <div class="mt-4 sm:hidden">
+              <a href="/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
+            </div>
           </div>
         </section>
 
@@ -409,11 +427,14 @@
     const profileName = document.getElementById("profile-name");
     const profileAvatar = document.getElementById("profile-avatar");
     const profileLogout = document.getElementById("profile-logout");
+    const toast = document.getElementById("toast");
+    const toastText = document.getElementById("toast-text");
     let chartInstance = null;
     let latestProfile = null;
     let latestAccount = null;
     let currentUser = null;
     let displayName = "—";
+    let toastTimer = null;
 
     const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
@@ -454,6 +475,23 @@
       if (statusText) statusText.textContent = "";
     }
 
+    function hideToast() {
+      if (!toast) return;
+      toast.classList.add("opacity-0", "translate-y-2");
+      toastTimer = window.setTimeout(() => toast.classList.add("hidden"), 200);
+    }
+
+    function showToast(message) {
+      if (!toast || !toastText) return;
+      toastText.textContent = message;
+      toast.classList.remove("hidden");
+      requestAnimationFrame(() => {
+        toast.classList.remove("opacity-0", "translate-y-2");
+      });
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => hideToast(), 4200);
+    }
+
     function formatMoney(value) {
       const num = typeof value === "number" ? value : Number(value);
       return Number.isFinite(num) ? formatter.format(num) : "—";
@@ -492,17 +530,17 @@
 
     function derivePerformance(metrics = {}) {
       const perf = metrics?.perf_summary || {};
+      const seriesYtd = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
       const seriesAll = Array.isArray(metrics?.series_all) ? metrics.series_all : [];
-      const fallbackSeries = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
-      const series = seriesAll.length ? seriesAll : fallbackSeries;
+      const series = seriesYtd.length ? seriesYtd : seriesAll;
       const seriesPerf = computePerfFromSeries(series);
 
       const returnPct = Number.isFinite(seriesPerf.returnPct)
         ? seriesPerf.returnPct
-        : Number(perf.total_return ?? perf.return ?? perf.cagr_all ?? perf.cagr_1y ?? perf.ytd);
+        : Number(perf.ytd ?? perf.return_ytd ?? perf.total_return ?? perf.return ?? perf.cagr_ytd ?? perf.cagr_all ?? perf.cagr_1y);
       const drawdownPct = Number.isFinite(seriesPerf.drawdownPct)
         ? seriesPerf.drawdownPct
-        : Number(perf.max_drawdown ?? perf.max_dd ?? perf.drawdown ?? perf.dd);
+        : Number(perf.max_drawdown_ytd ?? perf.max_drawdown ?? perf.max_dd ?? perf.drawdown ?? perf.dd);
 
       return { series, returnPct, drawdownPct };
     }
@@ -617,11 +655,11 @@
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div class="rounded-xl bg-slate-50 p-3">
-                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Return</p>
+                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Return (YTD)</p>
                 <p class="text-lg font-semibold ${perfTone}">${Number.isFinite(returnVal) ? `${returnVal >= 0 ? "+" : ""}${returnVal.toFixed(1)}%` : "—"}</p>
               </div>
               <div class="rounded-xl bg-slate-50 p-3">
-                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Drawdown</p>
+                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Drawdown (YTD)</p>
                 <p class="text-lg font-semibold text-slate-800">${drawdownText}</p>
               </div>
             </div>
@@ -744,9 +782,11 @@
         toggleEquityAvailability(false);
         if (pfName) pfName.textContent = "Strategy";
         if (pfSub) pfSub.textContent = "Allocate to a strategy to unlock its equity curve.";
+        showToast("You are not allocated to any strategies yet. Choose one to see its equity curve.");
         return;
       }
 
+      hideToast();
       strategySelect.disabled = false;
       strategies.forEach((strategy, idx) => {
         const opt = document.createElement("option");
