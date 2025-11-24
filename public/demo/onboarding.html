@@ -355,7 +355,7 @@
 
                                             <div class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                                                 <label class="flex flex-col gap-2 text-sm font-semibold text-slate-800" for="return-goal">
-                                                    Target annual return
+                                                    Target YTD return
                                                     <select id="return-goal" class="h-11 rounded-xl border border-slate-200 px-3 text-sm text-slate-800 shadow-sm focus:border-[var(--olive)] focus:outline-none focus:ring-2 focus:ring-[var(--olive)]/20">
                                                         <option value="">Select a range</option>
                                                         <option value="under_5">Under 5%</option>
@@ -390,14 +390,11 @@
 
                                         </div>
 
-                                        <div class="space-y-3 rounded-2xl border border-slate-100 bg-white/80 p-4 shadow-sm">
+                                            <div class="space-y-3 rounded-2xl border border-slate-100 bg-white/80 p-4 shadow-sm">
                                             <div class="flex items-center justify-between gap-3 text-sm font-semibold text-slate-800">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--olive)] text-xs text-white">2B</span>
-                                                    <div>
-                                                        <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--olive-700)]">Strategies for your risk</p>
-                                                        <p>Preview OpenStrategies that match your appetite.</p>
-                                                    </div>
+                                                <div>
+                                                    <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--olive-700)]">Strategies for your risk</p>
+                                                    <p>Preview OpenStrategies that match your appetite.</p>
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <button type="button" id="strategy-prev" class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]" aria-label="Previous strategy">
@@ -502,6 +499,42 @@
             return `${num >= 0 ? "+" : ""}${num.toFixed(1)}%`;
         }
 
+        function matchesReturnGoal(goal, pct) {
+            if (!goal) return true;
+            if (!Number.isFinite(pct)) return false;
+            const val = Math.abs(pct);
+            switch (goal) {
+                case "under_5":
+                    return val < 5;
+                case "5_10":
+                    return val >= 5 && val < 10;
+                case "10_15":
+                    return val >= 10 && val < 15;
+                case "over_15":
+                    return val >= 15;
+                default:
+                    return true;
+            }
+        }
+
+        function matchesDrawdownPreference(pref, pct) {
+            if (!pref) return true;
+            if (!Number.isFinite(pct)) return false;
+            const val = Math.abs(pct);
+            switch (pref) {
+                case "minimal":
+                    return val <= 5;
+                case "moderate":
+                    return val > 5 && val <= 10;
+                case "meaningful":
+                    return val > 10 && val <= 20;
+                case "high":
+                    return val > 20;
+                default:
+                    return true;
+            }
+        }
+
         function computePerfFromSeries(series = []) {
             let level = 1;
             let peak = 1;
@@ -520,6 +553,23 @@
             const drawdownPct = maxDrawdown * 100;
 
             return { returnPct: totalReturn, drawdownPct };
+        }
+
+        function derivePerformance(metrics = {}) {
+            const perf = metrics?.perf_summary || {};
+            const seriesAll = Array.isArray(metrics?.series_all) ? metrics.series_all : [];
+            const fallbackSeries = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
+            const series = seriesAll.length ? seriesAll : fallbackSeries;
+            const seriesPerf = computePerfFromSeries(series);
+
+            const returnPct = Number.isFinite(seriesPerf.returnPct)
+                ? seriesPerf.returnPct
+                : Number(perf.total_return ?? perf.return ?? perf.cagr_all ?? perf.cagr_1y ?? perf.ytd);
+            const drawdownPct = Number.isFinite(seriesPerf.drawdownPct)
+                ? seriesPerf.drawdownPct
+                : Number(perf.max_drawdown ?? perf.max_dd ?? perf.drawdown ?? perf.dd);
+
+            return { series, returnPct, drawdownPct };
         }
 
         function curveFromPct(points, base = 100) {
@@ -637,20 +687,17 @@
             strategyEmpty.classList.add("hidden");
             items.forEach((s) => {
                 const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : s.metrics);
-                const perf = metrics?.perf_summary || {};
-                const series = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
-                const seriesPerf = computePerfFromSeries(series);
-                const cagr = Number(
-                    perf.cagr_1y ?? perf.return ?? perf.total_return ?? perf.ytd ?? seriesPerf.returnPct,
-                );
-                const drawdownVal = Number(perf.max_drawdown ?? perf.max_dd ?? seriesPerf.drawdownPct);
+                const perfData = s.performance || derivePerformance(metrics);
+                const series = Array.isArray(perfData?.series) ? perfData.series : [];
+                const returnVal = Number(perfData?.returnPct);
+                const drawdownVal = Number(perfData?.drawdownPct);
                 const chartId = `curve-${s.id}`;
                 const cardRisk = s.risk_level || "—";
                 const riskChip = cardRisk.toLowerCase().includes("high")
                     ? "bg-rose-50 text-rose-700"
                     : "bg-emerald-50 text-emerald-700";
-                const perfTone = Number.isFinite(cagr)
-                    ? cagr >= 0
+                const perfTone = Number.isFinite(returnVal)
+                    ? returnVal >= 0
                         ? "text-emerald-600"
                         : "text-rose-600"
                     : "text-slate-800";
@@ -670,7 +717,7 @@
                     <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div class="rounded-xl bg-slate-50 p-3">
                             <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Return</p>
-                            <p class="text-lg font-semibold ${perfTone}">${formatPercent(cagr)}</p>
+                            <p class="text-lg font-semibold ${perfTone}">${formatPercent(returnVal)}</p>
                         </div>
                         <div class="rounded-xl bg-slate-50 p-3">
                             <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Drawdown</p>
@@ -722,7 +769,7 @@
                 if (ids.length) {
                     const { data: metrics, error: metricsError } = await supabase
                         .from("strategy_metrics")
-                        .select("strategy_id, perf_summary, series_ytd")
+                        .select("strategy_id, perf_summary, series_all, series_ytd")
                         .in("strategy_id", ids);
                     if (metricsError) {
                         console.warn("Could not load metrics", metricsError);
@@ -731,8 +778,22 @@
                     }
                 }
 
-                const merged = (strategies || []).map((s) => ({ ...s, metrics: metricsById[s.id] || null }));
-                renderStrategyCards(merged, normalized);
+                const returnPref = returnGoal?.value || "";
+                const drawdownPref = drawdown?.value || "";
+
+                const merged = (strategies || []).map((s) => {
+                    const metrics = metricsById[s.id] || null;
+                    return { ...s, metrics, performance: derivePerformance(metrics) };
+                });
+
+                const filtered = merged.filter((s) => {
+                    const perf = s.performance || {};
+                    return (
+                        matchesReturnGoal(returnPref, perf.returnPct) && matchesDrawdownPreference(drawdownPref, perf.drawdownPct)
+                    );
+                });
+
+                renderStrategyCards(filtered, normalized);
             } catch (error) {
                 console.warn("Could not load strategies", error);
                 strategyRecos.innerHTML = "";
@@ -768,13 +829,14 @@
             if (riskChoice) {
                 const match = riskRadios.find((input) => input.value === riskChoice);
                 if (match) match.checked = true;
-                loadStrategiesForRisk(riskChoice);
             }
 
             const preferences = source.investment_preferences || source.investor_profile || {};
             if (returnGoal && preferences.return_goal) returnGoal.value = preferences.return_goal;
             if (drawdown && preferences.drawdown) drawdown.value = preferences.drawdown;
             if (timeHorizon && preferences.time_horizon) timeHorizon.value = preferences.time_horizon;
+
+            if (riskChoice) refreshStrategies();
         }
 
         function hideLoader() {
@@ -952,7 +1014,14 @@
             showTab("basics");
         });
 
-        riskRadios.forEach((input) => input.addEventListener("change", () => loadStrategiesForRisk(input.value)));
+        const refreshStrategies = () => {
+            const activeRisk = normalizeRisk(riskRadios.find((input) => input.checked)?.value);
+            loadStrategiesForRisk(activeRisk);
+        };
+
+        riskRadios.forEach((input) => input.addEventListener("change", refreshStrategies));
+        returnGoal?.addEventListener("change", refreshStrategies);
+        drawdown?.addEventListener("change", refreshStrategies);
 
         strategyRecos?.addEventListener("scroll", () => updateStrategyScroller());
 
