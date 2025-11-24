@@ -340,7 +340,11 @@
         function showAlert(message, tone = "info") {
             if (!alertBox) return;
             alertBox.className = "rounded-2xl px-4 py-3 text-sm";
-            alertBox.classList.add(tone === "error" ? "border border-rose-200 bg-rose-50 text-rose-800" : "border border-amber-200 bg-amber-50 text-amber-800");
+            const toneClasses =
+                tone === "error"
+                    ? ["border", "border-rose-200", "bg-rose-50", "text-rose-800"]
+                    : ["border", "border-amber-200", "bg-amber-50", "text-amber-800"];
+            alertBox.classList.add(...toneClasses);
             alertBox.textContent = message;
             alertBox.classList.remove("hidden");
         }
@@ -444,17 +448,14 @@
                 last_name,
                 phone,
                 avatar_url: avatarUrl,
-                account_mode: "paper",
             };
 
-            const { error: demoError } = await supabase
-                .from("demo_profiles")
-                .upsert(payload, { onConflict: "id" });
+            const { error: demoError } = await supabase.from("demo_profiles").upsert(payload);
             if (demoError) throw demoError;
 
             const { error: liveError } = await supabase
                 .from("profiles")
-                .upsert({ id: supabaseUser.id, first_name, last_name, phone, avatar_url: avatarUrl }, { onConflict: "id" });
+                .upsert({ id: supabaseUser.id, first_name, last_name, phone, avatar_url: avatarUrl });
             if (liveError) throw liveError;
 
             try {
