@@ -178,7 +178,7 @@
     <main class="flex min-h-screen w-full flex-col bg-transparent lg:flex-row lg:items-stretch">
         <!-- Left: Brand + steps -->
         <div
-            class="auth-left relative flex w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:max-w-md lg:rounded-[32px] lg:px-8 lg:py-12">
+            class="auth-left relative flex w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:sticky lg:top-0 lg:h-screen lg:max-w-md lg:overflow-y-auto lg:rounded-[32px] lg:px-8 lg:py-12">
             <div class="flex items-center gap-3">
                 <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive"
                     class="h-10 w-auto" />
@@ -715,9 +715,7 @@
             if (source.avatar_url) setAvatar(source.avatar_url);
             avatarFilename.textContent = source.avatar_url ? "Avatar on file" : "No file chosen";
 
-            const riskChoice = normalizeRisk(
-                demoRow?.risk_appetite || row?.risk_appetite || meta.risk_appetite || meta.risk_profile,
-            );
+            const riskChoice = normalizeRisk(demoRow?.risk_appetite || meta.risk_appetite || meta.risk_profile);
             if (riskChoice) {
                 const match = riskRadios.find((input) => input.value === riskChoice);
                 if (match) match.checked = true;
@@ -757,7 +755,7 @@
             if (!supabaseUser) return;
             try {
                 const emailAddress = (supabaseUser?.email || "").trim();
-                let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url, risk_appetite");
+                let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
                 liveQuery = emailAddress ? liveQuery.eq("email", emailAddress) : liveQuery.eq("id", supabaseUser.id);
                 const { data: liveData, error: liveError } = await liveQuery.maybeSingle();
                 if (liveError && liveError.code === "42703") {
@@ -822,18 +820,16 @@
         async function saveProfiles({ first_name, last_name, phone, risk_appetite, investment_preferences }) {
             if (!supabaseUser) throw new Error("Please sign in again.");
 
-            const payload = {
+            const basePayload = {
                 id: supabaseUser.id,
                 first_name,
                 last_name,
                 phone,
-                avatar_url: avatarUrl,
-                risk_appetite,
             };
 
             const demoPayload = demoSupportsAvatar
-                ? payload
-                : { id: supabaseUser.id, first_name, last_name, phone, risk_appetite };
+                ? { ...basePayload, avatar_url: avatarUrl, risk_appetite }
+                : { ...basePayload, risk_appetite };
 
             const { error: demoError } = await supabase.from("demo_profiles").upsert(demoPayload);
             if (demoError && demoError.code === "42703") {
@@ -845,7 +841,7 @@
                 throw demoError;
             }
 
-            const livePayload = { id: supabaseUser.id, first_name, last_name, phone, avatar_url: avatarUrl, risk_appetite };
+            const livePayload = { ...basePayload, avatar_url: avatarUrl };
             const { error: liveError } = await supabase.from("profiles").upsert(livePayload);
             if (liveError && liveError.code === "42703") {
                 const { error: fallbackLive } = await supabase
