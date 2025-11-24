@@ -424,6 +424,8 @@
     import { signIn, signUp } from "/js/auth.js";
     import { supabase } from "/js/supabase.js";
 
+    let demoSupportsAvatar = true;
+
     // --- SAME COMPLETENESS RULE AS SETTINGS ---
     const REQUIRED_FIELDS = [
       "first_name",
@@ -492,17 +494,20 @@
         }
       }
 
-      const payload = {
+      const payloadBase = {
         id: user.id,
         account_mode: "paper",
         first_name: meta.first_name || profileFallback?.first_name || "Demo",
         last_name: meta.last_name || profileFallback?.last_name || "User",
         phone: meta.phone || profileFallback?.phone || null,
-        avatar_url: meta.avatar_url || profileFallback?.avatar_url || null,
         risk_appetite: meta.risk_appetite || "balanced",
         balance: typeof meta.balance === "number" ? meta.balance : 10000,
         strategies: Array.isArray(meta.strategies) ? meta.strategies : [],
       };
+
+      const payload = demoSupportsAvatar
+        ? { ...payloadBase, avatar_url: meta.avatar_url || profileFallback?.avatar_url || null }
+        : payloadBase;
 
       const { data, error } = await supabase
         .from("demo_profiles")
@@ -510,12 +515,25 @@
         .select("*")
         .maybeSingle();
 
+      if (error && error.code === "42703" && demoSupportsAvatar) {
+        demoSupportsAvatar = false;
+        const { data: fallbackData, error: fallbackErr } = await supabase
+          .from("demo_profiles")
+          .upsert(payloadBase, { onConflict: "id" })
+          .select("*")
+          .maybeSingle();
+        if (fallbackErr) throw fallbackErr;
+        return fallbackData || payloadBase;
+      }
+
       if (error) throw error;
       return data || payload;
     }
 
     function hasDemoBasics(profile = {}) {
-      const required = ["first_name", "last_name", "phone", "avatar_url"];
+      const required = demoSupportsAvatar
+        ? ["first_name", "last_name", "phone", "avatar_url"]
+        : ["first_name", "last_name", "phone"];
       return required.every((key) => {
         const val = profile?.[key];
         return typeof val === "string" ? val.trim().length > 0 : Boolean(val);

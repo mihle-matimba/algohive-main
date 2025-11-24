@@ -334,6 +334,7 @@
         let supabaseUser = null;
         let profileRow = null;
         let demoProfileRow = null;
+        let demoSupportsAvatar = true;
         let avatarUrl = null;
         let avatarFile = null;
 
@@ -413,13 +414,30 @@
             }
 
             try {
-                const { data: demoData, error: demoError } = await supabase
+                const baseQuery = supabase
                     .from("demo_profiles")
-                    .select("first_name, last_name, phone, avatar_url")
-                    .eq("id", supabaseUser.id)
-                    .maybeSingle();
-                if (demoError && demoError.code !== "PGRST116") throw demoError;
-                demoProfileRow = demoData || {};
+                    .select(
+                        demoSupportsAvatar
+                            ? "first_name, last_name, phone, avatar_url"
+                            : "first_name, last_name, phone"
+                    )
+                    .eq("id", supabaseUser.id);
+
+                const { data: demoData, error: demoError } = await baseQuery.maybeSingle();
+
+                if (demoError && demoError.code === "42703" && demoSupportsAvatar) {
+                    demoSupportsAvatar = false;
+                    const { data: fallbackData, error: fallbackError } = await supabase
+                        .from("demo_profiles")
+                        .select("first_name, last_name, phone")
+                        .eq("id", supabaseUser.id)
+                        .maybeSingle();
+                    if (fallbackError && fallbackError.code !== "PGRST116") throw fallbackError;
+                    demoProfileRow = fallbackData || {};
+                } else {
+                    if (demoError && demoError.code !== "PGRST116") throw demoError;
+                    demoProfileRow = demoData || {};
+                }
             } catch (error) {
                 console.warn("Unable to load demo profile", error);
             }
@@ -450,8 +468,20 @@
                 avatar_url: avatarUrl,
             };
 
-            const { error: demoError } = await supabase.from("demo_profiles").upsert(payload);
-            if (demoError) throw demoError;
+            const demoPayload = demoSupportsAvatar
+                ? payload
+                : { id: supabaseUser.id, first_name, last_name, phone };
+
+            const { error: demoError } = await supabase.from("demo_profiles").upsert(demoPayload);
+            if (demoError && demoError.code === "42703" && demoSupportsAvatar) {
+                demoSupportsAvatar = false;
+                const { error: fallbackErr } = await supabase
+                    .from("demo_profiles")
+                    .upsert({ id: supabaseUser.id, first_name, last_name, phone });
+                if (fallbackErr) throw fallbackErr;
+            } else if (demoError) {
+                throw demoError;
+            }
 
             const { error: liveError } = await supabase
                 .from("profiles")
