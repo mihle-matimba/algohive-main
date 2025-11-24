@@ -495,6 +495,26 @@
             return `${num >= 0 ? "+" : ""}${num.toFixed(1)}%`;
         }
 
+        function computePerfFromSeries(series = []) {
+            let level = 1;
+            let peak = 1;
+            let maxDrawdown = 0;
+
+            for (const point of series) {
+                const pct = Number(point?.pct);
+                if (!Number.isFinite(pct)) continue;
+                level *= 1 + pct;
+                if (level > peak) peak = level;
+                const dd = peak > 0 ? (peak - level) / peak : 0;
+                if (dd > maxDrawdown) maxDrawdown = dd;
+            }
+
+            const totalReturn = (level - 1) * 100;
+            const drawdownPct = maxDrawdown * 100;
+
+            return { returnPct: totalReturn, drawdownPct };
+        }
+
         function curveFromPct(points, base = 100) {
             const out = [];
             let level = base;
@@ -592,8 +612,11 @@
                 const metrics = Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : s.metrics;
                 const perf = metrics?.perf_summary || {};
                 const series = Array.isArray(metrics?.series_ytd) ? metrics.series_ytd : [];
-                const cagr = Number(perf.cagr_1y ?? perf.return ?? perf.total_return ?? perf.ytd);
-                const drawdownVal = Number(perf.max_drawdown ?? perf.max_dd);
+                const seriesPerf = computePerfFromSeries(series);
+                const cagr = Number(
+                    perf.cagr_1y ?? perf.return ?? perf.total_return ?? perf.ytd ?? seriesPerf.returnPct,
+                );
+                const drawdownVal = Number(perf.max_drawdown ?? perf.max_dd ?? seriesPerf.drawdownPct);
                 const chartId = `curve-${s.id}`;
                 const cardRisk = s.risk_level || "—";
                 const riskChip = cardRisk.toLowerCase().includes("high")
@@ -737,8 +760,17 @@
                 let liveQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url, risk_appetite");
                 liveQuery = emailAddress ? liveQuery.eq("email", emailAddress) : liveQuery.eq("id", supabaseUser.id);
                 const { data: liveData, error: liveError } = await liveQuery.maybeSingle();
-                if (liveError && liveError.code !== "PGRST116") throw liveError;
-                profileRow = liveData || {};
+                if (liveError && liveError.code === "42703") {
+                    const fallbackQuery = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
+                    const { data: fallbackData, error: fallbackErr } = await (
+                        emailAddress ? fallbackQuery.eq("email", emailAddress) : fallbackQuery.eq("id", supabaseUser.id)
+                    ).maybeSingle();
+                    if (fallbackErr && fallbackErr.code !== "PGRST116") throw fallbackErr;
+                    profileRow = fallbackData || {};
+                } else {
+                    if (liveError && liveError.code !== "PGRST116") throw liveError;
+                    profileRow = liveData || {};
+                }
             } catch (error) {
                 console.warn("Unable to load live profile", error);
             }
