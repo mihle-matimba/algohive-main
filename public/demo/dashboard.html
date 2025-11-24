@@ -906,12 +906,12 @@
       const targetIds = normalizeStrategyIds(ids);
       if (!targetIds.length) return [];
 
+      const columns =
+        "id,name,code,currency,risk_level,style,strategy_metrics(strategy_id,perf_summary,series_all,series_ytd)";
+
       try {
         const results = [];
-        const { data: byId, error } = await supabase
-          .from("strategies")
-          .select("id,name,code,currency,risk_level,style")
-          .in("id", targetIds);
+        const { data: byId, error } = await supabase.from("strategies").select(columns).in("id", targetIds);
         if (error) throw error;
         if (Array.isArray(byId)) results.push(...byId);
 
@@ -921,7 +921,7 @@
         if (missing.length) {
           const { data: byCode, error: codeErr } = await supabase
             .from("strategies")
-            .select("id,name,code,currency,risk_level,style")
+            .select(columns)
             .in("code", missing);
           if (codeErr) throw codeErr;
           if (Array.isArray(byCode)) {
@@ -931,17 +931,26 @@
           }
         }
 
-        let metricsById = {};
         const idsForMetrics = results.map((s) => s.id).filter(Boolean);
-        if (idsForMetrics.length) {
+        const metricsById = Object.fromEntries(
+          (results || [])
+            .map((row) => {
+              const inline = Array.isArray(row.strategy_metrics) ? row.strategy_metrics[0] : null;
+              return inline ? [inline.strategy_id, inline] : null;
+            })
+            .filter(Boolean)
+        );
+
+        const missingMetrics = idsForMetrics.filter((id) => !metricsById[id]);
+        if (missingMetrics.length) {
           const { data: metrics, error: metricErr } = await supabase
             .from("strategy_metrics")
             .select("strategy_id, perf_summary, series_all, series_ytd")
-            .in("strategy_id", idsForMetrics);
+            .in("strategy_id", missingMetrics);
           if (metricErr) {
             console.warn("Could not load watchlist metrics", metricErr);
           } else {
-            metricsById = Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m]));
+            Object.assign(metricsById, Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m])));
           }
         }
 
