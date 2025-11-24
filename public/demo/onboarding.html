@@ -400,12 +400,15 @@
                                         </div>
 
                                         <div class="space-y-3 rounded-2xl border border-slate-100 bg-white/80 p-4 shadow-sm">
-                                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                                                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--olive)] text-xs text-white">2B</span>
-                                                <div>
-                                                    <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--olive-700)]">Strategies for your risk</p>
-                                                    <p>Preview OpenStrategies that match your appetite.</p>
+                                            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                                <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--olive)] text-xs text-white">2B</span>
+                                                    <div>
+                                                        <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--olive-700)]">Strategies for your risk</p>
+                                                        <p>Preview OpenStrategies that match your appetite.</p>
+                                                    </div>
                                                 </div>
+                                                <p id="paper-balance" class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--olive-700)]">Paper balance: —</p>
                                             </div>
                                             <div id="strategy-recos" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
                                             <p id="strategy-empty" class="hidden text-sm text-slate-500">Choose a risk appetite to see matching strategies.</p>
@@ -421,13 +424,6 @@
                                                     id="submit-btn">Save and continue</button>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <p class="text-sm text-slate-500">We’ll sync these details to your demo and live profiles.</p>
-                                        <button type="submit"
-                                            class="btn-shine inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)] sm:w-auto"
-                                            id="submit-btn">Save and continue</button>
                                     </div>
                                 </form>
                             </div>
@@ -463,6 +459,7 @@
         const guidance = document.getElementById("guidance");
         const strategyRecos = document.getElementById("strategy-recos");
         const strategyEmpty = document.getElementById("strategy-empty");
+        const paperBalance = document.getElementById("paper-balance");
         const loader = document.getElementById("page-loader");
         const signOutButton = document.getElementById("signOutButton");
         const AVATAR_BUCKET = "avatars";
@@ -473,6 +470,7 @@
         let demoSupportsAvatar = true;
         let avatarUrl = null;
         let avatarFile = null;
+        const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
         const RISK_FILTER_MAP = {
             conservative: "Conservative",
             low: "Low",
@@ -493,6 +491,17 @@
             if (!clean) return "";
             const mapped = RISK_FILTER_MAP[clean.toLowerCase()] || clean;
             return mapped;
+        }
+
+        function formatCurrency(value) {
+            const num = Number(value);
+            if (!Number.isFinite(num)) return "—";
+            try {
+                return currencyFormatter.format(num);
+            } catch (error) {
+                console.warn("Could not format currency", error);
+                return `${num}`;
+            }
         }
 
         function showAlert(message, tone = "info") {
@@ -556,7 +565,7 @@
                     </div>
                     <div class="mt-4 flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Unit price</p>
+                            <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Minimum Allocation</p>
                             <p class="text-lg font-semibold text-slate-900">${s.unit_price ?? "—"}</p>
                         </div>
                         <a class="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--olive)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--olive-700)]"
@@ -653,6 +662,24 @@
         async function signOut() {
             await supabase.auth.signOut();
             location.replace("/auth.html");
+        }
+
+        async function loadPaperBalance() {
+            if (!supabaseUser || !paperBalance) return;
+            paperBalance.textContent = "Paper balance: loading…";
+            try {
+                const { data, error } = await supabase
+                    .from("demo_accounts")
+                    .select("equity,balance")
+                    .eq("id", supabaseUser.id)
+                    .maybeSingle();
+                if (error && error.code !== "PGRST116") throw error;
+                const amount = typeof data?.equity === "number" ? data.equity : data?.balance;
+                paperBalance.textContent = `Paper balance: ${formatCurrency(amount)}`;
+            } catch (error) {
+                console.warn("Unable to load paper balance", error);
+                paperBalance.textContent = "Paper balance: —";
+            }
         }
 
         async function loadProfiles() {
@@ -864,6 +891,7 @@
 
         await ensureSession();
         await loadProfiles();
+        await loadPaperBalance();
     </script>
 </body>
 
