@@ -71,6 +71,7 @@
       width: 280px;
       max-width: 85vw;
       position: fixed;
+      top: 0;
       z-index: 50;
       height: 100vh;
       transform: translateX(-100%)
@@ -91,8 +92,10 @@
 
       #ah-sidebar {
         position: sticky;
+        top: 0;
         width: var(--sb);
         max-width: none;
+        height: 100vh;
         transform: translateX(0);
         z-index: auto
       }
@@ -177,6 +180,122 @@
       -ms-overflow-style: none;
       scrollbar-width: none
     }
+
+    .watch-fade {
+      pointer-events: none;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      border-radius: 9999px;
+      font-weight: 700;
+    }
+
+    .toast-stack {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 400;
+      pointer-events: none;
+    }
+
+    .toast-card {
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      min-width: 240px;
+      max-width: 360px;
+      padding: 0.9rem 1rem;
+      border-radius: 1rem;
+      background-image: linear-gradient(135deg, #0b1215, #1c2714);
+      color: #f8fafc;
+      box-shadow: 0 18px 42px -18px rgba(11, 18, 21, 0.7);
+      border: 1px solid rgba(126, 141, 82, 0.45);
+      transform: translateX(120%);
+      opacity: 0;
+      animation: toastIn 0.45s cubic-bezier(.22, 1, .36, 1) forwards;
+    }
+
+    .toast-card[data-tone="err"],
+    .toast-card[data-tone="warn"] {
+      background-image: linear-gradient(135deg, #231312, #261a12);
+      border-color: rgba(248, 113, 113, 0.35);
+    }
+
+    .toast-card[data-tone="ok"] {
+      background-image: linear-gradient(135deg, #0d1b10, #14200f);
+      border-color: rgba(52, 211, 153, 0.35);
+    }
+
+    .toast-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(126, 141, 82, 0.12);
+      color: #f8fafc;
+      border: 1px solid rgba(126, 141, 82, 0.35);
+      flex-shrink: 0;
+    }
+
+    .toast-card[data-tone="err"] .toast-icon,
+    .toast-card[data-tone="warn"] .toast-icon {
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.35);
+    }
+
+    .toast-card[data-tone="ok"] .toast-icon {
+      background: rgba(52, 211, 153, 0.12);
+      border-color: rgba(52, 211, 153, 0.35);
+    }
+
+    .toast-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .toast-message {
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .toast-dismiss {
+      color: #cbd5e1;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0.1rem;
+      transition: color .2s ease;
+    }
+
+    .toast-dismiss:hover {
+      color: #f8fafc;
+    }
+
+    .toast-card--leaving {
+      animation: toastOut 0.32s ease forwards;
+    }
+
+    @keyframes toastIn {
+      0% { transform: translateX(120%); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes toastOut {
+      0% { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(120%); opacity: 0; }
+    }
   </style>
 </head>
 
@@ -196,7 +315,7 @@
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/home.html" title="Home">
           <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/auth.html">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/home.html">
           <i class="fa-solid fa-right-to-bracket text-slate-500 w-4 shrink-0"></i><span class="label">Switch Account</span>
         </a>
       </nav>
@@ -235,29 +354,66 @@
           </div>
         </section>
 
+        <section id="watchlist-section" class="card col-span-12 border border-slate-200 shadow-none hidden">
+          <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--olive-700)]">Watchlist</p>
+              <h3 class="text-lg font-semibold text-slate-900">Strategies that we think would best suit you</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <a href="/strategies.html"
+                class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
+              <button type="button" id="watch-prev"
+                class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]"
+                aria-label="Previous strategy">‹</button>
+              <button type="button" id="watch-next"
+                class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]"
+                aria-label="Next strategy">›</button>
+            </div>
+          </div>
+          <div class="px-5 pb-5 relative">
+            <div id="watch-fade-left" class="watch-fade absolute inset-y-3 left-0 w-10 bg-gradient-to-r from-white to-transparent hidden lg:block"></div>
+            <div id="watch-fade-right" class="watch-fade absolute inset-y-3 right-0 w-10 bg-gradient-to-l from-white to-transparent hidden lg:block"></div>
+            <div id="watchlist-recos" class="no-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2 pr-1 snap-x snap-mandatory"></div>
+            <p id="watchlist-empty" class="hidden text-sm text-slate-500">Pick strategies during onboarding to see them here.</p>
+            <div class="mt-4 sm:hidden">
+              <a href="/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
+            </div>
+          </div>
+        </section>
+
         <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-8 min-w-0">
           <div class="px-5 pt-5">
             <div class="text-[12px] text-slate-500 font-semibold tracking-wide">PAPER PORTFOLIO <span class="mx-1">•</span> <span id="pf-updated">—</span></div>
-            <h2 class="text-2xl md:text-3xl font-extrabold mt-1 break-words" id="pf-title">Paper Account</h2>
+            <div class="mt-3 mb-4 w-full max-w-xl flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <select id="strategy-select" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]">
+                <option>Loading…</option>
+              </select>
+              <a href="/strategies.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--olive)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
+                View OpenStrategies
+              </a>
+            </div>
           </div>
-          <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-y-3 sm:gap-y-0 px-5 py-4 border-t border-b border-slate-200">
-            <div>
-              <h3 class="font-normal text-slate-800">Equity Curve — <span id="pf-name" class="font-semibold">—</span></h3>
+          <div class="flex flex-col lg:flex-row items-start lg:items-center lg:justify-between gap-4 px-5 py-4 border-t border-b border-slate-200">
+            <div class="w-full lg:w-auto">
+              <h3 class="font-normal text-slate-800 flex items-center gap-3">Equity Curve — <span id="pf-name" class="font-semibold">—</span></h3>
               <div class="mt-1 text-sm text-slate-500" id="pf-sub">Your demo equity over time.</div>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button data-range="1D" class="tab text-[13px]">1D</button>
-              <button data-range="1M" class="tab text-[13px]">1M</button>
-              <button data-range="3M" class="tab text-[13px]">3M</button>
-              <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
-              <button data-range="YTD" class="tab text-[13px]">YTD</button>
-              <button data-range="1Y" class="tab text-[13px]">1Y</button>
-              <button data-range="3Y" class="tab text-[13px]">3Y</button>
-              <button data-range="ALL" class="tab text-[13px]">All</button>
+            <div class="w-full lg:w-auto flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-2 flex-wrap">
+                <button data-range="1D" class="tab text-[13px]">1D</button>
+                <button data-range="1M" class="tab text-[13px]">1M</button>
+                <button data-range="3M" class="tab text-[13px]">3M</button>
+                <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
+                <button data-range="YTD" class="tab text-[13px]">YTD</button>
+                <button data-range="1Y" class="tab text-[13px]">1Y</button>
+                <button data-range="3Y" class="tab text-[13px]">3Y</button>
+                <button data-range="ALL" class="tab text-[13px]">All</button>
 
-              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
+                <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="px-5 pt-4">
@@ -267,7 +423,10 @@
             </div>
           </div>
           <div class="px-2 pb-4 pt-2">
-            <div class="h-[260px]">
+            <div class="relative h-[260px]">
+              <div id="pf-empty" class="absolute inset-0 hidden grid place-items-center text-center text-sm text-slate-500 px-4">
+                <p class="max-w-[360px]">Allocate to a strategy to unlock its equity curve and performance here.</p>
+              </div>
               <canvas id="pf-chart" class="max-w-full"></canvas>
             </div>
           </div>
@@ -338,15 +497,23 @@
     const updatedAt = document.getElementById("updated-at");
     const statusBox = document.getElementById("status");
     const statusText = document.getElementById("status-text");
-    const pfTitle = document.getElementById("pf-title");
     const pfName = document.getElementById("pf-name");
     const pfValue = document.getElementById("pf-value");
     const pfChange = document.getElementById("pf-change");
     const pfUpdated = document.getElementById("pf-updated");
     const pfSub = document.getElementById("pf-sub");
     const pfChartCanvas = document.getElementById("pf-chart");
+    const pfEmpty = document.getElementById("pf-empty");
     const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
     const pfRefresh = document.getElementById("pf-refresh");
+    const watchSection = document.getElementById("watchlist-section");
+    const watchRecos = document.getElementById("watchlist-recos");
+    const watchEmpty = document.getElementById("watchlist-empty");
+    const watchPrev = document.getElementById("watch-prev");
+    const watchNext = document.getElementById("watch-next");
+    const watchFadeLeft = document.getElementById("watch-fade-left");
+    const watchFadeRight = document.getElementById("watch-fade-right");
+    const strategySelect = document.getElementById("strategy-select");
     const profileBtn = document.getElementById("profile-btn");
     const profileMenu = document.getElementById("profile-menu");
     const profileEmail = document.getElementById("profile-email");
@@ -358,6 +525,7 @@
     let latestAccount = null;
     let currentUser = null;
     let displayName = "—";
+    let subscribedStrategies = [];
 
     const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
@@ -398,9 +566,506 @@
       if (statusText) statusText.textContent = "";
     }
 
+    function pushToast(message, tone = "warn") {
+      const stackId = "toast-stack";
+      let stack = document.getElementById(stackId);
+      if (!stack) {
+        stack = document.createElement("div");
+        stack.id = stackId;
+        stack.className = "toast-stack";
+        document.body.appendChild(stack);
+      }
+
+      const toast = document.createElement("div");
+      toast.className = "toast-card";
+      toast.dataset.tone = tone;
+
+      const icon = document.createElement("span");
+      icon.className = "toast-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = tone === "ok"
+        ? '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 6L8.5 14L4 9.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.5 6.5L6.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M6.5 6.5L13.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+
+      const content = document.createElement("div");
+      content.className = "toast-content";
+      const messageEl = document.createElement("p");
+      messageEl.className = "toast-message";
+      messageEl.textContent = message;
+      content.appendChild(messageEl);
+
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "toast-dismiss";
+      close.setAttribute("aria-label", "Dismiss notification");
+      close.innerHTML = '<svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.75 7.25L7.25 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7.25 7.25L12.75 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+      toast.append(icon, content, close);
+      stack.prepend(toast);
+
+      let isLeaving = false;
+      const removeToast = () => {
+        if (isLeaving) return;
+        isLeaving = true;
+        toast.classList.add("toast-card--leaving");
+        toast.addEventListener(
+          "animationend",
+          () => {
+            toast.remove();
+            if (!stack.hasChildNodes()) stack.remove();
+          },
+          { once: true }
+        );
+      };
+
+      const timeout = setTimeout(removeToast, 4800);
+      close.addEventListener("click", () => {
+        clearTimeout(timeout);
+        removeToast();
+      });
+    }
+
+    function hideToast() {
+      const stack = document.getElementById("toast-stack");
+      if (stack) stack.remove();
+    }
+
     function formatMoney(value) {
       const num = typeof value === "number" ? value : Number(value);
       return Number.isFinite(num) ? formatter.format(num) : "—";
+    }
+
+    function curveFromPct(points = [], start = 100) {
+      const out = [];
+      let level = Number(start) || 100;
+      for (const p of points || []) {
+        const rDec = Number(p?.pct);
+        if (Number.isFinite(rDec)) level *= 1 + rDec;
+        out.push(Number(level.toFixed(2)));
+      }
+      return out;
+    }
+
+    function parseSeriesInput(raw) {
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === "string") {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+          if (parsed && typeof parsed === "object") {
+            const fromNested = ["series", "points", "data", "values"].map((k) => parsed[k]).find(Array.isArray);
+            if (fromNested) return fromNested;
+          }
+        } catch (err) {
+          console.warn("could not parse series", err);
+        }
+      }
+      if (raw && typeof raw === "object") {
+        const fromNested = ["series", "points", "data", "values"].map((k) => raw[k]).find(Array.isArray);
+        if (fromNested) return fromNested;
+      }
+      return [];
+    }
+
+    function normalizePctSeries(series = []) {
+      const pctSeries = [];
+      let prevEquity = null;
+
+      for (const point of series || []) {
+        const pct = Number(point?.pct);
+        if (Number.isFinite(pct)) {
+          pctSeries.push({ pct });
+          continue;
+        }
+
+        const equity = Number(point?.equity ?? point?.nav ?? point?.value ?? point?.price ?? point?.close);
+        if (Number.isFinite(equity)) {
+          if (prevEquity === null) {
+            pctSeries.push({ pct: 0 });
+            prevEquity = equity;
+            continue;
+          }
+
+          if (prevEquity !== 0) {
+            pctSeries.push({ pct: (equity - prevEquity) / prevEquity });
+          }
+          prevEquity = equity;
+        }
+      }
+
+      return pctSeries;
+    }
+
+    function computePerfFromSeries(series = []) {
+      const pctSeries = normalizePctSeries(series);
+      let level = 1;
+      let peak = 1;
+      let maxDrawdown = 0;
+
+      for (const point of pctSeries) {
+        const pct = Number(point?.pct);
+        if (!Number.isFinite(pct)) continue;
+        level *= 1 + pct;
+        if (level > peak) peak = level;
+        const dd = peak > 0 ? (peak - level) / peak : 0;
+        if (dd > maxDrawdown) maxDrawdown = dd;
+      }
+
+      const totalReturn = (level - 1) * 100;
+      const drawdownPct = maxDrawdown * 100;
+
+      return { pctSeries, returnPct: totalReturn, drawdownPct };
+    }
+
+    function derivePerformance(metrics = {}, opts = {}) {
+      const preferAll = opts?.preferAll === true;
+      const perf = metrics?.perf_summary || {};
+      const seriesYtd = parseSeriesInput(metrics?.series_ytd);
+      const seriesAll = parseSeriesInput(metrics?.series_all);
+      const series = preferAll ? (seriesAll.length ? seriesAll : seriesYtd) : (seriesYtd.length ? seriesYtd : seriesAll);
+      const seriesPerf = computePerfFromSeries(series);
+
+      const returnPct = Number.isFinite(seriesPerf.returnPct)
+        ? seriesPerf.returnPct
+        : preferAll
+          ? Number(perf.total_return ?? perf.return ?? perf.cagr_all ?? perf.cagr_1y ?? perf.cagr_ytd ?? perf.ytd ?? perf.return_ytd)
+          : Number(perf.ytd ?? perf.return_ytd ?? perf.total_return ?? perf.return ?? perf.cagr_ytd ?? perf.cagr_all ?? perf.cagr_1y);
+      const drawdownPct = Number.isFinite(seriesPerf.drawdownPct)
+        ? seriesPerf.drawdownPct
+        : preferAll
+          ? Number(perf.max_drawdown ?? perf.max_dd ?? perf.drawdown ?? perf.dd ?? perf.max_drawdown_ytd)
+          : Number(perf.max_drawdown_ytd ?? perf.max_drawdown ?? perf.max_dd ?? perf.drawdown ?? perf.dd);
+
+      const chartSeries = seriesPerf.pctSeries?.length ? seriesPerf.pctSeries : normalizePctSeries(series);
+      return { series: chartSeries, returnPct, drawdownPct };
+    }
+
+    function toggleEquityAvailability(hasStrategies = true) {
+      if (pfChartCanvas) {
+        pfChartCanvas.classList.toggle("hidden", !hasStrategies);
+      }
+      if (pfEmpty) {
+        pfEmpty.classList.toggle("hidden", hasStrategies);
+      }
+      if (!hasStrategies && pfSub) {
+        pfSub.textContent = "Allocate to a strategy to unlock its equity curve.";
+      }
+    }
+
+    function drawCardChart(canvasId, seriesData) {
+      const ctx = document.getElementById(canvasId)?.getContext("2d");
+      if (!ctx || typeof Chart === "undefined") return;
+
+      if (Chart.getChart(canvasId)) {
+        Chart.getChart(canvasId).destroy();
+      }
+
+      const pctSeries = normalizePctSeries(seriesData);
+      const curve = curveFromPct(pctSeries, 100);
+      const labels = (seriesData || []).map((x) => x.label || x.date || x.period || "");
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 120);
+      gradient.addColorStop(0, "rgba(87, 97, 56, 0.35)");
+      gradient.addColorStop(1, "rgba(87, 97, 56, 0.05)");
+
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              data: curve,
+              tension: 0.35,
+              borderWidth: 2,
+              borderColor: "#7e8d52",
+              backgroundColor: gradient,
+              fill: true,
+              pointRadius: 0,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+        },
+      });
+    }
+
+    function updateWatchlistScroller() {
+      if (!watchRecos) return;
+      const maxScroll = Math.max(0, watchRecos.scrollWidth - watchRecos.clientWidth);
+      const hasOverflow = maxScroll > 8;
+      const left = watchRecos.scrollLeft || 0;
+
+      watchPrev?.classList.toggle("hidden", !hasOverflow);
+      watchNext?.classList.toggle("hidden", !hasOverflow);
+      if (watchPrev) watchPrev.disabled = left <= 4;
+      if (watchNext) watchNext.disabled = left >= maxScroll - 4;
+
+      watchFadeLeft?.classList.toggle("hidden", !hasOverflow || left <= 4);
+      watchFadeRight?.classList.toggle("hidden", !hasOverflow || left >= maxScroll - 4);
+    }
+
+    function renderWatchlistCards(items = []) {
+      if (!watchRecos || !watchEmpty) return;
+      watchRecos.innerHTML = "";
+
+      const hasItems = Array.isArray(items) && items.length > 0;
+      watchSection?.classList.remove("hidden");
+      watchEmpty.classList.toggle("hidden", hasItems);
+
+      if (!hasItems) {
+        updateWatchlistScroller();
+        return;
+      }
+
+      items.forEach((s) => {
+        const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : null);
+        const perfData = s.performance || derivePerformance(metrics || {}, { preferAll: true });
+        const returnVal = Number(perfData?.returnPct);
+        const rawSeries = parseSeriesInput(metrics?.series_all).length
+          ? parseSeriesInput(metrics?.series_all)
+          : parseSeriesInput(metrics?.series_ytd);
+        let series = rawSeries.length ? rawSeries : Array.isArray(perfData?.series) ? perfData.series : [];
+        if (!series.length && Number.isFinite(returnVal)) {
+          series = [
+            { pct: 0 },
+            { pct: (returnVal || 0) / 100 },
+          ];
+        }
+        const drawdownVal = Number(perfData?.drawdownPct);
+        const chartId = `watch-curve-${s.id}`;
+        const cardRisk = s.risk_level || "—";
+        const riskChip = cardRisk.toLowerCase().includes("high") ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700";
+        const perfTone = Number.isFinite(returnVal)
+          ? returnVal >= 0
+            ? "text-emerald-600"
+            : "text-rose-600"
+          : "text-slate-800";
+        const drawdownText = Number.isFinite(drawdownVal) ? `${Math.abs(drawdownVal).toFixed(1)}%` : "—";
+
+        const card = document.createElement("article");
+        card.className =
+          "min-w-[280px] max-w-[340px] flex-shrink-0 snap-start rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-md shadow-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer";
+        card.dataset.strategyId = s.id || s.code || "";
+        card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <h5 class="text-base font-semibold text-slate-900">${s.name || "Strategy"}</h5>
+                <p class="text-xs text-slate-500">${s.currency || "USD"}${s.style ? ` · ${s.style}` : ""}</p>
+              </div>
+              <span class="chip ${riskChip} text-xs">${cardRisk}</span>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div class="rounded-xl bg-slate-50 p-3">
+                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Return (All Time)</p>
+                <p class="text-lg font-semibold ${perfTone}">${Number.isFinite(returnVal) ? `${returnVal >= 0 ? "+" : ""}${returnVal.toFixed(1)}%` : "—"}</p>
+              </div>
+              <div class="rounded-xl bg-slate-50 p-3">
+                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Drawdown (All Time)</p>
+                <p class="text-lg font-semibold text-slate-800">${drawdownText}</p>
+              </div>
+            </div>
+            <div class="mt-4 h-32 w-full rounded-xl bg-slate-50 p-2">
+              ${series.length
+                ? `<canvas id="${chartId}" class="h-full w-full"></canvas>`
+                : '<div class="flex h-full items-center justify-center text-xs text-slate-500">No equity data yet</div>'}
+            </div>
+          `;
+
+        watchRecos.appendChild(card);
+        card.addEventListener("click", () => {
+          const target = card.dataset.strategyId || s.code || s.id;
+          if (target) {
+            window.location.href = `/strategy.html?strategy=${encodeURIComponent(target)}`;
+          }
+        });
+        if (series.length) {
+          drawCardChart(chartId, series);
+        }
+      });
+
+      watchRecos.scrollLeft = 0;
+      updateWatchlistScroller();
+    }
+
+    function normalizeStrategyIds(raw = []) {
+      if (!Array.isArray(raw)) return [];
+      return Array.from(
+        new Set(
+          raw
+            .map((item) => {
+              if (typeof item === "string") return item;
+              if (item && typeof item === "object") return item.id || item.strategy_id || item.code || item.slug;
+              return null;
+            })
+            .filter(Boolean)
+        )
+      );
+    }
+
+    async function fetchWatchlistStrategies(ids = []) {
+      const targetIds = normalizeStrategyIds(ids);
+      if (!targetIds.length) return [];
+
+      try {
+        const results = [];
+        const { data: byId, error } = await supabase
+          .from("strategies")
+          .select("id,name,code,currency,risk_level,style")
+          .in("id", targetIds);
+        if (error) throw error;
+        if (Array.isArray(byId)) results.push(...byId);
+
+        const found = new Set(results.map((row) => row.id));
+        const missing = targetIds.filter((id) => !found.has(id));
+
+        if (missing.length) {
+          const { data: byCode, error: codeErr } = await supabase
+            .from("strategies")
+            .select("id,name,code,currency,risk_level,style")
+            .in("code", missing);
+          if (codeErr) throw codeErr;
+          if (Array.isArray(byCode)) {
+            byCode.forEach((row) => {
+              if (!found.has(row.id)) results.push(row);
+            });
+          }
+        }
+
+        let metricsById = {};
+        const idsForMetrics = results.map((s) => s.id).filter(Boolean);
+        if (idsForMetrics.length) {
+          const { data: metrics, error: metricErr } = await supabase
+            .from("strategy_metrics")
+            .select("strategy_id, perf_summary, series_all, series_ytd")
+            .in("strategy_id", idsForMetrics);
+          if (metricErr) {
+            console.warn("Could not load watchlist metrics", metricErr);
+          } else {
+            metricsById = Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m]));
+          }
+        }
+
+        const merged = (results || []).map((s) => ({
+          ...s,
+          metrics: metricsById[s.id] || null,
+          performance: derivePerformance(metricsById[s.id] || {}, { preferAll: true }),
+        }));
+
+        const order = new Map(targetIds.map((id, idx) => [id, idx]));
+        return merged.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      } catch (err) {
+        console.warn("watchlist strategies fetch failed", err);
+        return [];
+      }
+    }
+
+    async function fetchSubscribedStrategies(ids = []) {
+      const targetIds = normalizeStrategyIds(ids);
+      if (!targetIds.length) return [];
+
+      try {
+        const results = [];
+        const { data: byId, error } = await supabase.from("strategies").select("id,name,code,currency,style,risk_level").in("id", targetIds);
+
+        if (error) throw error;
+        if (Array.isArray(byId)) results.push(...byId);
+
+        const found = new Set(results.map((row) => row.id));
+        const missing = targetIds.filter((id) => !found.has(id));
+
+        if (missing.length) {
+          const { data: byCode, error: codeErr } = await supabase
+            .from("strategies")
+            .select("id,name,code,currency,style,risk_level")
+            .in("code", missing);
+          if (codeErr) throw codeErr;
+          if (Array.isArray(byCode)) {
+            byCode.forEach((row) => {
+              if (!found.has(row.id)) results.push(row);
+            });
+          }
+        }
+
+        const idsForMetrics = results.map((s) => s.id).filter(Boolean);
+        let metricsById = {};
+
+        if (idsForMetrics.length) {
+          const { data: metrics, error: metricErr } = await supabase
+            .from("strategy_metrics")
+            .select("strategy_id, perf_summary, series_ytd, series_all")
+            .in("strategy_id", idsForMetrics);
+          if (metricErr) {
+            console.warn("subscribed strategy metrics fetch failed", metricErr);
+          } else {
+            metricsById = Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m]));
+          }
+        }
+
+        return (results || []).map((s) => ({
+          ...s,
+          metrics: metricsById[s.id] || null,
+          performance: derivePerformance(metricsById[s.id] || {}),
+        }));
+      } catch (err) {
+        console.warn("strategies fetch failed", err);
+        return [];
+      }
+    }
+
+    function renderStrategyDropdown(strategies = []) {
+      if (!strategySelect) return;
+      strategySelect.innerHTML = "";
+
+      if (!strategies.length) {
+        const opt = document.createElement("option");
+        opt.textContent = "No subscribed strategies";
+        opt.value = "";
+        strategySelect.appendChild(opt);
+        strategySelect.disabled = true;
+        toggleEquityAvailability(false);
+        if (pfName) pfName.textContent = "Strategy";
+        if (pfSub) pfSub.textContent = "Allocate to a strategy to unlock its equity curve.";
+        pushToast("You are not allocated to any strategies yet. Choose one to see its equity curve.", "warn");
+        return;
+      }
+
+      hideToast();
+      strategySelect.disabled = false;
+      strategies.forEach((strategy, idx) => {
+        const opt = document.createElement("option");
+        opt.value = strategy.id || strategy.code || "";
+        opt.textContent = strategy.name || strategy.code || "Strategy";
+        strategySelect.appendChild(opt);
+        if (idx === 0) strategySelect.value = opt.value;
+      });
+
+      const selectedLabel = strategySelect.selectedOptions?.[0]?.textContent?.trim();
+      if (pfName) pfName.textContent = selectedLabel || "Strategy";
+      if (pfSub) pfSub.textContent = selectedLabel ? `${selectedLabel} equity over time.` : "Your demo equity over time.";
+      toggleEquityAvailability(true);
+    }
+
+    function getSelectedStrategy() {
+      if (!strategySelect || !subscribedStrategies.length) return null;
+      const val = strategySelect.value;
+      return subscribedStrategies.find((s) => `${s.id}` === val || s.code === val) || null;
+    }
+
+    function strategyCurveFromMetrics(strategy = {}, account = {}) {
+      const metrics = strategy?.metrics || {};
+      const parsedYtd = parseSeriesInput(metrics.series_ytd);
+      const parsedAll = parseSeriesInput(metrics.series_all);
+      const series = parsedYtd.length ? parsedYtd : parsedAll;
+      const pctSeries = normalizePctSeries(series);
+      if (!pctSeries.length) return [];
+      const start = Number(account?.equity ?? account?.balance ?? latestProfile?.balance ?? 0);
+      const base = Number.isFinite(start) && start > 0 ? start : 100;
+      return curveFromPct(pctSeries, base);
     }
 
     function buildEquitySeries(profile = {}, account = {}) {
@@ -520,12 +1185,11 @@
       return session.user;
     }
 
-    async function fetchDemoProfile() {
+    async function fetchDemoProfile(userId = "") {
       try {
-        const { data, error } = await supabase
-          .from("demo_profiles")
-          .select("*")
-          .maybeSingle();
+        let query = supabase.from("demo_profiles").select("*");
+        if (userId) query = query.eq("id", userId);
+        const { data, error } = await query.maybeSingle();
         if (error) throw error;
         return data;
       } catch (error) {
@@ -534,12 +1198,11 @@
       }
     }
 
-    async function fetchDemoAccount() {
+    async function fetchDemoAccount(userId = "") {
       try {
-        const { data, error } = await supabase
-          .from("demo_accounts")
-          .select("*")
-          .maybeSingle();
+        let query = supabase.from("demo_accounts").select("*");
+        if (userId) query = query.eq("id", userId);
+        const { data, error } = await query.maybeSingle();
         if (error) throw error;
         return data;
       } catch (error) {
@@ -564,9 +1227,8 @@
 
       if (welcomeName) welcomeName.textContent = `${greeting}, ${fullName}.`;
       if (welcomeSub) welcomeSub.textContent = "Your paper portfolio snapshot is below.";
-      if (pfTitle) pfTitle.textContent = fullName || "Paper Account";
-      if (pfName) pfName.textContent = fullName || "Paper Account";
-      if (pfSub) pfSub.textContent = "Your demo equity over time.";
+      if (pfName) pfName.textContent = "Strategy";
+      if (pfSub) pfSub.textContent = "Select a strategy to view its equity curve.";
 
       syncProfileChrome(currentUser);
     }
@@ -581,8 +1243,32 @@
       updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
     }
 
+    async function hydrateStrategies(profile = {}, user = {}) {
+      const ids = normalizeStrategyIds(profile?.strategies || user?.user_metadata?.strategies || []);
+      const subscribed = await fetchSubscribedStrategies(ids);
+      renderStrategyDropdown(subscribed);
+      return subscribed;
+    }
+
+    async function hydrateWatchlist(profile = {}, user = {}) {
+      const ids = normalizeStrategyIds(profile?.watch_list || user?.user_metadata?.watch_list || []);
+      if (!ids.length) {
+        renderWatchlistCards([]);
+        return [];
+      }
+
+      const strategies = await fetchWatchlistStrategies(ids);
+      renderWatchlistCards(strategies);
+      return strategies;
+    }
+
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
-      const series = buildEquitySeries(profile, account);
+      const selected = getSelectedStrategy();
+      const strategySeries = selected ? strategyCurveFromMetrics(selected, account) : [];
+      const baseSeries = buildEquitySeries(profile, account);
+      const series = strategySeries.length ? strategySeries : baseSeries;
+      const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
+      toggleEquityAvailability(hasData);
       renderChart(series, account, profile);
     }
 
@@ -617,6 +1303,31 @@
 
     pfRefresh?.addEventListener("click", () => refreshChart());
 
+    watchPrev?.addEventListener("click", () => {
+      if (!watchRecos) return;
+      watchRecos.scrollBy({ left: -watchRecos.clientWidth * 0.85, behavior: "smooth" });
+    });
+
+    watchNext?.addEventListener("click", () => {
+      if (!watchRecos) return;
+      watchRecos.scrollBy({ left: watchRecos.clientWidth * 0.85, behavior: "smooth" });
+    });
+
+    watchRecos?.addEventListener("scroll", () => updateWatchlistScroller());
+    window.addEventListener("resize", () => updateWatchlistScroller());
+
+    strategySelect?.addEventListener("change", () => {
+      const label = strategySelect.selectedOptions?.[0]?.textContent?.trim();
+      if (label && strategySelect.value) {
+        pfSub.textContent = `${label} equity over time.`;
+        if (pfName) pfName.textContent = label;
+      } else {
+        pfSub.textContent = "Your demo equity over time.";
+        if (pfName) pfName.textContent = "Strategy";
+      }
+      refreshChart();
+    });
+
     (async function init() {
       try {
         const user = await guard();
@@ -628,7 +1339,10 @@
         displayName = user.email || "Demo User";
         syncProfileChrome(currentUser);
 
-        const [profile, account] = await Promise.all([fetchDemoProfile(), fetchDemoAccount()]);
+        const [profile, account] = await Promise.all([
+          fetchDemoProfile(user.id),
+          fetchDemoAccount(user.id),
+        ]);
 
         if (!profile) {
           setStatus("Could not load demo profile. Showing placeholder data.", "warning");
@@ -639,6 +1353,11 @@
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
+        await hydrateWatchlist(latestProfile, currentUser);
+        subscribedStrategies = await hydrateStrategies(latestProfile, currentUser);
+        if (!subscribedStrategies.length) {
+          toggleEquityAvailability(false);
+        }
         refreshChart(latestProfile, latestAccount);
       } catch (error) {
         console.error(error);
