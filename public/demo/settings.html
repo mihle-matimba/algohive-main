@@ -251,7 +251,11 @@
 
     async function loadProfile() {
       try {
-        const { data, error } = await supabase.from("demo_profiles").select("first_name,last_name,phone,avatar_url,watch_list").maybeSingle();
+        let query = supabase
+          .from("demo_profiles")
+          .select("first_name,last_name,phone,avatar_url,watch_list");
+        if (currentUser?.id) query = query.eq("id", currentUser.id);
+        const { data, error } = await query.maybeSingle();
         if (error) throw error;
         profileRow = data || {};
       } catch (error) {
@@ -332,7 +336,9 @@
       accountsEmpty?.classList.add("hidden");
       accountsList.innerHTML = "";
       try {
-        const { data, error } = await supabase.from("demo_accounts").select("*").maybeSingle();
+        let query = supabase.from("demo_accounts").select("*");
+        if (currentUser?.id) query = query.eq("id", currentUser.id);
+        const { data, error } = await query.maybeSingle();
         if (error) throw error;
         if (!data) {
           accountsEmpty?.classList.remove("hidden");

@@ -1166,12 +1166,11 @@
       return session.user;
     }
 
-    async function fetchDemoProfile() {
+    async function fetchDemoProfile(userId = "") {
       try {
-        const { data, error } = await supabase
-          .from("demo_profiles")
-          .select("*")
-          .maybeSingle();
+        let query = supabase.from("demo_profiles").select("*");
+        if (userId) query = query.eq("id", userId);
+        const { data, error } = await query.maybeSingle();
         if (error) throw error;
         return data;
       } catch (error) {
@@ -1180,12 +1179,11 @@
       }
     }
 
-    async function fetchDemoAccount() {
+    async function fetchDemoAccount(userId = "") {
       try {
-        const { data, error } = await supabase
-          .from("demo_accounts")
-          .select("*")
-          .maybeSingle();
+        let query = supabase.from("demo_accounts").select("*");
+        if (userId) query = query.eq("id", userId);
+        const { data, error } = await query.maybeSingle();
         if (error) throw error;
         return data;
       } catch (error) {
@@ -1322,7 +1320,10 @@
         displayName = user.email || "Demo User";
         syncProfileChrome(currentUser);
 
-        const [profile, account] = await Promise.all([fetchDemoProfile(), fetchDemoAccount()]);
+        const [profile, account] = await Promise.all([
+          fetchDemoProfile(user.id),
+          fetchDemoAccount(user.id),
+        ]);
 
         if (!profile) {
           setStatus("Could not load demo profile. Showing placeholder data.", "warning");
