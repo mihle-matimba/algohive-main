@@ -1090,6 +1090,47 @@
       return Array.from({ length: 7 }, (_, idx) => start + (pnl * idx) / 6);
     }
 
+    const pfSeekPlugin = {
+      id: "pfSeek",
+      afterDraw(chart) {
+        const { ctx, chartArea, tooltip } = chart;
+        if (!tooltip || !tooltip._active || !tooltip._active.length) return;
+
+        const activePoint = tooltip._active[0];
+        const x = activePoint.element.x;
+        const { top, bottom } = chartArea;
+
+        if (x < chartArea.left || x > chartArea.right) return;
+
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const triSize = 5;
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.moveTo(x, top - triSize);
+        ctx.lineTo(x - triSize, top);
+        ctx.lineTo(x + triSize, top);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(x, bottom + triSize);
+        ctx.lineTo(x - triSize, bottom);
+        ctx.lineTo(x + triSize, bottom);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      },
+    };
+
     function renderChart(series = [], account = {}, profile = {}) {
       if (!pfChartCanvas || typeof Chart === "undefined") return;
 
@@ -1120,9 +1161,8 @@
               backgroundColor: gradient,
               fill: true,
               tension: 0.32,
-              pointRadius: 3,
-              pointBackgroundColor: "#7e8d52",
-              pointBorderColor: "#f8fafc",
+              pointRadius: 0,
+              pointHitRadius: 18,
               borderWidth: 3,
             },
           ],
@@ -1130,6 +1170,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -1147,14 +1188,16 @@
               ticks: { color: "#475569", maxTicksLimit: 6 },
             },
             y: {
-              grid: { color: "#e2e8f0" },
+              grid: { display: false },
               ticks: {
                 color: "#475569",
+                maxTicksLimit: 3,
                 callback: (value) => formatMoney(value),
               },
             },
           },
         },
+        plugins: [pfSeekPlugin],
       });
 
       const todayChange = data.length > 1 ? data[data.length - 1] - data[data.length - 2] : 0;
