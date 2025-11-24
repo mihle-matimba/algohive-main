@@ -424,6 +424,8 @@
     import { signIn, signUp } from "/js/auth.js";
     import { supabase } from "/js/supabase.js";
 
+    let demoSupportsAvatar = true;
+
     // --- SAME COMPLETENESS RULE AS SETTINGS ---
     const REQUIRED_FIELDS = [
       "first_name",
@@ -467,29 +469,86 @@
       return "";
     }
 
-    async function ensureDemoProfile(accountTypeValue = "paper") {
+    async function fetchLiveProfileBasics(user) {
+      if (!user) return {};
+      const emailAddress = (user?.email || "").trim();
+      let query = supabase.from("profiles").select("first_name, last_name, phone, avatar_url");
+      query = emailAddress ? query.eq("email", emailAddress) : query.eq("id", user.id);
+      const { data, error } = await query.maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      return data || {};
+    }
+
+    async function ensureDemoProfile(accountTypeValue = "paper", liveProfile = {}) {
       if (accountTypeValue !== "paper") return null;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
       const meta = user.user_metadata || {};
-      const payload = {
+      let profileFallback = liveProfile;
+      if (!profileFallback || Object.keys(profileFallback).length === 0) {
+        try {
+          profileFallback = await fetchLiveProfileBasics(user);
+        } catch (err) {
+          console.warn("Unable to fetch live profile for demo defaults", err);
+        }
+      }
+
+      const payloadBase = {
         id: user.id,
         account_mode: "paper",
-        first_name: meta.first_name || "Demo",
-        last_name: meta.last_name || "User",
-        phone: meta.phone || null,
+        first_name: meta.first_name || profileFallback?.first_name || "Demo",
+        last_name: meta.last_name || profileFallback?.last_name || "User",
+        phone: meta.phone || profileFallback?.phone || null,
         risk_appetite: meta.risk_appetite || "balanced",
         balance: typeof meta.balance === "number" ? meta.balance : 10000,
         strategies: Array.isArray(meta.strategies) ? meta.strategies : [],
       };
 
-      const { error } = await supabase
+      const payload = demoSupportsAvatar
+        ? { ...payloadBase, avatar_url: meta.avatar_url || profileFallback?.avatar_url || null }
+        : payloadBase;
+
+      const { data, error } = await supabase
         .from("demo_profiles")
-        .upsert(payload, { onConflict: "id" });
+        .upsert(payload, { onConflict: "id" })
+        .select("*")
+        .maybeSingle();
+
+      if (error && error.code === "42703" && demoSupportsAvatar) {
+        demoSupportsAvatar = false;
+        const { data: fallbackData, error: fallbackErr } = await supabase
+          .from("demo_profiles")
+          .upsert(payloadBase, { onConflict: "id" })
+          .select("*")
+          .maybeSingle();
+        if (fallbackErr) throw fallbackErr;
+        return fallbackData || payloadBase;
+      }
 
       if (error) throw error;
-      return payload;
+      return data || payload;
+    }
+
+    function hasDemoBasics(profile = {}) {
+      const required = demoSupportsAvatar
+        ? ["first_name", "last_name", "phone", "avatar_url"]
+        : ["first_name", "last_name", "phone"];
+      return required.every((key) => {
+        const val = profile?.[key];
+        return typeof val === "string" ? val.trim().length > 0 : Boolean(val);
+      });
+    }
+
+    async function hasLiveBrokerageAccount(user) {
+      if (!user) return false;
+      const emailAddress = (user?.email || "").trim();
+      let query = supabase.from("alpaca_accounts").select("id, alpaca_account_id").limit(1);
+      query = emailAddress ? query.eq("email", emailAddress) : query.eq("user_id", user.id);
+      const { data, error } = await query.maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      const row = data || {};
+      return Boolean(row?.alpaca_account_id || row?.id);
     }
 
     async function routePostAuth(preferred = "/home.html", accountTypeValue = "live") {
@@ -506,11 +565,33 @@
       const destination = accountTypeValue === "paper" ? "/demo/dashboard.html" : (preferred || "/home.html");
 
       if (accountTypeValue === "paper") {
+        let liveProfile = {};
+        let demoProfile = null;
+        let liveAccount = false;
         try {
-          await ensureDemoProfile(accountTypeValue);
+          liveProfile = await fetchLiveProfileBasics(session.user);
+        } catch (err) {
+          console.warn("Unable to load live profile for demo onboarding", err);
+        }
+
+        try {
+          demoProfile = await ensureDemoProfile(accountTypeValue, liveProfile);
         } catch (err) {
           console.warn("Unable to ensure demo profile exists", err);
         }
+
+        try {
+          liveAccount = await hasLiveBrokerageAccount(session.user);
+        } catch (err) {
+          console.warn("Unable to verify live brokerage account", err);
+        }
+
+        const basics = hasDemoBasics({ ...liveProfile, ...demoProfile });
+        if (!liveAccount && !basics) {
+          location.replace("/demo/onboarding.html");
+          return;
+        }
+
         location.replace(destination);
         return;
       }
@@ -697,8 +778,7 @@
         setLoading(inBtn, true, "Log in", "Logging in…");
         const { user } = await signIn(email, password) ?? {};
         const metaType = user?.user_metadata?.account_type;
-        const effectiveType = [metaType, accountType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
-        if (metaType && metaType !== accountType) setAccountType(metaType);
+        const effectiveType = [accountType, metaType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
         showMsg("Signed in. Redirecting…", "success");
         await routePostAuth(redirectTo, effectiveType || "live");
       } catch (err) {
@@ -779,7 +859,7 @@
         try {
           const { data: { session } } = await supabase.auth.getSession();
         const metaType = session?.user?.user_metadata?.account_type;
-        const fallbackType = [metaType, accountType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
+        const fallbackType = [accountType, metaType, hydratedAccountType, "live"].find((v) => v === "paper" || v === "live");
         if (session) await routePostAuth(redirectTo, fallbackType || "live");
         } catch (_) {}
   </script>
