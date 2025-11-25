@@ -7,7 +7,7 @@
   <title>AlgoHive — Demo Dashboard</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js" nonce="ALGOHIVE"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" nonce="ALGOHIVE"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
@@ -906,12 +906,12 @@
       const targetIds = normalizeStrategyIds(ids);
       if (!targetIds.length) return [];
 
+      const columns =
+        "id,name,code,currency,risk_level,style,strategy_metrics(strategy_id,perf_summary,series_all,series_ytd)";
+
       try {
         const results = [];
-        const { data: byId, error } = await supabase
-          .from("strategies")
-          .select("id,name,code,currency,risk_level,style")
-          .in("id", targetIds);
+        const { data: byId, error } = await supabase.from("strategies").select(columns).in("id", targetIds);
         if (error) throw error;
         if (Array.isArray(byId)) results.push(...byId);
 
@@ -921,7 +921,7 @@
         if (missing.length) {
           const { data: byCode, error: codeErr } = await supabase
             .from("strategies")
-            .select("id,name,code,currency,risk_level,style")
+            .select(columns)
             .in("code", missing);
           if (codeErr) throw codeErr;
           if (Array.isArray(byCode)) {
@@ -931,17 +931,26 @@
           }
         }
 
-        let metricsById = {};
         const idsForMetrics = results.map((s) => s.id).filter(Boolean);
-        if (idsForMetrics.length) {
+        const metricsById = Object.fromEntries(
+          (results || [])
+            .map((row) => {
+              const inline = Array.isArray(row.strategy_metrics) ? row.strategy_metrics[0] : null;
+              return inline ? [inline.strategy_id, inline] : null;
+            })
+            .filter(Boolean)
+        );
+
+        const missingMetrics = idsForMetrics.filter((id) => !metricsById[id]);
+        if (missingMetrics.length) {
           const { data: metrics, error: metricErr } = await supabase
             .from("strategy_metrics")
             .select("strategy_id, perf_summary, series_all, series_ytd")
-            .in("strategy_id", idsForMetrics);
+            .in("strategy_id", missingMetrics);
           if (metricErr) {
             console.warn("Could not load watchlist metrics", metricErr);
           } else {
-            metricsById = Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m]));
+            Object.assign(metricsById, Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m])));
           }
         }
 
@@ -1081,6 +1090,47 @@
       return Array.from({ length: 7 }, (_, idx) => start + (pnl * idx) / 6);
     }
 
+    const pfSeekPlugin = {
+      id: "pfSeek",
+      afterDraw(chart) {
+        const { ctx, chartArea, tooltip } = chart;
+        if (!tooltip || !tooltip._active || !tooltip._active.length) return;
+
+        const activePoint = tooltip._active[0];
+        const x = activePoint.element.x;
+        const { top, bottom } = chartArea;
+
+        if (x < chartArea.left || x > chartArea.right) return;
+
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const triSize = 5;
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.moveTo(x, top - triSize);
+        ctx.lineTo(x - triSize, top);
+        ctx.lineTo(x + triSize, top);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(x, bottom + triSize);
+        ctx.lineTo(x - triSize, bottom);
+        ctx.lineTo(x + triSize, bottom);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      },
+    };
+
     function renderChart(series = [], account = {}, profile = {}) {
       if (!pfChartCanvas || typeof Chart === "undefined") return;
 
@@ -1111,9 +1161,8 @@
               backgroundColor: gradient,
               fill: true,
               tension: 0.32,
-              pointRadius: 3,
-              pointBackgroundColor: "#7e8d52",
-              pointBorderColor: "#f8fafc",
+              pointRadius: 0,
+              pointHitRadius: 18,
               borderWidth: 3,
             },
           ],
@@ -1121,6 +1170,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -1138,14 +1188,16 @@
               ticks: { color: "#475569", maxTicksLimit: 6 },
             },
             y: {
-              grid: { color: "#e2e8f0" },
+              grid: { display: false },
               ticks: {
                 color: "#475569",
+                maxTicksLimit: 3,
                 callback: (value) => formatMoney(value),
               },
             },
           },
         },
+        plugins: [pfSeekPlugin],
       });
 
       const todayChange = data.length > 1 ? data[data.length - 1] - data[data.length - 2] : 0;
