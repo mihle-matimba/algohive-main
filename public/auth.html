@@ -520,6 +520,29 @@
       if (!user) return null;
 
       const meta = user.user_metadata || {};
+
+      const selectCols = demoSupportsAvatar
+        ? "id, account_mode, first_name, last_name, phone, avatar_url, risk_appetite, balance, allocated, strategies, watch_list"
+        : "id, account_mode, first_name, last_name, phone, risk_appetite, balance, allocated, strategies, watch_list";
+
+      try {
+        const { data: existing, error: existingErr } = await supabase
+          .from("demo_profiles")
+          .select(selectCols)
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (existingErr && existingErr.code === "42703" && demoSupportsAvatar) {
+          demoSupportsAvatar = false;
+          return ensureDemoProfile(accountTypeValue, liveProfile);
+        }
+
+        if (existingErr && existingErr.code !== "PGRST116") throw existingErr;
+        if (existing) return existing;
+      } catch (err) {
+        console.warn("Unable to read existing demo profile", err);
+      }
+
       let profileFallback = liveProfile;
       if (!profileFallback || Object.keys(profileFallback).length === 0) {
         try {
@@ -537,7 +560,9 @@
         phone: meta.phone || profileFallback?.phone || null,
         risk_appetite: meta.risk_appetite || "balanced",
         balance: typeof meta.balance === "number" ? meta.balance : 10000,
+        allocated: typeof meta.allocated === "number" ? meta.allocated : 0,
         strategies: Array.isArray(meta.strategies) ? meta.strategies : [],
+        watch_list: Array.isArray(meta.watch_list) ? meta.watch_list : [],
       };
 
       const payload = demoSupportsAvatar
@@ -563,7 +588,7 @@
 
       const { data, error } = await supabase
         .from("demo_profiles")
-        .upsert(payload, { onConflict: "id" })
+        .insert(payload)
         .select("*")
         .maybeSingle();
 
@@ -571,7 +596,7 @@
         if (demoSupportsAvatar) demoSupportsAvatar = false;
         const { data: fallbackData, error: fallbackErr } = await supabase
           .from("demo_profiles")
-          .upsert(strippedPayload, { onConflict: "id" })
+          .insert(strippedPayload)
           .select("*")
           .maybeSingle();
         if (fallbackErr) throw fallbackErr;
