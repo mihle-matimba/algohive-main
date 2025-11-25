@@ -1354,11 +1354,13 @@
         if (!user) throw new Error("redirecting");
         const row = await fetchDemoProfile(user.id);
         accountRow = await fetchDemoAccount(user.id);
+        let currentCCY = 'ZAR';
         if (!accountRow || Object.keys(accountRow).length === 0) accountRow = {};
         if (!Number.isFinite(Number(accountRow.balance)) && Number.isFinite(Number(row.balance))) {
             accountRow.balance = Number(row.balance);
         }
         if (!accountRow.currency && row?.base_currency) accountRow.currency = row.base_currency;
+        currentCCY = accountRow?.currency || row?.base_currency || currentCCY;
 
         // allocation DOM hooks (initialized early so populateAccountSelect can run safely)
         const accountSelect = document.getElementById('alloc-account');
@@ -1711,8 +1713,7 @@
         }
 
         // ---------- chart setup ----------
-        let chart, currentLabels = [], currentCCY = 'ZAR';
-        currentCCY = accountRow?.currency || row?.base_currency || currentCCY;
+        let chart, currentLabels = [];
         function initChart() {
             const ctx = $('#pf-chart')?.getContext('2d');
             if (!ctx) return;

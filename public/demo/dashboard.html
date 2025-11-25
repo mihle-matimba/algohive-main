@@ -59,6 +59,33 @@
       color: #fff
     }
 
+    .pf-toggle {
+      display: inline-flex;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .pf-mode {
+      height: 34px;
+      border-radius: 8px;
+      padding: 0 .85rem;
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      background: transparent;
+      border: none;
+    }
+
+    .pf-mode-active {
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.4);
+    }
+
     #layout {
       --sb: 220px;
       display: grid;
@@ -400,6 +427,10 @@
               <div class="mt-1 text-sm text-slate-500" id="pf-sub">Your demo equity over time.</div>
             </div>
             <div class="w-full lg:w-auto flex flex-wrap items-center gap-3">
+              <div class="pf-toggle" role="group" aria-label="Performance mode">
+                <button type="button" class="pf-mode pf-mode-active" data-mode="strategy">Strategy performance</button>
+                <button type="button" class="pf-mode" data-mode="allocation">My allocation</button>
+              </div>
               <div class="flex items-center gap-2 flex-wrap">
                 <button data-range="1D" class="tab text-[13px]">1D</button>
                 <button data-range="1M" class="tab text-[13px]">1M</button>
@@ -544,6 +575,7 @@
     const pfSub = document.getElementById("pf-sub");
     const pfChartCanvas = document.getElementById("pf-chart");
     const pfEmpty = document.getElementById("pf-empty");
+    const pfModes = Array.from(document.querySelectorAll(".pf-mode"));
     const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
     const pfRefresh = document.getElementById("pf-refresh");
     const fundsBalance = document.getElementById("funds-balance");
@@ -817,14 +849,15 @@
       return [];
     }
 
-    function toggleEquityAvailability(hasStrategies = true) {
+    function toggleEquityAvailability(hasStrategies = true, mode = "strategy") {
+      const showChart = mode === "allocation" || hasStrategies;
       if (pfChartCanvas) {
-        pfChartCanvas.classList.toggle("hidden", !hasStrategies);
+        pfChartCanvas.classList.toggle("hidden", !showChart);
       }
       if (pfEmpty) {
-        pfEmpty.classList.toggle("hidden", hasStrategies);
+        pfEmpty.classList.toggle("hidden", showChart);
       }
-      if (!hasStrategies && pfSub) {
+      if (!showChart && pfSub) {
         pfSub.textContent = "Allocate to a strategy to unlock its equity curve.";
       }
     }
@@ -1113,7 +1146,7 @@
         opt.value = "";
         strategySelect.appendChild(opt);
         strategySelect.disabled = true;
-        toggleEquityAvailability(false);
+        toggleEquityAvailability(false, getActiveMode());
         if (pfName) pfName.textContent = "Strategy";
         if (pfSub) pfSub.textContent = "Allocate to a strategy to unlock its equity curve.";
         pushToast("You are not allocated to any strategies yet. Choose one to see its equity curve.", "warn");
@@ -1132,8 +1165,8 @@
 
       const selectedLabel = strategySelect.selectedOptions?.[0]?.textContent?.trim();
       if (pfName) pfName.textContent = selectedLabel || "Strategy";
-      if (pfSub) pfSub.textContent = selectedLabel ? `${selectedLabel} equity over time.` : "Your demo equity over time.";
-      toggleEquityAvailability(true);
+      updatePerformanceCopy(getSelectedStrategy(), getActiveMode());
+      toggleEquityAvailability(true, getActiveMode());
     }
 
     function getSelectedStrategy() {
@@ -1171,6 +1204,13 @@
 
       const start = equity - pnl;
       return Array.from({ length: len }, (_, idx) => start + (pnl * idx) / (len - 1));
+    }
+
+    function buildFlatAllocationSeries(profile = {}, account = {}, rangeKey = "ALL") {
+      const base = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0) || 0;
+      const lengthMap = { "1D": 2, "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
+      const len = lengthMap[rangeKey] || 60;
+      return Array(len).fill(base);
     }
 
     window.pfSeekPlugin =
@@ -1216,7 +1256,7 @@
         },
       };
 
-    function renderChart(series = [], account = {}, profile = {}) {
+    function renderChart(series = [], account = {}, profile = {}, mode = "strategy", rangeKey = "ALL") {
       if (!pfChartCanvas || typeof Chart === "undefined") return;
 
       const data = Array.isArray(series) && series.length ? series : Array(7).fill(0);
@@ -1285,16 +1325,23 @@
         plugins: [window.pfSeekPlugin],
       });
 
-      const todayChange = data.length > 1 ? data[data.length - 1] - data[data.length - 2] : 0;
-      const latest = data.length ? data[data.length - 1] : (account?.equity ?? account?.balance ?? profile?.balance ?? 0);
-      const prev = data.length > 1 ? data[data.length - 2] : latest;
-      const pct = prev ? (todayChange / prev) * 100 : 0;
+      const numericData = data.filter((n) => Number.isFinite(n));
+      const latest = numericData.length ? numericData[numericData.length - 1] : (account?.equity ?? account?.balance ?? profile?.balance ?? 0);
+      const start = numericData.length ? numericData[0] : latest;
+      const prev = numericData.length > 1 ? numericData[numericData.length - 2] : start;
+      const pctChange = start ? ((latest - start) / start) * 100 : 0;
+      const pctVsPrev = prev ? ((latest - prev) / prev) * 100 : 0;
 
-      if (pfValue) pfValue.textContent = formatMoney(latest);
+      if (pfValue) {
+        const pctLabel = Number.isFinite(pctChange) ? `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(2)}%` : "—";
+        pfValue.textContent = pctLabel;
+      }
       if (pfChange) {
-        const deltaLabel = prev ? `${todayChange >= 0 ? "+" : ""}${formatMoney(todayChange)} (${pct.toFixed(2)}%)` : "—";
+        const deltaLabel = Number.isFinite(pctVsPrev)
+          ? `${pctVsPrev >= 0 ? "+" : ""}${pctVsPrev.toFixed(2)}% vs last point`
+          : "—";
         pfChange.textContent = deltaLabel;
-        pfChange.className = `text-lg font-normal ${todayChange >= 0 ? "text-emerald-600" : "text-rose-600"}`;
+        pfChange.className = `text-lg font-normal ${pctVsPrev >= 0 ? "text-emerald-600" : "text-rose-600"}`;
       }
 
       if (pfUpdated) {
@@ -1370,6 +1417,26 @@
       updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
       renderFundsCard(account, latestProfile);
       populateFundsAccounts(account, userId);
+    }
+
+    function updatePerformanceCopy(selectedStrategy = null, mode = "strategy") {
+      if (mode === "allocation") {
+        if (pfSub) pfSub.textContent = "Your allocation performance over time.";
+        if (pfName) pfName.textContent = "My allocation";
+        return;
+      }
+
+      const label = selectedStrategy
+        ? selectedStrategy.name || selectedStrategy.code || "Strategy"
+        : strategySelect?.selectedOptions?.[0]?.textContent?.trim();
+
+      if (label) {
+        if (pfSub) pfSub.textContent = `${label} performance over time.`;
+        if (pfName) pfName.textContent = label;
+      } else {
+        if (pfSub) pfSub.textContent = "Your demo equity over time.";
+        if (pfName) pfName.textContent = "Strategy";
+      }
     }
 
     function getAllocatedValue(account = {}, profile = {}) {
@@ -1482,13 +1549,14 @@
 
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
       const range = getActiveRange();
+      const mode = getActiveMode();
       const selected = getSelectedStrategy();
-      const strategySeries = selected ? strategyCurveFromMetrics(selected, account, range) : [];
-      const baseSeries = buildEquitySeries(profile, account, range);
+      const strategySeries = mode === "strategy" && selected ? strategyCurveFromMetrics(selected, account, range) : [];
+      const baseSeries = mode === "strategy" ? buildEquitySeries(profile, account, range) : buildFlatAllocationSeries(profile, account, range);
       const series = strategySeries.length ? strategySeries : baseSeries;
-      const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
-      toggleEquityAvailability(hasData);
-      renderChart(series, account, profile);
+      const hasData = mode === "allocation" || (Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0));
+      toggleEquityAvailability(hasData, mode);
+      renderChart(series, account, profile, mode, range);
     }
 
     function setActiveRange(rangeKey) {
@@ -1501,6 +1569,19 @@
     function getActiveRange() {
       const active = pfTabs.find((btn) => btn.classList.contains("tab-active"));
       return active?.dataset?.range || "ALL";
+    }
+
+    function setActiveMode(modeKey = "strategy") {
+      pfModes.forEach((btn) => {
+        const isActive = btn.dataset.mode === modeKey;
+        btn.classList.toggle("pf-mode-active", isActive);
+        btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
+
+    function getActiveMode() {
+      const active = pfModes.find((btn) => btn.classList.contains("pf-mode-active"));
+      return active?.dataset?.mode || "strategy";
     }
 
     function wireProfileMenu() {
@@ -1517,6 +1598,14 @@
         location.replace("/auth.html");
       });
     }
+
+    pfModes.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setActiveMode(btn.dataset.mode);
+        updatePerformanceCopy(getSelectedStrategy(), getActiveMode());
+        refreshChart();
+      });
+    });
 
     pfTabs.forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1547,14 +1636,7 @@
     window.addEventListener("resize", () => updateWatchlistScroller());
 
     strategySelect?.addEventListener("change", () => {
-      const label = strategySelect.selectedOptions?.[0]?.textContent?.trim();
-      if (label && strategySelect.value) {
-        pfSub.textContent = `${label} equity over time.`;
-        if (pfName) pfName.textContent = label;
-      } else {
-        pfSub.textContent = "Your demo equity over time.";
-        if (pfName) pfName.textContent = "Strategy";
-      }
+      updatePerformanceCopy(getSelectedStrategy(), getActiveMode());
       refreshChart();
     });
 
@@ -1565,6 +1647,7 @@
         currentUser = user;
         clearStatus();
         setActiveRange("6M");
+        setActiveMode(getActiveMode());
         wireProfileMenu();
         displayName = user.email || "Demo User";
         syncProfileChrome(currentUser);
@@ -1588,8 +1671,9 @@
         await hydrateWatchlist(latestProfile, currentUser);
         subscribedStrategies = await hydrateStrategies(latestProfile, currentUser);
         if (!subscribedStrategies.length) {
-          toggleEquityAvailability(false);
+          toggleEquityAvailability(false, getActiveMode());
         }
+        updatePerformanceCopy(getSelectedStrategy(), getActiveMode());
         refreshChart(latestProfile, latestAccount);
       } catch (error) {
         console.error(error);
