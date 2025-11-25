@@ -1362,6 +1362,17 @@
         if (!accountRow.currency && row?.base_currency) accountRow.currency = row.base_currency;
         currentCCY = accountRow?.currency || row?.base_currency || currentCCY;
 
+        // allocation helpers (must be defined before first populateAccountSelect call)
+        const getAccountCurrency = () =>
+            (accountRow?.currency || row?.base_currency || strategy?.currency || currentCCY || 'ZAR').toUpperCase();
+
+        function updateAvailableLabel() {
+            if (!allocAvailable) return;
+            const bal = Number(accountRow?.balance ?? row?.balance ?? 0);
+            const ccy = getAccountCurrency();
+            allocAvailable.textContent = Number.isFinite(bal) ? `Available: ${money(bal, ccy)}` : 'Available: —';
+        }
+
         // allocation DOM hooks (initialized early so populateAccountSelect can run safely)
         const accountSelect = document.getElementById('alloc-account');
         const allocAvailable = document.getElementById('alloc-available');
@@ -2524,16 +2535,6 @@
 
 
         // ---------- Allocation: dynamic total ----------
-
-        const getAccountCurrency = () => (accountRow?.currency || row?.base_currency || strategy?.currency || currentCCY || 'ZAR').toUpperCase();
-
-        function updateAvailableLabel() {
-            if (!allocAvailable) return;
-            const bal = Number(accountRow?.balance ?? row?.balance ?? 0);
-            const ccy = getAccountCurrency();
-            allocAvailable.textContent = Number.isFinite(bal) ? `Available: ${money(bal, ccy)}` : 'Available: —';
-        }
-
         // one source of truth for totals (also used by Paystack click)
         function calcTotals() {
             const unitsField = document.getElementById('alloc-units');
