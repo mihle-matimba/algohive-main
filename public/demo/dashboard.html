@@ -312,10 +312,10 @@
       </div>
 
       <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/home.html" title="Home">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/demo/dashboard.html" title="Home">
           <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/home.html">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/demo/strategies.html">
           <i class="fa-solid fa-right-to-bracket text-slate-500 w-4 shrink-0"></i><span class="label">Switch Account</span>
         </a>
       </nav>
@@ -361,7 +361,7 @@
               <h3 class="text-lg font-semibold text-slate-900">Strategies that we think would best suit you</h3>
             </div>
             <div class="flex items-center gap-2">
-              <a href="/strategies.html"
+              <a href="/demo/strategies.html"
                 class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
               <button type="button" id="watch-prev"
                 class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]"
@@ -377,7 +377,7 @@
             <div id="watchlist-recos" class="no-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2 pr-1 snap-x snap-mandatory"></div>
             <p id="watchlist-empty" class="hidden text-sm text-slate-500">Pick strategies during onboarding to see them here.</p>
             <div class="mt-4 sm:hidden">
-              <a href="/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
+              <a href="/demo/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
             </div>
           </div>
         </section>
@@ -389,8 +389,8 @@
               <select id="strategy-select" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]">
                 <option>Loading…</option>
               </select>
-              <a href="/strategies.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--olive)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
-                View OpenStrategies
+              <a href="/demo/strategies.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--olive)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
+                View Demo Strategies
               </a>
             </div>
           </div>
@@ -1392,7 +1392,7 @@
       fundsModal?.classList.add("hidden");
     }
 
-    function submitFundsRequest() {
+    async function submitFundsRequest() {
       if (!fundsAccount || !fundsAmount) return;
       const accountId = fundsAccount.value;
       if (!accountId) {
@@ -1420,6 +1420,24 @@
       };
 
       latestProfile = { ...(latestProfile || {}), balance: latestAccount.balance };
+
+      try {
+        const userId = currentUser?.id || accountId;
+        const { data, error } = await supabase
+          .from("demo_profiles")
+          .update({ balance: latestAccount.balance })
+          .eq("id", userId)
+          .select()
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data) {
+          latestProfile = { ...(latestProfile || {}), ...data };
+        }
+      } catch (error) {
+        console.warn("Failed to persist demo balance", error);
+        pushToast("Funds added locally; sync failed. Try again soon.", "warn");
+      }
 
       renderAccount(latestAccount, currentUser?.id || accountId);
       refreshChart(latestProfile, latestAccount);
