@@ -3,28 +3,45 @@
 To support the demo onboarding flow (basics, investing preferences, and OpenStrategies alignment), ensure the following Supabase tables/columns exist.
 
 ## `demo_profiles`
+Use the dedicated demo profile table (separate from live `profiles`) with the full set of defaults used by the demo UI:
+
 ```sql
-create table if not exists public.demo_profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
-  first_name text,
-  last_name text,
-  phone text,
-  avatar_url text,
-  risk_appetite text, -- values aligned to OpenStrategies filters: Conservative, Low, Moderate, High, High Risk, Very High Risk
-  investment_preferences jsonb default '{}'::jsonb,
-  watch_list jsonb default '[]'::jsonb, -- array of strategy ids the user starred during onboarding
-  inserted_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-create index if not exists demo_profiles_risk_idx on public.demo_profiles (risk_appetite);
+create table public.demo_profiles (
+  id uuid not null,
+  account_mode text null default 'paper'::text,
+  first_name text not null,
+  last_name text not null,
+  phone text null,
+  risk_appetite text null, -- values aligned to OpenStrategies filters: Conservative, Low, Moderate, High, High Risk, Very High Risk
+  balance numeric null default 10000,
+  allocated numeric null default 0, -- running total of demo allocations saved from strategy.html
+  strategies jsonb null default '[]'::jsonb,
+  created_at timestamp with time zone null default now(),
+  avatar_url text null,
+  watch_list jsonb null default '[]'::jsonb, -- array of strategy ids the user starred during onboarding
+  constraint demo_profiles_pkey primary key (id),
+  constraint demo_profiles_id_fkey foreign key (id) references auth.users (id) on delete cascade,
+  constraint demo_profiles_account_mode_check check ((account_mode = 'paper'::text))
+) tablespace pg_default;
+
+create index if not exists demo_profiles_risk_idx on public.demo_profiles using btree (risk_appetite) tablespace pg_default;
 ```
 
-### Adding `watch_list` to existing environments
-Run this migration on Supabase to add the watch-list column if your `demo_profiles` table already exists:
+### Automatic demo account creation
+Mirror the application flow by auto-creating demo metrics rows whenever a demo profile is inserted:
 
 ```sql
-alter table public.demo_profiles
-  add column if not exists watch_list jsonb default '[]'::jsonb;
+create or replace function create_demo_account()
+returns trigger as $$
+begin
+  insert into demo_accounts (id) values (new.id);
+  return new;
+end;$$ language plpgsql;
+
+drop trigger if exists trg_create_demo_account on demo_profiles;
+create trigger trg_create_demo_account
+after insert on demo_profiles for each row
+execute function create_demo_account ();
 ```
 
 ### Investment preferences payload
