@@ -430,6 +430,24 @@
               <canvas id="pf-chart" class="max-w-full"></canvas>
             </div>
           </div>
+          <div class="border-t border-slate-200 bg-slate-50/60 px-5 py-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="grid grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Balance</p>
+                  <p id="funds-balance" class="mt-1 text-lg font-semibold text-slate-900">—</p>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total allocated</p>
+                  <p id="funds-allocated" class="mt-1 text-lg font-semibold text-slate-900">—</p>
+                </div>
+              </div>
+              <button id="funds-open" type="button" class="btn bg-[var(--olive)] text-white border-[var(--olive)] hover:bg-[var(--olive-700)]">
+                <i class="fa-solid fa-circle-plus"></i>
+                <span>Add funds</span>
+              </button>
+            </div>
+          </div>
         </section>
 
         <section class="card col-span-12 lg:col-span-4 border border-slate-200 shadow-none">
@@ -486,6 +504,43 @@
     </div>
   </div>
 
+  <div id="funds-modal" class="fixed inset-0 z-[140] hidden">
+    <div id="funds-overlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--olive)]">Add funds</p>
+            <h3 class="text-lg font-semibold text-slate-900">Top up a demo account</h3>
+          </div>
+          <button id="funds-close" type="button" class="text-slate-500 hover:text-slate-800" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="px-5 py-4 space-y-4">
+          <label class="block text-sm font-medium text-slate-700">
+            Choose account
+            <select id="funds-account" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]">
+              <option value="">Loading…</option>
+            </select>
+          </label>
+          <label class="block text-sm font-medium text-slate-700">
+            Amount (USD)
+            <input id="funds-amount" type="number" inputmode="decimal" min="10" max="100000" step="1" placeholder="100" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]" />
+            <p class="mt-1 text-xs text-slate-500">Minimum $10 — Maximum $100,000.</p>
+          </label>
+        </div>
+        <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-5 py-3">
+          <p class="text-xs text-slate-500">Funds apply to your selected paper account.</p>
+          <div class="flex items-center gap-3">
+            <button id="funds-cancel" type="button" class="btn bg-white text-slate-700">Cancel</button>
+            <button id="funds-submit" type="button" class="btn bg-[var(--olive)] text-white border-[var(--olive)] hover:bg-[var(--olive-700)]">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" nonce="ALGOHIVE">
     import { supabase } from "/js/supabase.js";
     const welcomeName = document.getElementById("welcome-name");
@@ -506,6 +561,16 @@
     const pfEmpty = document.getElementById("pf-empty");
     const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
     const pfRefresh = document.getElementById("pf-refresh");
+    const fundsBalance = document.getElementById("funds-balance");
+    const fundsAllocated = document.getElementById("funds-allocated");
+    const fundsOpen = document.getElementById("funds-open");
+    const fundsModal = document.getElementById("funds-modal");
+    const fundsOverlay = document.getElementById("funds-overlay");
+    const fundsClose = document.getElementById("funds-close");
+    const fundsAccount = document.getElementById("funds-account");
+    const fundsAmount = document.getElementById("funds-amount");
+    const fundsCancel = document.getElementById("funds-cancel");
+    const fundsSubmit = document.getElementById("funds-submit");
     const watchSection = document.getElementById("watchlist-section");
     const watchRecos = document.getElementById("watchlist-recos");
     const watchEmpty = document.getElementById("watchlist-empty");
@@ -1288,6 +1353,62 @@
       const trades = typeof account?.trades === "number" ? account.trades : (Array.isArray(account?.trade_history) ? account.trade_history.length : null);
       statTrades.textContent = trades ?? "—";
       updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
+      renderFundsCard(account, latestProfile);
+      populateFundsAccounts(account, userId);
+    }
+
+    function getAllocatedValue(account = {}, profile = {}) {
+      const raw = account?.allocated ?? account?.allocated_balance ?? account?.allocated_total ?? profile?.allocated ?? 0;
+      const num = Number(raw);
+      return Number.isFinite(num) ? num : 0;
+    }
+
+    function renderFundsCard(account = {}, profile = {}) {
+      if (fundsBalance) fundsBalance.textContent = formatMoney(account?.balance ?? account?.equity ?? profile?.balance ?? "—");
+      if (fundsAllocated) fundsAllocated.textContent = formatMoney(getAllocatedValue(account, profile));
+    }
+
+    function populateFundsAccounts(account = {}, userId = "") {
+      if (!fundsAccount) return;
+      fundsAccount.innerHTML = "";
+
+      const opt = document.createElement("option");
+      const accountLabel = account?.name || "Paper account";
+      opt.value = account?.id || userId || "demo-account";
+      opt.textContent = account?.id ? `${accountLabel} (${account.id})` : accountLabel;
+      fundsAccount.appendChild(opt);
+    }
+
+    function openFundsModal() {
+      if (!fundsModal) return;
+      fundsModal.classList.remove("hidden");
+      if (fundsAmount) {
+        fundsAmount.value = "";
+        fundsAmount.focus();
+      }
+    }
+
+    function closeFundsModal() {
+      fundsModal?.classList.add("hidden");
+    }
+
+    function submitFundsRequest() {
+      if (!fundsAccount || !fundsAmount) return;
+      const accountId = fundsAccount.value;
+      if (!accountId) {
+        pushToast("Please choose an account to fund.", "warn");
+        return;
+      }
+
+      const amount = Number(fundsAmount.value);
+      if (!Number.isFinite(amount) || amount < 10 || amount > 100000) {
+        pushToast("Enter an amount between $10 and $100,000.", "warn");
+        return;
+      }
+
+      const label = fundsAccount.selectedOptions?.[0]?.textContent?.trim() || "selected account";
+      pushToast(`Requested ${formatMoney(amount)} for ${label}.`, "ok");
+      closeFundsModal();
     }
 
     async function hydrateStrategies(profile = {}, user = {}) {
@@ -1349,6 +1470,12 @@
     });
 
     pfRefresh?.addEventListener("click", () => refreshChart());
+
+    fundsOpen?.addEventListener("click", openFundsModal);
+    fundsClose?.addEventListener("click", closeFundsModal);
+    fundsOverlay?.addEventListener("click", closeFundsModal);
+    fundsCancel?.addEventListener("click", closeFundsModal);
+    fundsSubmit?.addEventListener("click", submitFundsRequest);
 
     watchPrev?.addEventListener("click", () => {
       if (!watchRecos) return;
