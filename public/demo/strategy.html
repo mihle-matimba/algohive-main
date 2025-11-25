@@ -2760,7 +2760,23 @@
                 if (!profileId) { banner('Could not find your demo profile.', 'err'); return; }
 
                 const existing = Array.isArray(row?.strategies) ? row.strategies : [];
-                const nextStrategies = Array.from(new Set([...existing, strategy.id]));
+                const mergedStrategies = (() => {
+                    const map = new Map();
+                    existing.forEach((item) => {
+                        if (!item) return;
+                        const id = (typeof item === 'string') ? item : (item.id || item.strategy_id || item.code || item.slug);
+                        if (!id) return;
+                        const amt = Number(item.amount ?? item.allocated ?? item.allocation ?? 0);
+                        const units = Number(item.units ?? 0);
+                        const currency = item.currency || item.ccy || strategy?.currency;
+                        map.set(id, { id, amount: Number.isFinite(amt) ? amt : 0, units: Number.isFinite(units) ? units : undefined, currency });
+                    });
+                    const prev = map.get(strategy.id) || { id: strategy.id, amount: 0, units: 0, currency: strategy?.currency };
+                    const nextAmount = (Number.isFinite(prev.amount) ? prev.amount : 0) + totalRounded;
+                    const nextUnits = (Number.isFinite(prev.units) ? prev.units : 0) + (Number.isFinite(units) ? units : 0);
+                    map.set(strategy.id, { ...prev, amount: nextAmount, units: nextUnits, currency: prev.currency || ccy || strategy?.currency });
+                    return Array.from(map.values());
+                })();
 
                 const baseBalance = Number(row?.balance);
                 const baseAllocated = Number(row?.allocated);
@@ -2773,7 +2789,7 @@
 
                 const payload = {
                     id: profileId,
-                    strategies: nextStrategies,
+                    strategies: mergedStrategies,
                     allocated: nextAllocated,
                     first_name: firstName,
                     last_name: lastName,
@@ -2784,15 +2800,22 @@
                 btnAlloc.classList.add('opacity-60');
                 btnAlloc.textContent = 'Saving…';
 
-                const { error } = await supabase.from('demo_profiles').upsert(payload);
+                const { data, error } = await supabase.from('demo_profiles').upsert(payload, { onConflict: 'id' }).select().maybeSingle();
                 if (error && error.code === '42703') {
-                    const { error: fallbackErr } = await supabase.from('demo_profiles').upsert({ id: profileId, strategies: nextStrategies });
+                    const { data: fallbackData, error: fallbackErr } = await supabase
+                        .from('demo_profiles')
+                        .upsert({ id: profileId, strategies: mergedStrategies, allocated: nextAllocated })
+                        .select()
+                        .maybeSingle();
                     if (fallbackErr) throw fallbackErr;
+                    if (fallbackData) Object.assign(row, fallbackData);
                 } else if (error) {
                     throw error;
+                } else if (data) {
+                    Object.assign(row, data);
                 }
 
-                row.strategies = nextStrategies;
+                row.strategies = mergedStrategies;
                 row.allocated = nextAllocated;
                 if (nextBalance !== null) row.balance = nextBalance;
 
