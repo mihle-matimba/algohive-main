@@ -14,6 +14,7 @@ create table public.demo_profiles (
   phone text null,
   risk_appetite text null, -- values aligned to OpenStrategies filters: Conservative, Low, Moderate, High, High Risk, Very High Risk
   balance numeric null default 10000,
+  allocated numeric null default 0, -- running total of demo allocations saved from strategy.html
   strategies jsonb null default '[]'::jsonb,
   created_at timestamp with time zone null default now(),
   avatar_url text null,

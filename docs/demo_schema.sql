@@ -1,6 +1,5 @@
 -- Demo schema setup for paper accounts
 
--- Demo profiles capture user identity, preferences, watch list, and simulated balance
 create table if not exists public.demo_profiles (
   id uuid not null,
   account_mode text null default 'paper'::text,
@@ -9,6 +8,7 @@ create table if not exists public.demo_profiles (
   phone text null,
   risk_appetite text null,
   balance numeric null default 10000,
+  allocated numeric null default 0, -- running total of demo allocations
   strategies jsonb null default '[]'::jsonb,
   created_at timestamp with time zone null default now(),
   avatar_url text null,

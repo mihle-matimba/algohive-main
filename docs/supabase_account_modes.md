@@ -35,6 +35,7 @@ create table public.demo_profiles (
   phone text null,
   risk_appetite text null,
   balance numeric null default 10000,
+  allocated numeric null default 0,
   strategies jsonb null default '[]'::jsonb,
   created_at timestamp with time zone null default now(),
   avatar_url text null,
@@ -46,7 +47,8 @@ create table public.demo_profiles (
 
 create index if not exists demo_profiles_risk_idx on public.demo_profiles using btree (risk_appetite) tablespace pg_default;
 ```
-- Use `balance` for the simulated wallet, `strategies` to persist demo allocations, and `watch_list` for demo favorites.
+- Use `balance` for the simulated wallet, `allocated` for the running total of demo allocations, `strategies` to persist demo
+  subscriptions, and `watch_list` for demo favorites.
 - Keep simulated balances/positions here so they never mix with live data.
 - Optionally add reset columns (e.g., `last_reset_at`) for paper resets.
 
