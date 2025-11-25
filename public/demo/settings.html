@@ -212,6 +212,7 @@
 
     let currentUser = null;
     let profileRow = null;
+    let accountRow = null;
 
     function banner(message, tone = "info") {
       if (!alertBox) return;
@@ -303,31 +304,60 @@
 
     function renderAccount(row = {}, userId = "") {
       const frag = document.createElement("div");
-      frag.className = "rounded-xl border border-slate-200 p-4 flex flex-col gap-2";
+      frag.className = "rounded-xl border border-slate-200 p-4 flex flex-col gap-3";
+
+      const currency = (row.currency || profileRow?.base_currency || "USD").toUpperCase();
+      const currencyOptions = ["USD", "ZAR", "EUR", "GBP", "NGN"];
+
       frag.innerHTML = `
         <div class="flex items-center justify-between">
-          <div class="text-sm font-semibold text-slate-800">${row.name || "Paper Account"}</div>
+          <div>
+            <div class="text-sm font-semibold text-slate-800">${row.name || "Paper Account"}</div>
+            <p class="text-xs text-slate-500">Account ID: ${row.id || userId || "—"}</p>
+          </div>
           <span class="text-xs rounded-full bg-emerald-50 text-emerald-700 px-3 py-1">Active</span>
         </div>
-        <div class="grid grid-cols-2 gap-3 text-sm text-slate-700">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
           <div>
-            <p class="text-xs text-slate-500">Account ID</p>
-            <p class="font-semibold">${row.id || userId || "—"}</p>
+            <p class="text-xs text-slate-500">Balance currency</p>
+            <div class="flex items-center gap-2 mt-1">
+              <select id="account-ccy" class="input h-10 !py-0">
+                ${currencyOptions.map((ccy) => `<option value="${ccy}" ${ccy === currency ? "selected" : ""}>${ccy}</option>`).join("")}
+              </select>
+              <button id="save-ccy" class="btn">Save</button>
+            </div>
           </div>
           <div>
-            <p class="text-xs text-slate-500">Equity</p>
-            <p class="font-semibold">${Number.isFinite(Number(row.equity)) ? new Intl.NumberFormat("en-US", { style: "currency", currency: row.currency || "USD" }).format(Number(row.equity)) : "—"}</p>
-          </div>
-          <div>
-            <p class="text-xs text-slate-500">P&L</p>
-            <p class="font-semibold">${Number.isFinite(Number(row.pnl)) ? `${row.pnl >= 0 ? "+" : ""}${row.pnl.toFixed(2)}` : "—"}</p>
-          </div>
-          <div>
-            <p class="text-xs text-slate-500">Trades</p>
-            <p class="font-semibold">${typeof row.trades === "number" ? row.trades : Array.isArray(row.trade_history) ? row.trade_history.length : "—"}</p>
+            <p class="text-xs text-slate-500">Current equity</p>
+            <p class="font-semibold">${Number.isFinite(Number(row.equity)) ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(row.equity)) : "—"}</p>
           </div>
         </div>
+        <p class="text-xs text-slate-500">Use this currency for your paper allocations so balances match your strategies.</p>
       `;
+
+      const saveBtn = frag.querySelector("#save-ccy");
+      const select = frag.querySelector("#account-ccy");
+
+      saveBtn?.addEventListener("click", async () => {
+        if (!select) return;
+        const next = select.value || "USD";
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving…";
+        try {
+          const { error } = await supabase.from("demo_accounts").upsert({ id: userId, currency: next }, { onConflict: "id" });
+          if (error) throw error;
+          await supabase.from("demo_profiles").upsert({ id: userId, base_currency: next });
+          banner("Updated your demo account currency.", "info");
+          accountRow = { ...(accountRow || {}), currency: next };
+        } catch (err) {
+          console.error(err);
+          banner(err.message || "Could not update currency", "error");
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save";
+        }
+      });
+
       accountsList.appendChild(frag);
     }
 
@@ -344,7 +374,8 @@
           accountsEmpty?.classList.remove("hidden");
           return;
         }
-        renderAccount(data, currentUser?.id || "");
+        accountRow = data;
+        renderAccount(accountRow, currentUser?.id || "");
       } catch (error) {
         console.warn("Could not load demo accounts", error);
         accountsEmpty?.classList.remove("hidden");
