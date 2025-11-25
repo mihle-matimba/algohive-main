@@ -1362,6 +1362,31 @@
         if (!accountRow.currency && row?.base_currency) accountRow.currency = row.base_currency;
         currentCCY = accountRow?.currency || row?.base_currency || currentCCY;
 
+        // ---------- tiny utils (placed before allocation helpers to avoid TDZ issues) ----------
+        const $ = (q, el = document) => el.querySelector(q);
+        const $$ = (q, el = document) => Array.from(el.querySelectorAll(q));
+        const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+        const money = (n, ccy = currentCCY || 'ZAR') => {
+            const currency = (ccy || currentCCY || 'ZAR').toUpperCase();
+            const num = Number(n || 0);
+            if (!Number.isFinite(num)) return '—';
+            try {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+            } catch (e) {
+                return (currency === 'ZAR' ? 'R ' : currency + ' ') + num.toLocaleString('en-ZA', ZA);
+            }
+        };
+        const finite = v => Number.isFinite(Number(v));
+        const escapeHtml = (value) => {
+            return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[ch]);
+        };
+
         // allocation helpers (must be defined before first populateAccountSelect call)
         const getAccountCurrency = () =>
             (accountRow?.currency || row?.base_currency || strategy?.currency || currentCCY || 'ZAR').toUpperCase();
@@ -1416,31 +1441,6 @@
             catch { banner("Sorry, logout failed.", "err"); }
         });
         supabase.auth.onAuthStateChange((_ev, sess) => { if (!sess) { location.replace("/auth.html?redirect=%2Fdemo%2Fdashboard.html"); } });
-
-        // ---------- tiny utils ----------
-        const $ = (q, el = document) => el.querySelector(q);
-        const $$ = (q, el = document) => Array.from(el.querySelectorAll(q));
-        const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-        const money = (n, ccy = currentCCY || 'ZAR') => {
-            const currency = (ccy || currentCCY || 'ZAR').toUpperCase();
-            const num = Number(n || 0);
-            if (!Number.isFinite(num)) return '—';
-            try {
-                return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-            } catch (e) {
-                return (currency === 'ZAR' ? 'R ' : currency + ' ') + num.toLocaleString('en-ZA', ZA);
-            }
-        };
-        const finite = v => Number.isFinite(Number(v));
-        const escapeHtml = (value) => {
-            return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            })[ch]);
-        };
 
         // ---------- URL params ----------
         const params = new URLSearchParams(location.search);
