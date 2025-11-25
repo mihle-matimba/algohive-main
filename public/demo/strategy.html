@@ -663,11 +663,18 @@
                     </section>
                 </section>
                 <aside class="col-span-12 lg:col-span-3 lg:row-span-5 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-                    <div class="card p-5 border border-slate-200">
+                        <div class="card p-5 border border-slate-200">
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="text-base font-medium text-slate-900">Allocate to Strategy</h3>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
+                            <div class="col-span-2">
+                                <label class="block text-xs text-slate-500 mb-1.5" for="alloc-account">Allocate from account</label>
+                                <select id="alloc-account" class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white">
+                                    <option value="">Select account</option>
+                                </select>
+                                <p id="alloc-available" class="mt-1 text-xs text-slate-500">Available: —</p>
+                            </div>
                             <div class="col-span-2"> <label class="block text-xs text-slate-500 mb-1.5"
                                     for="alloc-name">Strategy</label> <input id="alloc-name"
                                     class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50"
@@ -1008,6 +1015,7 @@
         import { supabase } from "/js/supabase.js";
         let strategy = null;   // <— keep hoisted so handlers can see it
         let metrics = null;
+        let accountRow = {};
         const REQUIRED_PROFILE_FIELDS = [
             "first_name", "last_name", "phone", "dob", "id_number", "nationality",
             "country_residence", "employment_status", "occupation", "employer",
@@ -1329,9 +1337,29 @@
             }
         }
 
+        async function fetchDemoAccount(userId = "") {
+            try {
+                let query = supabase.from("demo_accounts").select("*");
+                if (userId) query = query.eq("id", userId);
+                const { data, error } = await query.maybeSingle();
+                if (error) throw error;
+                return data || {};
+            } catch (error) {
+                console.warn("demo_accounts fetch failed; falling back to defaults", error);
+                return {};
+            }
+        }
+
         const user = await guard();
         if (!user) throw new Error("redirecting");
         const row = await fetchDemoProfile(user.id);
+        accountRow = await fetchDemoAccount(user.id);
+        if (!accountRow || Object.keys(accountRow).length === 0) accountRow = {};
+        if (!Number.isFinite(Number(accountRow.balance)) && Number.isFinite(Number(row.balance))) {
+            accountRow.balance = Number(row.balance);
+        }
+        if (!accountRow.currency && row?.base_currency) accountRow.currency = row.base_currency;
+        populateAccountSelect(accountRow, user.id);
 
         // ---- Hydrate header + sidebar ----
         const hdrName = document.getElementById("hdr-name");
@@ -1372,7 +1400,16 @@
         const $ = (q, el = document) => el.querySelector(q);
         const $$ = (q, el = document) => Array.from(el.querySelectorAll(q));
         const ZA = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-        const money = (n, ccy = 'ZAR') => (ccy === 'ZAR' ? 'R ' : (ccy + ' ')) + Number(n || 0).toLocaleString('en-ZA', ZA);
+        const money = (n, ccy = currentCCY || 'ZAR') => {
+            const currency = (ccy || currentCCY || 'ZAR').toUpperCase();
+            const num = Number(n || 0);
+            if (!Number.isFinite(num)) return '—';
+            try {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+            } catch (e) {
+                return (currency === 'ZAR' ? 'R ' : currency + ' ') + num.toLocaleString('en-ZA', ZA);
+            }
+        };
         const finite = v => Number.isFinite(Number(v));
         const escapeHtml = (value) => {
             return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
@@ -1667,6 +1704,7 @@
 
         // ---------- chart setup ----------
         let chart, currentLabels = [], currentCCY = 'ZAR';
+        currentCCY = accountRow?.currency || row?.base_currency || currentCCY;
         function initChart() {
             const ctx = $('#pf-chart')?.getContext('2d');
             if (!ctx) return;
@@ -2477,9 +2515,20 @@
 
 
         // ---------- Allocation: dynamic total ----------
+        const accountSelect = document.getElementById('alloc-account');
+        const allocAvailable = document.getElementById('alloc-available');
         const priceEl = document.getElementById('alloc-price');
         const unitsEl = document.getElementById('alloc-units');
         const totalEl = document.getElementById('alloc-total');
+
+        const getAccountCurrency = () => (accountRow?.currency || row?.base_currency || strategy?.currency || currentCCY || 'ZAR').toUpperCase();
+
+        function updateAvailableLabel() {
+            if (!allocAvailable) return;
+            const bal = Number(accountRow?.balance ?? row?.balance ?? 0);
+            const ccy = getAccountCurrency();
+            allocAvailable.textContent = Number.isFinite(bal) ? `Available: ${money(bal, ccy)}` : 'Available: —';
+        }
 
         // one source of truth for totals (also used by Paystack click)
         function calcTotals() {
@@ -2503,22 +2552,27 @@
 
             // base total in strategy currency
             let total = units * unitPrice;
-            let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
+            const targetCcy = getAccountCurrency();
+            let sourceCcy = (strategy?.currency || currentCCY || targetCcy).toUpperCase();
 
-            // if strategy currency is USD we convert to ZAR for checkout using live fx
-            if (isUSD()) {
+            if (sourceCcy !== targetCcy) {
                 const rate = Number(fx.usdzar);
                 if (!Number.isFinite(rate)) {
-                    throw new Error('Live USD→ZAR rate unavailable. Please try again.');
+                    throw new Error('Currency conversion unavailable right now. Please try again.');
                 }
-                total = total * rate;
-                ccy = 'ZAR';
+                if (sourceCcy === 'USD' && targetCcy === 'ZAR') {
+                    total = total * rate;
+                } else if (sourceCcy === 'ZAR' && targetCcy === 'USD') {
+                    total = total / rate;
+                } else {
+                    throw new Error(`Currency conversion not supported (${sourceCcy}→${targetCcy}). Try switching your account currency.`);
+                }
             }
 
             // round to cents (what Paystack sees / what we show)
             const totalRounded = Math.round(total * 100) / 100;
 
-            return { units, unitPrice, totalRounded, ccy };
+            return { units, unitPrice, totalRounded, ccy: targetCcy };
         }
 
 
@@ -2530,6 +2584,18 @@
                 console.warn(e);
                 if (totalEl) totalEl.textContent = '—';
             }
+        }
+
+        function populateAccountSelect(account = {}, userId = '') {
+            if (!accountSelect) return;
+            accountSelect.innerHTML = '';
+            const opt = document.createElement('option');
+            const ccy = (account?.currency || row?.base_currency || currentCCY || 'ZAR').toUpperCase();
+            opt.value = account?.id || userId || '';
+            opt.textContent = `${account?.name || 'Paper account'} (${ccy})`;
+            accountSelect.appendChild(opt);
+            accountSelect.value = opt.value;
+            updateAvailableLabel();
         }
 
 
@@ -2759,6 +2825,9 @@
                 const profileId = row?.id || user?.id;
                 if (!profileId) { banner('Could not find your demo profile.', 'err'); return; }
 
+                const accountId = accountSelect?.value || accountRow?.id || profileId;
+                if (!accountId) { banner('Please choose the demo account to allocate from.', 'err'); return; }
+
                 const existing = Array.isArray(row?.strategies) ? row.strategies : [];
                 const mergedStrategies = (() => {
                     const map = new Map();
@@ -2778,11 +2847,14 @@
                     return Array.from(map.values());
                 })();
 
-                const baseBalance = Number(row?.balance);
+                const availableBalance = Number(accountRow?.balance ?? row?.balance);
                 const baseAllocated = Number(row?.allocated);
 
+                if (!Number.isFinite(availableBalance)) { banner('Could not read your available balance.', 'err'); return; }
+                if (totalRounded > availableBalance) { banner('You cannot allocate more than your available balance.', 'err'); return; }
+
                 const nextAllocated = (Number.isFinite(baseAllocated) ? baseAllocated : 0) + totalRounded;
-                const nextBalance = Number.isFinite(baseBalance) ? Math.max(0, baseBalance - totalRounded) : null;
+                const nextBalance = Math.max(0, availableBalance - totalRounded);
 
                 const firstName = (row?.first_name || user?.user_metadata?.first_name || 'Demo').trim() || 'Demo';
                 const lastName = (row?.last_name || user?.user_metadata?.last_name || 'User').trim() || 'User';
@@ -2793,6 +2865,7 @@
                     allocated: nextAllocated,
                     first_name: firstName,
                     last_name: lastName,
+                    base_currency: ccy,
                 };
                 if (nextBalance !== null) payload.balance = nextBalance;
 
@@ -2804,7 +2877,7 @@
                 if (error && error.code === '42703') {
                     const { data: fallbackData, error: fallbackErr } = await supabase
                         .from('demo_profiles')
-                        .upsert({ id: profileId, strategies: mergedStrategies, allocated: nextAllocated })
+                        .upsert({ id: profileId, strategies: mergedStrategies, allocated: nextAllocated, balance: nextBalance })
                         .select()
                         .maybeSingle();
                     if (fallbackErr) throw fallbackErr;
@@ -2818,6 +2891,8 @@
                 row.strategies = mergedStrategies;
                 row.allocated = nextAllocated;
                 if (nextBalance !== null) row.balance = nextBalance;
+                accountRow = { ...(accountRow || {}), id: accountId, balance: nextBalance, currency: ccy };
+                updateAvailableLabel();
 
                 const toast = document.getElementById('alloc-toast');
                 if (toast) {

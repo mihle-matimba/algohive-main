@@ -36,6 +36,7 @@ create table public.demo_profiles (
   risk_appetite text null,
   balance numeric null default 10000,
   allocated numeric null default 0,
+  base_currency text null default 'USD',
   strategies jsonb null default '[]'::jsonb,
   created_at timestamp with time zone null default now(),
   avatar_url text null,
@@ -57,6 +58,7 @@ Create a per-demo-account metrics row that auto-links to the demo profile id.
 ```sql
 create table public.demo_accounts (
   id uuid not null,
+  currency text null default 'USD',
   pnl numeric null default 0,
   trades_count integer null default 0,
   last_activity_at timestamp with time zone null default now(),

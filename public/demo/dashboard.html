@@ -576,8 +576,13 @@
     let currentUser = null;
     let displayName = "—";
     let subscribedStrategies = [];
+    let activeCurrency = "USD";
+    let formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
 
-    const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+    function setCurrency(ccy = "USD") {
+      activeCurrency = (ccy || "USD").toUpperCase();
+      formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
+    }
 
     function setAvatar(src) {
       if (!profileAvatar) return;
@@ -680,9 +685,12 @@
       if (stack) stack.remove();
     }
 
-    function formatMoney(value) {
+    function formatMoney(value, currency = activeCurrency) {
       const num = typeof value === "number" ? value : Number(value);
-      return Number.isFinite(num) ? formatter.format(num) : "—";
+      const fmt = currency === activeCurrency
+        ? formatter
+        : new Intl.NumberFormat("en-US", { style: "currency", currency: currency || activeCurrency, maximumFractionDigits: 2 });
+      return Number.isFinite(num) ? fmt.format(num) : "—";
     }
 
     function curveFromPct(points = [], start = 100) {
@@ -783,6 +791,30 @@
 
       const chartSeries = seriesPerf.pctSeries?.length ? seriesPerf.pctSeries : normalizePctSeries(series);
       return { series: chartSeries, returnPct, drawdownPct };
+    }
+
+    function pickSeriesForRange(metrics = {}, rangeKey = "ALL") {
+      const keyMap = {
+        "1D": "series_1d",
+        "1M": "series_1m",
+        "3M": "series_3m",
+        "6M": "series_6m",
+        "YTD": "series_ytd",
+        "1Y": "series_1y",
+        "3Y": "series_3y",
+        ALL: "series_all",
+      };
+
+      const primaryKey = keyMap[rangeKey] || "series_all";
+      const primary = parseSeriesInput(metrics?.[primaryKey]);
+      if (primary.length) return primary;
+
+      const fallbacks = ["series_ytd", "series_all"];
+      for (const key of fallbacks) {
+        const candidate = parseSeriesInput(metrics?.[key]);
+        if (candidate.length) return candidate;
+      }
+      return [];
     }
 
     function toggleEquityAvailability(hasStrategies = true) {
@@ -957,7 +989,7 @@
       if (!targetIds.length) return [];
 
       const columns =
-        "id,name,code,currency,risk_level,style,strategy_metrics(strategy_id,perf_summary,series_all,series_ytd)";
+        "id,name,code,currency,risk_level,style,strategy_metrics(strategy_id,perf_summary,series_1d,series_1m,series_3m,series_6m,series_ytd,series_1y,series_3y,series_all)";
 
       try {
         const results = [];
@@ -995,7 +1027,7 @@
         if (missingMetrics.length) {
           const { data: metrics, error: metricErr } = await supabase
             .from("strategy_metrics")
-            .select("strategy_id, perf_summary, series_all, series_ytd")
+            .select("strategy_id, perf_summary, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all")
             .in("strategy_id", missingMetrics);
           if (metricErr) {
             console.warn("Could not load watchlist metrics", metricErr);
@@ -1051,7 +1083,7 @@
         if (idsForMetrics.length) {
           const { data: metrics, error: metricErr } = await supabase
             .from("strategy_metrics")
-            .select("strategy_id, perf_summary, series_ytd, series_all")
+            .select("strategy_id, perf_summary, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all")
             .in("strategy_id", idsForMetrics);
           if (metricErr) {
             console.warn("subscribed strategy metrics fetch failed", metricErr);
@@ -1110,11 +1142,9 @@
       return subscribedStrategies.find((s) => `${s.id}` === val || s.code === val) || null;
     }
 
-    function strategyCurveFromMetrics(strategy = {}, account = {}) {
+    function strategyCurveFromMetrics(strategy = {}, account = {}, rangeKey = "ALL") {
       const metrics = strategy?.metrics || {};
-      const parsedYtd = parseSeriesInput(metrics.series_ytd);
-      const parsedAll = parseSeriesInput(metrics.series_all);
-      const series = parsedYtd.length ? parsedYtd : parsedAll;
+      const series = pickSeriesForRange(metrics, rangeKey);
       const pctSeries = normalizePctSeries(series);
       if (!pctSeries.length) return [];
       const start = Number(account?.equity ?? account?.balance ?? latestProfile?.balance ?? 0);
@@ -1122,7 +1152,7 @@
       return curveFromPct(pctSeries, base);
     }
 
-    function buildEquitySeries(profile = {}, account = {}) {
+    function buildEquitySeries(profile = {}, account = {}, rangeKey = "ALL") {
       const equityRaw = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0);
       const pnlRaw = Number(account?.pnl ?? 0);
       const equity = Number.isFinite(equityRaw) ? equityRaw : 0;
@@ -1132,13 +1162,57 @@
         return Array(7).fill(0);
       }
 
+      const lengthMap = { "1D": 2, "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
+      const len = lengthMap[rangeKey] || 60;
+
       if (pnl === 0) {
-        return Array(7).fill(equity);
+        return Array(len).fill(equity);
       }
 
       const start = equity - pnl;
-      return Array.from({ length: 7 }, (_, idx) => start + (pnl * idx) / 6);
+      return Array.from({ length: len }, (_, idx) => start + (pnl * idx) / (len - 1));
     }
+
+    const pfSeekPlugin = {
+      id: "pfSeek",
+      afterDraw(chart) {
+        const { ctx, chartArea, tooltip } = chart;
+        if (!tooltip || !tooltip._active || !tooltip._active.length) return;
+
+        const activePoint = tooltip._active[0];
+        const x = activePoint.element.x;
+        const { top, bottom } = chartArea;
+
+        if (x < chartArea.left || x > chartArea.right) return;
+
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const triSize = 5;
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.moveTo(x, top - triSize);
+        ctx.lineTo(x - triSize, top);
+        ctx.lineTo(x + triSize, top);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(x, bottom + triSize);
+        ctx.lineTo(x - triSize, bottom);
+        ctx.lineTo(x + triSize, bottom);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      },
+    };
 
     const pfSeekPlugin = {
       id: "pfSeek",
@@ -1446,9 +1520,10 @@
     }
 
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
+      const range = getActiveRange();
       const selected = getSelectedStrategy();
-      const strategySeries = selected ? strategyCurveFromMetrics(selected, account) : [];
-      const baseSeries = buildEquitySeries(profile, account);
+      const strategySeries = selected ? strategyCurveFromMetrics(selected, account, range) : [];
+      const baseSeries = buildEquitySeries(profile, account, range);
       const series = strategySeries.length ? strategySeries : baseSeries;
       const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
       toggleEquityAvailability(hasData);
@@ -1460,6 +1535,11 @@
         const isActive = btn.dataset.range === rangeKey;
         btn.classList.toggle("tab-active", isActive);
       });
+    }
+
+    function getActiveRange() {
+      const active = pfTabs.find((btn) => btn.classList.contains("tab-active"));
+      return active?.dataset?.range || "ALL";
     }
 
     function wireProfileMenu() {
@@ -1539,6 +1619,8 @@
 
         latestProfile = profile || { balance: 0, strategies: [], risk_appetite: "—", full_name: displayName };
         latestAccount = account || { equity: latestProfile.balance ?? 0, pnl: 0, trades: 0 };
+
+        setCurrency(latestAccount?.currency || latestProfile?.base_currency || "USD");
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);

@@ -9,6 +9,7 @@ create table if not exists public.demo_profiles (
   risk_appetite text null,
   balance numeric null default 10000,
   allocated numeric null default 0, -- running total of demo allocations
+  base_currency text null default 'USD',
   strategies jsonb null default '[]'::jsonb,
   created_at timestamp with time zone null default now(),
   avatar_url text null,
@@ -24,6 +25,7 @@ create index if not exists demo_profiles_risk_idx on public.demo_profiles using 
 create table if not exists public.demo_accounts (
   id uuid not null,
   pnl numeric null default 0,
+  currency text null default 'USD',
   trades_count integer null default 0,
   last_activity_at timestamp with time zone null default now(),
   created_at timestamp with time zone null default now(),
