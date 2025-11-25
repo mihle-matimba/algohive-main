@@ -1173,87 +1173,48 @@
       return Array.from({ length: len }, (_, idx) => start + (pnl * idx) / (len - 1));
     }
 
-    const pfSeekPlugin = {
-      id: "pfSeek",
-      afterDraw(chart) {
-        const { ctx, chartArea, tooltip } = chart;
-        if (!tooltip || !tooltip._active || !tooltip._active.length) return;
+    window.pfSeekPlugin =
+      window.pfSeekPlugin ||
+      {
+        id: "pfSeek",
+        afterDraw(chart) {
+          const { ctx, chartArea, tooltip } = chart;
+          if (!tooltip || !tooltip._active || !tooltip._active.length) return;
 
-        const activePoint = tooltip._active[0];
-        const x = activePoint.element.x;
-        const { top, bottom } = chartArea;
+          const activePoint = tooltip._active[0];
+          const x = activePoint.element.x;
+          const { top, bottom } = chartArea;
 
-        if (x < chartArea.left || x > chartArea.right) return;
+          if (x < chartArea.left || x > chartArea.right) return;
 
-        ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = "#000";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, top);
-        ctx.lineTo(x, bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
 
-        const triSize = 5;
-        ctx.fillStyle = "#000";
-        ctx.beginPath();
-        ctx.moveTo(x, top - triSize);
-        ctx.lineTo(x - triSize, top);
-        ctx.lineTo(x + triSize, top);
-        ctx.closePath();
-        ctx.fill();
+          const triSize = 5;
+          ctx.fillStyle = "#000";
+          ctx.beginPath();
+          ctx.moveTo(x, top - triSize);
+          ctx.lineTo(x - triSize, top);
+          ctx.lineTo(x + triSize, top);
+          ctx.closePath();
+          ctx.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(x, bottom + triSize);
-        ctx.lineTo(x - triSize, bottom);
-        ctx.lineTo(x + triSize, bottom);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      },
-    };
-
-    const pfSeekPlugin = {
-      id: "pfSeek",
-      afterDraw(chart) {
-        const { ctx, chartArea, tooltip } = chart;
-        if (!tooltip || !tooltip._active || !tooltip._active.length) return;
-
-        const activePoint = tooltip._active[0];
-        const x = activePoint.element.x;
-        const { top, bottom } = chartArea;
-
-        if (x < chartArea.left || x > chartArea.right) return;
-
-        ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = "#000";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, top);
-        ctx.lineTo(x, bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        const triSize = 5;
-        ctx.fillStyle = "#000";
-        ctx.beginPath();
-        ctx.moveTo(x, top - triSize);
-        ctx.lineTo(x - triSize, top);
-        ctx.lineTo(x + triSize, top);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(x, bottom + triSize);
-        ctx.lineTo(x - triSize, bottom);
-        ctx.lineTo(x + triSize, bottom);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      },
-    };
+          ctx.beginPath();
+          ctx.moveTo(x, bottom + triSize);
+          ctx.lineTo(x - triSize, bottom);
+          ctx.lineTo(x + triSize, bottom);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        },
+      };
 
     function renderChart(series = [], account = {}, profile = {}) {
       if (!pfChartCanvas || typeof Chart === "undefined") return;
@@ -1321,7 +1282,7 @@
             },
           },
         },
-        plugins: [pfSeekPlugin],
+        plugins: [window.pfSeekPlugin],
       });
 
       const todayChange = data.length > 1 ? data[data.length - 1] - data[data.length - 2] : 0;
