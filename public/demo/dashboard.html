@@ -1407,7 +1407,24 @@
       }
 
       const label = fundsAccount.selectedOptions?.[0]?.textContent?.trim() || "selected account";
-      pushToast(`Requested ${formatMoney(amount)} for ${label}.`, "ok");
+      const baseBalance = Number(latestAccount?.balance ?? latestAccount?.equity ?? latestProfile?.balance ?? 0);
+      const baseEquity = Number(latestAccount?.equity ?? baseBalance);
+      const nowIso = new Date().toISOString();
+
+      latestAccount = {
+        ...latestAccount,
+        id: latestAccount?.id || accountId,
+        balance: (Number.isFinite(baseBalance) ? baseBalance : 0) + amount,
+        equity: (Number.isFinite(baseEquity) ? baseEquity : 0) + amount,
+        updated_at: nowIso,
+      };
+
+      latestProfile = { ...(latestProfile || {}), balance: latestAccount.balance };
+
+      renderAccount(latestAccount, currentUser?.id || accountId);
+      refreshChart(latestProfile, latestAccount);
+
+      pushToast(`Added ${formatMoney(amount)} to ${label}.`, "ok");
       closeFundsModal();
     }
 
