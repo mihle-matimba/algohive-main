@@ -409,13 +409,8 @@
 
     // ======= Auth guard =======
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const redirectUrl = encodeURIComponent(window.location.href);
-      window.location.href = `/auth.html?tab=in&redirect=${redirectUrl}`;
-      throw new Error("Redirecting to auth");
-    } else {
-      const me = await supabase.auth.getUser();
-      state.user = me.data.user;
+    if (session?.user) {
+      state.user = session.user;
     }
 
     // ======= UI bindings =======
@@ -545,7 +540,11 @@
         if (!userId) {
           const me = await supabase.auth.getUser();
           userId = me.data.user?.id;
-          if (!userId) throw new Error('Not signed in');
+        }
+
+        // If no authenticated user, fall back to an anonymous identifier
+        if (!userId) {
+          userId = crypto.randomUUID();
         }
 
         const ts = Date.now();
