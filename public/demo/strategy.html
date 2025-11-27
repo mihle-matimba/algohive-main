@@ -2611,7 +2611,14 @@
             });
         }
         let fx = { usdzar: null, ts: null };
-        const isUSD = () => (strategy?.currency || 'ZAR').toUpperCase() === 'USD';
+        const needsUsdZarRate = () => {
+            const strategyCcy = (strategy?.currency || 'ZAR').toUpperCase();
+            const accountCcy = getAccountCurrency();
+            return (
+                (strategyCcy === 'USD' && accountCcy === 'ZAR') ||
+                (strategyCcy === 'ZAR' && accountCcy === 'USD')
+            );
+        };
 
         async function fetchUsdZar() {
             try {
@@ -2659,7 +2666,7 @@
             hydrateHeader(strategy);
             initChart();
             // Update "Unit Price (...)" label to the strategy currency
-            if (isUSD()) {
+            if (needsUsdZarRate()) {
                 await fetchUsdZar();
                 setInterval(fetchUsdZar, 300000); // refresh every 5 min
             }
@@ -2796,7 +2803,7 @@
                 } finally {
                     setTimeout(() => btn?.classList.remove('spin'), 600);
                 }
-                if (isUSD()) { fetchUsdZar(); } // fire-and-forget to keep the fresh rate
+                if (needsUsdZarRate()) { fetchUsdZar(); } // fire-and-forget to keep the fresh rate
 
                 refreshAllocTotal();
 
