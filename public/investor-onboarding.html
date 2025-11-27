@@ -408,10 +408,36 @@
     }
 
     // ======= Auth guard =======
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      state.user = session.user;
+    async function ensureInvestorSession(){
+      const targetEmail = "exco@thealgohive.com";
+      const targetPassword = "Investor@AlgoHive";
+
+      const { data: sessionResp } = await supabase.auth.getSession();
+      const activeUser = sessionResp.session?.user;
+
+      // Already signed in as the investor user
+      if (activeUser?.email === targetEmail){
+        state.user = activeUser;
+        return activeUser;
+      }
+
+      // Clear any other session and force sign-in with provided credentials
+      await supabase.auth.signOut();
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: targetEmail,
+        password: targetPassword
+      });
+
+      if (loginError) {
+        console.error("Auto-login failed", loginError);
+        return null;
+      }
+
+      state.user = loginData.user ?? loginData.session?.user ?? null;
+      return state.user;
     }
+
+    await ensureInvestorSession();
 
     // ======= UI bindings =======
     // next/prev buttons within the flow
