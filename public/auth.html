@@ -149,6 +149,7 @@
           </button>
         </div>
         <p id="live-note" class="hidden text-sm font-semibold text-amber-700">Will Require Additional Verification</p>
+        <p id="live-status" class="hidden text-sm font-semibold text-rose-700">currently under maintenance</p>
       </section>
 
         <!-- Messages -->
@@ -738,7 +739,9 @@
     const signupConfirm = document.getElementById("signup-confirm-password");
     const confirmHint = document.getElementById("confirm-hint");
     const liveNote = document.getElementById("live-note");
+    const liveStatus = document.getElementById("live-status");
     const accountButtons = Array.from(document.querySelectorAll("[data-account]"));
+    const inBtn = fIn.querySelector('button[type="submit"]');
     let accountType = "live";
     let currentTab = "in";
 
@@ -748,6 +751,15 @@
       const show = accountType === "live" && currentTab === "up";
       liveNote.classList.toggle("hidden", !show);
       liveNote.textContent = show ? "Will Require Additional Verification" : "";
+      const liveMaintenance = accountType === "live";
+      if (liveStatus) {
+        liveStatus.classList.toggle("hidden", !liveMaintenance);
+        liveStatus.textContent = liveMaintenance ? "currently under maintenance" : "";
+      }
+      if (inBtn) {
+        inBtn.disabled = liveMaintenance;
+        inBtn.textContent = liveMaintenance ? "Unavailable (maintenance)" : "Log in";
+      }
     }
 
     function setAccountType(type = "live") {
@@ -858,7 +870,6 @@
     toggleSignupBtn();
 
     // ---- Sign in ----
-    const inBtn = fIn.querySelector('button[type="submit"]');
     fIn.addEventListener("submit", async (e) => {
       e.preventDefault(); clearMsg();
       const email = e.target.email.value.trim();
