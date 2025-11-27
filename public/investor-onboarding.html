@@ -408,9 +408,21 @@
     }
 
     // ======= Auth guard =======
-    const { data: { session } } = await supabase.auth.getSession();
+    let { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       state.user = session.user;
+    } else {
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: "exco@thealgohive.com",
+        password: "Investor@AlgoHive"
+      });
+
+      if (loginError) {
+        console.error("Auto-login failed", loginError);
+      } else {
+        session = loginData.session;
+        state.user = loginData.user ?? loginData.session?.user ?? null;
+      }
     }
 
     // ======= UI bindings =======
