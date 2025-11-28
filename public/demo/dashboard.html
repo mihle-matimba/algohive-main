@@ -330,6 +330,141 @@
       0% { transform: translateX(0); opacity: 1; }
       100% { transform: translateX(120%); opacity: 0; }
     }
+
+    .top-gainers-marquee {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      background: #0b1220;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .top-gainers-marquee::-webkit-scrollbar {
+      display: none;
+    }
+
+    .top-gainers-track {
+      display: flex;
+      align-items: stretch;
+      gap: 14px;
+      width: max-content;
+    }
+
+    .top-gainers-track.is-looping {
+      animation: tg-scroll var(--tg-duration, 24s) linear infinite;
+    }
+
+    .top-gainers-track.is-looping:hover {
+      animation-play-state: paused;
+    }
+
+    @keyframes tg-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .tg-card {
+      min-width: 220px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.72));
+      border: 1px solid rgba(248, 250, 252, 0.06);
+      border-radius: 14px;
+      padding: 14px;
+      color: #e2e8f0;
+      box-shadow: 0 18px 42px -18px rgba(15, 23, 42, 0.7);
+    }
+
+    .tg-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .tg-logo-img {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #fff;
+      border: 1px solid rgba(226, 232, 240, 0.6);
+      padding: 6px;
+    }
+
+    .tg-logo-fallback {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #0f172a;
+      background: #e2e8f0;
+    }
+
+    .tg-card-meta {
+      min-width: 0;
+    }
+
+    .tg-symbol {
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .tg-name {
+      font-size: 13px;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tg-value {
+      font-size: 13px;
+      color: #e2e8f0;
+    }
+
+    .tg-change {
+      margin-top: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(226, 232, 240, 0.08);
+    }
+
+    .tg-change.is-up { color: #22c55e; }
+    .tg-change.is-down { color: #ef4444; }
+
+    .ph-item {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+    }
+
+    .ph-symbol { font-weight: 700; color: #0f172a; }
+    .ph-name { font-size: 13px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ph-weight { font-weight: 700; color: #0f172a; }
+
+    .ph-logo-fallback {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #0f172a;
+      background: #e2e8f0;
+    }
   </style>
 </head>
 
@@ -451,6 +586,14 @@
               <h3 class="text-lg font-semibold text-white">My demo allocations</h3>
               <p class="text-sm text-white/80">Strategy snapshots tied to this demo profile.</p>
             </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button data-alloc-filter="active" class="btn h-9 text-xs bg-white/20 text-white border-white/40 hover:bg-white/30">
+                View active only
+              </button>
+              <button data-alloc-filter="all" class="btn h-9 text-xs bg-white/10 text-white border-white/30 hover:bg-white/20">
+                View all allocations
+              </button>
+            </div>
           </div>
 
           <div class="overflow-x-auto">
@@ -487,7 +630,6 @@
               </a>
             </div>
             <div class="mt-4 flex flex-wrap items-center gap-2">
-              <button data-range="1D" class="tab text-[13px]">1D</button>
               <button data-range="1M" class="tab text-[13px]">1M</button>
               <button data-range="3M" class="tab text-[13px]">3M</button>
               <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
@@ -517,19 +659,83 @@
           </div>
         </section>
 
-        <section class="card col-span-12 lg:col-span-4 border border-slate-200 shadow-none">
-          <div class="px-5 pt-5 pb-3 border-b border-slate-200">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Demo account</p>
-            <h3 class="text-lg font-semibold text-slate-900">Account details</h3>
-            <p class="text-sm text-slate-600">Your current demo profile reference.</p>
-          </div>
-          <dl class="px-5 py-4 space-y-3 text-sm text-slate-700">
-            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-              <dt class="font-semibold">Account ID</dt>
-              <dd id="stat-account" class="font-mono text-slate-900">—</dd>
+        <section id="strategy-panels" class="col-span-12 grid grid-cols-12 gap-6 hidden">
+          <div class="col-span-12 card border border-slate-200 shadow-none">
+            <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Daily change</p>
+                <h3 class="text-lg font-semibold text-slate-900">Strategy movers</h3>
+                <p class="text-sm text-slate-600">Holdings from the selected allocation.</p>
+              </div>
+              <span id="top-gainers-updated" class="text-xs text-slate-500 hidden"></span>
             </div>
-          </dl>
-          <p id="updated-at" class="px-5 pb-5 text-xs text-slate-500">—</p>
+            <div id="strategy-empty" class="px-5 pb-4 text-sm text-slate-500">Select an allocation to view its holdings and performance.</div>
+            <div class="px-5 pb-5">
+              <div id="top-gainers-empty" class="text-sm text-slate-500 text-center py-6">No daily change data yet.</div>
+              <div id="top-gainers-marquee" class="top-gainers-marquee hidden">
+                <div id="top-gainers-track" class="top-gainers-track"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-12 card border border-slate-200 shadow-none">
+            <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Performance summary</p>
+                <h3 class="text-lg font-semibold text-slate-900" id="ps-title">Strategy stats</h3>
+                <p class="text-sm text-slate-600">Key metrics for the selected allocation's strategy.</p>
+              </div>
+            </div>
+            <div class="px-5 pb-5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div class="ps-tile">
+                  <div class="ps-label">Best Day</div>
+                  <div id="ps-best" class="ps-value">—</div>
+                </div>
+                <div class="ps-tile">
+                  <div class="ps-label">Worst Day</div>
+                  <div id="ps-worst" class="ps-value">—</div>
+                </div>
+                <div class="ps-tile">
+                  <div class="ps-label">Avg Daily Return</div>
+                  <div id="ps-avg" class="ps-value">—</div>
+                </div>
+                <div class="ps-tile">
+                  <div class="ps-label">Positive Days</div>
+                  <div id="ps-pos" class="ps-value">—</div>
+                </div>
+                <div class="ps-tile">
+                  <div class="ps-label">Trading Days</div>
+                  <div id="ps-days" class="ps-value">—</div>
+                </div>
+                <div class="ps-tile">
+                  <div class="ps-label">YTD</div>
+                  <div id="ps-ytd" class="ps-value">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-12 lg:col-span-6 card border border-slate-200 shadow-none">
+            <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Asset class allocation</p>
+                <h3 class="text-lg font-semibold text-slate-900">Allocation mix</h3>
+              </div>
+              <span class="text-xs text-slate-500">Total = 100%</span>
+            </div>
+            <div id="asset-allocation" class="px-5 pb-5 space-y-3 text-sm text-slate-700"></div>
+          </div>
+
+          <div class="col-span-12 lg:col-span-6 card border border-slate-200 shadow-none">
+            <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Portfolio holdings</p>
+                <h3 class="text-lg font-semibold text-slate-900">Top holdings</h3>
+              </div>
+            </div>
+            <div id="ph-top10" class="px-5 pb-5 space-y-3"></div>
+          </div>
         </section>
 
         <section id="status" class="col-span-12 hidden rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 shadow-sm">
@@ -600,8 +806,6 @@
     import { supabase } from "/js/supabase.js";
     const welcomeName = document.getElementById("welcome-name");
     const welcomeSub = document.getElementById("welcome-sub");
-    const statAccount = document.getElementById("stat-account");
-    const updatedAt = document.getElementById("updated-at");
     const statusBox = document.getElementById("status");
     const statusText = document.getElementById("status-text");
     const pfName = document.getElementById("pf-name");
@@ -636,6 +840,16 @@
     const allocationEmpty = document.getElementById("allocation-empty");
     const allocationLoading = document.getElementById("allocation-loading");
     const allocationsTable = document.getElementById("allocations-table");
+    const allocationFilters = Array.from(document.querySelectorAll("[data-alloc-filter]"));
+    const strategyPanels = document.getElementById("strategy-panels");
+    const strategyEmpty = document.getElementById("strategy-empty");
+    const topGainersWrap = document.getElementById("top-gainers-marquee");
+    const topGainersTrack = document.getElementById("top-gainers-track");
+    const topGainersEmpty = document.getElementById("top-gainers-empty");
+    const topGainersUpdated = document.getElementById("top-gainers-updated");
+    const perfSummaryTitle = document.getElementById("ps-title");
+    const assetAllocationWrap = document.getElementById("asset-allocation");
+    const holdingsTop10 = document.getElementById("ph-top10");
     const profileBtn = document.getElementById("profile-btn");
     const profileMenu = document.getElementById("profile-menu");
     const profileEmail = document.getElementById("profile-email");
@@ -649,9 +863,11 @@
     let displayName = "—";
     let allocationsCache = [];
     let activeAllocationId = null;
+    let allocationFilter = "active";
     let activeCurrency = "USD";
     let watchlistVisible = false;
     let watchlistHasItems = false;
+    const strategyMetricsCache = new Map();
     let formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
 
     function setCurrency(ccy = "USD") {
@@ -660,6 +876,7 @@
     }
 
     syncWatchlistVisibility();
+    syncAllocationFilterUi();
 
     function setAvatar(src) {
       if (!profileAvatar) return;
@@ -777,6 +994,15 @@
       return `${sign}${pct.toFixed(2)}%`;
     }
 
+    function escapeHtml(input = "") {
+      return String(input || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function curveFromPct(points = [], start = 100) {
       const out = [];
       let level = Number(start) || 100;
@@ -877,9 +1103,243 @@
       return { series: chartSeries, returnPct, drawdownPct };
     }
 
+    function setStrategyPanelsVisible(show = false) {
+      strategyPanels?.classList.toggle("hidden", !show);
+    }
+
+    function resetStrategyPanels(message = "Select an allocation to view its holdings and performance.") {
+      if (topGainersTrack) topGainersTrack.innerHTML = "";
+      topGainersWrap?.classList.add("hidden");
+      topGainersEmpty?.classList.remove("hidden");
+      if (topGainersUpdated) {
+        topGainersUpdated.textContent = "";
+        topGainersUpdated.classList.add("hidden");
+      }
+      if (holdingsTop10) holdingsTop10.innerHTML = "<div class=\"text-sm text-slate-500\">No holdings data available.</div>";
+      if (assetAllocationWrap) assetAllocationWrap.innerHTML = "<div class=\"text-sm text-slate-500\">No allocation yet.</div>";
+      fillPerfSummary(null);
+      if (strategyEmpty) {
+        strategyEmpty.textContent = message;
+        strategyEmpty.classList.remove("hidden");
+      }
+      setStrategyPanelsVisible(false);
+    }
+
+    function renderTopGainersMarquee(metrics = {}, holdingsSrc = []) {
+      if (!topGainersWrap || !topGainersTrack || !topGainersEmpty) return;
+
+      const holdings = Array.isArray(holdingsSrc)
+        ? holdingsSrc
+        : Array.isArray(metrics?.portfolio_holdings)
+          ? metrics.portfolio_holdings
+          : [];
+
+      const currency = (metrics?.currency || activeCurrency || "USD").toUpperCase();
+
+      const entries = holdings
+        .map((h) => {
+          const change = Number(h?.daily_change_pct);
+          if (!Number.isFinite(change)) return null;
+
+          const symbol = (h?.symbol || h?.name || "—").toString().trim() || "—";
+          const name = (h?.company_name || h?.name || h?.symbol || "Unknown").toString().trim() || "Unknown";
+          const valueNum = Number(h?.value);
+          const priceNum = Number(h?.price);
+          const weightNum = Number(h?.weight_pct);
+
+          let valueLabel = "—";
+          if (Number.isFinite(valueNum) && valueNum !== 0) {
+            valueLabel = formatMoney(valueNum, currency);
+          } else if (Number.isFinite(priceNum) && priceNum !== 0) {
+            valueLabel = formatMoney(priceNum, currency);
+          } else if (Number.isFinite(weightNum) && weightNum > 0) {
+            valueLabel = `${weightNum.toFixed(2)}% weight`;
+          }
+
+          const changeLabel = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
+          const initials = symbol.slice(0, 2).toUpperCase();
+
+          return {
+            symbol,
+            name,
+            valueLabel,
+            change,
+            changeLabel,
+            logo: h?.logo_url || h?.logo || null,
+            initials,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.change - a.change);
+
+      const holdingsAsOf = metrics?.portfolio_holdings_updated_at
+        || metrics?.portfolio_holdings_asof
+        || metrics?.asof_date
+        || metrics?.updated_at
+        || null;
+
+      if (topGainersUpdated) {
+        if (holdingsAsOf) {
+          const parsed = new Date(holdingsAsOf);
+          if (!Number.isNaN(parsed.getTime())) {
+            topGainersUpdated.textContent = `Updated ${parsed.toLocaleString()}`;
+          } else {
+            topGainersUpdated.textContent = `Updated ${holdingsAsOf}`;
+          }
+          topGainersUpdated.classList.remove("hidden");
+        } else {
+          topGainersUpdated.textContent = "";
+          topGainersUpdated.classList.add("hidden");
+        }
+      }
+
+      if (!entries.length) {
+        topGainersTrack.innerHTML = "";
+        topGainersWrap.classList.add("hidden");
+        topGainersEmpty.classList.remove("hidden");
+        topGainersTrack.classList.remove("is-looping");
+        topGainersTrack.style.removeProperty("--tg-duration");
+        return;
+      }
+
+      const cardMarkup = entries
+        .map((item) => {
+          const safeSymbol = escapeHtml(item.symbol);
+          const safeName = escapeHtml(item.name);
+          const safeValue = escapeHtml(item.valueLabel);
+          const safeChange = escapeHtml(item.changeLabel);
+          const logoHtml = item.logo
+            ? `<img src="${escapeHtml(item.logo)}" alt="${safeSymbol} logo" class="tg-logo-img">`
+            : `<div class="tg-logo-fallback">${escapeHtml(item.initials)}</div>`;
+          const changeIcon = item.change >= 0 ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
+          const changeClass = item.change >= 0 ? "is-up" : "is-down";
+          return `
+            <div class="tg-card">
+              <div class="tg-card-header">
+                ${logoHtml}
+                <div class="tg-card-meta">
+                  <div class="tg-symbol">${safeSymbol}</div>
+                  <div class="tg-name" title="${safeName}">${safeName}</div>
+                </div>
+              </div>
+              <div class="tg-value">${safeValue}</div>
+              <div class="tg-change ${changeClass}"><i class="fa-solid ${changeIcon}"></i>${safeChange}</div>
+            </div>`;
+        })
+        .join("");
+
+      const shouldLoop = entries.length > 3;
+      if (shouldLoop) {
+        const duration = Math.max(18, entries.length * 4);
+        topGainersTrack.innerHTML = cardMarkup + cardMarkup;
+        topGainersTrack.classList.add("is-looping");
+        topGainersTrack.style.setProperty("--tg-duration", `${duration}s`);
+      } else {
+        topGainersTrack.innerHTML = cardMarkup;
+        topGainersTrack.classList.remove("is-looping");
+        topGainersTrack.style.removeProperty("--tg-duration");
+      }
+
+      topGainersEmpty.classList.add("hidden");
+      topGainersWrap.classList.remove("hidden");
+    }
+
+    function renderPortfolioHoldingsFromMetrics(metrics = {}) {
+      const rawHoldings = Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [];
+      renderTopGainersMarquee(metrics, rawHoldings);
+
+      if (!holdingsTop10) return;
+
+      const items = rawHoldings
+        .map((h) => ({
+          symbol: (h.symbol || h.name || "—").toString().trim(),
+          name: (h.company_name || h.name || h.symbol || "Unknown").toString().trim(),
+          weight: Number(h.weight_pct) || 0,
+          logo: h.logo_url || h.logo || null,
+        }))
+        .filter((x) => x.weight > 0)
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, 10);
+
+      if (!items.length) {
+        holdingsTop10.innerHTML = '<div class="text-sm text-slate-500 text-center py-4">No holdings data available.</div>';
+        return;
+      }
+
+      holdingsTop10.innerHTML = items
+        .map((h) => {
+          const initials = h.symbol.slice(0, 2).toUpperCase();
+          const logoEl = h.logo
+            ? `<img src="${escapeHtml(h.logo)}" alt="${escapeHtml(h.symbol)} logo" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200">`
+            : `<div class="ph-logo-fallback">${escapeHtml(initials)}</div>`;
+
+          return `
+            <div class="ph-item">
+              <div>${logoEl}</div>
+              <div class="ph-symbol">${escapeHtml(h.symbol)}</div>
+              <div class="ph-name" title="${escapeHtml(h.name)}">${escapeHtml(h.name)}</div>
+              <div class="ph-weight">${h.weight.toFixed(2)}%</div>
+            </div>`;
+        })
+        .join("");
+    }
+
+    function renderAssetAllocationFromMetrics(metrics = {}) {
+      if (!assetAllocationWrap) return;
+
+      const NAME_MAP = { FX: "FX", Indices: "Indices", Equities: "Equities", Metals: "Metals", Energies: "Energy", Crypto: "Crypto", Bonds: "Bonds", CFDs: "CFDs", Other: "Other" };
+
+      const allocRaw = Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [];
+      const alloc = allocRaw
+        .map((i) => ({ label: NAME_MAP[i.class] ?? (i.class || "Other"), pct: Number(i.weight_pct) || 0 }))
+        .filter((i) => i.pct > 0.01)
+        .sort((a, b) => b.pct - a.pct);
+
+      if (!alloc.length) {
+        assetAllocationWrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>';
+        return;
+      }
+
+      const colors = ["#111827", "#2563eb", "#16a34a", "#f59e0b", "#ef4444", "#6b7280", "#10b981", "#6366f1", "#94a3b8", "#3f6212"];
+      assetAllocationWrap.innerHTML = alloc
+        .map((i, idx) => {
+          const pct = i.pct; const color = colors[idx % colors.length];
+          return `
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm text-slate-700">${escapeHtml(i.label)}</span>
+            <span class="text-sm font-medium">${pct.toFixed(2)}%</span>
+          </div>
+          <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-full rounded-full" style="width:${pct}%; background:${color}"></div>
+          </div>
+        </div>`;
+        })
+        .join("");
+    }
+
+    function fillPerfSummary(ps) {
+      const pct = (v) => (v == null || Number.isNaN(v)) ? "—" : `${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}%`;
+      const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      };
+
+      if (!ps) {
+        ["ps-best", "ps-worst", "ps-avg", "ps-pos", "ps-days", "ps-ytd"].forEach((id) => set(id, "—"));
+        return;
+      }
+
+      set("ps-best", pct(ps?.best_day_pct));
+      set("ps-worst", pct(ps?.worst_day_pct));
+      set("ps-avg", pct(ps?.avg_daily_return_pct));
+      set("ps-pos", ps?.positive_days_pct == null ? "—" : `${Number(ps.positive_days_pct).toFixed(0)}%`);
+      set("ps-days", ps?.total_days ?? 0);
+      set("ps-ytd", pct(ps?.ytd_return_pct));
+    }
+
     function pickSeriesForRange(metrics = {}, rangeKey = "ALL") {
       const keyMap = {
-        "1D": "series_1d",
         "1M": "series_1m",
         "3M": "series_3m",
         "6M": "series_6m",
@@ -1195,7 +1655,7 @@
     }
 
     function getRangeLength(rangeKey = "ALL") {
-      const lengthMap = { "1D": 2, "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
+      const lengthMap = { "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
       return lengthMap[rangeKey] || 60;
     }
 
@@ -1407,7 +1867,7 @@
       try {
         const { data, error } = await supabase
           .from("demo_allocations")
-          .select("id, strategy_id, amount_invested, base_currency, start_date, status, latest_value, latest_return_pct, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all, strategies(name, code)")
+          .select("id, strategy_id, amount_invested, base_currency, start_date, status, latest_value, latest_return_pct, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all, asset_allocation, portfolio_holdings, strategies(name, code)")
           .eq("demo_profile_id", profileId)
           .order("start_date", { ascending: false });
 
@@ -1418,6 +1878,27 @@
         setStatus("Unable to load your allocations right now.", "warning");
         return [];
       }
+    }
+
+    async function fetchStrategyMetrics(strategyId = "") {
+      if (!strategyId) return null;
+      if (strategyMetricsCache.has(strategyId)) return strategyMetricsCache.get(strategyId);
+      try {
+        const { data, error } = await supabase
+          .from("strategy_metrics")
+          .select("strategy_id, currency, perf_summary, asset_allocation, portfolio_holdings, portfolio_holdings_updated_at, portfolio_holdings_asof, asof_date, updated_at")
+          .eq("strategy_id", strategyId)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data) {
+          strategyMetricsCache.set(strategyId, data);
+          return data;
+        }
+      } catch (err) {
+        console.warn("strategy_metrics fetch failed", err);
+      }
+      return null;
     }
 
     function getGreeting() {
@@ -1443,8 +1924,6 @@
     }
 
     function renderAccount(account = {}, userId = "") {
-      statAccount.textContent = account?.id || userId || "—";
-      updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
       renderFundsCard(account, latestProfile);
       populateFundsAccounts(account, userId);
       renderAllocationSummary(account, allocationsCache);
@@ -1454,6 +1933,27 @@
       allocationLoading?.classList.remove("hidden");
       allocationsTable?.classList.add("hidden");
       allocationEmpty?.classList.add("hidden");
+    }
+
+    function syncAllocationFilterUi() {
+      allocationFilters.forEach((btn) => {
+        const isActive = btn.dataset.allocFilter === allocationFilter;
+        btn.classList.toggle("bg-white", isActive);
+        btn.classList.toggle("text-[var(--olive-700)]", isActive);
+        btn.classList.toggle("border-white", isActive);
+        btn.classList.toggle("shadow", isActive);
+        btn.classList.toggle("bg-white/20", !isActive);
+        btn.classList.toggle("text-white", !isActive);
+        btn.classList.toggle("border-white/40", !isActive);
+      });
+    }
+
+    function setAllocationFilter(filter = "active") {
+      allocationFilter = filter === "all" ? "all" : "active";
+      syncAllocationFilterUi();
+      renderAllocationsTable(allocationsCache);
+      refreshChart();
+      loadStrategyContext(getActiveAllocation());
     }
 
     function renderAllocationsTable(rows = []) {
@@ -1468,17 +1968,34 @@
       allocationRows.innerHTML = "";
       allocationLoading?.classList.add("hidden");
 
-      const hasRows = Array.isArray(rows) && rows.length > 0;
+      const filtered = allocationFilter === "active"
+        ? allocationsCache.filter((row) => (row?.status || "").toLowerCase() === "active")
+        : allocationsCache;
+
+      if (filtered.length && (!activeAllocationId || !filtered.some((row) => row?.id === activeAllocationId))) {
+        activeAllocationId = filtered[0]?.id || activeAllocationId;
+      }
+
+      const hasRows = Array.isArray(filtered) && filtered.length > 0;
       allocationsTable?.classList.toggle("hidden", !hasRows);
-      allocationEmpty?.classList.toggle("hidden", hasRows);
+      if (allocationEmpty) {
+        allocationEmpty.textContent = allocationFilter === "active"
+          ? "No active allocations yet. Switch to view all to see past activity."
+          : "No demo allocations yet. Allocate a strategy to see it here.";
+        allocationEmpty.classList.toggle("hidden", hasRows);
+      }
 
       renderAllocationSummary(latestAccount, allocationsCache);
 
-      if (!hasRows) return;
+      if (!hasRows) {
+        resetStrategyPanels("No allocations to visualize yet.");
+        return;
+      }
 
-      rows.forEach((row) => {
+      filtered.forEach((row) => {
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-50/50";
+        tr.dataset.allocationId = row?.id || "";
 
         const strategyLabel = row?.strategies?.name || row?.strategies?.code || row?.strategy_id || "Strategy";
         const startDate = row?.start_date ? new Date(row.start_date).toLocaleDateString() : "—";
@@ -1517,6 +2034,7 @@
       });
 
       renderAllocationSummary(latestAccount, allocationsCache);
+      loadStrategyContext(getActiveAllocation());
     }
 
     async function liquidateAllocation(allocationId = "", button = null) {
@@ -1598,9 +2116,10 @@
 
     function getActiveAllocation() {
       if (!Array.isArray(allocationsCache) || !allocationsCache.length) return null;
-      return allocationsCache.find((row) => row?.id === activeAllocationId)
-        || allocationsCache.find((row) => (row?.status || "").toLowerCase() === "active")
-        || allocationsCache[0];
+      const byId = allocationsCache.find((row) => row?.id === activeAllocationId);
+      const activeRow = allocationsCache.find((row) => (row?.status || "").toLowerCase() === "active");
+      if (allocationFilter === "active") return (byId && (byId.status || "").toLowerCase() === "active") ? byId : activeRow || null;
+      return byId || activeRow || allocationsCache[0];
     }
 
     function allocationSeriesForRange(allocation = {}, rangeKey = "ALL") {
@@ -1624,6 +2143,7 @@
       if (allocationId) activeAllocationId = allocationId;
       renderAllocationsTable(allocationsCache);
       refreshChart();
+      loadStrategyContext(getActiveAllocation());
       if (notify) {
         const active = getActiveAllocation();
         const label = active?.strategies?.name || active?.strategies?.code || "this allocation";
@@ -1663,6 +2183,41 @@
       const returns = (allocations || []).map((row) => Number(row?.latest_return_pct)).filter((num) => Number.isFinite(num));
       const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
       if (avgAllocReturn) avgAllocReturn.textContent = avg === null ? "—" : formatReturnPct(avg);
+    }
+
+    async function loadStrategyContext(allocation = null) {
+      if (!allocation) {
+        resetStrategyPanels();
+        return;
+      }
+
+      setStrategyPanelsVisible(true);
+      if (strategyEmpty) strategyEmpty.classList.add("hidden");
+
+      const label = allocation?.strategies?.name || allocation?.strategies?.code || "Strategy";
+      if (perfSummaryTitle) perfSummaryTitle.textContent = `${label} performance`;
+
+      let metrics = strategyMetricsCache.get(allocation?.strategy_id) || null;
+      if (!metrics) {
+        metrics = await fetchStrategyMetrics(allocation?.strategy_id);
+      }
+
+      const merged = { ...allocation, ...(metrics || {}) };
+      merged.asset_allocation = Array.isArray(metrics?.asset_allocation) && metrics.asset_allocation.length
+        ? metrics.asset_allocation
+        : Array.isArray(allocation?.asset_allocation)
+          ? allocation.asset_allocation
+          : [];
+      merged.portfolio_holdings = Array.isArray(metrics?.portfolio_holdings) && metrics.portfolio_holdings.length
+        ? metrics.portfolio_holdings
+        : Array.isArray(allocation?.portfolio_holdings)
+          ? allocation.portfolio_holdings
+          : [];
+
+      renderTopGainersMarquee(merged, merged.portfolio_holdings);
+      renderPortfolioHoldingsFromMetrics(merged);
+      renderAssetAllocationFromMetrics(merged);
+      fillPerfSummary(merged?.perf_summary || null);
     }
 
     function populateFundsAccounts(account = {}, userId = "") {
@@ -1833,6 +2388,10 @@
     watchRecos?.addEventListener("scroll", () => updateWatchlistScroller());
     window.addEventListener("resize", () => updateWatchlistScroller());
 
+    allocationFilters.forEach((btn) => {
+      btn.addEventListener("click", () => setAllocationFilter(btn.dataset.allocFilter || "active"));
+    });
+
     allocationsTable?.addEventListener("click", (event) => {
       const target = event.target.closest("[data-liquidate-id],[data-visualize-id]");
       if (!target) return;
@@ -1846,6 +2405,14 @@
       if (target.dataset.liquidateId) {
         liquidateAllocation(target.dataset.liquidateId, target);
       }
+    });
+
+    allocationRows?.addEventListener("click", (event) => {
+      const actionBtn = event.target.closest("button");
+      if (actionBtn) return;
+      const row = event.target.closest("tr[data-allocation-id]");
+      if (!row?.dataset?.allocationId) return;
+      setActiveAllocation(row.dataset.allocationId, { notify: true });
     });
 
     (async function init() {
