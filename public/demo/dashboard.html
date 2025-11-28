@@ -212,6 +212,40 @@
       pointer-events: none;
     }
 
+    .watch-marquee-track {
+      display: flex;
+      gap: 12px;
+      overflow: hidden;
+      position: relative;
+      isolation: isolate;
+      mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    }
+
+    .watch-marquee-inner {
+      display: flex;
+      gap: 12px;
+      min-width: max-content;
+      animation: marquee 22s linear infinite;
+    }
+
+    .watch-marquee-track:hover .watch-marquee-inner {
+      animation-play-state: paused;
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .allocation-card {
+      background: radial-gradient(circle at 10% 20%, rgba(74, 222, 128, 0.18), transparent 35%),
+        radial-gradient(circle at 90% 10%, rgba(74, 222, 128, 0.18), transparent 30%),
+        linear-gradient(135deg, #0f1f13, #1d3b24);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      box-shadow: 0 24px 60px -32px rgba(16, 185, 129, 0.45);
+      color: #f8fafc;
+    }
+
     .chip {
       display: inline-flex;
       align-items: center;
@@ -381,7 +415,7 @@
           </div>
         </section>
 
-        <section id="watchlist-section" class="card col-span-12 border border-slate-200 shadow-none hidden">
+        <section id="watchlist-section" class="card col-span-12 border border-slate-200 shadow-none hidden overflow-hidden">
           <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--olive-700)]">Watchlist</p>
@@ -390,18 +424,10 @@
             <div class="flex items-center gap-2">
               <a href="/demo/strategies.html"
                 class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
-              <button type="button" id="watch-prev"
-                class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]"
-                aria-label="Previous strategy">‹</button>
-              <button type="button" id="watch-next"
-                class="hidden h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[var(--olive)] hover:text-[var(--olive-700)]"
-                aria-label="Next strategy">›</button>
             </div>
           </div>
           <div class="px-5 pb-5 relative">
-            <div id="watch-fade-left" class="watch-fade absolute inset-y-3 left-0 w-10 bg-gradient-to-r from-white to-transparent hidden lg:block"></div>
-            <div id="watch-fade-right" class="watch-fade absolute inset-y-3 right-0 w-10 bg-gradient-to-l from-white to-transparent hidden lg:block"></div>
-            <div id="watchlist-recos" class="no-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2 pr-1 snap-x snap-mandatory"></div>
+            <div id="watchlist-recos" class="watch-marquee-track"></div>
             <p id="watchlist-empty" class="hidden text-sm text-slate-500">Pick strategies during onboarding to see them here.</p>
             <div class="mt-4 sm:hidden">
               <a href="/demo/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
@@ -409,7 +435,37 @@
           </div>
         </section>
 
-        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-8 min-w-0">
+        <section class="card col-span-12 border border-slate-200 shadow-none allocation-card">
+          <div class="flex flex-col gap-1 border-b border-white/30 px-5 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/80">Allocations</p>
+              <h3 class="text-lg font-semibold text-white">My demo allocations</h3>
+              <p class="text-sm text-white/80">Strategy snapshots tied to this demo profile.</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table id="allocations-table" class="min-w-full divide-y divide-white/20 text-sm">
+              <thead class="bg-white/10 text-left text-[13px] font-semibold text-white/90">
+                <tr>
+                  <th class="px-5 py-3">Strategy</th>
+                  <th class="px-5 py-3">Amount</th>
+                  <th class="px-5 py-3">Currency</th>
+                  <th class="px-5 py-3">Start date</th>
+                  <th class="px-5 py-3">Status</th>
+                  <th class="px-5 py-3">Latest value</th>
+                  <th class="px-5 py-3">Return</th>
+                  <th class="px-5 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="allocation-rows" class="divide-y divide-white/10 bg-white/5"></tbody>
+            </table>
+            <p id="allocation-loading" class="px-5 py-4 text-sm text-white/80">Loading your allocations…</p>
+            <p id="allocation-empty" class="hidden px-5 py-4 text-sm text-white/80">No demo allocations yet. Allocate a strategy to see it here.</p>
+          </div>
+        </section>
+
+        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 min-w-0">
           <div class="px-5 pt-5">
             <div class="text-[12px] text-slate-500 font-semibold tracking-wide">PAPER PORTFOLIO <span class="mx-1">•</span> <span id="pf-updated">—</span></div>
             <div class="mt-3 mb-4 w-full max-w-xl flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -642,6 +698,8 @@
     let currentUser = null;
     let displayName = "—";
     let subscribedStrategies = [];
+    let allocationsCache = [];
+    let activeAllocationId = null;
     let activeCurrency = "USD";
     let formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
 
@@ -946,18 +1004,10 @@
     }
 
     function updateWatchlistScroller() {
-      if (!watchRecos) return;
-      const maxScroll = Math.max(0, watchRecos.scrollWidth - watchRecos.clientWidth);
-      const hasOverflow = maxScroll > 8;
-      const left = watchRecos.scrollLeft || 0;
-
-      watchPrev?.classList.toggle("hidden", !hasOverflow);
-      watchNext?.classList.toggle("hidden", !hasOverflow);
-      if (watchPrev) watchPrev.disabled = left <= 4;
-      if (watchNext) watchNext.disabled = left >= maxScroll - 4;
-
-      watchFadeLeft?.classList.toggle("hidden", !hasOverflow || left <= 4);
-      watchFadeRight?.classList.toggle("hidden", !hasOverflow || left >= maxScroll - 4);
+      watchPrev?.classList.add("hidden");
+      watchNext?.classList.add("hidden");
+      watchFadeLeft?.classList.add("hidden");
+      watchFadeRight?.classList.add("hidden");
     }
 
     function renderWatchlistCards(items = []) {
@@ -973,7 +1023,12 @@
         return;
       }
 
-      items.forEach((s) => {
+      const primary = document.createElement("div");
+      primary.className = "watch-marquee-inner";
+      const clone = document.createElement("div");
+      clone.className = "watch-marquee-inner";
+
+      const buildCard = (s) => {
         const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : null);
         const perfData = s.performance || derivePerformance(metrics || {});
         const returnVal = Number(perfData?.returnPct);
@@ -1000,7 +1055,7 @@
 
         const card = document.createElement("article");
         card.className =
-          "min-w-[280px] max-w-[340px] flex-shrink-0 snap-start rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-md shadow-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer";
+          "min-w-[240px] max-w-[260px] flex-shrink-0 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-md shadow-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer";
         card.dataset.strategyId = s.id || s.code || "";
         card.innerHTML = `
             <div class="flex items-start justify-between gap-3">
@@ -1026,19 +1081,29 @@
                 : '<div class="flex h-full items-center justify-center text-xs text-slate-500">No equity data yet</div>'}
             </div>
           `;
+        return [card, chartId, series];
+      };
 
-        watchRecos.appendChild(card);
+      items.forEach((s) => {
+        const [card, chartId, series] = buildCard(s);
+        const [dup, dupChartId, dupSeries] = buildCard({ ...s, id: `${s.id || s.code}-dup` });
+        primary.appendChild(card);
+        clone.appendChild(dup);
         card.addEventListener("click", () => {
           const target = card.dataset.strategyId || s.code || s.id;
-          if (target) {
-            window.location.href = `/demo/strategy.html?strategy=${encodeURIComponent(target)}`;
-          }
+          if (target) window.location.href = `/demo/strategy.html?strategy=${encodeURIComponent(target)}`;
+        });
+        dup.addEventListener("click", () => {
+          const target = s.id || s.code;
+          if (target) window.location.href = `/demo/strategy.html?strategy=${encodeURIComponent(target)}`;
         });
         if (series.length) {
-          drawCardChart(chartId, series);
+          requestAnimationFrame(() => drawCardChart(chartId, series));
+          requestAnimationFrame(() => drawCardChart(dupChartId, dupSeries));
         }
       });
 
+      watchRecos.append(primary, clone);
       watchRecos.scrollLeft = 0;
       updateWatchlistScroller();
     }
@@ -1226,6 +1291,11 @@
       return curveFromPct(pctSeries, base);
     }
 
+    function getRangeLength(rangeKey = "ALL") {
+      const lengthMap = { "1D": 2, "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
+      return lengthMap[rangeKey] || 60;
+    }
+
     function buildEquitySeries(profile = {}, account = {}, rangeKey = "ALL") {
       const equityRaw = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0);
       const pnlRaw = Number(account?.pnl ?? 0);
@@ -1236,8 +1306,7 @@
         return Array(7).fill(0);
       }
 
-      const lengthMap = { "1D": 2, "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
-      const len = lengthMap[rangeKey] || 60;
+      const len = getRangeLength(rangeKey);
 
       if (pnl === 0) {
         return Array(len).fill(equity);
@@ -1249,8 +1318,7 @@
 
     function buildFlatAllocationSeries(profile = {}, account = {}, rangeKey = "ALL") {
       const base = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0) || 0;
-      const lengthMap = { "1D": 2, "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
-      const len = lengthMap[rangeKey] || 60;
+      const len = getRangeLength(rangeKey);
       return Array(len).fill(base);
     }
 
@@ -1436,7 +1504,7 @@
       try {
         const { data, error } = await supabase
           .from("demo_allocations")
-          .select("id, strategy_id, amount_invested, base_currency, start_date, status, latest_value, latest_return_pct, strategies(name, code)")
+          .select("id, strategy_id, amount_invested, base_currency, start_date, status, latest_value, latest_return_pct, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all, strategies(name, code)")
           .eq("demo_profile_id", profileId)
           .order("start_date", { ascending: false });
 
@@ -1487,6 +1555,12 @@
     function renderAllocationsTable(rows = []) {
       if (!allocationRows) return;
 
+      allocationsCache = rows || [];
+      if (!activeAllocationId && allocationsCache.length) {
+        const preferred = allocationsCache.find((row) => (row?.status || "").toLowerCase() === "active") || allocationsCache[0];
+        activeAllocationId = preferred?.id || null;
+      }
+
       allocationRows.innerHTML = "";
       allocationLoading?.classList.add("hidden");
 
@@ -1504,23 +1578,32 @@
         const startDate = row?.start_date ? new Date(row.start_date).toLocaleDateString() : "—";
         const status = (row?.status || "").toString().toLowerCase();
         const statusTone = status === "active"
-          ? "border border-emerald-100 bg-emerald-50 text-emerald-700"
-          : "border border-slate-200 bg-slate-100 text-slate-700";
+          ? "border border-emerald-200/70 bg-emerald-500/20 text-emerald-50"
+          : "border border-white/20 bg-white/10 text-white";
         const returnPct = typeof row?.latest_return_pct === "number" ? row.latest_return_pct : Number(row?.latest_return_pct);
-        const returnTone = Number.isFinite(returnPct) ? (returnPct >= 0 ? "text-emerald-700" : "text-rose-700") : "text-slate-600";
+        const returnTone = Number.isFinite(returnPct) ? (returnPct >= 0 ? "text-emerald-200" : "text-rose-200") : "text-white";
+        const isCurrent = activeAllocationId && row?.id === activeAllocationId;
+        const currentChip = isCurrent
+          ? '<span class="chip ml-2 border border-emerald-300/60 bg-emerald-500/30 text-white text-[11px]">Current</span>'
+          : "";
 
         tr.innerHTML = `
-          <td class="px-5 py-3 font-semibold text-slate-900">${strategyLabel}</td>
-          <td class="px-5 py-3">${formatMoney(row?.amount_invested, row?.base_currency)}</td>
-          <td class="px-5 py-3 uppercase text-slate-700">${(row?.base_currency || activeCurrency || "USD").toString().toUpperCase()}</td>
-          <td class="px-5 py-3 text-slate-700">${startDate}</td>
+          <td class="px-5 py-3 font-semibold text-white flex items-center">${strategyLabel}${currentChip}</td>
+          <td class="px-5 py-3 text-white">${formatMoney(row?.amount_invested, row?.base_currency)}</td>
+          <td class="px-5 py-3 uppercase text-white/80">${(row?.base_currency || activeCurrency || "USD").toString().toUpperCase()}</td>
+          <td class="px-5 py-3 text-white/80">${startDate}</td>
           <td class="px-5 py-3"><span class="chip text-xs ${statusTone}">${status || "—"}</span></td>
-          <td class="px-5 py-3">${formatMoney(row?.latest_value ?? row?.amount_invested, row?.base_currency)}</td>
+          <td class="px-5 py-3 text-white">${formatMoney(row?.latest_value ?? row?.amount_invested, row?.base_currency)}</td>
           <td class="px-5 py-3 font-semibold ${returnTone}">${formatReturnPct(returnPct)}</td>
           <td class="px-5 py-3 text-right">
-            <button type="button" class="btn h-9 text-[13px] border-slate-200 bg-white hover:bg-slate-50" data-liquidate-id="${row?.id}" data-strategy="${strategyLabel}">
-              Liquidate
-            </button>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="btn h-9 text-[13px] border-white/40 bg-white/20 text-white hover:bg-white/30" data-visualize-id="${row?.id}" data-strategy="${strategyLabel}">
+                ${isCurrent ? "Viewing" : "Visualize"}
+              </button>
+              <button type="button" class="btn h-9 text-[13px] border-white/30 bg-white/10 text-white hover:bg-white/20" data-liquidate-id="${row?.id}" data-strategy="${strategyLabel}">
+                Liquidate
+              </button>
+            </div>
           </td>
         `;
 
@@ -1528,10 +1611,49 @@
       });
     }
 
+    function getActiveAllocation() {
+      if (!Array.isArray(allocationsCache) || !allocationsCache.length) return null;
+      return allocationsCache.find((row) => row?.id === activeAllocationId)
+        || allocationsCache.find((row) => (row?.status || "").toLowerCase() === "active")
+        || allocationsCache[0];
+    }
+
+    function allocationSeriesForRange(allocation = {}, rangeKey = "ALL") {
+      if (!allocation) return [];
+      const pctSeries = normalizePctSeries(pickSeriesForRange(allocation, rangeKey));
+      const base = Number(allocation?.amount_invested ?? allocation?.latest_value ?? 0);
+      if (pctSeries.length) return curveFromPct(pctSeries, base > 0 ? base : 100);
+
+      const len = getRangeLength(rangeKey);
+      const latestVal = Number(allocation?.latest_value);
+      if (Number.isFinite(base) && Number.isFinite(latestVal) && len >= 2) {
+        const start = base || latestVal;
+        const step = (latestVal - start) / Math.max(1, len - 1);
+        return Array.from({ length: len }, (_, idx) => Number((start + step * idx).toFixed(2)));
+      }
+
+      return Array(len).fill(base || 0);
+    }
+
+    function setActiveAllocation(allocationId = null, { notify = false } = {}) {
+      if (allocationId) activeAllocationId = allocationId;
+      setActiveMode("allocation");
+      renderAllocationsTable(allocationsCache);
+      updatePerformanceCopy(getSelectedStrategy(), "allocation");
+      refreshChart();
+      if (notify) {
+        const active = getActiveAllocation();
+        const label = active?.strategies?.name || active?.strategies?.code || "this allocation";
+        pushToast(`Visualizing ${label} on the equity curve.`, "ok");
+      }
+    }
+
     function updatePerformanceCopy(selectedStrategy = null, mode = "strategy") {
       if (mode === "allocation") {
-        if (pfSub) pfSub.textContent = "Your allocation performance over time.";
-        if (pfName) pfName.textContent = "My allocation";
+        const activeAllocation = getActiveAllocation();
+        const label = activeAllocation?.strategies?.name || activeAllocation?.strategies?.code || "My allocation";
+        if (pfSub) pfSub.textContent = label ? `Viewing ${label} allocation on your equity curve.` : "Your allocation performance over time.";
+        if (pfName) pfName.textContent = label || "My allocation";
         return;
       }
 
@@ -1667,10 +1789,18 @@
       const range = getActiveRange();
       const mode = getActiveMode();
       const selected = getSelectedStrategy();
+      const activeAllocation = mode === "allocation" ? getActiveAllocation() : null;
       const strategySeries = mode === "strategy" && selected ? strategyCurveFromMetrics(selected, account, range) : [];
-      const baseSeries = mode === "strategy" ? buildEquitySeries(profile, account, range) : buildFlatAllocationSeries(profile, account, range);
-      const series = strategySeries.length ? strategySeries : baseSeries;
-      const hasData = mode === "allocation" || (Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0));
+      const allocationSeries = mode === "allocation" ? allocationSeriesForRange(activeAllocation, range) : [];
+      const fallbackSeries = mode === "strategy"
+        ? buildEquitySeries(profile, account, range)
+        : buildFlatAllocationSeries(profile, account, range);
+      const series = mode === "strategy"
+        ? (strategySeries.length ? strategySeries : fallbackSeries)
+        : (allocationSeries.length ? allocationSeries : fallbackSeries);
+      const hasData = mode === "allocation"
+        ? allocationSeries.some((v) => Number.isFinite(v) && v !== 0)
+        : Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
       toggleEquityAvailability(hasData, mode);
       renderChart(series, account, profile, mode, range);
     }
@@ -1752,10 +1882,18 @@
     window.addEventListener("resize", () => updateWatchlistScroller());
 
     allocationsTable?.addEventListener("click", (event) => {
-      const target = event.target.closest("[data-liquidate-id]");
+      const target = event.target.closest("[data-liquidate-id],[data-visualize-id]");
       if (!target) return;
       const label = target.dataset.strategy || "this allocation";
-      pushToast(`Liquidation for ${label} will be available soon.`, "warn");
+
+      if (target.dataset.visualizeId) {
+        setActiveAllocation(target.dataset.visualizeId, { notify: true });
+        return;
+      }
+
+      if (target.dataset.liquidateId) {
+        pushToast(`Liquidation for ${label} will be available soon.`, "warn");
+      }
     });
 
     strategySelect?.addEventListener("change", () => {
