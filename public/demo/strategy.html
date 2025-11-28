@@ -1376,6 +1376,12 @@
                 return (currency === 'ZAR' ? 'R ' : currency + ' ') + num.toLocaleString('en-ZA', ZA);
             }
         };
+        const formatDeltaMoney = (diff, ccy = currentCCY || 'ZAR') => {
+            const raw = money(Math.abs(diff), ccy);
+            const normalized = raw.replace(/^[-+]/, '');
+            const sign = diff >= 0 ? '+' : '-';
+            return `${sign}${normalized}`;
+        };
         const finite = v => Number.isFinite(Number(v));
         const escapeHtml = (value) => {
             return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
@@ -1961,10 +1967,10 @@
                 return;
             }
             const first = seriesVals[0], last = seriesVals.at(-1);
-            const chg = ((last - first) / first) * 100;
+            const chg = last - first;
             pfValueEl.textContent = money(last, ccy);
             const chgEl = $('#pf-change');
-            chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+            chgEl.textContent = formatDeltaMoney(chg, ccy);
             chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
             $('#pf-updated').textContent =
                 new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
@@ -2299,54 +2305,44 @@
                 .filter(v => Number.isFinite(v));
         }
         function buildCurveFromDailySeries(src) {
-            // src: [{ date: "2025-10-28", pct: 0.0123 }, ...]
-            // pct is decimal (0.0123 == +1.23%)
+            // src: [{ date: "2025-10-28", value: 12000 }, ...]
 
             const labels = [];
             const curveVals = [];
 
-            let level = 100; // start at 100
-            let firstLevel = null;
-
             for (const point of (src || [])) {
-                const d = point.date;
-                const rDec = Number(point.pct); // decimal
-                if (!Number.isFinite(rDec)) continue;
+                const d = point?.date;
+                const val = Number(point?.value ?? point?.balance ?? point?.pct);
+                if (!Number.isFinite(val)) continue;
 
-                // compound
-                level = level * (1 + rDec);
-                const lvlRounded = Number(level.toFixed(2));
-                curveVals.push(lvlRounded);
+                curveVals.push(Number(val.toFixed(2)));
 
                 // label (short date like "28 Oct")
-                const dt = new Date(d + "T00:00:00");
+                const dt = new Date((d || '') + "T00:00:00");
                 labels.push(
-                    dt.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' })
+                    Number.isNaN(dt.getTime())
+                        ? ''
+                        : dt.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' })
                 );
-
-                if (firstLevel === null) firstLevel = lvlRounded;
             }
 
             if (!curveVals.length) {
                 return {
                     labels: [],
                     curve: [],
-                    headlinePct: null,
-                    headlineX: null
+                    headlineValue: null,
+                    headlineChange: null
                 };
             }
 
-            const lastLevel = curveVals[curveVals.length - 1];
-
-            // headline change
-            const pctChange = ((lastLevel - firstLevel) / firstLevel) * 100;
-            const mult = (lastLevel / firstLevel);
+            const firstVal = curveVals[0];
+            const lastVal = curveVals[curveVals.length - 1];
 
             return {
                 labels,
-                curve: curveVals,      // e.g. [100,101.2,104.8,...]
-                headlinePct: pctChange, // e.g. 54.3 (%)
-                headlineX: mult         // e.g. 1.54 (x)
+                curve: curveVals,
+                headlineValue: lastVal,
+                headlineChange: lastVal - firstVal
             };
         }
 
@@ -2363,60 +2359,52 @@
             const chgEl = $('#pf-change');
             currentCCY = strategy.currency || 'ZAR';
 
-            // 1D MODE (intraday % PnL vs yesterday's close NAV baseline)
+            // 1D MODE (intraday currency levels vs yesterday's close NAV baseline)
             if (rangeKey === '1D') {
                 const s1d = metrics?.series_1d || [];
 
                 // x labels = HH:MM
                 currentLabels = makeLabels1D(s1d);
 
-                // y data (pct intraday) -> convert decimal to % units
-                // 0.0052 -> 0.52
-                const pctSeries = (s1d || [])
-                    .map(p => Number(p.pct))
-                    .filter(v => Number.isFinite(v))
-                    .map(vDec => vDec * 100);
+                const valueSeries = (s1d || [])
+                    .map(p => Number(p?.value ?? p?.balance ?? p?.pct))
+                    .filter(v => Number.isFinite(v));
 
                 if (chart) {
                     chart.data.labels = currentLabels;
-                    chart.data.datasets[0].data = pctSeries;
+                    chart.data.datasets[0].data = valueSeries;
 
-                    // y-axis in %
-                    chart.options.scales.y.ticks.callback = v => {
-                        const num = Number(v);
-                        return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
-                    };
+                    // y-axis in currency
+                    chart.options.scales.y.ticks.callback = v => money(v, currentCCY);
 
                     chart.options.plugins.tooltip.callbacks.label = c => {
-                        const val = Number(c.raw);
-                        return (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+                        return money(Number(c.raw), currentCCY);
                     };
 
                     chart.update();
                     // update hover meta for 1D
                     window.__pfHoverMeta = {
-                        mode: 'pct',
+                        mode: 'money',
                         labels: currentLabels.map(l => l), // e.g. "14:35"
-                        values: pctSeries.map(v => {
+                        values: valueSeries.map(v => {
                             if (!Number.isFinite(v)) return '—';
-                            const sign = v >= 0 ? '+' : '';
-                            return `${sign}${v.toFixed(2)}%`;
+                            return money(v, currentCCY);
                         })
                     };
 
                 }
 
-                // headline: latest intraday % and move since first tick
-                if (!pctSeries.length) {
-                    pfValueEl.textContent = '+0.00%';
+                // headline: latest intraday level and move since first tick
+                if (!valueSeries.length) {
+                    pfValueEl.textContent = money(0, currentCCY);
                     chgEl.textContent = '—';
                     chgEl.style.color = '#64748b';
                 } else {
-                    const first = pctSeries[0];
-                    const last = pctSeries[pctSeries.length - 1];
-                    pfValueEl.textContent = `${last >= 0 ? '+' : ''}${last.toFixed(2)}%`;
+                    const first = valueSeries[0];
+                    const last = valueSeries[valueSeries.length - 1];
+                    pfValueEl.textContent = money(last, currentCCY);
                     const diff = last - first;
-                    chgEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                    chgEl.textContent = formatDeltaMoney(diff, currentCCY);
                     chgEl.style.color = diff >= 0 ? '#16a34a' : '#dc2626';
                 }
 
@@ -2459,66 +2447,46 @@
                     break;
             }
 
-            const { labels, curve, headlinePct, headlineX } = buildCurveFromDailySeries(srcDaily);
+            const { labels, curve, headlineValue, headlineChange } = buildCurveFromDailySeries(srcDaily);
             currentLabels = labels;
 
             if (chart) {
                 chart.data.labels = currentLabels;
                 chart.data.datasets[0].data = curve;
 
-                // y-axis tick: show "+54%" style relative to first point
-                chart.options.scales.y.ticks.callback = v => {
-                    if (!curve.length) return '';
-                    // convert absolute curve level back to % gain vs first point
-                    const base = curve[0] || 100;
-                    const relPct = ((v - base) / base) * 100;
-                    return (relPct >= 0 ? '+' : '') + relPct.toFixed(0) + '%';
-                };
+                // y-axis tick: currency values
+                chart.options.scales.y.ticks.callback = v => money(v, currentCCY);
 
-                chart.options.plugins.tooltip.callbacks.label = c => {
-                    const base = curve[0] || 100;
-                    const relPct = ((c.raw - base) / base) * 100;
-                    return (relPct >= 0 ? '+' : '') + relPct.toFixed(2) + '%';
-                };
+                chart.options.plugins.tooltip.callbacks.label = c => money(Number(c.raw), currentCCY);
 
                 chart.update();
                 // build hover meta for multi-period
                 window.__pfHoverMeta = {
-                    mode: 'pct',
+                    mode: 'money',
                     labels: currentLabels.map(l => l), // "2024-10" or "Oct 2024" (whatever you set in makeLabelsMonthly)
                     values: curve.map(v => {
                         if (!Number.isFinite(v)) return '—';
-                        const pctFromStart = v - 100;
-                        const sign = pctFromStart >= 0 ? '+' : '';
-                        return `${sign}${pctFromStart.toFixed(2)}%`;
+                        return money(v, currentCCY);
                     })
                 };
 
             }
 
             if (!curve.length) {
-                pfValueEl.textContent = '—';
+                pfValueEl.textContent = money(0, currentCCY);
                 chgEl.textContent = '—';
                 chgEl.style.color = '#64748b';
                 return;
             }
 
-            // curve is compounded index that starts ~100 and ends e.g. 148.14
-            const firstVal = curve[0];
-            const lastVal = curve[curve.length - 1];
+            const change = Number(headlineChange || 0);
 
-            // % growth over the shown range
-            const pctGrowth = ((lastVal - firstVal) / firstVal) * 100;
+            // main bold number = latest currency balance
+            pfValueEl.textContent = money(headlineValue, currentCCY);
 
-            // label should be "+48.14%"
-            const pctLabel = `${pctGrowth >= 0 ? '+' : ''}${pctGrowth.toFixed(2)}%`;
-
-            // main bold number = percent only
-            pfValueEl.textContent = pctLabel;
-
-            // no secondary number anymore
-            chgEl.textContent = '';
-            chgEl.style.color = pctGrowth >= 0 ? '#16a34a' : '#dc2626';
+            // secondary number = absolute move from period start
+            chgEl.textContent = formatDeltaMoney(change, currentCCY);
+            chgEl.style.color = change >= 0 ? '#16a34a' : '#dc2626';
             chgEl.style.minWidth = '0'; // avoid layout gap
 
 
@@ -2909,8 +2877,8 @@
                 const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
                 const initialSeries = [
-                    { pct: 0, date: yesterdayStr },
-                    { pct: totalRounded, date: todayStr },
+                    { value: 0, date: yesterdayStr },
+                    { value: totalRounded, date: todayStr },
                 ];
 
                 const allocationPayload = {
