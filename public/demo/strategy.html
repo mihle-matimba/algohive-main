@@ -1376,6 +1376,17 @@
                 return (currency === 'ZAR' ? 'R ' : currency + ' ') + num.toLocaleString('en-ZA', ZA);
             }
         };
+        const formatPct = (v) => {
+            const num = Number(v);
+            if (!Number.isFinite(num)) return '—';
+            return `${num.toFixed(2)}%`;
+        };
+        const formatDeltaPct = (v) => {
+            const num = Number(v);
+            if (!Number.isFinite(num)) return '—';
+            const sign = num >= 0 ? '+' : '-';
+            return `${sign}${Math.abs(num).toFixed(2)}%`;
+        };
         const formatDeltaMoney = (diff, ccy = currentCCY || 'ZAR') => {
             const raw = money(Math.abs(diff), ccy);
             const normalized = raw.replace(/^[-+]/, '');
@@ -2312,7 +2323,10 @@
 
             for (const point of (src || [])) {
                 const d = point?.date;
-                const val = Number(point?.value ?? point?.balance ?? point?.pct);
+                const pctVal = Number(point?.pct);
+                const val = Number.isFinite(pctVal)
+                    ? pctVal * 100
+                    : Number(point?.value ?? point?.balance);
                 if (!Number.isFinite(val)) continue;
 
                 curveVals.push(Number(val.toFixed(2)));
@@ -2352,34 +2366,30 @@
         function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
         // MODIFIED: This function now splits logic:
-        // - 1D shows currency (calls setCurve)
-        // - 6M, 1Y, ALL show Growth %/Multiplier (calculates and sets text directly)
+        // - 1D shows intraday percent moves
+        // - 6M, 1Y, ALL show percent growth over the selected window
         function selectRangeAndRender(rangeKey, metrics, strategy) {
             const pfValueEl = $('#pf-value');
             const chgEl = $('#pf-change');
             currentCCY = strategy.currency || 'ZAR';
 
-            // 1D MODE (intraday currency levels vs yesterday's close NAV baseline)
+            // 1D MODE (intraday percent changes)
             if (rangeKey === '1D') {
                 const s1d = metrics?.series_1d || [];
 
                 // x labels = HH:MM
                 currentLabels = makeLabels1D(s1d);
 
-                const valueSeries = (s1d || [])
-                    .map(p => Number(p?.value ?? p?.balance ?? p?.pct))
-                    .filter(v => Number.isFinite(v));
+                const valueSeries = extractPctSeries1D(s1d);
 
                 if (chart) {
                     chart.data.labels = currentLabels;
                     chart.data.datasets[0].data = valueSeries;
 
-                    // y-axis in currency
-                    chart.options.scales.y.ticks.callback = v => money(v, currentCCY);
+                    // y-axis in percent
+                    chart.options.scales.y.ticks.callback = v => formatPct(v);
 
-                    chart.options.plugins.tooltip.callbacks.label = c => {
-                        return money(Number(c.raw), currentCCY);
-                    };
+                    chart.options.plugins.tooltip.callbacks.label = c => formatPct(Number(c.raw));
 
                     chart.update();
                     // update hover meta for 1D
@@ -2388,23 +2398,23 @@
                         labels: currentLabels.map(l => l), // e.g. "14:35"
                         values: valueSeries.map(v => {
                             if (!Number.isFinite(v)) return '—';
-                            return money(v, currentCCY);
+                            return formatPct(v);
                         })
                     };
 
                 }
 
-                // headline: latest intraday level and move since first tick
+                // headline: latest intraday pct and move since first tick
                 if (!valueSeries.length) {
-                    pfValueEl.textContent = money(0, currentCCY);
+                    pfValueEl.textContent = formatPct(0);
                     chgEl.textContent = '—';
                     chgEl.style.color = '#64748b';
                 } else {
                     const first = valueSeries[0];
                     const last = valueSeries[valueSeries.length - 1];
-                    pfValueEl.textContent = money(last, currentCCY);
+                    pfValueEl.textContent = formatPct(last);
                     const diff = last - first;
-                    chgEl.textContent = formatDeltaMoney(diff, currentCCY);
+                    chgEl.textContent = formatDeltaPct(diff);
                     chgEl.style.color = diff >= 0 ? '#16a34a' : '#dc2626';
                 }
 
@@ -2454,10 +2464,10 @@
                 chart.data.labels = currentLabels;
                 chart.data.datasets[0].data = curve;
 
-                // y-axis tick: currency values
-                chart.options.scales.y.ticks.callback = v => money(v, currentCCY);
+                // y-axis tick: percent values
+                chart.options.scales.y.ticks.callback = v => formatPct(v);
 
-                chart.options.plugins.tooltip.callbacks.label = c => money(Number(c.raw), currentCCY);
+                chart.options.plugins.tooltip.callbacks.label = c => formatPct(Number(c.raw));
 
                 chart.update();
                 // build hover meta for multi-period
@@ -2466,14 +2476,14 @@
                     labels: currentLabels.map(l => l), // "2024-10" or "Oct 2024" (whatever you set in makeLabelsMonthly)
                     values: curve.map(v => {
                         if (!Number.isFinite(v)) return '—';
-                        return money(v, currentCCY);
+                        return formatPct(v);
                     })
                 };
 
             }
 
             if (!curve.length) {
-                pfValueEl.textContent = money(0, currentCCY);
+                pfValueEl.textContent = formatPct(0);
                 chgEl.textContent = '—';
                 chgEl.style.color = '#64748b';
                 return;
@@ -2481,11 +2491,11 @@
 
             const change = Number(headlineChange || 0);
 
-            // main bold number = latest currency balance
-            pfValueEl.textContent = money(headlineValue, currentCCY);
+            // main bold number = latest percent level
+            pfValueEl.textContent = formatPct(headlineValue);
 
             // secondary number = absolute move from period start
-            chgEl.textContent = formatDeltaMoney(change, currentCCY);
+            chgEl.textContent = formatDeltaPct(change);
             chgEl.style.color = change >= 0 ? '#16a34a' : '#dc2626';
             chgEl.style.minWidth = '0'; // avoid layout gap
 
