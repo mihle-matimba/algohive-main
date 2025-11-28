@@ -1376,6 +1376,23 @@
                 return (currency === 'ZAR' ? 'R ' : currency + ' ') + num.toLocaleString('en-ZA', ZA);
             }
         };
+        const formatPct = (v) => {
+            const num = Number(v);
+            if (!Number.isFinite(num)) return '—';
+            return `${num.toFixed(2)}%`;
+        };
+        const formatDeltaPct = (v) => {
+            const num = Number(v);
+            if (!Number.isFinite(num)) return '—';
+            const sign = num >= 0 ? '+' : '-';
+            return `${sign}${Math.abs(num).toFixed(2)}%`;
+        };
+        const formatDeltaMoney = (diff, ccy = currentCCY || 'ZAR') => {
+            const raw = money(Math.abs(diff), ccy);
+            const normalized = raw.replace(/^[-+]/, '');
+            const sign = diff >= 0 ? '+' : '-';
+            return `${sign}${normalized}`;
+        };
         const finite = v => Number.isFinite(Number(v));
         const escapeHtml = (value) => {
             return (value ?? '').toString().replace(/[&<>"']/g, (ch) => ({
@@ -1961,10 +1978,10 @@
                 return;
             }
             const first = seriesVals[0], last = seriesVals.at(-1);
-            const chg = ((last - first) / first) * 100;
+            const chg = last - first;
             pfValueEl.textContent = money(last, ccy);
             const chgEl = $('#pf-change');
-            chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+            chgEl.textContent = formatDeltaMoney(chg, ccy);
             chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
             $('#pf-updated').textContent =
                 new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
@@ -2356,14 +2373,14 @@
         function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
         // MODIFIED: This function now splits logic:
-        // - 1D shows currency (calls setCurve)
-        // - 6M, 1Y, ALL show Growth %/Multiplier (calculates and sets text directly)
+        // - 1D shows intraday percent moves
+        // - 6M, 1Y, ALL show percent growth over the selected window
         function selectRangeAndRender(rangeKey, metrics, strategy) {
             const pfValueEl = $('#pf-value');
             const chgEl = $('#pf-change');
             currentCCY = strategy.currency || 'ZAR';
 
-            // 1D MODE (intraday % PnL vs yesterday's close NAV baseline)
+            // 1D MODE (intraday percent changes)
             if (rangeKey === '1D') {
                 const s1d = metrics?.series_1d || [];
 
@@ -2901,24 +2918,36 @@
                 }
 
                 // persist demo allocation record (lightweight performance cache only)
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+
+                const todayStr = today.toISOString().slice(0, 10);
+                const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+                const initialSeries = [
+                    { value: 0, date: yesterdayStr },
+                    { value: totalRounded, date: todayStr },
+                ];
+
                 const allocationPayload = {
                     demo_profile_id: profileId,
                     strategy_id: strategy.id,
                     amount_invested: totalRounded,
                     base_currency: ccy,
-                    start_date: new Date().toISOString().slice(0, 10),
+                    start_date: todayStr,
                     end_date: null,
                     status: 'active',
                     latest_value: null,
                     latest_return_pct: null,
-                    series_1d: [],
-                    series_1m: [],
-                    series_3m: [],
-                    series_ytd: [],
-                    series_3y: [],
-                    series_6m: [],
-                    series_1y: [],
-                    series_all: [],
+                    series_1d: initialSeries,
+                    series_1m: initialSeries,
+                    series_3m: initialSeries,
+                    series_ytd: initialSeries,
+                    series_3y: initialSeries,
+                    series_6m: initialSeries,
+                    series_1y: initialSeries,
+                    series_all: initialSeries,
                     portfolio_holdings: Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [],
                     asset_allocation: Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [],
                 };

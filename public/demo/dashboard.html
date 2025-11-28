@@ -1022,6 +1022,13 @@
       return Number.isFinite(num) ? fmt.format(num) : "—";
     }
 
+    function formatMoneyDelta(value, currency = activeCurrency) {
+      const num = typeof value === "number" ? value : Number(value);
+      if (!Number.isFinite(num)) return "—";
+      const sign = num >= 0 ? "+" : "-";
+      return `${sign}${formatMoney(Math.abs(num), currency)}`;
+    }
+
     function formatReturnPct(value) {
       const pct = typeof value === "number" ? value : Number(value);
       if (!Number.isFinite(pct)) return "—";
@@ -1097,6 +1104,23 @@
       }
 
       return pctSeries;
+    }
+
+    function normalizeValueSeries(series = []) {
+      const values = [];
+      for (const point of series || []) {
+        const val = Number(
+          point?.value ??
+          point?.balance ??
+          point?.equity ??
+          point?.nav ??
+          point?.price ??
+          point?.close ??
+          point?.pct
+        );
+        if (Number.isFinite(val)) values.push(val);
+      }
+      return values;
     }
 
     function computePerfFromSeries(series = []) {
@@ -1801,16 +1825,14 @@
       const latest = numericData.length ? numericData[numericData.length - 1] : (account?.equity ?? account?.balance ?? profile?.balance ?? 0);
       const start = numericData.length ? numericData[0] : latest;
       const prev = numericData.length > 1 ? numericData[numericData.length - 2] : start;
-      const pctChange = start ? ((latest - start) / start) * 100 : 0;
-      const pctVsPrev = prev ? ((latest - prev) / prev) * 100 : 0;
+      const delta = Number.isFinite(latest) && Number.isFinite(start) ? latest - start : null;
 
       if (pfValue) {
-        const pctLabel = Number.isFinite(pctChange) ? `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(2)}%` : "—";
-        pfValue.textContent = pctLabel;
+        pfValue.textContent = formatMoney(latest);
       }
       if (pfChange) {
-        pfChange.textContent = "";
-        pfChange.className = "hidden";
+        pfChange.textContent = formatMoneyDelta(delta ?? 0);
+        pfChange.className = delta == null ? "hidden" : "text-sm text-slate-600";
       }
 
       if (pfUpdated) {
@@ -2110,9 +2132,9 @@
         }
       }
 
-      const label = activeAllocation?.strategies?.name || activeAllocation?.strategies?.code || "My allocation";
-      if (pfSub) pfSub.textContent = label ? `Viewing ${label} allocation on your equity curve.` : "Your allocation performance over time.";
-      if (pfName) pfName.textContent = label || "My allocation";
+      const activeLabel = activeAllocation?.strategies?.name || activeAllocation?.strategies?.code || "My allocation";
+      if (pfSub) pfSub.textContent = activeLabel ? `Viewing ${activeLabel} allocation on your equity curve.` : "Your allocation performance over time.";
+      if (pfName) pfName.textContent = activeLabel || "My allocation";
     }
 
     function getActiveAllocation() {
@@ -2125,9 +2147,9 @@
 
     function allocationSeriesForRange(allocation = {}, rangeKey = "ALL") {
       if (!allocation) return [];
-      const pctSeries = normalizePctSeries(pickSeriesForRange(allocation, rangeKey));
+      const valueSeries = normalizeValueSeries(pickSeriesForRange(allocation, rangeKey));
       const base = Number(allocation?.amount_invested ?? allocation?.latest_value ?? 0);
-      if (pctSeries.length) return curveFromPct(pctSeries, base > 0 ? base : 100);
+      if (valueSeries.length) return valueSeries;
 
       const len = getRangeLength(rangeKey);
       const latestVal = Number(allocation?.latest_value);
