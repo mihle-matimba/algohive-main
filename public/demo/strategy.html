@@ -2887,9 +2887,19 @@
 
                 const { data, error } = await supabase.from('demo_profiles').upsert(payload, { onConflict: 'id' }).select().maybeSingle();
                 if (error && error.code === '42703') {
+                    // Fallback for schemas missing optional columns like base_currency
+                    const fallbackPayload = {
+                        id: profileId,
+                        strategies: mergedStrategies,
+                        allocated: nextAllocated,
+                        balance: nextBalance,
+                        first_name: firstName,
+                        last_name: lastName,
+                    };
+
                     const { data: fallbackData, error: fallbackErr } = await supabase
                         .from('demo_profiles')
-                        .upsert({ id: profileId, strategies: mergedStrategies, allocated: nextAllocated, balance: nextBalance })
+                        .upsert(fallbackPayload)
                         .select()
                         .maybeSingle();
                     if (fallbackErr) throw fallbackErr;

@@ -2,6 +2,9 @@
 
 To support the demo onboarding flow (basics, investing preferences, and OpenStrategies alignment), ensure the following Supabase tables/columns exist.
 
+> **Troubleshooting**
+> The demo allocator upserts `strategies`, `allocated`, `balance`, names, and `base_currency`. If your table is missing the `base_currency` column (or other non-nullable fields like `first_name` / `last_name`), Supabase will return a `400`/`42703` error when saving allocations. Make sure the schema below (including `base_currency`) is applied.
+
 ## `demo_profiles`
 Use the dedicated demo profile table (separate from live `profiles`) with the full set of defaults used by the demo UI:
 
