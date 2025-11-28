@@ -2901,24 +2901,36 @@
                 }
 
                 // persist demo allocation record (lightweight performance cache only)
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+
+                const todayStr = today.toISOString().slice(0, 10);
+                const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+                const initialSeries = [
+                    { pct: 0, date: yesterdayStr },
+                    { pct: totalRounded, date: todayStr },
+                ];
+
                 const allocationPayload = {
                     demo_profile_id: profileId,
                     strategy_id: strategy.id,
                     amount_invested: totalRounded,
                     base_currency: ccy,
-                    start_date: new Date().toISOString().slice(0, 10),
+                    start_date: todayStr,
                     end_date: null,
                     status: 'active',
                     latest_value: null,
                     latest_return_pct: null,
-                    series_1d: [],
-                    series_1m: [],
-                    series_3m: [],
-                    series_ytd: [],
-                    series_3y: [],
-                    series_6m: [],
-                    series_1y: [],
-                    series_all: [],
+                    series_1d: initialSeries,
+                    series_1m: initialSeries,
+                    series_3m: initialSeries,
+                    series_ytd: initialSeries,
+                    series_3y: initialSeries,
+                    series_6m: initialSeries,
+                    series_1y: initialSeries,
+                    series_all: initialSeries,
                     portfolio_holdings: Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [],
                     asset_allocation: Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [],
                 };
