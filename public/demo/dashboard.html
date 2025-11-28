@@ -716,18 +716,7 @@
             </div>
           </div>
 
-          <div class="col-span-12 lg:col-span-6 card border border-slate-200 shadow-none">
-            <div class="px-5 pt-5 pb-3 flex items-center justify-between">
-              <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Asset class allocation</p>
-                <h3 class="text-lg font-semibold text-slate-900">Allocation mix</h3>
-              </div>
-              <span class="text-xs text-slate-500">Total = 100%</span>
-            </div>
-            <div id="asset-allocation" class="px-5 pb-5 space-y-3 text-sm text-slate-700"></div>
-          </div>
-
-          <div class="col-span-12 lg:col-span-6 card border border-slate-200 shadow-none">
+          <div class="col-span-12 card border border-slate-200 shadow-none">
             <div class="px-5 pt-5 pb-3 flex items-center justify-between">
               <div>
                 <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Portfolio holdings</p>
@@ -848,7 +837,6 @@
     const topGainersEmpty = document.getElementById("top-gainers-empty");
     const topGainersUpdated = document.getElementById("top-gainers-updated");
     const perfSummaryTitle = document.getElementById("ps-title");
-    const assetAllocationWrap = document.getElementById("asset-allocation");
     const holdingsTop10 = document.getElementById("ph-top10");
     const profileBtn = document.getElementById("profile-btn");
     const profileMenu = document.getElementById("profile-menu");
@@ -1116,7 +1104,6 @@
         topGainersUpdated.classList.add("hidden");
       }
       if (holdingsTop10) holdingsTop10.innerHTML = "<div class=\"text-sm text-slate-500\">No holdings data available.</div>";
-      if (assetAllocationWrap) assetAllocationWrap.innerHTML = "<div class=\"text-sm text-slate-500\">No allocation yet.</div>";
       fillPerfSummary(null);
       if (strategyEmpty) {
         strategyEmpty.textContent = message;
@@ -1280,40 +1267,6 @@
               <div class="ph-name" title="${escapeHtml(h.name)}">${escapeHtml(h.name)}</div>
               <div class="ph-weight">${h.weight.toFixed(2)}%</div>
             </div>`;
-        })
-        .join("");
-    }
-
-    function renderAssetAllocationFromMetrics(metrics = {}) {
-      if (!assetAllocationWrap) return;
-
-      const NAME_MAP = { FX: "FX", Indices: "Indices", Equities: "Equities", Metals: "Metals", Energies: "Energy", Crypto: "Crypto", Bonds: "Bonds", CFDs: "CFDs", Other: "Other" };
-
-      const allocRaw = Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [];
-      const alloc = allocRaw
-        .map((i) => ({ label: NAME_MAP[i.class] ?? (i.class || "Other"), pct: Number(i.weight_pct) || 0 }))
-        .filter((i) => i.pct > 0.01)
-        .sort((a, b) => b.pct - a.pct);
-
-      if (!alloc.length) {
-        assetAllocationWrap.innerHTML = '<div class="text-sm text-slate-500">No allocation yet.</div>';
-        return;
-      }
-
-      const colors = ["#111827", "#2563eb", "#16a34a", "#f59e0b", "#ef4444", "#6b7280", "#10b981", "#6366f1", "#94a3b8", "#3f6212"];
-      assetAllocationWrap.innerHTML = alloc
-        .map((i, idx) => {
-          const pct = i.pct; const color = colors[idx % colors.length];
-          return `
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm text-slate-700">${escapeHtml(i.label)}</span>
-            <span class="text-sm font-medium">${pct.toFixed(2)}%</span>
-          </div>
-          <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
-            <div class="h-full rounded-full" style="width:${pct}%; background:${color}"></div>
-          </div>
-        </div>`;
         })
         .join("");
     }
@@ -2203,20 +2156,14 @@
       }
 
       const merged = { ...allocation, ...(metrics || {}) };
-      merged.asset_allocation = Array.isArray(metrics?.asset_allocation) && metrics.asset_allocation.length
-        ? metrics.asset_allocation
-        : Array.isArray(allocation?.asset_allocation)
-          ? allocation.asset_allocation
-          : [];
       merged.portfolio_holdings = Array.isArray(metrics?.portfolio_holdings) && metrics.portfolio_holdings.length
         ? metrics.portfolio_holdings
         : Array.isArray(allocation?.portfolio_holdings)
           ? allocation.portfolio_holdings
           : [];
-
+      
       renderTopGainersMarquee(merged, merged.portfolio_holdings);
       renderPortfolioHoldingsFromMetrics(merged);
-      renderAssetAllocationFromMetrics(merged);
       fillPerfSummary(merged?.perf_summary || null);
     }
 
