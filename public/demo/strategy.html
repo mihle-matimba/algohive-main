@@ -2597,7 +2597,7 @@
             const opt = document.createElement('option');
             const ccy = (account?.currency || row?.base_currency || currentCCY || 'ZAR').toUpperCase();
             opt.value = account?.id || userId || '';
-            opt.textContent = `${account?.name || 'Paper account'} (${ccy})`;
+            opt.textContent = `${account?.name || 'Demo account'} (${ccy})`;
             accountSelect.appendChild(opt);
             accountSelect.value = opt.value;
             updateAvailableLabel();
@@ -2898,6 +2898,34 @@
                     throw error;
                 } else if (data) {
                     Object.assign(row, data);
+                }
+
+                // persist demo allocation record (lightweight performance cache only)
+                const allocationPayload = {
+                    demo_profile_id: profileId,
+                    strategy_id: strategy.id,
+                    amount_invested: totalRounded,
+                    base_currency: ccy,
+                    start_date: new Date().toISOString().slice(0, 10),
+                    end_date: null,
+                    status: 'active',
+                    latest_value: null,
+                    latest_return_pct: null,
+                    series_1d: [],
+                    series_1m: [],
+                    series_3m: [],
+                    series_ytd: [],
+                    series_3y: [],
+                    series_6m: [],
+                    series_1y: [],
+                    series_all: [],
+                    portfolio_holdings: Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [],
+                    asset_allocation: Array.isArray(metrics?.asset_allocation) ? metrics.asset_allocation : [],
+                };
+
+                const { error: allocErr } = await supabase.from('demo_allocations').insert(allocationPayload);
+                if (allocErr) {
+                    console.warn('[demo_allocation insert failed]', allocErr);
                 }
 
                 row.strategies = mergedStrategies;
