@@ -2316,20 +2316,23 @@
                 .filter(v => Number.isFinite(v));
         }
         function buildCurveFromDailySeries(src) {
-            // src: [{ date: "2025-10-28", value: 12000 }, ...]
+            // src: [{ date: "2025-10-28", pct: 0.45 }, ...]
+            // Convert day-by-day returns into a cumulative curve for the chart
 
             const labels = [];
             const curveVals = [];
+            let runningTotal = 0;
 
             for (const point of (src || [])) {
                 const d = point?.date;
                 const pctVal = Number(point?.pct);
                 const val = Number.isFinite(pctVal)
-                    ? pctVal * 100
+                    ? pctVal * 100 // convert 0.045 -> 4.5%
                     : Number(point?.value ?? point?.balance);
                 if (!Number.isFinite(val)) continue;
 
-                curveVals.push(Number(val.toFixed(2)));
+                runningTotal += val;
+                curveVals.push(Number(runningTotal.toFixed(2)));
 
                 // label (short date like "28 Oct")
                 const dt = new Date((d || '') + "T00:00:00");
@@ -2349,14 +2352,13 @@
                 };
             }
 
-            const firstVal = curveVals[0];
             const lastVal = curveVals[curveVals.length - 1];
 
             return {
                 labels,
                 curve: curveVals,
                 headlineValue: lastVal,
-                headlineChange: lastVal - firstVal
+                headlineChange: lastVal // cumulative change from zero baseline
             };
         }
 
