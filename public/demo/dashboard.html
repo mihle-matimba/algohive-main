@@ -481,6 +481,36 @@
           </div>
         </section>
 
+        <section class="card col-span-12 border border-slate-200 shadow-none">
+          <div class="flex flex-col gap-1 border-b border-slate-200 px-5 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive-700)]">Allocations</p>
+              <h3 class="text-lg font-semibold text-slate-900">My demo allocations</h3>
+              <p class="text-sm text-slate-600">Strategy snapshots tied to this demo profile.</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table id="allocations-table" class="min-w-full divide-y divide-slate-200 text-sm">
+              <thead class="bg-slate-50 text-left text-[13px] font-semibold text-slate-600">
+                <tr>
+                  <th class="px-5 py-3">Strategy</th>
+                  <th class="px-5 py-3">Amount</th>
+                  <th class="px-5 py-3">Currency</th>
+                  <th class="px-5 py-3">Start date</th>
+                  <th class="px-5 py-3">Status</th>
+                  <th class="px-5 py-3">Latest value</th>
+                  <th class="px-5 py-3">Return</th>
+                  <th class="px-5 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="allocation-rows" class="divide-y divide-slate-200 bg-white"></tbody>
+            </table>
+            <p id="allocation-loading" class="px-5 py-4 text-sm text-slate-500">Loading your allocations…</p>
+            <p id="allocation-empty" class="hidden px-5 py-4 text-sm text-slate-500">No demo allocations yet. Allocate a strategy to see it here.</p>
+          </div>
+        </section>
+
         <section class="card col-span-12 lg:col-span-4 border border-slate-200 shadow-none">
           <div class="px-5 pt-5 pb-3 border-b border-slate-200">
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Demo account</p>
@@ -595,6 +625,10 @@
     const watchNext = document.getElementById("watch-next");
     const watchFadeLeft = document.getElementById("watch-fade-left");
     const watchFadeRight = document.getElementById("watch-fade-right");
+    const allocationRows = document.getElementById("allocation-rows");
+    const allocationEmpty = document.getElementById("allocation-empty");
+    const allocationLoading = document.getElementById("allocation-loading");
+    const allocationsTable = document.getElementById("allocations-table");
     const strategySelect = document.getElementById("strategy-select");
     const profileBtn = document.getElementById("profile-btn");
     const profileMenu = document.getElementById("profile-menu");
@@ -723,6 +757,13 @@
         ? formatter
         : new Intl.NumberFormat("en-US", { style: "currency", currency: currency || activeCurrency, maximumFractionDigits: 2 });
       return Number.isFinite(num) ? fmt.format(num) : "—";
+    }
+
+    function formatReturnPct(value) {
+      const pct = typeof value === "number" ? value : Number(value);
+      if (!Number.isFinite(pct)) return "—";
+      const sign = pct >= 0 ? "+" : "";
+      return `${sign}${pct.toFixed(2)}%`;
     }
 
     function curveFromPct(points = [], start = 100) {
@@ -1390,6 +1431,24 @@
       }
     }
 
+    async function fetchDemoAllocations(profileId = "") {
+      if (!profileId) return [];
+      try {
+        const { data, error } = await supabase
+          .from("demo_allocations")
+          .select("id, strategy_id, amount_invested, base_currency, start_date, status, latest_value, latest_return_pct, strategies(name, code)")
+          .eq("demo_profile_id", profileId)
+          .order("start_date", { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.warn("demo_allocations fetch failed", error);
+        setStatus("Unable to load your allocations right now.", "warning");
+        return [];
+      }
+    }
+
     function getGreeting() {
       const hour = new Date().getHours();
       if (hour < 12) return "Good morning";
@@ -1417,6 +1476,56 @@
       updatedAt.textContent = account?.updated_at ? `Updated ${new Date(account.updated_at).toLocaleString()}` : "Awaiting first sync.";
       renderFundsCard(account, latestProfile);
       populateFundsAccounts(account, userId);
+    }
+
+    function showAllocationsLoading() {
+      allocationLoading?.classList.remove("hidden");
+      allocationsTable?.classList.add("hidden");
+      allocationEmpty?.classList.add("hidden");
+    }
+
+    function renderAllocationsTable(rows = []) {
+      if (!allocationRows) return;
+
+      allocationRows.innerHTML = "";
+      allocationLoading?.classList.add("hidden");
+
+      const hasRows = Array.isArray(rows) && rows.length > 0;
+      allocationsTable?.classList.toggle("hidden", !hasRows);
+      allocationEmpty?.classList.toggle("hidden", hasRows);
+
+      if (!hasRows) return;
+
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50/50";
+
+        const strategyLabel = row?.strategies?.name || row?.strategies?.code || row?.strategy_id || "Strategy";
+        const startDate = row?.start_date ? new Date(row.start_date).toLocaleDateString() : "—";
+        const status = (row?.status || "").toString().toLowerCase();
+        const statusTone = status === "active"
+          ? "border border-emerald-100 bg-emerald-50 text-emerald-700"
+          : "border border-slate-200 bg-slate-100 text-slate-700";
+        const returnPct = typeof row?.latest_return_pct === "number" ? row.latest_return_pct : Number(row?.latest_return_pct);
+        const returnTone = Number.isFinite(returnPct) ? (returnPct >= 0 ? "text-emerald-700" : "text-rose-700") : "text-slate-600";
+
+        tr.innerHTML = `
+          <td class="px-5 py-3 font-semibold text-slate-900">${strategyLabel}</td>
+          <td class="px-5 py-3">${formatMoney(row?.amount_invested, row?.base_currency)}</td>
+          <td class="px-5 py-3 uppercase text-slate-700">${(row?.base_currency || activeCurrency || "USD").toString().toUpperCase()}</td>
+          <td class="px-5 py-3 text-slate-700">${startDate}</td>
+          <td class="px-5 py-3"><span class="chip text-xs ${statusTone}">${status || "—"}</span></td>
+          <td class="px-5 py-3">${formatMoney(row?.latest_value ?? row?.amount_invested, row?.base_currency)}</td>
+          <td class="px-5 py-3 font-semibold ${returnTone}">${formatReturnPct(returnPct)}</td>
+          <td class="px-5 py-3 text-right">
+            <button type="button" class="btn h-9 text-[13px] border-slate-200 bg-white hover:bg-slate-50" data-liquidate-id="${row?.id}" data-strategy="${strategyLabel}">
+              Liquidate
+            </button>
+          </td>
+        `;
+
+        allocationRows.appendChild(tr);
+      });
     }
 
     function updatePerformanceCopy(selectedStrategy = null, mode = "strategy") {
@@ -1547,6 +1656,13 @@
       return strategies;
     }
 
+    async function hydrateAllocations(profileId = "") {
+      showAllocationsLoading();
+      const allocations = await fetchDemoAllocations(profileId);
+      renderAllocationsTable(allocations);
+      return allocations;
+    }
+
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
       const range = getActiveRange();
       const mode = getActiveMode();
@@ -1635,6 +1751,13 @@
     watchRecos?.addEventListener("scroll", () => updateWatchlistScroller());
     window.addEventListener("resize", () => updateWatchlistScroller());
 
+    allocationsTable?.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-liquidate-id]");
+      if (!target) return;
+      const label = target.dataset.strategy || "this allocation";
+      pushToast(`Liquidation for ${label} will be available soon.`, "warn");
+    });
+
     strategySelect?.addEventListener("change", () => {
       updatePerformanceCopy(getSelectedStrategy(), getActiveMode());
       refreshChart();
@@ -1668,6 +1791,7 @@
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
+        await hydrateAllocations(user.id);
         await hydrateWatchlist(latestProfile, currentUser);
         subscribedStrategies = await hydrateStrategies(latestProfile, currentUser);
         if (!subscribedStrategies.length) {
