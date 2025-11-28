@@ -208,33 +208,33 @@
       scrollbar-width: none
     }
 
+    .watch-strip {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+    }
+
+    .watch-strip > article {
+      scroll-snap-align: start;
+    }
+
     .watch-fade {
       pointer-events: none;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 48px;
     }
 
-    .watch-marquee-track {
-      display: flex;
-      gap: 12px;
-      overflow: hidden;
-      position: relative;
-      isolation: isolate;
-      mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    .watch-fade-left {
+      left: 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
     }
 
-    .watch-marquee-inner {
-      display: flex;
-      gap: 12px;
-      min-width: max-content;
-      animation: marquee 22s linear infinite;
-    }
-
-    .watch-marquee-track:hover .watch-marquee-inner {
-      animation-play-state: paused;
-    }
-
-    @keyframes marquee {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
+    .watch-fade-right {
+      right: 0;
+      background: linear-gradient(270deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
     }
 
     .allocation-card {
@@ -415,6 +415,12 @@
           </div>
         </section>
 
+        <div class="col-span-12 flex justify-end px-1">
+          <button id="watchlist-toggle" type="button" class="text-sm font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">
+            Show my watchlist
+          </button>
+        </div>
+
         <section id="watchlist-section" class="card col-span-12 border border-slate-200 shadow-none hidden overflow-hidden">
           <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -422,15 +428,25 @@
               <h3 class="text-lg font-semibold text-slate-900">Strategies that we think would best suit you</h3>
             </div>
             <div class="flex items-center gap-2">
+              <button id="watch-prev" type="button" class="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Previous watchlist item">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <button id="watch-next" type="button" class="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Next watchlist item">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
               <a href="/demo/strategies.html"
-                class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
+                class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View OpenStrategies</a>
             </div>
           </div>
           <div class="px-5 pb-5 relative">
-            <div id="watchlist-recos" class="watch-marquee-track"></div>
+            <div class="relative">
+              <div id="watch-fade-left" class="watch-fade watch-fade-left hidden"></div>
+              <div id="watch-fade-right" class="watch-fade watch-fade-right hidden"></div>
+              <div id="watchlist-recos" class="watch-strip no-scrollbar"></div>
+            </div>
             <p id="watchlist-empty" class="hidden text-sm text-slate-500">Pick strategies during onboarding to see them here.</p>
             <div class="mt-4 sm:hidden">
-              <a href="/demo/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View all strategies</a>
+              <a href="/demo/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View OpenStrategies</a>
             </div>
           </div>
         </section>
@@ -473,7 +489,7 @@
                 <option>Loading…</option>
               </select>
               <a href="/demo/strategies.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--olive)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
-                View Demo Strategies
+                View OpenStrategies
               </a>
             </div>
           </div>
@@ -674,6 +690,7 @@
     const fundsAmount = document.getElementById("funds-amount");
     const fundsCancel = document.getElementById("funds-cancel");
     const fundsSubmit = document.getElementById("funds-submit");
+    const watchToggle = document.getElementById("watchlist-toggle");
     const watchSection = document.getElementById("watchlist-section");
     const watchRecos = document.getElementById("watchlist-recos");
     const watchEmpty = document.getElementById("watchlist-empty");
@@ -701,12 +718,16 @@
     let allocationsCache = [];
     let activeAllocationId = null;
     let activeCurrency = "USD";
+    let watchlistVisible = false;
+    let watchlistHasItems = false;
     let formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
 
     function setCurrency(ccy = "USD") {
       activeCurrency = (ccy || "USD").toUpperCase();
       formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
     }
+
+    syncWatchlistVisibility();
 
     function setAvatar(src) {
       if (!profileAvatar) return;
@@ -1004,10 +1025,16 @@
     }
 
     function updateWatchlistScroller() {
-      watchPrev?.classList.add("hidden");
-      watchNext?.classList.add("hidden");
-      watchFadeLeft?.classList.add("hidden");
-      watchFadeRight?.classList.add("hidden");
+      if (!watchRecos) return;
+      const { scrollLeft, scrollWidth, clientWidth } = watchRecos;
+      const canScroll = scrollWidth > clientWidth + 8;
+      const atStart = scrollLeft <= 4;
+      const atEnd = scrollLeft + clientWidth >= scrollWidth - 4;
+
+      watchPrev?.classList.toggle("hidden", !canScroll || atStart);
+      watchNext?.classList.toggle("hidden", !canScroll || atEnd);
+      watchFadeLeft?.classList.toggle("hidden", !canScroll || atStart);
+      watchFadeRight?.classList.toggle("hidden", !canScroll || atEnd);
     }
 
     function renderWatchlistCards(items = []) {
@@ -1015,18 +1042,14 @@
       watchRecos.innerHTML = "";
 
       const hasItems = Array.isArray(items) && items.length > 0;
-      watchSection?.classList.remove("hidden");
+      watchlistHasItems = hasItems;
       watchEmpty.classList.toggle("hidden", hasItems);
+      syncWatchlistVisibility();
 
       if (!hasItems) {
         updateWatchlistScroller();
         return;
       }
-
-      const primary = document.createElement("div");
-      primary.className = "watch-marquee-inner";
-      const clone = document.createElement("div");
-      clone.className = "watch-marquee-inner";
 
       const buildCard = (s) => {
         const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : null);
@@ -1086,26 +1109,27 @@
 
       items.forEach((s) => {
         const [card, chartId, series] = buildCard(s);
-        const [dup, dupChartId, dupSeries] = buildCard({ ...s, id: `${s.id || s.code}-dup` });
-        primary.appendChild(card);
-        clone.appendChild(dup);
+        watchRecos.appendChild(card);
         card.addEventListener("click", () => {
           const target = card.dataset.strategyId || s.code || s.id;
           if (target) window.location.href = `/demo/strategy.html?strategy=${encodeURIComponent(target)}`;
         });
-        dup.addEventListener("click", () => {
-          const target = s.id || s.code;
-          if (target) window.location.href = `/demo/strategy.html?strategy=${encodeURIComponent(target)}`;
-        });
         if (series.length) {
           requestAnimationFrame(() => drawCardChart(chartId, series));
-          requestAnimationFrame(() => drawCardChart(dupChartId, dupSeries));
         }
       });
 
-      watchRecos.append(primary, clone);
       watchRecos.scrollLeft = 0;
       updateWatchlistScroller();
+    }
+
+    function syncWatchlistVisibility() {
+      if (!watchSection) return;
+      watchSection.classList.toggle("hidden", !watchlistVisible);
+      if (watchToggle) {
+        watchToggle.textContent = watchlistVisible ? "Hide my watchlist" : "Show my watchlist";
+        watchToggle.classList.toggle("opacity-60", !watchlistHasItems);
+      }
     }
 
     function normalizeStrategyIds(raw = []) {
@@ -1611,6 +1635,83 @@
       });
     }
 
+    async function liquidateAllocation(allocationId = "", button = null) {
+      if (!allocationId) return;
+      const allocation = allocationsCache.find((row) => row?.id === allocationId);
+      if (!allocation) {
+        pushToast("We couldn't find that allocation.", "warn");
+        return;
+      }
+
+      const status = (allocation?.status || "").toLowerCase();
+      if (status !== "active") {
+        pushToast("This allocation is already closed.", "warn");
+        return;
+      }
+
+      const label = allocation?.strategies?.name || allocation?.strategies?.code || "this allocation";
+      const defaultText = button?.textContent;
+      const endDate = new Date();
+      const endDateStr = endDate.toISOString().slice(0, 10);
+      const payout = Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Liquidating…";
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("demo_allocations")
+          .update({ status: "exited", end_date: endDateStr })
+          .eq("id", allocationId)
+          .select(
+            "id, strategy_id, amount_invested, base_currency, start_date, status, end_date, latest_value, latest_return_pct, strategies(name, code)"
+          )
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const updated = data || { ...allocation, status: "exited", end_date: endDateStr, latest_value: payout };
+        allocationsCache = allocationsCache.map((row) => (row?.id === allocationId ? { ...row, ...updated } : row));
+
+        const baseBalance = Number(latestAccount?.balance ?? latestAccount?.equity ?? latestProfile?.balance ?? 0) || 0;
+        const baseEquity = Number(latestAccount?.equity ?? baseBalance) || 0;
+        const nowIso = new Date().toISOString();
+        latestAccount = { ...latestAccount, balance: baseBalance + payout, equity: baseEquity + payout, updated_at: nowIso };
+        latestProfile = { ...(latestProfile || {}), balance: latestAccount.balance };
+
+        if (currentUser?.id) {
+          try {
+            const { data: persisted, error: persistErr } = await supabase
+              .from("demo_profiles")
+              .update({ balance: latestAccount.balance })
+              .eq("id", currentUser.id)
+              .select()
+              .maybeSingle();
+
+            if (persistErr) throw persistErr;
+            if (persisted) latestProfile = { ...(latestProfile || {}), ...persisted };
+          } catch (persistError) {
+            console.warn("Failed to persist balance after liquidation", persistError);
+          }
+        }
+
+        renderAllocationsTable(allocationsCache);
+        renderAccount(latestAccount, currentUser?.id || latestAccount?.id);
+        refreshChart(latestProfile, latestAccount);
+        pushToast(`Liquidated ${label} and returned ${formatMoney(payout)} to balance.`, "ok");
+      } catch (err) {
+        console.error("Liquidation failed", err);
+        pushToast("Liquidation failed. Please try again.", "error");
+      } finally {
+        if (button) {
+          button.disabled = false;
+          if (defaultText) button.textContent = defaultText;
+        }
+      }
+    }
+
     function getActiveAllocation() {
       if (!Array.isArray(allocationsCache) || !allocationsCache.length) return null;
       return allocationsCache.find((row) => row?.id === activeAllocationId)
@@ -1868,6 +1969,12 @@
     fundsCancel?.addEventListener("click", closeFundsModal);
     fundsSubmit?.addEventListener("click", submitFundsRequest);
 
+    watchToggle?.addEventListener("click", () => {
+      watchlistVisible = !watchlistVisible;
+      syncWatchlistVisibility();
+      updateWatchlistScroller();
+    });
+
     watchPrev?.addEventListener("click", () => {
       if (!watchRecos) return;
       watchRecos.scrollBy({ left: -watchRecos.clientWidth * 0.85, behavior: "smooth" });
@@ -1892,7 +1999,7 @@
       }
 
       if (target.dataset.liquidateId) {
-        pushToast(`Liquidation for ${label} will be available soon.`, "warn");
+        liquidateAllocation(target.dataset.liquidateId, target);
       }
     });
 
