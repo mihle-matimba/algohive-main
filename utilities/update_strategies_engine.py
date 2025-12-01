@@ -1,4 +1,5 @@
 import os
+import time
 import datetime as dt
 from typing import Dict, List, Any, Tuple
 from supabase import create_client, Client
@@ -9,7 +10,6 @@ from statistics import pstdev
 # ==========================
 SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"
 SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODExMjU0NSwiZXhwIjoyMDczNjg4NTQ1fQ.FUyd9yCRrHYv5V5YrKup9_OI3n01aCfxS3_MxReLxBM"
-
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
@@ -28,7 +28,9 @@ def build_symbol_pct_from_universe(
     """
     For a list of symbols, pull their closes_30d from trading_universe
     and return: { symbol: { 'YYYY-MM-DD': pct_decimal } }, filtered
-    strictly AFTER start_date and up to end_date inclusive.
+    strictly AFTER (start_date - 1 day) effectively:
+      - if start_date is not None, we include that date and after
+      - up to end_date inclusive.
     """
     if not symbols:
         return {}
@@ -69,7 +71,9 @@ def build_symbol_pct_from_universe(
             except Exception:
                 continue
 
-            if start_date and d <= start_date:
+            # IMPORTANT: allow reloading for the existing last date
+            # Before: if start_date and d <= start_date: continue
+            if start_date and d < start_date:
                 continue
             if end_date and d > end_date:
                 continue
@@ -409,6 +413,7 @@ def update_strategy_metrics_from_universe():
                 p = float(p_raw)
             except (TypeError, ValueError):
                 continue
+            # overwrite for that date (so today's pct gets refreshed)
             series_map[d_str] = p
 
         series_all = [
@@ -442,5 +447,15 @@ def update_strategy_metrics_from_universe():
     print("[INFO] Done updating strategy_metrics from trading_universe.")
 
 
+# ================== SCHEDULER LOOP =====================
+
 if __name__ == "__main__":
-    update_strategy_metrics_from_universe()
+    print("[ENGINE] Strategy metrics engine started — running every 20 minutes.")
+    while True:
+        try:
+            print(f"\n[ENGINE] Run at {now_utc().isoformat()}")
+            update_strategy_metrics_from_universe()
+        except Exception as e:
+            print(f"[ERROR] Strategy engine run failed: {e}")
+        # sleep 20 minutes
+        time.sleep(1200)
