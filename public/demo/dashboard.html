@@ -1752,18 +1752,71 @@
         },
       };
 
-    function renderChart(series = [], account = {}, profile = {}, rangeKey = "ALL") {
+    function toDateSafe(value) {
+      if (!value) return null;
+      const d = value instanceof Date ? value : new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatChartDate(date) {
+      return date?.toLocaleDateString(undefined, { month: "short", day: "numeric" }) || "";
+    }
+
+    function buildDefaultLabels(length, fromDate = new Date()) {
+      const today = toDateSafe(fromDate) || new Date();
+      return Array.from({ length: Math.max(1, length) }, (_, idx, arr) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (arr.length - 1 - idx));
+        return formatChartDate(d);
+      });
+    }
+
+    function buildSeriesLabels(rawSeries = [], allocation = {}, length = 0) {
+      const parsedDates = [];
+
+      for (const point of rawSeries || []) {
+        if (!point || typeof point !== "object") continue;
+        const candidate =
+          point.date ??
+          point.ts ??
+          point.timestamp ??
+          point.label ??
+          point.time ??
+          point.t;
+        const d = toDateSafe(candidate);
+        if (d) parsedDates.push(d);
+      }
+
+      const targetLength = length || parsedDates.length;
+      if (!targetLength) return [];
+
+      if (parsedDates.length) {
+        const start = parsedDates[0];
+        const dates = Array.from({ length: targetLength }, (_, idx) => parsedDates[idx] || new Date(start));
+        dates.forEach((d, idx) => {
+          if (!parsedDates[idx]) d.setDate(start.getDate() + idx);
+        });
+        return dates.map(formatChartDate);
+      }
+
+      const startDate = toDateSafe(allocation?.start_date);
+      if (startDate) {
+        return Array.from({ length: targetLength }, (_, idx) => {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + idx);
+          return formatChartDate(d);
+        });
+      }
+
+      return buildDefaultLabels(targetLength);
+    }
+
+    function renderChart(series = [], labels = [], account = {}, profile = {}, rangeKey = "ALL") {
       if (!pfChartCanvas || typeof Chart === "undefined") return;
 
       const data = Array.isArray(series) && series.length ? series : Array(7).fill(0);
       const ctx = pfChartCanvas.getContext("2d");
-      const today = new Date();
-
-      const labels = data.map((_, idx) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - (data.length - 1 - idx));
-        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      });
+      const chartLabels = Array.isArray(labels) && labels.length === data.length ? labels : buildDefaultLabels(data.length);
 
       const gradient = ctx.createLinearGradient(0, 0, 0, pfChartCanvas.height || 260);
       gradient.addColorStop(0, "rgba(85,107,47,0.35)");
@@ -1774,7 +1827,7 @@
       chartInstance = new Chart(ctx, {
         type: "line",
         data: {
-          labels,
+          labels: chartLabels,
           datasets: [
             {
               data,
@@ -2145,9 +2198,9 @@
       return byId || activeRow || allocationsCache[0];
     }
 
-    function allocationSeriesForRange(allocation = {}, rangeKey = "ALL") {
+    function allocationSeriesForRange(allocation = {}, rangeKey = "ALL", rawSeries = null) {
       if (!allocation) return [];
-      const valueSeries = normalizeValueSeries(pickSeriesForRange(allocation, rangeKey));
+      const valueSeries = normalizeValueSeries(rawSeries || pickSeriesForRange(allocation, rangeKey));
       const base = Number(allocation?.amount_invested ?? allocation?.latest_value ?? 0);
       if (valueSeries.length) return valueSeries;
 
@@ -2371,11 +2424,13 @@
     function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
       const range = getActiveRange();
       const activeAllocation = getActiveAllocation();
-      const series = allocationSeriesForRange(activeAllocation, range);
+      const rawSeries = pickSeriesForRange(activeAllocation, range);
+      const series = allocationSeriesForRange(activeAllocation, range, rawSeries);
+      const labels = buildSeriesLabels(rawSeries, activeAllocation, series.length);
       const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
       toggleEquityAvailability(hasData);
       updatePerformanceCopy(activeAllocation);
-      renderChart(series, account, profile, range);
+      renderChart(series, labels, account, profile, range);
     }
 
     function setActiveRange(rangeKey) {
