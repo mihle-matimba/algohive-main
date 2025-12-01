@@ -269,6 +269,18 @@
     const form = document.getElementById('create-form');
     const formStatus = document.getElementById('form-status');
 
+    const redirectToAuth = () => {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    };
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      redirectToAuth();
+      throw new Error('redirecting');
+    }
+    supabase.auth.onAuthStateChange((_ev, sess) => { if (!sess) redirectToAuth(); });
+
     const riskThemes = {
       "Conservative": { badge: 'bg-emerald-50 text-emerald-700 border border-emerald-100', chip: 'risk-low' },
       "Balanced": { badge: 'bg-amber-50 text-amber-700 border border-amber-100', chip: 'risk-moderate' },
