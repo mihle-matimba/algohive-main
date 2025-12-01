@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Money — Coming Soon</title>
+  <title>AlgoMoney — Coming Soon</title>
   
   <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
-  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* --- LAYOUT SETUP --- */
     :root {
       --brand-purple: #553bf7; 
       --bg-color: #ffffff;
+      --olive: #7e8d52;
     }
 
-    /* --- LAYOUT GRID --- */
     #layout {
-      --sb: 220px;
+      --sb: 280px;
       display: grid;
       grid-template-columns: 1fr;
       min-height: 100vh;
@@ -30,36 +30,57 @@
       #layout.is-collapsed { --sb: 80px; }
     }
 
-    /* --- SAFETY FIX: If sidebar fails to load, expand main content --- */
-    #layout > main:only-child {
-        grid-column: 1 / -1;
-    }
-
-    /* Sidebar collapse visual fixes */
+    /* --- SIDEBAR VISUAL FIXES --- */
     #ah-sidebar[data-collapsed="true"] .label,
     #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
     #ah-sidebar[data-collapsed="true"] details > .sub { display: none !important; }
     #ah-sidebar[data-collapsed="true"] nav a,
     #ah-sidebar[data-collapsed="true"] details > summary { justify-content: center; gap: .25rem; }
 
-    /* --- PAGE CONTENT ANIMATIONS --- */
-    main {
-      font-family: 'Montserrat', sans-serif;
-      position: relative;
-      overflow: hidden;
-      width: 100%;
+    /* --- ALGOMONEY APP STYLES --- */
+    .money-app-container {
+      display: grid;
+      grid-template-columns: 1fr;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: white;
+      overflow: hidden;
     }
 
-    @keyframes eclipseRise { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); } 100% { opacity: 0.3; transform: translate(-50%, -60%) scale(1); } }
-    @keyframes globeFloat { 0% { transform: translateY(20px) scale(0.98); opacity: 0; } 100% { transform: translateY(0px) scale(1); opacity: 1; } }
-    @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
+    /* Desktop: Split Money Menu and Content */
+    @media (min-width: 1024px) {
+      .money-app-container {
+        grid-template-columns: 240px 1fr; /* Inner Sidebar width */
+      }
+    }
 
+    .money-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #64748b; /* Slate 500 */
+      transition: all 0.2s;
+    }
+
+    .money-nav-item:hover {
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .money-nav-item.active {
+      background-color: #ea580c; /* Orange-600 like screenshot */
+      color: white;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+    }
+
+    .money-gradient-btn {
+      background: linear-gradient(135deg, #a3e635 0%, #16a34a 100%); /* Green Gradient */
+      box-shadow: 0 10px 20px -5px rgba(22, 163, 74, 0.4);
+    }
+
+    /* --- COMING SOON ANIMATIONS --- */
     .eclipse-light {
       position: absolute; top: 55%; left: 50%; width: 80vw; height: 80vw;
       max-width: 900px; max-height: 900px;
@@ -68,66 +89,125 @@
       transform: translate(-50%, -60%);
       animation: eclipseRise 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
-
     .main-globe {
       position: relative; z-index: 10; 
       animation: globeFloat 2.5s ease-out forwards;
-      margin-bottom: 0; 
     }
-
     .white-fade-overlay {
       position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; 
       background: linear-gradient(to top, #ffffff 50%, rgba(255,255,255,0) 100%);
       z-index: 20; pointer-events: none;
     }
-
-    .content-layer {
-      position: relative; z-index: 30; display: flex; flex-direction: column;
-      align-items: center; text-align: center; margin-top: -80px; 
-    }
-
     .animate-text { animation: fadeInUp 1.5s ease-out 0.8s forwards; opacity: 0; }
     .animate-logo { animation: fadeInUp 1.5s ease-out 1.2s forwards; opacity: 0; }
+
+    @keyframes eclipseRise { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); } 100% { opacity: 0.3; transform: translate(-50%, -60%) scale(1); } }
+    @keyframes globeFloat { 0% { transform: translateY(20px) scale(0.98); opacity: 0; } 100% { transform: translateY(0px) scale(1); opacity: 1; } }
+    @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 
-<body>
+<body class="bg-slate-50 font-['Inter']">
+
   <div id="layout">
     
-    <main class="relative">
+    <main class="money-app-container relative">
       
-      <button id="ah-mobile-menu-btn" class="md:hidden absolute top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-xl bg-white/80 backdrop-blur border border-slate-200 text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+      <button id="ah-mobile-menu-btn" class="md:hidden absolute top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-xl bg-white/80 backdrop-blur border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
         <i class="fa-solid fa-bars text-lg"></i>
       </button>
 
-      <div class="eclipse-light"></div>
-
-      <div class="main-globe">
-        <img src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
-          alt="Globe" class="h-72 w-72 object-contain sm:h-96 sm:w-96 md:h-[500px] md:w-[500px]" />
-      </div>
-
-      <div class="white-fade-overlay"></div>
-
-      <div class="content-layer">
-        <h1 class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl font-['Montserrat']">
-          Coming Soon
-        </h1>
-        <div class="animate-logo">
-          <img src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
-            alt="Logo" class="h-4 w-auto object-contain sm:h-5 opacity-80" />
+      <aside class="hidden lg:flex flex-col bg-slate-50 border-r border-slate-200/60 p-5 z-20">
+        
+        <div class="mb-8">
+          <button class="money-gradient-btn w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-[1.02]">
+            <i class="fa-solid fa-wallet text-lg"></i>
+            <span>AlgoMoney</span>
+          </button>
         </div>
+
+        <div class="space-y-6 flex-1 overflow-y-auto">
+          
+          <div>
+            <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Overview</p>
+            <div class="space-y-1">
+              <a href="#" class="money-nav-item active">
+                <i class="fa-solid fa-chart-simple w-5 text-center"></i>
+                <span>Dashboard</span>
+              </a>
+              <a href="#" class="money-nav-item">
+                <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                <span>Analytics</span>
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Finance</p>
+            <div class="space-y-1">
+              <a href="#" class="money-nav-item">
+                <i class="fa-solid fa-arrow-right-arrow-left w-5 text-center"></i>
+                <span>Transactions</span>
+              </a>
+              <a href="#" class="money-nav-item">
+                <i class="fa-regular fa-credit-card w-5 text-center"></i>
+                <span>Cards</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mt-auto pt-4 border-t border-slate-200">
+          <div class="flex items-center gap-3 px-2 py-2">
+            <div class="h-8 w-8 rounded-full bg-slate-200 grid place-items-center text-xs font-bold text-slate-600">D</div>
+            <div class="text-sm font-medium text-slate-700">Demo User</div>
+            <i class="fa-solid fa-arrow-right-from-bracket ml-auto text-slate-400 cursor-pointer hover:text-rose-500"></i>
+          </div>
+        </div>
+      </aside>
+
+      <div class="relative bg-white flex flex-col items-center justify-center overflow-hidden">
+        
+        <div class="lg:hidden absolute top-0 left-0 right-0 p-4 flex justify-center z-40 pointer-events-none">
+           <span class="bg-white/80 backdrop-blur px-4 py-1.5 rounded-full border border-slate-200 text-sm font-bold text-slate-800 shadow-sm mt-12 md:mt-2">
+             AlgoMoney
+           </span>
+        </div>
+
+        <div class="eclipse-light"></div>
+
+        <div class="main-globe">
+          <img 
+            src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
+            alt="Globe" 
+            class="h-64 w-64 object-contain sm:h-80 sm:w-80 md:h-[450px] md:w-[450px]"
+          />
+        </div>
+
+        <div class="white-fade-overlay"></div>
+
+        <div class="content-layer">
+          <h1 class="animate-text mb-6 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl font-['Montserrat']">
+            Coming Soon
+          </h1>
+          <div class="animate-logo">
+            <img 
+              src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
+              alt="Logo" 
+              class="h-4 w-auto object-contain sm:h-5 opacity-80"
+            />
+          </div>
+        </div>
+
       </div>
 
     </main>
   </div>
 
   <script type="module" nonce="ALGOHIVE">
-    // Make sure this path points to where you saved the layout.js file
-    // Assuming file structure: public/money/comingsoon.html and public/partials/layout.js
     import { renderSidebar } from '../partials/layout.js';
-    
-    // Initialize sidebar with 'money' active state
+    // Initialize global sidebar with 'money' active state
     renderSidebar('money');
   </script>
 
