@@ -625,7 +625,6 @@
                             <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <button data-range="1D" class="tab text-[13px]">1D</button>
                             <button data-range="1M" class="tab text-[13px]">1M</button>
                             <button data-range="3M" class="tab text-[13px]">3M</button>
                             <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
@@ -1926,35 +1925,6 @@
 
 
 
-        // MODIFIED: This function now ONLY handles currency display (for 1D)
-        // It also resets the chart Y-axis and tooltip to currency format
-        function setCurve(seriesVals, ccy) {
-            if (!chart) return;
-            chart.data.labels = currentLabels;
-            chart.data.datasets[0].data = seriesVals;
-
-            // *** ADDED: Ensure Y-axis is in CURRENCY format ***
-            chart.options.scales.y.ticks.callback = v => money(v, ccy);
-            chart.options.plugins.tooltip.callbacks.label = c => money(c.raw, currentCCY);
-            chart.update();
-
-            // *** MODIFIED: This block is now standard, no 'Growth' check ***
-            const pfValueEl = $('#pf-value');
-            if (!seriesVals.length) {
-                pfValueEl.textContent = money(0, ccy);
-                $('#pf-change').textContent = '—';
-                return;
-            }
-            const first = seriesVals[0], last = seriesVals.at(-1);
-            const chg = ((last - first) / first) * 100;
-            pfValueEl.textContent = money(last, ccy);
-            const chgEl = $('#pf-change');
-            chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
-            chgEl.style.color = chg >= 0 ? '#16a34a' : '#dc2626';
-            $('#pf-updated').textContent =
-                new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SAST';
-        }
-
         // ---------- calendar (daily returns) ----------
 
         // *** ADDED: New function to aggregate daily returns to monthly ***
@@ -2264,24 +2234,6 @@
         }
 
         // ---------- equity curve selection ---------
-        function makeLabels1D(src) {
-            return (src || []).map(x => {
-                const d = new Date(x.timestamp); // x.timestamp from Supabase
-                return d.toLocaleTimeString('en-ZA', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            });
-        }
-        function extractPctSeries1D(src) {
-            return (src || [])
-                .map(p => {
-                    const raw = Number(p.pct);
-                    if (!Number.isFinite(raw)) return null;
-                    return raw * 100; // convert 0.0052 -> 0.52 (%)
-                })
-                .filter(v => Number.isFinite(v));
-        }
         function buildCurveFromDailySeries(src) {
             // src: [{ date: "2025-10-28", pct: 0.0123 }, ...]
             // pct is decimal (0.0123 == +1.23%)
@@ -2339,83 +2291,12 @@
 
         function makeLabelsMonthly(src) { return src.map(x => x.label || ''); }
 
-        // MODIFIED: This function now splits logic:
-        // - 1D shows currency (calls setCurve)
-        // - 6M, 1Y, ALL show Growth %/Multiplier (calculates and sets text directly)
+        // Render multi-day / multi-month performance ranges (growth %/multiplier)
         function selectRangeAndRender(rangeKey, metrics, strategy) {
             const pfValueEl = $('#pf-value');
             const chgEl = $('#pf-change');
             currentCCY = strategy.currency || 'ZAR';
 
-            // 1D MODE (intraday % PnL vs yesterday's close NAV baseline)
-            if (rangeKey === '1D') {
-                const s1d = metrics?.series_1d || [];
-
-                // x labels = HH:MM
-                currentLabels = makeLabels1D(s1d);
-
-                // y data (pct intraday) -> convert decimal to % units
-                // 0.0052 -> 0.52
-                const pctSeries = (s1d || [])
-                    .map(p => Number(p.pct))
-                    .filter(v => Number.isFinite(v))
-                    .map(vDec => vDec * 100);
-
-                if (chart) {
-                    chart.data.labels = currentLabels;
-                    chart.data.datasets[0].data = pctSeries;
-
-                    // y-axis in %
-                    chart.options.scales.y.ticks.callback = v => {
-                        const num = Number(v);
-                        return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
-                    };
-
-                    chart.options.plugins.tooltip.callbacks.label = c => {
-                        const val = Number(c.raw);
-                        return (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
-                    };
-
-                    chart.update();
-                    // update hover meta for 1D
-                    window.__pfHoverMeta = {
-                        mode: 'pct',
-                        labels: currentLabels.map(l => l), // e.g. "14:35"
-                        values: pctSeries.map(v => {
-                            if (!Number.isFinite(v)) return '—';
-                            const sign = v >= 0 ? '+' : '';
-                            return `${sign}${v.toFixed(2)}%`;
-                        })
-                    };
-
-                }
-
-                // headline: latest intraday % and move since first tick
-                if (!pctSeries.length) {
-                    pfValueEl.textContent = '+0.00%';
-                    chgEl.textContent = '—';
-                    chgEl.style.color = '#64748b';
-                } else {
-                    const first = pctSeries[0];
-                    const last = pctSeries[pctSeries.length - 1];
-                    pfValueEl.textContent = `${last >= 0 ? '+' : ''}${last.toFixed(2)}%`;
-                    const diff = last - first;
-                    chgEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
-                    chgEl.style.color = diff >= 0 ? '#16a34a' : '#dc2626';
-                }
-
-                $('#pf-updated').textContent =
-                    new Date().toLocaleString('en-ZA', {
-                        month: 'long',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) + ' SAST';
-
-                return;
-            }
-
-            // MULTI-DAY / MULTI-MONTH MODES (daily EOD performance curves)
             // pick which series to use
             let srcDaily = [];
             switch (rangeKey) {
