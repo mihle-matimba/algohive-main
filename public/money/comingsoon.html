@@ -3,33 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Coming Soon</title>
+  <title>Coming Soon — AlgoHive</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* --- SIDEBAR & LAYOUT CSS (Required for the layout.js to look right) --- */
     :root {
       --brand-purple: #553bf7; 
       --bg-color: #ffffff;
+      --page: #0b1220;
+      --line: #e2e8f0;
+      --ink: #0f172a;
     }
 
-    body {
+    /* Reset font for sidebar elements to match dashboard */
+    #ah-sidebar { font-family: 'Inter', sans-serif; }
+    
+    /* Layout Grid */
+    #layout {
+      --sb: 220px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Sidebar Animations & Positioning */
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 280px;
+      max-width: 85vw;
+      position: fixed;
+      top: 0;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%);
+    }
+
+    #ah-sidebar.is-open { transform: translateX(0); }
+
+    /* Desktop Sidebar Logic */
+    @media (min-width: 768px) {
+      #layout { grid-template-columns: var(--sb) 1fr; }
+      #layout.is-collapsed { --sb: 64px; }
+      #ah-sidebar {
+        position: sticky;
+        top: 0;
+        width: var(--sb);
+        max-width: none;
+        height: 100vh;
+        transform: translateX(0);
+        z-index: 40;
+      }
+    }
+
+    /* Collapsed State Styles */
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+    #ah-sidebar[data-collapsed="true"] details > .sub { display: none !important; }
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details > summary { justify-content: center; gap: .25rem; }
+    #ah-sidebar[data-collapsed="true"] details > summary span { gap: 0; }
+    #ah-sidebar[data-collapsed="true"] .footer { justify-content: center; flex-direction: column; gap: 12px; }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse i { transform: rotate(180deg); }
+    
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) { #ah-collapse { display: inline-flex; } }
+
+    /* --- ORIGINAL COMING SOON ANIMATIONS --- */
+    /* Scoped to main to avoid conflict */
+    main {
       background-color: var(--bg-color);
       font-family: 'Montserrat', sans-serif;
+      position: relative;
       overflow: hidden;
-      height: 100vh;
-      width: 100vw;
+      /* Ensure full height of the main area */
+      min-height: 100vh; 
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
-
-    /* --- ANIMATIONS --- */
 
     @keyframes eclipseRise {
       0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); }
@@ -46,17 +105,6 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* NEW ANIMATION: Letter Wave 
-       It only moves during the first 20% of the timeline, 
-       then pauses for the remaining 80%.
-    */
-    @keyframes letterWave {
-      0%, 20%, 100% { transform: translateY(0); }
-      10% { transform: translateY(-12px); } /* Bounce Height */
-    }
-
-    /* --- LAYERING --- */
-
     .eclipse-light {
       position: absolute;
       top: 55%; 
@@ -67,7 +115,7 @@
       max-height: 900px;
       background: radial-gradient(circle, var(--brand-purple) 0%, rgba(255,255,255,0) 70%);
       filter: blur(60px);
-      z-index: 0;
+      z-index: 0; 
       transform: translate(-50%, -60%);
       animation: eclipseRise 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
@@ -84,15 +132,15 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 40%; 
+      height: 40%;
       background: linear-gradient(to top, #ffffff 50%, rgba(255,255,255,0) 100%);
       z-index: 20; 
       pointer-events: none;
     }
 
     .content-layer {
-      position: relative; 
-      z-index: 30; 
+      position: relative;
+      z-index: 30;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -100,81 +148,63 @@
       margin-top: -80px; 
     }
 
-    .animate-text {
-      animation: fadeInUp 1.5s ease-out 0.8s forwards;
-      opacity: 0;
-    }
+    .animate-text { animation: fadeInUp 1.5s ease-out 0.8s forwards; opacity: 0; }
+    .animate-logo { animation: fadeInUp 1.5s ease-out 1.2s forwards; opacity: 0; }
     
-    .animate-logo {
-       animation: fadeInUp 1.5s ease-out 1.2s forwards;
-       opacity: 0;
+    /* Mobile Menu Button (Absolute top left of Main) */
+    .mobile-trigger {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        z-index: 50;
     }
-
-    /* New Class for individual letters */
-    .bounce-char {
-      display: inline-block;
-      /* 4s total duration means a quick bounce then a long pause before looping */
-      animation: letterWave 4s infinite ease-in-out;
-    }
-
   </style>
 </head>
 
 <body>
-
-  <div class="eclipse-light"></div>
-
-  <div class="main-globe">
-    <img 
-      src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
-      alt="Globe" 
-      class="h-72 w-72 object-contain sm:h-96 sm:w-96 md:h-[500px] md:w-[500px]"
-    />
-  </div>
-
-  <div class="white-fade-overlay"></div>
-
-  <div class="content-layer">
-    <h1 id="coming-soon-text" class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl">
-      Coming Soon
-    </h1>
+  <div id="layout">
     
-    <div class="animate-logo">
-      <img 
-        src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
-        alt="Logo" 
-        class="h-4 w-auto object-contain sm:h-5 opacity-80"
-      />
-    </div>
-  </div>
-
-  <script>
-    // Select the H1 element
-    const textElement = document.getElementById('coming-soon-text');
-    const textContent = textElement.textContent.trim();
-    
-    // Clear current text
-    textElement.innerHTML = '';
-
-    // Loop through letters and wrap them
-    textContent.split('').forEach((char, index) => {
-      const span = document.createElement('span');
+    <main class="w-full relative">
       
-      if (char === ' ') {
-        // Maintain width for spaces
-        span.innerHTML = '&nbsp;';
-      } else {
-        span.textContent = char;
-        span.classList.add('bounce-char');
+      <button id="ah-mobile-menu-btn" class="md:hidden mobile-trigger inline-flex items-center justify-center h-10 w-10 rounded-xl bg-white/80 backdrop-blur border border-slate-200 text-slate-700 shadow-sm">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div class="eclipse-light"></div>
+
+      <div class="main-globe">
+        <img 
+          src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
+          alt="Globe" 
+          class="h-72 w-72 object-contain sm:h-96 sm:w-96 md:h-[500px] md:w-[500px]"
+        />
+      </div>
+
+      <div class="white-fade-overlay"></div>
+
+      <div class="content-layer">
+        <h1 class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl">
+          Coming Soon
+        </h1>
         
-        // LOGIC:
-        // 2.2s = Wait for the main 'fadeInUp' animation to finish (1.5s + 0.8s delay)
-        // (index * 0.1s) = The stagger effect between letters
-        span.style.animationDelay = `${2.2 + (index * 0.1)}s`;
-      }
-      
-      textElement.appendChild(span);
-    });
+        <div class="animate-logo">
+          <img 
+            src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
+            alt="Logo" 
+            class="h-4 w-auto object-contain sm:h-5 opacity-80"
+          />
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    // Adjust path based on your folder structure. 
+    // Assuming file is at public/money/comingsoon.html and layout is at public/partials/layout.js
+    import { renderSidebar } from '/partials/layout.js';
+    
+    // Initialize sidebar with 'comingsoon' as the active page key
+    renderSidebar('comingsoon');
   </script>
 
 </body>
