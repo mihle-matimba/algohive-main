@@ -1,4 +1,5 @@
 import os
+import time
 import datetime as dt
 from typing import Dict, List, Any, Tuple
 from supabase import create_client, Client
@@ -145,39 +146,38 @@ def update_demo_allocations_from_strategies():
             print(f"[INFO] Allocation {alloc_id}: no strategy series found, skipping")
             continue
 
-        # Filter strategy daily returns for dates >= start_date
+        # Filter strategy daily returns for dates >= start_date and <= today
         strat_rets = [(d, r) for (d, r) in strat_series if d >= start_date and d <= today]
         if not strat_rets:
             print(f"[INFO] Allocation {alloc_id}: no strategy returns after start_date, skipping")
             continue
 
-        # Build allocation value path
+        # Build allocation value path from scratch every time
         value_series: List[Dict[str, Any]] = []
         prev_value = amount_invested
 
         for d, r in strat_rets:
             # r is decimal, e.g. 0.01 == 1%
             prev_value = prev_value * (1.0 + r)
-            # round to cents, but we can keep it float
             value_series.append({
                 "date": d.isoformat(),
-                "value": round(prev_value, 2)
+                "value": round(prev_value, 2),
             })
 
         if not value_series:
             print(f"[INFO] Allocation {alloc_id}: no value series built, skipping update")
             continue
 
-        # Ensure sorted just in case
+        # Ensure sorted
         try:
             value_series.sort(key=lambda x: x.get("date", ""))
         except Exception as e:
             print(f"[WARN] Allocation {alloc_id}: could not sort series_all: {e}")
 
-        # Build windows
+        # Windows
         windows = build_value_window_series(value_series)
 
-        # Latest value and return
+        # Latest
         latest_value = value_series[-1]["value"]
         if amount_invested > 0:
             latest_return_pct = (latest_value / amount_invested) - 1.0  # decimal: 0.09 == 9%
@@ -203,5 +203,15 @@ def update_demo_allocations_from_strategies():
     print("[INFO] Done updating demo_allocations.")
 
 
+# ================ SCHEDULER LOOP ===================
+
 if __name__ == "__main__":
-    update_demo_allocations_from_strategies()
+    print("[ENGINE] Demo allocations engine started. Running every 10 minutes.")
+    while True:
+        try:
+            print(f"\n[ENGINE] Run at {now_utc().isoformat()}")
+            update_demo_allocations_from_strategies()
+        except Exception as e:
+            print(f"[ERROR] Engine run failed: {e}")
+        # sleep 10 minutes
+        time.sleep(600)
