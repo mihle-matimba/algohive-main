@@ -1,5 +1,6 @@
 /**
  * Renders the "AlgoMoney" Inner Sidebar into a specific container.
+ * Matches the Purple AlgoMoney Brand Identity.
  * @param {string} activeTab - The key of the active inner tab (e.g., 'dashboard', 'analytics', 'cards')
  */
 export function renderMoneySidebar(activeTab) {
@@ -10,26 +11,34 @@ export function renderMoneySidebar(activeTab) {
         return;
     }
 
+    // Color Variables (Tailwind arbitrary values for exact matching)
+    const brandColor = '#553bf7'; // The AlgoMoney Purple
+    const activeClass = `bg-[${brandColor}] text-white shadow-lg shadow-[${brandColor}]/20`;
+    const inactiveClass = 'text-slate-500 hover:bg-slate-50 hover:text-slate-900';
+
     const sidebarHTML = `
-      <aside class="hidden lg:flex flex-col bg-slate-50 border-r border-slate-200/60 p-5 z-20 h-full">
+      <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full font-['Inter']">
         
         <div class="mb-8">
-          <button class="money-gradient-btn w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-green-600/20">
+          <button class="w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-indigo-500/30"
+                  style="background: linear-gradient(135deg, #553bf7 0%, #4338ca 100%);">
             <i class="fa-solid fa-wallet text-lg"></i>
             <span>AlgoMoney</span>
           </button>
         </div>
 
-        <div class="space-y-6 flex-1 overflow-y-auto">
+        <div class="space-y-8 flex-1 overflow-y-auto">
           
           <div>
-            <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Overview</p>
+            <p class="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Overview</p>
             <div class="space-y-1">
-              <a href="/money/dashboard.html" class="money-nav-item ${activeTab === 'dashboard' ? 'active' : ''}">
+              <a href="/money/dashboard.html" 
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'dashboard' ? activeClass : inactiveClass}">
                 <i class="fa-solid fa-chart-simple w-5 text-center"></i>
                 <span>Dashboard</span>
               </a>
-              <a href="/money/analytics.html" class="money-nav-item ${activeTab === 'analytics' ? 'active' : ''}">
+              <a href="/money/analytics.html" 
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'analytics' ? activeClass : inactiveClass}">
                 <i class="fa-solid fa-chart-pie w-5 text-center"></i>
                 <span>Analytics</span>
               </a>
@@ -37,13 +46,15 @@ export function renderMoneySidebar(activeTab) {
           </div>
 
           <div>
-            <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Finance</p>
+            <p class="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Finance</p>
             <div class="space-y-1">
-              <a href="/money/transactions.html" class="money-nav-item ${activeTab === 'transactions' ? 'active' : ''}">
+              <a href="/money/transactions.html" 
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'transactions' ? activeClass : inactiveClass}">
                 <i class="fa-solid fa-arrow-right-arrow-left w-5 text-center"></i>
                 <span>Transactions</span>
               </a>
-              <a href="/money/cards.html" class="money-nav-item ${activeTab === 'cards' ? 'active' : ''}">
+              <a href="/money/cards.html" 
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'cards' ? activeClass : inactiveClass}">
                 <i class="fa-regular fa-credit-card w-5 text-center"></i>
                 <span>Cards</span>
               </a>
@@ -52,16 +63,21 @@ export function renderMoneySidebar(activeTab) {
 
         </div>
 
-        <div class="mt-auto pt-4 border-t border-slate-200">
-          <div class="flex items-center gap-3 px-2 py-2">
-            <div class="h-8 w-8 rounded-full bg-slate-200 grid place-items-center text-xs font-bold text-slate-600">D</div>
-            <div class="text-sm font-medium text-slate-700">Demo User</div>
-            <i class="fa-solid fa-arrow-right-from-bracket ml-auto text-slate-400 cursor-pointer hover:text-rose-500" title="Sign Out"></i>
+        <div class="mt-auto pt-4 border-t border-slate-100">
+          <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
+            <div class="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[${brandColor}] group-hover:text-[${brandColor}] transition-colors">
+                D
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-slate-700 group-hover:text-slate-900">Demo User</div>
+                <div class="text-[10px] text-slate-400 truncate">user@example.com</div>
+            </div>
+            <i class="fa-solid fa-arrow-right-from-bracket text-slate-300 hover:text-rose-500 transition-colors" title="Sign Out"></i>
           </div>
         </div>
       </aside>
     `;
 
-    // Inject the inner sidebar at the beginning of the Money Container
+    // Inject the inner sidebar
     container.insertAdjacentHTML('afterbegin', sidebarHTML);
 }
