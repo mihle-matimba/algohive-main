@@ -7,30 +7,17 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* --- LAYOUT GRID SETUP --- */
     :root {
       --brand-purple: #553bf7; 
       --bg-color: #ffffff;
-      --sb: 280px; /* Default Sidebar Width */
     }
 
-    body {
-      background-color: var(--bg-color);
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
-    /* The Grid: 
-       Mobile: 1 column 
-       Desktop: Sidebar Width + 1fr 
-    */
+    /* --- LAYOUT GRID --- */
     #layout {
+      --sb: 220px;
       display: grid;
       grid-template-columns: 1fr;
       min-height: 100vh;
@@ -38,16 +25,23 @@
     }
 
     @media (min-width: 768px) {
-      #layout {
-        grid-template-columns: var(--sb) 1fr;
-      }
-      /* When sidebar collapses (class added by layout.js) */
-      #layout.is-collapsed {
-        --sb: 80px; /* Matches the collapsed width in layout.js */
-      }
+      #layout { grid-template-columns: var(--sb) 1fr; }
+      #layout.is-collapsed { --sb: 80px; }
     }
 
-    /* --- COMING SOON ANIMATIONS --- */
+    /* --- SAFETY FIX: If sidebar fails to load, expand main content --- */
+    #layout > main:only-child {
+        grid-column: 1 / -1;
+    }
+
+    /* Sidebar collapse visual fixes (handled by layout.js) */
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+    #ah-sidebar[data-collapsed="true"] details > .sub { display: none !important; }
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details > summary { justify-content: center; gap: .25rem; }
+
+    /* --- PAGE CONTENT ANIMATIONS --- */
     main {
       font-family: 'Montserrat', sans-serif;
       position: relative;
@@ -61,88 +55,55 @@
       background: white;
     }
 
-    @keyframes eclipseRise {
-      0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); }
-      100% { opacity: 0.3; transform: translate(-50%, -60%) scale(1); }
-    }
-
-    @keyframes globeFloat {
-      0% { transform: translateY(20px) scale(0.98); opacity: 0; }
-      100% { transform: translateY(0px) scale(1); opacity: 1; }
-    }
-
-    @keyframes fadeInUp {
-      0% { opacity: 0; transform: translateY(30px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes eclipseRise { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); } 100% { opacity: 0.3; transform: translate(-50%, -60%) scale(1); } }
+    @keyframes globeFloat { 0% { transform: translateY(20px) scale(0.98); opacity: 0; } 100% { transform: translateY(0px) scale(1); opacity: 1; } }
+    @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
 
     .eclipse-light {
-      position: absolute;
-      top: 55%; 
-      left: 50%;
-      width: 80vw; 
-      height: 80vw;
-      max-width: 900px;
-      max-height: 900px;
+      position: absolute; top: 55%; left: 50%; width: 80vw; height: 80vw;
+      max-width: 900px; max-height: 900px;
       background: radial-gradient(circle, var(--brand-purple) 0%, rgba(255,255,255,0) 70%);
-      filter: blur(60px);
-      z-index: 0; 
+      filter: blur(60px); z-index: 0; 
       transform: translate(-50%, -60%);
       animation: eclipseRise 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
 
     .main-globe {
-      position: relative;
-      z-index: 10; 
+      position: relative; z-index: 10; 
       animation: globeFloat 2.5s ease-out forwards;
       margin-bottom: 0; 
     }
 
     .white-fade-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 40%; 
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; 
       background: linear-gradient(to top, #ffffff 50%, rgba(255,255,255,0) 100%);
-      z-index: 20; 
-      pointer-events: none;
+      z-index: 20; pointer-events: none;
     }
 
     .content-layer {
-      position: relative;
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      margin-top: -80px; 
+      position: relative; z-index: 30; display: flex; flex-direction: column;
+      align-items: center; text-align: center; margin-top: -80px; 
     }
 
     .animate-text { animation: fadeInUp 1.5s ease-out 0.8s forwards; opacity: 0; }
     .animate-logo { animation: fadeInUp 1.5s ease-out 1.2s forwards; opacity: 0; }
-
   </style>
 </head>
 
 <body>
-
   <div id="layout">
     
     <main class="relative">
       
-      <button id="ah-mobile-menu-btn" class="md:hidden absolute top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-xl bg-white/80 backdrop-blur border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+      <button id="ah-mobile-menu-btn" class="md:hidden absolute top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-xl bg-white/80 backdrop-blur border border-slate-200 text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
         <i class="fa-solid fa-bars text-lg"></i>
       </button>
 
       <div class="eclipse-light"></div>
 
       <div class="main-globe">
-        <img 
-          src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
-          alt="Globe" 
-          class="h-72 w-72 object-contain sm:h-96 sm:w-96 md:h-[500px] md:w-[500px]"
-        />
+        <img src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
+          alt="Globe" class="h-72 w-72 object-contain sm:h-96 sm:w-96 md:h-[500px] md:w-[500px]" />
       </div>
 
       <div class="white-fade-overlay"></div>
@@ -151,13 +112,9 @@
         <h1 class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl font-['Montserrat']">
           Coming Soon
         </h1>
-        
         <div class="animate-logo">
-          <img 
-            src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
-            alt="Logo" 
-            class="h-4 w-auto object-contain sm:h-5 opacity-80"
-          />
+          <img src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
+            alt="Logo" class="h-4 w-auto object-contain sm:h-5 opacity-80" />
         </div>
       </div>
 
@@ -165,10 +122,11 @@
   </div>
 
   <script type="module">
-    // Ensure this path matches where you saved layout.js
-    import { renderSidebar } from '/partials/layout.js';
+    // Make sure this path points to where you saved the layout.js file
+    // If layout.js is in 'public/partials', use '/partials/layout.js'
+    import { renderSidebar } from '../partials/layout.js';
     
-    // Render the sidebar with 'money' tab active
+    // Initialize sidebar with 'money' active state
     renderSidebar('money');
   </script>
 
