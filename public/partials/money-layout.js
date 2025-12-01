@@ -1,10 +1,3 @@
-/**
- * Renders the "AlgoMoney" Inner Sidebar.
- * - Hides Global Sidebar.
- * - Shows Back Button to Main Dashboard.
- * - Displays AlgoMoney Logo (No Workspace text).
- * - Navigation links (Dashboard active, others locked).
- */
 export function renderMoneySidebar(activeTab) {
     // 1. HIDE GLOBAL ELEMENTS
     const globalSidebar = document.getElementById('ah-sidebar');
