@@ -1,15 +1,18 @@
 import os
+import time
 import datetime as dt
 import requests
 from supabase import create_client, Client
 
+# ==========================
+# CONFIG
+# ==========================
+
 SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co"
 SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODExMjU0NSwiZXhwIjoyMDczNjg4NTQ1fQ.FUyd9yCRrHYv5V5YrKup9_OI3n01aCfxS3_MxReLxBM"
 
-# Alpaca config
 ALPACA_API_KEY = "PKARM7PKO5AYOTHGHBAEYNLXV2"
 ALPACA_SECRET_KEY = "AfVJWotnuyuSE2LBqFhX744zia9qc65xPSwbGEvCEC1T"
-
 ALPACA_DATA_URL = "https://data.alpaca.markets/v2"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -21,7 +24,6 @@ def now_utc():
 
 def get_bars_last_3_months(symbol: str):
     """Get daily bars for roughly the last 3 months (90 days) for one symbol."""
-
     end_dt = now_utc()
     start_dt = end_dt - dt.timedelta(days=90)
 
@@ -88,10 +90,8 @@ def update_trading_universe_closes_3m():
         if not isinstance(closes, list):
             closes = []
 
-        existing_dates = set()
-        for entry in closes:
-            if isinstance(entry, dict) and "date" in entry:
-                existing_dates.add(entry["date"])
+        # Convert to dict for fast overwrite: date -> entry
+        closes_by_date = {e.get("date"): e for e in closes if isinstance(e, dict) and "date" in e}
 
         for bar in bars:
             t = bar.get("t")
@@ -103,31 +103,24 @@ def update_trading_universe_closes_3m():
 
             date_str = t[:10]
 
-            if date_str in existing_dates:
-                continue
+            # compute pct
+            pct = 0.0 if o == 0 else (c - o) / o
 
-            if o == 0:
-                pct = 0.0
-            else:
-                pct = (c - o) / o
-
-            closes.append({
+            # ALWAYS overwrite today's value (or any day's)
+            closes_by_date[date_str] = {
                 "pct": float(pct),
                 "date": date_str
-            })
-            existing_dates.add(date_str)
+            }
 
-        if not closes:
-            print(f"[INFO] {symbol} has no closes after processing")
-            continue
+        # Convert dict back to list
+        closes = list(closes_by_date.values())
 
+        # Only keep last 90 days
         cutoff_date = (now_utc().date() - dt.timedelta(days=90)).isoformat()
-        closes = [e for e in closes if isinstance(e, dict) and e.get("date", "") >= cutoff_date]
+        closes = [e for e in closes if e.get("date", "") >= cutoff_date]
 
-        try:
-            closes.sort(key=lambda x: x.get("date", ""))
-        except Exception as e:
-            print(f"[WARN] Could not sort closes for {symbol}: {e}")
+        # Sort
+        closes.sort(key=lambda x: x.get("date", ""))
 
         update_payload = {
             "closes_30d": closes,
@@ -141,5 +134,17 @@ def update_trading_universe_closes_3m():
     print("[INFO] Done updating closes_30d for last 3 months.")
 
 
+# ===================== SCHEDULER =======================
+
 if __name__ == "__main__":
-    update_trading_universe_closes_3m()
+    print("[ENGINE] Universe updater started — running every 10 minutes.")
+
+    while True:
+        try:
+            print(f"\n[ENGINE] Run at {now_utc().isoformat()}")
+            update_trading_universe_closes_3m()
+        except Exception as e:
+            print(f"[ERROR] Universe update failed: {e}")
+
+        # Sleep 10 minutes
+        time.sleep(600)
