@@ -1,35 +1,60 @@
-/**
- * Renders the "AlgoMoney" Inner Sidebar into a specific container.
- * Uses the specific AlgoMoney Brand Hex: #31005e and Custom Logo.
- * @param {string} activeTab - The key of the active inner tab (e.g., 'dashboard', 'analytics', 'cards')
- */
 export function renderMoneySidebar(activeTab) {
-    // Find the container where the money app lives
-    const container = document.querySelector('.money-app-container');
-    if (!container) {
+    // 1. DOM MANIPULATION: Hide Global Sidebar & Fix Grid
+    const globalSidebar = document.getElementById('ah-sidebar');
+    const layout = document.getElementById('layout');
+    const overlay = document.getElementById('ah-overlay');
+    const moneyContainer = document.querySelector('.money-app-container');
+
+    if (globalSidebar) globalSidebar.style.display = 'none'; // Hide global nav
+    if (overlay) overlay.style.display = 'none'; 
+    
+
+    if (layout) {
+        layout.style.display = 'block'; 
+        layout.style.height = '100vh';
+        layout.style.overflow = 'hidden';
+    }
+
+    if (!moneyContainer) {
         console.error("Money app container (.money-app-container) not found.");
         return;
     }
 
-    // --- BRANDING CONFIGURATION ---
-    const brandHex = '#31005e'; // Deep Indigo/Purple
+    // 2. STYLES
     const fontPrimary = 'Inter, sans-serif'; 
-    const logoUrl = 'https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png';
     
-    // Active State: Uses the exact hex for background
+    // The Green Gradient Button Style (Low Opacity Olive/Green)
+    const backBtnStyle = `
+        background: linear-gradient(135deg, rgba(85, 107, 47, 0.85) 0%, rgba(63, 82, 34, 0.9) 100%);
+        box-shadow: 0 4px 12px rgba(85, 107, 47, 0.15);
+        backdrop-filter: blur(4px);
+    `;
+
+    // Active State (Purple for AlgoMoney Dashboard)
     const activeClass = `bg-[#31005e] text-white shadow-md shadow-[#31005e]/20`;
     
-    // Inactive State: Standard Slate
-    const inactiveClass = 'text-slate-500 hover:bg-slate-50 hover:text-slate-900';
+    // Locked State (Grayed out + non-clickable)
+    const lockedClass = `text-slate-400 opacity-60 cursor-not-allowed select-none bg-slate-50 border border-transparent`;
 
     const sidebarHTML = `
-      <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full" 
+      <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full w-[260px] flex-shrink-0" 
              style="font-family: ${fontPrimary};">
         
-        <div class="mb-8 flex items-center justify-center py-2">
-          <img src="${logoUrl}" 
-               alt="AlgoMoney" 
-               class="h-14 w-auto object-contain transition-transform hover:scale-105" />
+        <div class="mb-8">
+          <a href="/demo/dashboard.html" 
+             class="w-full flex items-center justify-between text-white font-bold py-3 px-4 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 group"
+             style="${backBtnStyle}">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-chevron-left text-xs opacity-70 group-hover:-translate-x-1 transition-transform"></i>
+                <span>AlgoHive</span>
+            </div>
+            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" class="w-5 h-5 object-contain opacity-80" />
+          </a>
+        </div>
+
+        <div class="px-2 mb-6 flex items-center gap-3">
+             <img src="https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png" class="h-8 w-auto" />
+             <span class="text-sm font-bold text-[#31005e] tracking-tight">Workspace</span>
         </div>
 
         <div class="space-y-8 flex-1 overflow-y-auto">
@@ -37,32 +62,42 @@ export function renderMoneySidebar(activeTab) {
           <div>
             <p class="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Overview</p>
             <div class="space-y-1">
-              <a href="/money/dashboard.html" 
-                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'dashboard' ? activeClass : inactiveClass}">
+              <a href="/money/comingsoon.html" 
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'dashboard' ? activeClass : 'text-slate-500 hover:bg-slate-50'}">
                 <i class="fa-solid fa-chart-simple w-5 text-center"></i>
                 <span>Dashboard</span>
               </a>
-              <a href="/money/analytics.html" 
-                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'analytics' ? activeClass : inactiveClass}">
-                <i class="fa-solid fa-chart-pie w-5 text-center"></i>
-                <span>Analytics</span>
-              </a>
+              
+              <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${lockedClass}">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                    <span>Analytics</span>
+                </div>
+                <i class="fa-solid fa-lock text-[10px]"></i>
+              </div>
             </div>
           </div>
 
           <div>
             <p class="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Finance</p>
             <div class="space-y-1">
-              <a href="/money/transactions.html" 
-                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'transactions' ? activeClass : inactiveClass}">
-                <i class="fa-solid fa-arrow-right-arrow-left w-5 text-center"></i>
-                <span>Transactions</span>
-              </a>
-              <a href="/money/cards.html" 
-                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'cards' ? activeClass : inactiveClass}">
-                <i class="fa-regular fa-credit-card w-5 text-center"></i>
-                <span>Cards</span>
-              </a>
+              
+              <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${lockedClass}">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-arrow-right-arrow-left w-5 text-center"></i>
+                    <span>Transactions</span>
+                </div>
+                <i class="fa-solid fa-lock text-[10px]"></i>
+              </div>
+
+              <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${lockedClass}">
+                <div class="flex items-center gap-3">
+                    <i class="fa-regular fa-credit-card w-5 text-center"></i>
+                    <span>Cards</span>
+                </div>
+                <i class="fa-solid fa-lock text-[10px]"></i>
+              </div>
+
             </div>
           </div>
 
