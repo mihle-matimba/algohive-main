@@ -3,68 +3,153 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Coming Soon — AlgoHive</title>
+  <title>Money — Coming Soon</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    :root { --brand-purple: #553bf7; }
-    /* Specific styles for Coming Soon Animation */
+    /* --- REPO STANDARD LAYOUT --- */
+    :root {
+      --brand-purple: #553bf7; 
+      --bg-color: #ffffff;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* The Grid Layout matching dashboard.html */
+    #layout {
+      --sb: 220px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+    }
+
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr;
+      }
+      #layout.is-collapsed {
+        --sb: 64px;
+      }
+    }
+
+    /* Collapse styles handled by layout.js, but visual fixes here */
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+    #ah-sidebar[data-collapsed="true"] details > .sub { display: none !important; }
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details > summary { justify-content: center; gap: .25rem; }
+    
+    /* --- COMING SOON SPECIFIC STYLES --- */
+    /* Scoped strictly to main to avoid breaking sidebar */
+    main {
+      font-family: 'Montserrat', sans-serif;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100vh; /* Full viewport height */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes eclipseRise {
+      0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); }
+      100% { opacity: 0.3; transform: translate(-50%, -60%) scale(1); }
+    }
+
+    @keyframes globeFloat {
+      0% { transform: translateY(20px) scale(0.98); opacity: 0; }
+      100% { transform: translateY(0px) scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
     .eclipse-light {
-      position: absolute; top: 55%; left: 50%; width: 80vw; height: 80vw;
-      max-width: 900px; max-height: 900px;
+      position: absolute;
+      top: 55%; 
+      left: 50%;
+      width: 80vw; 
+      height: 80vw;
+      max-width: 900px;
+      max-height: 900px;
       background: radial-gradient(circle, var(--brand-purple) 0%, rgba(255,255,255,0) 70%);
-      filter: blur(60px); z-index: 0; 
+      filter: blur(60px);
+      z-index: 0; 
       transform: translate(-50%, -60%);
       animation: eclipseRise 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
+
     .main-globe {
-      position: relative; z-index: 10; 
+      position: relative;
+      z-index: 10; 
       animation: globeFloat 2.5s ease-out forwards;
+      margin-bottom: 0; 
     }
+
     .white-fade-overlay {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 40%;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40%; 
       background: linear-gradient(to top, #ffffff 50%, rgba(255,255,255,0) 100%);
-      z-index: 20; pointer-events: none;
+      z-index: 20; 
+      pointer-events: none;
     }
+
     .content-layer {
-      position: relative; z-index: 30; display: flex; flex-direction: column;
-      align-items: center; text-align: center; margin-top: -80px; 
+      position: relative;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-top: -80px; 
     }
+
     .animate-text { animation: fadeInUp 1.5s ease-out 0.8s forwards; opacity: 0; }
     .animate-logo { animation: fadeInUp 1.5s ease-out 1.2s forwards; opacity: 0; }
-    
-    @keyframes eclipseRise { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.6); } 100% { opacity: 0.3; transform: translate(-50%, -60%) scale(1); } }
-    @keyframes globeFloat { 0% { transform: translateY(20px) scale(0.98); opacity: 0; } 100% { transform: translateY(0px) scale(1); opacity: 1; } }
-    @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
+
   </style>
 </head>
 
-<body class="bg-white font-['Inter']">
+<body>
 
-  <div id="app-shell"></div>
-
-  <template id="page-content">
-    <div class="w-full h-full relative overflow-hidden flex flex-col items-center justify-center min-h-[calc(100vh-60px)] md:min-h-screen">
+  <div id="layout">
+    
+    <main class="relative bg-white">
       
+      <button class="mobile-menu-btn md:hidden absolute top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-xl bg-white/80 backdrop-blur border border-slate-200 text-slate-700 shadow-sm">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
       <div class="eclipse-light"></div>
 
       <div class="main-globe">
         <img 
           src="https://static.wixstatic.com/media/f82622_7f62923a65f94af5b36b7958980b9ebc~mv2.png" 
           alt="Globe" 
-          class="h-64 w-64 object-contain sm:h-80 sm:w-80 md:h-[450px] md:w-[450px]"
+          class="h-72 w-72 object-contain sm:h-96 sm:w-96 md:h-[500px] md:w-[500px]"
         />
       </div>
 
       <div class="white-fade-overlay"></div>
 
       <div class="content-layer">
-        <h1 class="animate-text mb-6 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl font-['Montserrat']">
+        <h1 class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl font-['Montserrat']">
           Coming Soon
         </h1>
+        
         <div class="animate-logo">
           <img 
             src="https://static.wixstatic.com/media/f82622_1c408858283340ea913decd995c6e75c~mv2.png" 
@@ -73,18 +158,15 @@
           />
         </div>
       </div>
-    </div>
-  </template>
+
+    </main>
+  </div>
 
   <script type="module">
-    import { initLayout, setPageContent } from '/partials/layout.js';
-
-    // Initialize layout with 'money' active state
-    initLayout('money').then(() => {
-      // Inject the template content into the main area
-      const template = document.getElementById('page-content');
-      setPageContent(template.innerHTML);
-    });
+    import { renderLayout } from '/partials/layout.js';
+    
+    // Init Layout with 'money' active state
+    renderLayout('money');
   </script>
 
 </body>
