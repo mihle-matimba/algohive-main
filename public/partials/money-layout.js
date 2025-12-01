@@ -1,3 +1,8 @@
+/**
+ * Renders the "AlgoMoney" Inner Sidebar into a specific container.
+ * Uses the specific AlgoMoney Brand Hex: #31005e and Custom Logo.
+ * @param {string} activeTab - The key of the active inner tab (e.g., 'dashboard', 'analytics', 'cards')
+ */
 export function renderMoneySidebar(activeTab) {
     // Find the container where the money app lives
     const container = document.querySelector('.money-app-container');
@@ -7,8 +12,9 @@ export function renderMoneySidebar(activeTab) {
     }
 
     // --- BRANDING CONFIGURATION ---
-    const brandHex = '#31005e'; // The specific hex provided
+    const brandHex = '#31005e'; // Deep Indigo/Purple
     const fontPrimary = 'Inter, sans-serif'; 
+    const logoUrl = 'https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png';
     
     // Active State: Uses the exact hex for background
     const activeClass = `bg-[#31005e] text-white shadow-md shadow-[#31005e]/20`;
@@ -20,12 +26,10 @@ export function renderMoneySidebar(activeTab) {
       <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full" 
              style="font-family: ${fontPrimary};">
         
-        <div class="mb-8">
-          <button class="w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-[#31005e]/25"
-                  style="background: linear-gradient(135deg, ${brandHex} 0%, #5b0085 100%);">
-            <i class="fa-solid fa-wallet text-lg"></i>
-            <span>AlgoMoney</span>
-          </button>
+        <div class="mb-8 flex items-center justify-center py-2">
+          <img src="${logoUrl}" 
+               alt="AlgoMoney" 
+               class="h-14 w-auto object-contain transition-transform hover:scale-105" />
         </div>
 
         <div class="space-y-8 flex-1 overflow-y-auto">
@@ -66,7 +70,7 @@ export function renderMoneySidebar(activeTab) {
 
         <div class="mt-auto pt-4 border-t border-slate-100">
           <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
-            <div class="h-9 w-9 rounded-full bg-slate-50 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[#31005e] group-hover:text-[#31005e] transition-colors">
+            <div class="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[#31005e] group-hover:text-[#31005e] transition-colors">
                 D
             </div>
             <div class="flex-1 min-w-0">
