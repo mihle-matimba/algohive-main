@@ -23,7 +23,6 @@
       overflow: hidden;
       height: 100vh;
       width: 100vw;
-      /* Using Flex Column to stack Globe -> Text naturally */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -47,9 +46,17 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
+    /* NEW ANIMATION: Letter Wave 
+       It only moves during the first 20% of the timeline, 
+       then pauses for the remaining 80%.
+    */
+    @keyframes letterWave {
+      0%, 20%, 100% { transform: translateY(0); }
+      10% { transform: translateY(-12px); } /* Bounce Height */
+    }
+
     /* --- LAYERING --- */
 
-    /* LAYER 1: The Background Light */
     .eclipse-light {
       position: absolute;
       top: 55%; 
@@ -60,44 +67,36 @@
       max-height: 900px;
       background: radial-gradient(circle, var(--brand-purple) 0%, rgba(255,255,255,0) 70%);
       filter: blur(60px);
-      z-index: 0; /* Deepest layer */
-      
+      z-index: 0;
       transform: translate(-50%, -60%);
       animation: eclipseRise 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     }
 
-    /* LAYER 2: The Globe */
     .main-globe {
       position: relative;
       z-index: 10; 
       animation: globeFloat 2.5s ease-out forwards;
-      /* No bottom margin, so text follows immediately */
       margin-bottom: 0; 
     }
 
-    /* LAYER 3: The White Fade (The "Floor" Mask) */
     .white-fade-overlay {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 40%; /* Covers bottom 40% of screen */
+      height: 40%; 
       background: linear-gradient(to top, #ffffff 50%, rgba(255,255,255,0) 100%);
-      z-index: 20; /* On top of globe */
+      z-index: 20; 
       pointer-events: none;
     }
 
-    /* LAYER 4: The Text Content */
     .content-layer {
-      position: relative; /* Relative to flow, not absolute to body */
-      z-index: 30; /* Highest priority (On top of fade) */
+      position: relative; 
+      z-index: 30; 
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      
-      /* KEY CHANGE: Negative margin pulls the text up into the image's transparency
-         to sit "right beneath" the visible sphere */
       margin-top: -80px; 
     }
 
@@ -109,6 +108,13 @@
     .animate-logo {
        animation: fadeInUp 1.5s ease-out 1.2s forwards;
        opacity: 0;
+    }
+
+    /* New Class for individual letters */
+    .bounce-char {
+      display: inline-block;
+      /* 4s total duration means a quick bounce then a long pause before looping */
+      animation: letterWave 4s infinite ease-in-out;
     }
 
   </style>
@@ -129,7 +135,7 @@
   <div class="white-fade-overlay"></div>
 
   <div class="content-layer">
-    <h1 class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl">
+    <h1 id="coming-soon-text" class="animate-text mb-8 text-xl font-light uppercase tracking-[0.8em] text-black sm:text-2xl md:text-3xl">
       Coming Soon
     </h1>
     
@@ -141,6 +147,35 @@
       />
     </div>
   </div>
+
+  <script>
+    // Select the H1 element
+    const textElement = document.getElementById('coming-soon-text');
+    const textContent = textElement.textContent.trim();
+    
+    // Clear current text
+    textElement.innerHTML = '';
+
+    // Loop through letters and wrap them
+    textContent.split('').forEach((char, index) => {
+      const span = document.createElement('span');
+      
+      if (char === ' ') {
+        // Maintain width for spaces
+        span.innerHTML = '&nbsp;';
+      } else {
+        span.textContent = char;
+        span.classList.add('bounce-char');
+        
+        // LOGIC:
+        // 2.2s = Wait for the main 'fadeInUp' animation to finish (1.5s + 0.8s delay)
+        // (index * 0.1s) = The stagger effect between letters
+        span.style.animationDelay = `${2.2 + (index * 0.1)}s`;
+      }
+      
+      textElement.appendChild(span);
+    });
+  </script>
 
 </body>
 </html>
