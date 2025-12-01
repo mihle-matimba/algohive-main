@@ -79,16 +79,6 @@
       color: #b91c1c;
     }
 
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.55);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      z-index: 50;
-    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -102,92 +92,7 @@
           <p class="text-sm text-slate-500">Visualise every live and experimental strategy in one place.</p>
         </div>
       </div>
-      <button id="open-modal" class="btn bg-amber-500 text-white border-transparent shadow-md hover:shadow-lg transition"> <i class="fa-solid fa-plus"></i>New Model</button>
-    </div>
-  </div>
-
-  <div id="create-modal" class="modal-backdrop hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
-        <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500">Add strategy</p>
-          <h2 class="text-xl font-semibold">New model details</h2>
-        </div>
-        <button id="close-modal" class="btn bg-white hover:bg-slate-100" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <form id="create-form" class="p-6 space-y-6">
-        <div class="grid md:grid-cols-2 gap-4">
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Name
-            <input required name="name" class="input w-full" placeholder="Strategy name" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Currency
-            <input required name="currency" class="input w-full" placeholder="USD" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Risk level
-            <input name="risk_level" class="input w-full" placeholder="Conservative / Balanced / Aggressive" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Risk score
-            <input name="risk_score" class="input w-full" placeholder="e.g. 4" />
-          </label>
-        </div>
-
-        <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Description
-          <textarea name="strategy_description" class="input w-full h-20 resize-none" placeholder="Short description of the strategy"></textarea>
-        </label>
-
-        <div class="grid md:grid-cols-3 gap-4">
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Code
-            <input name="code" class="input w-full" placeholder="Unique code" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Style
-            <input name="style" class="input w-full" placeholder="Quant / Discretionary" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Asset universe
-            <input name="asset_universe" class="input w-full" placeholder="FX / Equities" />
-          </label>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-4">
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Avg. holding period (days)
-            <input name="avg_holding_days" type="number" min="0" class="input w-full" placeholder="e.g. 10" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Avg. trades per month
-            <input name="avg_trades_per_month" type="number" min="0" class="input w-full" placeholder="e.g. 25" />
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Total units
-            <input name="total_units" type="number" min="0" class="input w-full" placeholder="e.g. 100" />
-          </label>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-4">
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Data source
-            <select name="data_source" class="input w-full">
-              <option value="Massive">Massive (default)</option>
-              <option value="Alpaca">Alpaca</option>
-              <option value="JSE">JSE</option>
-            </select>
-          </label>
-          <div></div>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-4">
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Holdings (JSON array)
-            <textarea name="portfolio_holdings" class="input w-full h-24 resize-none" placeholder='[{"symbol":"AAPL","weight":0.2}]'></textarea>
-          </label>
-          <label class="flex flex-col gap-1 text-sm font-medium text-slate-700">Asset allocation (JSON array)
-            <textarea name="asset_allocation" class="input w-full h-24 resize-none" placeholder='[{"asset_class":"Equity","weight":0.6}]'></textarea>
-          </label>
-        </div>
-
-        <div class="flex items-center justify-between gap-3 pt-2">
-          <p id="form-status" class="text-sm text-slate-500"></p>
-          <div class="flex items-center gap-2">
-            <button type="button" id="cancel" class="btn bg-white hover:bg-slate-100">Cancel</button>
-            <button type="submit" class="btn bg-amber-500 text-white border-transparent shadow-md hover:shadow-lg transition"><i class="fa-solid fa-floppy-disk"></i>Save model</button>
-          </div>
-        </div>
-      </form>
+      <a href="/admin/create-model.html" class="btn bg-amber-500 text-white border-transparent shadow-md hover:shadow-lg transition"> <i class="fa-solid fa-plus"></i>New Model</a>
     </div>
   </div>
 
@@ -262,12 +167,6 @@
     const modelGrid = document.getElementById('model-grid');
     const emptyState = document.getElementById('empty');
     const legend = document.getElementById('legend');
-    const modal = document.getElementById('create-modal');
-    const openModalBtn = document.getElementById('open-modal');
-    const closeModalBtn = document.getElementById('close-modal');
-    const cancelBtn = document.getElementById('cancel');
-    const form = document.getElementById('create-form');
-    const formStatus = document.getElementById('form-status');
 
     const redirectToAuth = () => {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -303,16 +202,6 @@
     const num = (v) => {
       const n = Number(v);
       return Number.isFinite(n) ? n : null;
-    };
-
-    const parseJsonArray = (text, label) => {
-      if (!text || !text.trim()) return [];
-      try {
-        const parsed = JSON.parse(text);
-        return Array.isArray(parsed) ? parsed : (() => { throw new Error(`${label} must be a JSON array`); })();
-      } catch (err) {
-        throw new Error(`${label} is not valid JSON`);
-      }
     };
 
     const mapStrategyRow = (row) => {
@@ -465,85 +354,8 @@
       renderModels(cache);
     }
 
-    const toggleModal = (open) => {
-      modal.classList.toggle('hidden', !open);
-      if (open) {
-        form.reset();
-        formStatus.textContent = '';
-      }
-    };
-
-    async function createModel(event) {
-      event.preventDefault();
-      formStatus.textContent = 'Saving model to Supabase…';
-
-      const formData = new FormData(form);
-
-      const strategyPayload = {
-        name: formData.get('name')?.trim(),
-        currency: formData.get('currency')?.trim() || 'USD',
-        risk_level: formData.get('risk_level')?.trim() || null,
-        strategy_description: formData.get('strategy_description')?.trim() || null,
-        code: formData.get('code')?.trim() || null,
-        style: formData.get('style')?.trim() || null,
-        asset_universe: formData.get('asset_universe')?.trim() || null,
-        avg_holding_days: num(formData.get('avg_holding_days')),
-        avg_trades_per_month: num(formData.get('avg_trades_per_month')),
-        total_units: num(formData.get('total_units')),
-        risk_score: formData.get('risk_score')?.trim() || null,
-        data_source: formData.get('data_source') || 'Massive'
-      };
-
-      let holdings = [];
-      let allocation = [];
-
-      try {
-        holdings = parseJsonArray(formData.get('portfolio_holdings') || '', 'Holdings');
-        allocation = parseJsonArray(formData.get('asset_allocation') || '', 'Asset allocation');
-      } catch (err) {
-        formStatus.textContent = err.message;
-        return;
-      }
-
-      const { data: strategy, error: strategyError } = await supabase
-        .from('strategies')
-        .insert(strategyPayload)
-        .select()
-        .single();
-
-      if (strategyError) {
-        console.error('Failed to create strategy', strategyError);
-        formStatus.textContent = 'Failed to save strategy. Please try again.';
-        return;
-      }
-
-      const { error: metricsError } = await supabase
-        .from('strategy_metrics')
-        .insert({
-          strategy_id: strategy.id,
-          portfolio_holdings: holdings,
-          asset_allocation: allocation
-        });
-
-      if (metricsError) {
-        console.error('Failed to create metrics', metricsError);
-        formStatus.textContent = 'Strategy saved but metrics failed. Please refresh and retry metrics.';
-        await hydrate();
-        return;
-      }
-
-      formStatus.textContent = 'Saved! Refreshing list…';
-      toggleModal(false);
-      await hydrate();
-    }
-
     document.getElementById('search').addEventListener('input', (e) => renderModels(cache, e.target.value));
     document.getElementById('refresh').addEventListener('click', hydrate);
-
-    openModalBtn.addEventListener('click', () => toggleModal(true));
-    closeModalBtn.addEventListener('click', () => toggleModal(false));
-    cancelBtn.addEventListener('click', () => toggleModal(false));
-    form.addEventListener('submit', createModel);
 
     hydrate();
   </script>
