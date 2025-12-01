@@ -1,8 +1,3 @@
-/**
- * Renders the "AlgoMoney" Inner Sidebar into a specific container.
- * Matches the Purple AlgoMoney Brand Identity.
- * @param {string} activeTab - The key of the active inner tab (e.g., 'dashboard', 'analytics', 'cards')
- */
 export function renderMoneySidebar(activeTab) {
     // Find the container where the money app lives
     const container = document.querySelector('.money-app-container');
@@ -11,17 +6,23 @@ export function renderMoneySidebar(activeTab) {
         return;
     }
 
-    // Color Variables (Tailwind arbitrary values for exact matching)
-    const brandColor = '#553bf7'; // The AlgoMoney Purple
-    const activeClass = `bg-[${brandColor}] text-white shadow-lg shadow-[${brandColor}]/20`;
+    // --- BRANDING CONFIGURATION ---
+    const brandHex = '#31005e'; // The specific hex provided
+    const fontPrimary = 'Inter, sans-serif'; 
+    
+    // Active State: Uses the exact hex for background
+    const activeClass = `bg-[#31005e] text-white shadow-md shadow-[#31005e]/20`;
+    
+    // Inactive State: Standard Slate
     const inactiveClass = 'text-slate-500 hover:bg-slate-50 hover:text-slate-900';
 
     const sidebarHTML = `
-      <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full font-['Inter']">
+      <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full" 
+             style="font-family: ${fontPrimary};">
         
         <div class="mb-8">
-          <button class="w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-indigo-500/30"
-                  style="background: linear-gradient(135deg, #553bf7 0%, #4338ca 100%);">
+          <button class="w-full flex items-center justify-center gap-2 text-white font-bold py-3 px-4 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-[#31005e]/25"
+                  style="background: linear-gradient(135deg, ${brandHex} 0%, #5b0085 100%);">
             <i class="fa-solid fa-wallet text-lg"></i>
             <span>AlgoMoney</span>
           </button>
@@ -65,12 +66,12 @@ export function renderMoneySidebar(activeTab) {
 
         <div class="mt-auto pt-4 border-t border-slate-100">
           <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
-            <div class="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[${brandColor}] group-hover:text-[${brandColor}] transition-colors">
+            <div class="h-9 w-9 rounded-full bg-slate-50 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[#31005e] group-hover:text-[#31005e] transition-colors">
                 D
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-sm font-semibold text-slate-700 group-hover:text-slate-900">Demo User</div>
-                <div class="text-[10px] text-slate-400 truncate">user@example.com</div>
+                <div class="text-[10px] text-slate-400 truncate">user@algohive.io</div>
             </div>
             <i class="fa-solid fa-arrow-right-from-bracket text-slate-300 hover:text-rose-500 transition-colors" title="Sign Out"></i>
           </div>
