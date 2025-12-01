@@ -1,43 +1,38 @@
 export function renderMoneySidebar(activeTab) {
-    // 1. DOM MANIPULATION: Hide Global Sidebar & Fix Grid
+    // 1. HIDE GLOBAL ELEMENTS
     const globalSidebar = document.getElementById('ah-sidebar');
     const layout = document.getElementById('layout');
     const overlay = document.getElementById('ah-overlay');
-    const moneyContainer = document.querySelector('.money-app-container');
-
-    if (globalSidebar) globalSidebar.style.display = 'none'; // Hide global nav
-    if (overlay) overlay.style.display = 'none'; 
     
-
+    // Hide global sidebar so we don't have two navigation bars
+    if (globalSidebar) globalSidebar.style.display = 'none'; 
+    
+    // Reset layout grid to allow full-width app
     if (layout) {
         layout.style.display = 'block'; 
         layout.style.height = '100vh';
         layout.style.overflow = 'hidden';
     }
 
-    if (!moneyContainer) {
-        console.error("Money app container (.money-app-container) not found.");
-        return;
-    }
+    const container = document.querySelector('.money-app-container');
+    if (!container) return;
 
-    // 2. STYLES
+    // 2. STYLING CONSTANTS
     const fontPrimary = 'Inter, sans-serif'; 
+    const brandHex = '#31005e'; 
     
-    // The Green Gradient Button Style (Low Opacity Olive/Green)
-    const backBtnStyle = `
-        background: linear-gradient(135deg, rgba(85, 107, 47, 0.85) 0%, rgba(63, 82, 34, 0.9) 100%);
-        box-shadow: 0 4px 12px rgba(85, 107, 47, 0.15);
-        backdrop-filter: blur(4px);
-    `;
+    // Green Gradient for Back Button (Olive/Green with opacity)
+    const backBtnStyle = 'background: linear-gradient(135deg, rgba(85, 107, 47, 0.85) 0%, rgba(63, 82, 34, 0.9) 100%); box-shadow: 0 4px 12px rgba(85, 107, 47, 0.15); backdrop-filter: blur(4px);';
 
-    // Active State (Purple for AlgoMoney Dashboard)
+    // States
     const activeClass = `bg-[#31005e] text-white shadow-md shadow-[#31005e]/20`;
-    
-    // Locked State (Grayed out + non-clickable)
     const lockedClass = `text-slate-400 opacity-60 cursor-not-allowed select-none bg-slate-50 border border-transparent`;
 
+    // 3. SIDEBAR HTML
+    // Added 'fixed inset-y-0...' classes for mobile responsiveness
     const sidebarHTML = `
-      <aside class="hidden lg:flex flex-col bg-white border-r border-slate-200/60 p-5 z-20 h-full w-[260px] flex-shrink-0" 
+      <aside id="money-sidebar" 
+             class="fixed inset-y-0 left-0 z-50 w-[260px] bg-white border-r border-slate-200/60 p-5 h-full transform -translate-x-full lg:translate-x-0 lg:static lg:flex flex-col transition-transform duration-300" 
              style="font-family: ${fontPrimary};">
         
         <div class="mb-8">
@@ -53,7 +48,7 @@ export function renderMoneySidebar(activeTab) {
         </div>
 
         <div class="px-2 mb-6 flex items-center gap-3">
-             <img src="https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png" class="h-8 w-auto" />
+             <img src="https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png" class="h-8 w-auto" alt="AlgoMoney" />
              <span class="text-sm font-bold text-[#31005e] tracking-tight">Workspace</span>
         </div>
 
@@ -81,7 +76,6 @@ export function renderMoneySidebar(activeTab) {
           <div>
             <p class="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Finance</p>
             <div class="space-y-1">
-              
               <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${lockedClass}">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-arrow-right-arrow-left w-5 text-center"></i>
@@ -89,7 +83,6 @@ export function renderMoneySidebar(activeTab) {
                 </div>
                 <i class="fa-solid fa-lock text-[10px]"></i>
               </div>
-
               <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${lockedClass}">
                 <div class="flex items-center gap-3">
                     <i class="fa-regular fa-credit-card w-5 text-center"></i>
@@ -97,17 +90,13 @@ export function renderMoneySidebar(activeTab) {
                 </div>
                 <i class="fa-solid fa-lock text-[10px]"></i>
               </div>
-
             </div>
           </div>
-
         </div>
 
         <div class="mt-auto pt-4 border-t border-slate-100">
           <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
-            <div class="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[#31005e] group-hover:text-[#31005e] transition-colors">
-                D
-            </div>
+            <div class="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 grid place-items-center text-xs font-bold text-slate-600 group-hover:border-[#31005e] group-hover:text-[#31005e] transition-colors">D</div>
             <div class="flex-1 min-w-0">
                 <div class="text-sm font-semibold text-slate-700 group-hover:text-slate-900">Demo User</div>
                 <div class="text-[10px] text-slate-400 truncate">user@algohive.io</div>
@@ -118,6 +107,47 @@ export function renderMoneySidebar(activeTab) {
       </aside>
     `;
 
-    // Inject the inner sidebar
     container.insertAdjacentHTML('afterbegin', sidebarHTML);
+
+    // 4. MOBILE MENU LOGIC (HIJACK)
+    // We attach a NEW listener to the existing mobile button to control THIS sidebar
+    const mobileBtn = document.getElementById('ah-mobile-menu-btn');
+    const moneySidebar = document.getElementById('money-sidebar');
+    
+    // We reuse the existing overlay, just make sure it's visible if hidden
+    if (overlay) overlay.style.display = 'none'; // Start hidden
+
+    if (mobileBtn && moneySidebar) {
+        // Clone the button to strip the event listener from layout.js (cleanest hijack)
+        const newBtn = mobileBtn.cloneNode(true);
+        mobileBtn.parentNode.replaceChild(newBtn, mobileBtn);
+
+        const toggleMoneyMenu = () => {
+            const isOpen = !moneySidebar.classList.contains('-translate-x-full');
+            if (isOpen) {
+                moneySidebar.classList.add('-translate-x-full');
+                if (overlay) overlay.style.display = 'none';
+            } else {
+                moneySidebar.classList.remove('-translate-x-full');
+                if (overlay) overlay.style.display = 'block';
+            }
+        };
+
+        newBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMoneyMenu();
+        });
+
+        // Close when clicking overlay
+        if (overlay) {
+            // Clone overlay to strip old listeners too
+            const newOverlay = overlay.cloneNode(true);
+            overlay.parentNode.replaceChild(newOverlay, overlay);
+            
+            newOverlay.addEventListener('click', () => {
+                moneySidebar.classList.add('-translate-x-full');
+                newOverlay.style.display = 'none';
+            });
+        }
+    }
 }
