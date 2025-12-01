@@ -1,3 +1,10 @@
+/**
+ * Renders the "AlgoMoney" Inner Sidebar.
+ * - Hides Global Sidebar.
+ * - Shows Back Button to Main Dashboard.
+ * - Displays AlgoMoney Logo (No Workspace text).
+ * - Navigation links (Dashboard active, others locked).
+ */
 export function renderMoneySidebar(activeTab) {
     // 1. HIDE GLOBAL ELEMENTS
     const globalSidebar = document.getElementById('ah-sidebar');
@@ -19,7 +26,7 @@ export function renderMoneySidebar(activeTab) {
 
     // 2. STYLING CONSTANTS
     const fontPrimary = 'Inter, sans-serif'; 
-    const brandHex = '#31005e'; 
+    const logoUrl = 'https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png';
     
     // Green Gradient for Back Button (Olive/Green with opacity)
     const backBtnStyle = 'background: linear-gradient(135deg, rgba(85, 107, 47, 0.85) 0%, rgba(63, 82, 34, 0.9) 100%); box-shadow: 0 4px 12px rgba(85, 107, 47, 0.15); backdrop-filter: blur(4px);';
@@ -29,13 +36,12 @@ export function renderMoneySidebar(activeTab) {
     const lockedClass = `text-slate-400 opacity-60 cursor-not-allowed select-none bg-slate-50 border border-transparent`;
 
     // 3. SIDEBAR HTML
-    // Added 'fixed inset-y-0...' classes for mobile responsiveness
     const sidebarHTML = `
       <aside id="money-sidebar" 
              class="fixed inset-y-0 left-0 z-50 w-[260px] bg-white border-r border-slate-200/60 p-5 h-full transform -translate-x-full lg:translate-x-0 lg:static lg:flex flex-col transition-transform duration-300" 
              style="font-family: ${fontPrimary};">
         
-        <div class="mb-8">
+        <div class="mb-6">
           <a href="/demo/dashboard.html" 
              class="w-full flex items-center justify-between text-white font-bold py-3 px-4 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 group"
              style="${backBtnStyle}">
@@ -47,9 +53,8 @@ export function renderMoneySidebar(activeTab) {
           </a>
         </div>
 
-        <div class="px-2 mb-6 flex items-center gap-3">
-             <img src="https://static.wixstatic.com/media/f82622_8fca267ad9a24716a4de0166215a620f~mv2.png" class="h-8 w-auto" alt="AlgoMoney" />
-             <span class="text-sm font-bold text-[#31005e] tracking-tight">Workspace</span>
+        <div class="mb-8 px-2 flex justify-center lg:justify-start">
+             <img src="${logoUrl}" class="h-10 w-auto object-contain" alt="AlgoMoney" />
         </div>
 
         <div class="space-y-8 flex-1 overflow-y-auto">
@@ -110,15 +115,13 @@ export function renderMoneySidebar(activeTab) {
     container.insertAdjacentHTML('afterbegin', sidebarHTML);
 
     // 4. MOBILE MENU LOGIC (HIJACK)
-    // We attach a NEW listener to the existing mobile button to control THIS sidebar
     const mobileBtn = document.getElementById('ah-mobile-menu-btn');
     const moneySidebar = document.getElementById('money-sidebar');
     
-    // We reuse the existing overlay, just make sure it's visible if hidden
     if (overlay) overlay.style.display = 'none'; // Start hidden
 
     if (mobileBtn && moneySidebar) {
-        // Clone the button to strip the event listener from layout.js (cleanest hijack)
+        // Clone the button to strip the event listener from layout.js
         const newBtn = mobileBtn.cloneNode(true);
         mobileBtn.parentNode.replaceChild(newBtn, mobileBtn);
 
@@ -138,9 +141,7 @@ export function renderMoneySidebar(activeTab) {
             toggleMoneyMenu();
         });
 
-        // Close when clicking overlay
         if (overlay) {
-            // Clone overlay to strip old listeners too
             const newOverlay = overlay.cloneNode(true);
             overlay.parentNode.replaceChild(newOverlay, overlay);
             
