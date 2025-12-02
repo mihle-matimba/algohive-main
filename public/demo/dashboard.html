@@ -1074,6 +1074,7 @@
     const pfSub = document.getElementById("pf-sub");
     const pfChartCanvas = document.getElementById("pf-chart");
     const pfEmpty = document.getElementById("pf-empty");
+    const pfEmptyDefault = pfEmpty?.textContent?.trim() || "Data will show after 24 hours of allocation activity.";
     const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
     const pfRefresh = document.getElementById("pf-refresh");
     const fundsBalance = document.getElementById("funds-balance");
@@ -1616,12 +1617,17 @@
       return [];
     }
 
-    function toggleEquityAvailability(hasData = true) {
+    function toggleEquityAvailability(hasData = true, { message = null } = {}) {
       const showChart = hasData;
       pfChartCanvas?.classList.toggle("hidden", !showChart);
       pfEmpty?.classList.toggle("hidden", showChart);
-      if (!showChart && pfSub) {
-        pfSub.textContent = "Visualize an allocation to see its equity curve.";
+      if (!showChart && pfEmpty) {
+        const msgNode = pfEmpty.querySelector("p") || pfEmpty;
+        msgNode.textContent = message || pfEmptyDefault;
+      }
+      if (showChart && pfEmpty) {
+        const msgNode = pfEmpty.querySelector("p") || pfEmpty;
+        msgNode.textContent = pfEmptyDefault;
       }
     }
 
@@ -2656,10 +2662,12 @@
       const range = getActiveRange();
       const activeAllocation = getActiveAllocation();
       const rawSeries = pickSeriesForRange(activeAllocation, range);
+      const rawSeriesValues = normalizeValueSeries(rawSeries);
+      const hasOnlyOnePoint = rawSeriesValues.length === 1;
       const series = allocationSeriesForRange(activeAllocation, range, rawSeries);
       const labels = buildSeriesLabels(rawSeries, activeAllocation, series.length);
       const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
-      toggleEquityAvailability(hasData);
+      toggleEquityAvailability(hasData && !hasOnlyOnePoint, { message: hasOnlyOnePoint ? "Not Enough Data" : null });
       updatePerformanceCopy(activeAllocation);
       renderChart(series, labels, account, profile, range);
     }
