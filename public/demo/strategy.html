@@ -842,8 +842,14 @@
                                     disabled /> </div>
                             <div class="col-span-2"> <label class="block text-xs text-slate-500 mb-1.5"
                                     for="alloc-amount">Allocation amount</label>
-                                <input id="alloc-amount" type="number" min="1" step="0.01"
-                                    class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+                                <div class="flex items-center gap-2">
+                                    <button id="alloc-decrease" type="button"
+                                        class="h-9 px-3 rounded-lg border border-slate-200 text-sm font-semibold hover:bg-slate-50">−</button>
+                                    <input id="alloc-amount" type="number" min="1" step="1" readonly
+                                        class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50" />
+                                    <button id="alloc-increase" type="button"
+                                        class="h-9 px-3 rounded-lg border border-slate-200 text-sm font-semibold hover:bg-slate-50">+</button>
+                                </div>
                                 <p id="alloc-minimum" class="mt-1 text-xs text-slate-500">Minimum allocation: —</p>
                             </div>
                         </div>
@@ -1602,6 +1608,8 @@
         const priceEl = document.getElementById('alloc-price');
         const amountEl = document.getElementById('alloc-amount');
         const totalEl = document.getElementById('alloc-total');
+        const amountDecBtn = document.getElementById('alloc-decrease');
+        const amountIncBtn = document.getElementById('alloc-increase');
 
         populateAccountSelect(accountRow, user.id);
 
@@ -1920,9 +1928,17 @@
 
             const allocAmountInput = document.getElementById('alloc-amount');
             if (allocAmountInput) {
+                const currentVal = Number(allocAmountInput.value || 0);
+                const snapped = Number.isFinite(currentVal) && currentVal > 0
+                    ? Math.max(nextUnitPrice, Math.round(currentVal / nextUnitPrice) * nextUnitPrice)
+                    : nextUnitPrice;
+
                 allocAmountInput.min = nextUnitPrice;
-                allocAmountInput.placeholder = `Enter at least ${money(nextUnitPrice, currency)}`;
-                if (!allocAmountInput.value) allocAmountInput.value = nextUnitPrice;
+                allocAmountInput.step = nextUnitPrice;
+                allocAmountInput.readOnly = true;
+                allocAmountInput.classList.add('cursor-not-allowed');
+                allocAmountInput.placeholder = `Adjust in steps of ${money(nextUnitPrice, currency)}`;
+                allocAmountInput.value = snapped;
             }
 
             const minHint = document.getElementById('alloc-minimum');
@@ -2622,19 +2638,34 @@
 
 
         // ---------- Allocation: dynamic total ----------
+        function getMinStep() {
+            const priceField = document.getElementById('alloc-price');
+            const raw = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
+            const resolved = Math.max(1, Math.round(raw || 0));
+            return resolved;
+        }
+
         // one source of truth for totals (also used by Paystack click)
         function calcTotals() {
             const amountField = document.getElementById('alloc-amount');
-            const priceField = document.getElementById('alloc-price');
 
             // minimum allocation (locked from backend)
-            let rawMinAlloc = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
-            rawMinAlloc = Math.round(rawMinAlloc);
-            const minAllocation = Math.max(1, rawMinAlloc);
+            const minAllocation = getMinStep();
 
             // requested allocation (respect minimum)
             const enteredAmount = Number(amountField?.value || 0);
-            const baseAmount = Math.max(minAllocation, Number.isFinite(enteredAmount) ? enteredAmount : 0);
+            const snappedAmount = Math.max(
+                minAllocation,
+                Number.isFinite(enteredAmount)
+                    ? Math.round(enteredAmount / minAllocation) * minAllocation
+                    : minAllocation
+            );
+
+            if (amountField && Number.isFinite(snappedAmount) && snappedAmount !== enteredAmount) {
+                amountField.value = snappedAmount;
+            }
+
+            const baseAmount = snappedAmount;
 
             // base total in strategy currency
             let total = baseAmount;
@@ -2685,12 +2716,28 @@
         }
 
 
+        function stepAllocation(direction = 'add') {
+            if (!amountEl) return;
+            const step = getMinStep();
+            const currentVal = Number(amountEl.value || step);
+            const normalized = Math.max(step, Number.isFinite(currentVal) ? Math.round(currentVal / step) * step : step);
+            const delta = direction === 'minus' ? -step : step;
+            const next = Math.max(step, normalized + delta);
+
+            amountEl.value = next;
+            refreshAllocTotal();
+        }
+
+
         if (priceEl && amountEl) {
             ['input', 'change'].forEach(ev => {
                 priceEl.addEventListener(ev, refreshAllocTotal);
                 amountEl.addEventListener(ev, refreshAllocTotal);
             });
         }
+
+        amountIncBtn?.addEventListener('click', () => stepAllocation('add'));
+        amountDecBtn?.addEventListener('click', () => stepAllocation('minus'));
         let fx = { usdzar: null, ts: null };
         const needsUsdZarRate = () => {
             const strategyCcy = (strategy?.currency || 'ZAR').toUpperCase();
