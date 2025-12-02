@@ -10,7 +10,7 @@ window.initSidebar = function initSidebar(opts = {}) {
       { key: "dashboard",        label: "Dashboard",         icon: "fa-gauge",            href: "/dashboard.html" },
       { key: "open-strategies",  label: "Open Strategies",   icon: "fa-cubes",            href: "/open-strategies.html" },
       { key: "portfolio",        label: "My Portfolio",      icon: "fa-chart-line",       href: "/portfolio.html" },
-      { key: "funding",          label: "Funding",           icon: "fa-wallet",           href: "/funding.html" },
+      { key: "funding",          label: "Funding",           icon: "fa-sack-dollar",     href: "/funding.html" },
       { key: "reports",          label: "Reports",           icon: "fa-file-invoice",     href: "/reports.html" },
     ]},
     { section: "Extras", key: "extras", items: [
