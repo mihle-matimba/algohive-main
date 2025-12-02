@@ -24,7 +24,7 @@ def now_utc():
 
 def get_bars_last_3_months(symbol: str):
     """Get daily bars for roughly the last 3 months (90 days) for one symbol."""
-    end_dt = now_utc()
+    end_dt = now_utc() + dt.timedelta(days=1)
     start_dt = end_dt - dt.timedelta(days=90)
 
     start_iso = start_dt.replace(hour=0, minute=0, second=0, microsecond=0).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -39,7 +39,7 @@ def get_bars_last_3_months(symbol: str):
         "end": end_iso,
         "limit": 1000,
         "adjustment": "raw",
-        "feed": "sip",
+        "feed": "iex",
         "sort": "asc",
     }
 
