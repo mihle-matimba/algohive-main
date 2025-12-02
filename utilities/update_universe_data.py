@@ -23,6 +23,7 @@ def now_utc():
 
 
 LOOKBACK_DAYS = 365 * 3
+INTRADAY_LOOKBACK_HOURS = 24
 
 
 def get_bars_last_3_years(symbol: str):
@@ -64,6 +65,50 @@ def get_bars_last_3_years(symbol: str):
 
     if not bars:
         print(f"[WARN] No bars returned for {symbol} in last {LOOKBACK_DAYS} days")
+        return []
+
+    return bars
+
+
+def get_intraday_bars(symbol: str):
+    """Get 1-minute bars for the configured intraday lookback window."""
+    end_dt = now_utc()
+    start_dt = end_dt - dt.timedelta(hours=INTRADAY_LOOKBACK_HOURS)
+
+    start_iso = start_dt.replace(second=0, microsecond=0).isoformat(timespec="seconds").replace("+00:00", "Z")
+    end_iso = end_dt.replace(second=0, microsecond=0).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+    url = f"{ALPACA_DATA_URL}/stocks/bars"
+
+    params = {
+        "symbols": symbol,
+        "timeframe": "1Min",
+        "start": start_iso,
+        "end": end_iso,
+        "limit": 10000,
+        "adjustment": "raw",
+        "feed": "iex",
+        "sort": "asc",
+    }
+
+    headers = {
+        "accept": "application/json",
+        "APCA-API-KEY-ID": ALPACA_API_KEY,
+        "APCA-API-SECRET-KEY": ALPACA_SECRET_KEY,
+    }
+
+    resp = requests.get(url, params=params, headers=headers)
+
+    if resp.status_code != 200:
+        print(f"[WARN] Failed to fetch intraday bars for {symbol}: {resp.status_code} {resp.text}")
+        return []
+
+    data = resp.json()
+    bars_by_symbol = data.get("bars", {})
+    bars = bars_by_symbol.get(symbol, [])
+
+    if not bars:
+        print(f"[WARN] No intraday bars returned for {symbol} in last {INTRADAY_LOOKBACK_HOURS} hours")
         return []
 
     return bars
@@ -125,8 +170,39 @@ def update_trading_universe_closes_3y():
         # Sort
         closes.sort(key=lambda x: x.get("date", ""))
 
+        intraday_bars = get_intraday_bars(symbol)
+
+        intraday = row.get("intraday") or []
+        if not isinstance(intraday, list):
+            intraday = []
+
+        intraday_by_ts = {e.get("ts"): e for e in intraday if isinstance(e, dict) and "ts" in e}
+
+        for bar in intraday_bars:
+            t = bar.get("t")
+            o = bar.get("o")
+            c = bar.get("c")
+
+            if t is None or o is None or c is None:
+                continue
+
+            pct = 0.0 if o == 0 else (c - o) / o
+
+            intraday_by_ts[t] = {
+                "pct": float(pct),
+                "ts": t
+            }
+
+        intraday = list(intraday_by_ts.values())
+
+        intraday_cutoff = (now_utc() - dt.timedelta(hours=INTRADAY_LOOKBACK_HOURS)).isoformat(timespec="seconds").replace("+00:00", "Z")
+        intraday = [e for e in intraday if e.get("ts", "") >= intraday_cutoff]
+
+        intraday.sort(key=lambda x: x.get("ts", ""))
+
         update_payload = {
             "closes_30d": closes,
+            "intraday": intraday,
             "last_updated_at": now_utc().isoformat()
         }
 
