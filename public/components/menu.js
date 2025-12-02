@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.lucide?.createIcons) {
-        window.lucide.createIcons();
+    const renderIcons = () => {
+        if (window.lucide?.createIcons) {
+            window.lucide.createIcons();
+            return true;
+        }
+        return false;
+    };
+
+    if (!renderIcons()) {
+        window.addEventListener('load', renderIcons, { once: true });
     }
 
     const desktopSidebar = document.getElementById('desktop-sidebar');
