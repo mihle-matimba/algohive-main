@@ -678,12 +678,14 @@
                                     class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50"
                                     value="Trend Alpha" disabled /> </div>
                             <div> <label class="block text-xs text-slate-500 mb-1.5" for="alloc-price">Slot Price
-                                    (ZAR)</label> <input id="alloc-price" type="number" step="0.01" value="1"
+                                    (Min allocation)</label> <input id="alloc-price" type="number" step="0.01" value="1"
                                     class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm bg-slate-50"
                                     disabled /> </div>
-                            <div> <label class="block text-xs text-slate-500 mb-1.5" for="alloc-units">Units</label>
-                                <input id="alloc-units" type="number" min="1" value="1"
+                            <div class="col-span-2"> <label class="block text-xs text-slate-500 mb-1.5"
+                                    for="alloc-amount">Allocation amount</label>
+                                <input id="alloc-amount" type="number" min="1" step="0.01"
                                     class="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm" />
+                                <p id="alloc-minimum" class="mt-1 text-xs text-slate-500">Minimum allocation: —</p>
                             </div>
                         </div>
                         <div class="mt-3 rounded-lg border border-slate-200 p-3 flex items-center justify-between">
@@ -703,8 +705,7 @@
                         <div id="alloc-toast"
                             class="hidden mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-800 text-sm">
                             <i class="fa-solid fa-check mr-2"></i> Allocation submitted for <span
-                                id="toast-strat">—</span>: <span id="toast-units">—</span> unit(s) @ <span
-                                id="toast-price">—</span>.
+                                id="toast-strat">—</span>: <span id="toast-amount">—</span> total.
                         </div>
 
 
@@ -753,7 +754,8 @@
                         </div>
                     </div>
                     <div class="card p-6 rounded-2xl border border-slate-200">
-                        <h3 class="text-lg font-medium text-slate-900 mb-5">Performance Summary</h3>
+                        <h3 class="text-lg font-medium text-slate-900 mb-3">Performance Summary</h3>
+                        <p class="text-xs text-slate-500 mb-4">Performance figures shown here do not include the fees presented in this factsheet.</p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                             <div class="ps-tile">
                                 <div class="ps-label">Best Day</div>
@@ -914,7 +916,7 @@
                             </li>
                             <li class="flex flex-col sm:flex-row items-start gap-x-2">
                                 <span class="font-semibold text-slate-900 sm:min-w-[160px]">Funding / Payments</span>
-                                <span>Standard Ozow processing costs may apply (pass-through).</span>
+                                <span>Standard Wire Transfer Processing fees.</span>
                             </li>
                             <li class="flex flex-col sm:flex-row items-start gap-x-2">
                                 <span class="font-semibold text-slate-900 sm:min-w-[160px]">Withdrawals</span>
@@ -928,12 +930,10 @@
 
                     <div class="card p-6 rounded-2xl border border-slate-200">
                         <h3 class="text-lg font-medium text-slate-900 mb-2">Regulatory Disclaimer</h3>
-                        <p class="text-sm text-slate-700">
-                            Investing involves risk. Returns are not guaranteed and past performance is not a reliable
-                            indicator of future results.
-                            Nothing on this page constitutes financial advice. Products may be offered via an authorised
-                            Financial Services Provider
-                            in South Africa.
+                        <p class="text-sm text-slate-700 space-y-2">
+                            <span class="block">AlgoHive, FSP 55118, is an authorised financial services provider. Investing carries inherent risk and the value of investments may rise or fall. Returns are not guaranteed and past performance is not a reliable indicator of future results. Some performance figures presented may reflect simulated backtested outcomes and others may reflect live portfolio performance, and no timing distinction is shown.</span>
+                            <span class="block">These figures are provided for illustrative purposes only and do not constitute a forecast or assurance of future returns. Strategies may be rebalanced or otherwise adjusted at the discretion of the investment team as and when deemed appropriate, and such activity may give rise to transaction costs, taxes and other charges that are not fully reflected in the figures shown and that will reduce actual investor returns.</span>
+                            <span class="block">The information contained herein is of a general nature, does not purport to be comprehensive and does not take into account the financial situation, investment objectives or needs of any specific investor. It should not be regarded as personalised financial advice or a recommendation to invest. Investors should obtain independent financial, tax and legal advice before making any investment decision.</span>
                         </p>
                     </div>
                 </section>
@@ -1703,7 +1703,19 @@
 
             const priceLbl = document.querySelector('label[for="alloc-price"]');
             if (priceLbl) {
-                priceLbl.innerHTML = `Slot Price (${(currency || 'ZAR').toUpperCase()})`;
+                priceLbl.innerHTML = `Slot Price (Min allocation, ${(currency || 'ZAR').toUpperCase()})`;
+            }
+
+            const allocAmountInput = document.getElementById('alloc-amount');
+            if (allocAmountInput) {
+                allocAmountInput.min = nextUnitPrice;
+                allocAmountInput.placeholder = `Enter at least ${money(nextUnitPrice, currency)}`;
+                if (!allocAmountInput.value) allocAmountInput.value = nextUnitPrice;
+            }
+
+            const minHint = document.getElementById('alloc-minimum');
+            if (minHint) {
+                minHint.textContent = `Minimum allocation: ${money(nextUnitPrice, currency)}`;
             }
         }
 
@@ -2401,31 +2413,25 @@
 
         // ---------- Allocation: dynamic total ----------
         const priceEl = document.getElementById('alloc-price');
-        const unitsEl = document.getElementById('alloc-units');
+        const amountEl = document.getElementById('alloc-amount');
         const totalEl = document.getElementById('alloc-total');
 
         // one source of truth for totals (also used by Paystack click)
         function calcTotals() {
-            const unitsField = document.getElementById('alloc-units');
+            const amountField = document.getElementById('alloc-amount');
             const priceField = document.getElementById('alloc-price');
 
-            // units (user can change this)
-            const units = Math.max(
-                1,
-                Math.floor(Number(unitsField?.value || 0))
-            );
+            // minimum allocation (locked from backend)
+            let rawMinAlloc = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
+            rawMinAlloc = Math.round(rawMinAlloc);
+            const minAllocation = Math.max(1, rawMinAlloc);
 
-            // unit price (locked from backend)
-            // prefer the locked dataset value (trusted) over whatever is in .value
-            let rawUnitPrice = Number(priceField?.dataset.lockedPrice || priceField?.value || 0);
-
-            // force whole number like backend (backend rounded with round())
-            rawUnitPrice = Math.round(rawUnitPrice);
-
-            const unitPrice = Math.max(1, rawUnitPrice);
+            // requested allocation (respect minimum)
+            const enteredAmount = Number(amountField?.value || 0);
+            const baseAmount = Math.max(minAllocation, Number.isFinite(enteredAmount) ? enteredAmount : 0);
 
             // base total in strategy currency
-            let total = units * unitPrice;
+            let total = baseAmount;
             let ccy = (strategy?.currency || currentCCY || 'ZAR').toUpperCase();
 
             // if strategy currency is USD we convert to ZAR for checkout using live fx
@@ -2441,7 +2447,7 @@
             // round to cents (what Paystack sees / what we show)
             const totalRounded = Math.round(total * 100) / 100;
 
-            return { units, unitPrice, totalRounded, ccy };
+            return { amount: baseAmount, minAllocation, unitPrice: minAllocation, totalRounded, ccy };
         }
 
 
@@ -2456,10 +2462,10 @@
         }
 
 
-        if (priceEl && unitsEl) {
+        if (priceEl && amountEl) {
             ['input', 'change'].forEach(ev => {
                 priceEl.addEventListener(ev, refreshAllocTotal);
-                unitsEl.addEventListener(ev, refreshAllocTotal);
+                amountEl.addEventListener(ev, refreshAllocTotal);
             });
         }
         let fx = { usdzar: null, ts: null };
@@ -2669,9 +2675,9 @@
         const btnAlloc = document.getElementById('alloc-btn');
         btnAlloc?.addEventListener('click', async () => {
             try {
-                const { units, unitPrice, totalRounded, ccy } = calcTotals();
-                if (!units || !unitPrice || !totalRounded) {
-                    banner('Please enter a valid units amount.', 'err');
+                const { amount, unitPrice, totalRounded, ccy } = calcTotals();
+                if (!amount || !unitPrice || !totalRounded) {
+                    banner('Please enter a valid allocation amount.', 'err');
                     return;
                 }
 
@@ -2705,8 +2711,8 @@
                             profile_id: row?.id || null,
                             strategy_id: strategy?.id || null,
                             strategy_name: strategy?.name || null,
-                            units,
-                            unit_price: unitPrice,    // original unit price in strategy currency
+                            amount,
+                            unit_price: unitPrice,    // minimum allocation in strategy currency
                             fx_rate: isUSD() ? Number(fx.usdzar) || null : null,
                             shown_total: totalRounded,
                             shown_currency: ccy       // what user saw in the UI
