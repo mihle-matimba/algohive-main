@@ -19,10 +19,10 @@
     .topbar{ height:52px }
     
     /* UPDATED FOR RESPONSIVENESS */
-    #layout{ --sb:220px; display:grid; grid-template-columns:1fr; min-height:100vh } /* Mobile-first: 1 column */
+    #layout{ --sb:275px; display:grid; grid-template-columns:1fr; min-height:100vh } /* Mobile-first: 1 column */
     #ah-sidebar{ 
       transition: transform .3s ease, width .2s ease; /* Add transform transition */
-      width: 280px; /* Mobile width */
+      width: 350px; /* Mobile width */
       max-width: 85vw;
       position: fixed; /* Mobile overlay */
       z-index: 50;
@@ -50,6 +50,7 @@
     /* END RESPONSIVENESS */
     
     #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron{ display:none }
+    #ah-sidebar[data-collapsed="true"] #main-nav :is(i,svg){ display:none }
     #ah-sidebar details .sub{ transition: height .2s ease }
     #ah-sidebar[data-collapsed="true"] details>.sub{ display:none!important }
     #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary{ justify-content:center; gap:.25rem }
@@ -173,6 +174,131 @@
       animation: fade-timer 1.5s infinite linear; /* Apply animation when active */
     }
 
+    /* Brand switcher */
+    #ah-brand-switcher {
+      position: relative;
+    }
+
+    #ah-brand-switcher summary {
+      list-style: none;
+    }
+
+    #ah-brand-switcher summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .brand-toggle {
+      margin: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+
+    #ah-brand-switcher[open] .brand-toggle {
+      border-color: #cbd5e1;
+      background: #fff;
+      box-shadow: 0 14px 36px -18px rgba(15, 23, 42, 0.55);
+    }
+
+    .brand-marker {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #111827;
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .brand-menu {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: calc(100% - 6px);
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 24px 48px -20px rgba(15, 23, 42, 0.5);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .brand-menu-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+      color: #475569;
+      padding: 4px 4px 2px;
+    }
+
+    .brand-option {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        transition: background-color .2s ease;
+    }
+
+    .brand-option:hover {
+      background: #f8fafc;
+    }
+
+    .brand-option img {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        object-fit: contain;
+        background: transparent;
+    }
+
+    .brand-option .algomoney-word {
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-size: 13px;
+        color: #0f172a;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-toggle {
+        margin: 12px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        justify-content: center;
+        gap: 0;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-toggle .label,
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-toggle .fa-chevron-down {
+        display: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker {
+        background: transparent;
+        width: 38px;
+        height: 38px;
+        box-shadow: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker img {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+    }
+
     /* Keep the pop-up centered and visible */
     #session-timeout-modal .modal-content-custom {
       background: white;
@@ -192,50 +318,98 @@
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false"
       class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-y-auto">
-      <div class="px-4 py-3 flex items-center gap-3 border-b border-slate-200">
-        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
-          alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
-        <div class="min-w-0">
-          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
-          <div class="text-[11px] text-slate-500 label">Where Smart Capital Gathers</div>
+      <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
+        <summary class="brand-toggle">
+          <div class="brand-marker">
+            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png"
+              alt="AlgoHive Logo" class="w-7 h-7 object-contain" />
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+            <div class="text-[11px] text-slate-500 label">Markets</div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="brand-menu">
+          <div class="brand-menu-header">Switch workspace</div>
+          <a href="#" class="brand-option">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" />
+            <div class="min-w-0 font-semibold text-slate-900 label algomoney-word">AlgoMoney</div>
+          </a>
         </div>
-      </div>
+      </details>
 
-      <nav id="main-nav" class="p-1 text-[14px]">
-        <a class="flex items-center gap-3 px-3 py-1 rounded-lg hover:bg-slate-50 font-medium text-slate-900"
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Markets</p>
+
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900"
           href="/demo/dashboard.html" title="Home">
           <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Home</span>
         </a>
 
-        <details class="group mt-1">
-          <summary
-            class="flex items-center justify-between px-3 py-1 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center gap-3">
-              <i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span>
-            </span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 flex flex-col sub">
-            <a class="px-3 py-1 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/dashboard.html"><i
-                class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">My Strategies</span></a>
-           </div>
-        </details>
-
         <details class="group mt-1" open>
           <summary
-            class="flex items-center justify-between px-3 py-1 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
             <span class="flex items-center gap-3">
               <i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span>
             </span>
             <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
           </summary>
-          <div class="ml-8 flex flex-col sub">
-            <a class="px-3 py-1 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100 font-semibold" href="/demo/strategies.html"><i
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100 font-semibold" href="/demo/strategies.html"><i
                 class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
 
-
+            <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Funds">
+              <i class="fa-solid fa-coins w-4 text-slate-400"></i><span class="label">Funds</span>
+            </span>
+            <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Markets">
+              <i class="fa-solid fa-earth-americas w-4 text-slate-400"></i><span class="label">Markets</span>
+            </span>
           </div>
         </details>
+
+        <span class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="News &amp; Insights">
+          <i class="fa-regular fa-newspaper w-4 text-slate-400"></i><span class="label">News &amp; Insights</span>
+        </span>
+        <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Activity">
+          <i class="fa-solid fa-clock-rotate-left w-4 text-slate-400"></i><span class="label">Activity</span>
+        </span>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Money</p>
+
+        <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Pay">
+          <i class="fa-solid fa-money-bill-transfer w-4 text-slate-400"></i><span class="label">Pay</span>
+        </span>
+        <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Accounts">
+          <i class="fa-solid fa-wallet w-4 text-slate-400"></i><span class="label">Accounts</span>
+        </span>
+
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <i class="fa-solid fa-credit-card w-4 text-slate-500"></i><span class="label">Credit</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Unsecured Credit">
+              <i class="fa-solid fa-lock-open w-4 text-slate-400"></i><span class="label">Unsecured Credit</span>
+            </span>
+            <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Portfolio-Backed Credit">
+              <i class="fa-solid fa-briefcase w-4 text-slate-400"></i><span class="label">Portfolio-Backed Credit</span>
+            </span>
+          </div>
+        </details>
+
+        <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Prepaid Mobile">
+          <i class="fa-solid fa-mobile-screen w-4 text-slate-400"></i><span class="label">Prepaid Mobile</span>
+        </span>
+        <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Electricity">
+          <i class="fa-solid fa-bolt w-4 text-slate-400"></i><span class="label">Electricity</span>
+        </span>
+        <span class="px-3 py-2 rounded-lg flex items-center gap-2 text-slate-400 cursor-not-allowed select-none" title="Transactions &amp; Statements">
+          <i class="fa-solid fa-receipt w-4 text-slate-400"></i><span class="label">Transactions &amp; Statements</span>
+        </span>
       </nav>
 
       <div class="p-2 border-t border-slate-200 footer flex items-center justify-between gap-2 mt-auto">
@@ -480,7 +654,11 @@
       const aside = document.getElementById('ah-sidebar');
       const btn = document.getElementById('ah-collapse');
       const saved = localStorage.getItem('ah_collapsed') === 'true';
-      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+      if (saved) {
+        aside.setAttribute('data-collapsed', 'true');
+        layout.classList.add('is-collapsed');
+        aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+      }
       btn?.addEventListener('click', () => {
         const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
         if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
@@ -1066,9 +1244,6 @@
     // avatar (cache-bust public URL)
     const avatarUrl = row?.avatar_url ? `${row.avatar_url}${row.avatar_url.includes("?") ? "&" : "?"}v=${Date.now()}` : BLANK_AVATAR;
     setSrc("hdr-avatar", avatarUrl);
-
-    // (optional) sidebar account label if you want it populated
-    if (row?.account_number || user?.id) setText("sidebar-acc", row.account_number || user.id);
 
     // profile modal wiring
     const modal = document.getElementById("profile-modal");
