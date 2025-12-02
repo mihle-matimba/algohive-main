@@ -87,6 +87,58 @@ def build_symbol_pct_from_universe(
     return symbol_map
 
 
+def build_symbol_intraday_from_universe(symbols: List[str]) -> Dict[str, Dict[str, float]]:
+    """
+    Pull intraday pct history (ts -> pct_decimal) from trading_universe
+    for the given symbols.
+    """
+    if not symbols:
+        return {}
+
+    print(f"[INFO] Fetching intraday trading_universe data for symbols: {symbols}")
+
+    resp = (
+        supabase.table("trading_universe")
+        .select("symbol, intraday")
+        .in_("symbol", symbols)
+        .execute()
+    )
+    rows = resp.data or []
+
+    symbol_map: Dict[str, Dict[str, float]] = {}
+
+    for row in rows:
+        symbol = row.get("symbol")
+        if not symbol:
+            continue
+
+        entries = row.get("intraday") or []
+        if not isinstance(entries, list):
+            continue
+
+        ts_to_pct: Dict[str, float] = {}
+
+        for e in entries:
+            if not isinstance(e, dict):
+                continue
+            ts_str = e.get("ts")
+            pct = e.get("pct")
+
+            if ts_str is None or pct is None:
+                continue
+
+            try:
+                # validate ts
+                dt.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                ts_to_pct[ts_str] = float(pct)
+            except Exception:
+                continue
+
+        symbol_map[symbol] = ts_to_pct
+
+    return symbol_map
+
+
 def compute_weighted_daily_series_from_universe(
     weights: Dict[str, float],
     symbol_pct_map: Dict[str, Dict[str, float]],
@@ -112,6 +164,43 @@ def compute_weighted_daily_series_from_universe(
             if date_str in pct_map:
                 total_pct += w * pct_map[date_str]
         series.append({"date": date_str, "pct": float(total_pct)})
+
+    return series
+
+
+def compute_weighted_intraday_series_from_universe(
+    weights: Dict[str, float],
+    symbol_intraday_map: Dict[str, Dict[str, float]],
+) -> List[Dict[str, Any]]:
+    """
+    Combine intraday pct entries (decimal) by timestamp across symbols
+    using the provided weights. Output entries keep the timestamp in the
+    "date" field for consistency with strategy_metrics schema.
+    """
+
+    all_ts: set[str] = set()
+    for series in symbol_intraday_map.values():
+        all_ts.update(series.keys())
+
+    if not all_ts:
+        return []
+
+    def _sort_key(ts: str) -> dt.datetime:
+        try:
+            return dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except Exception:
+            return dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+
+    series: List[Dict[str, Any]] = []
+
+    for ts in sorted(all_ts, key=_sort_key):
+        total_pct = 0.0
+        for sym, w in weights.items():
+            pct_map = symbol_intraday_map.get(sym, {})
+            if ts in pct_map:
+                total_pct += w * pct_map[ts]
+        # store timestamp string under "date" as requested
+        series.append({"date": ts, "pct": float(total_pct)})
 
     return series
 
@@ -382,8 +471,18 @@ def update_strategy_metrics_from_universe():
             end_date=end_date,
         )
 
+        symbol_intraday_map = build_symbol_intraday_from_universe(list(weights.keys()))
+
         new_series = compute_weighted_daily_series_from_universe(weights, symbol_pct_map)
         print(f"[INFO] Strategy {strategy_id}: {len(new_series)} new daily points from universe")
+
+        intraday_series = compute_weighted_intraday_series_from_universe(
+            weights, symbol_intraday_map
+        )
+        if intraday_series:
+            print(
+                f"[INFO] Strategy {strategy_id}: {len(intraday_series)} intraday points from universe"
+            )
 
         # merge with existing series_all safely
         series_map: Dict[str, float] = {}
@@ -447,7 +546,8 @@ def update_strategy_metrics_from_universe():
 
         update_payload = {
             "series_all": series_all,
-            "series_1d": windows["series_1d"],
+            # override 1d with intraday history when available, otherwise keep last daily point
+            "series_1d": intraday_series if intraday_series else windows["series_1d"],
             "series_1m": windows["series_1m"],
             "series_3m": windows["series_3m"],
             "series_6m": windows["series_6m"],
