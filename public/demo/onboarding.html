@@ -164,6 +164,66 @@
             outline-offset: 4px;
             border-radius: 1.25rem;
         }
+
+        /* Ghost load animation for main content */
+        .ghost-shell {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ghost-shell .ghost-cover {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, #f8fafc 0%, #e2e8f0 40%, #f8fafc 80%);
+            opacity: .75;
+            animation: ghostShimmer 1.35s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ghost-shell.ghost-reveal {
+            animation: ghostFadeIn .65s ease forwards;
+        }
+
+        .ghost-shell.ghost-reveal .ghost-cover {
+            animation: ghostFadeCover .4s ease forwards;
+        }
+
+        @keyframes ghostShimmer {
+            0% {
+                transform: translateX(-8%);
+            }
+
+            50% {
+                opacity: .55;
+            }
+
+            100% {
+                transform: translateX(8%);
+            }
+        }
+
+        @keyframes ghostFadeCover {
+            from {
+                opacity: .75;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes ghostFadeIn {
+            from {
+                opacity: .35;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
@@ -175,7 +235,7 @@
         <span class="preloader__tagline">Loading your experience…</span>
     </div>
 
-    <main class="flex min-h-screen w-full flex-col bg-transparent lg:flex-row lg:items-stretch">
+    <main class="flex min-h-screen w-full flex-col bg-transparent lg:flex-row lg:items-stretch ghost-shell">
         <!-- Left: Brand + steps -->
         <div
             class="auth-left relative hidden w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-1/4 lg:min-w-[300px] lg:overflow-y-auto lg:border-r lg:border-slate-100 lg:px-10 lg:py-14 lg:shadow-none">
@@ -450,6 +510,28 @@
             </div>
         </aside>
     </main>
+
+    <script nonce="ALGOHIVE">
+        (function attachGhostLoader() {
+            const main = document.querySelector('main.ghost-shell');
+            if (!main) return;
+
+            const cover = document.createElement('div');
+            cover.className = 'ghost-cover';
+            main.appendChild(cover);
+
+            const reveal = () => {
+                main.classList.add('ghost-reveal');
+                cover.addEventListener('animationend', () => cover.remove(), { once: true });
+            };
+
+            if (document.readyState === 'complete') {
+                requestAnimationFrame(reveal);
+            } else {
+                window.addEventListener('load', () => requestAnimationFrame(reveal), { once: true });
+            }
+        })();
+    </script>
 
     <script type="module" nonce="ALGOHIVE">
         import { supabase } from "/js/supabase.js";

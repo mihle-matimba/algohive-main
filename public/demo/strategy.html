@@ -660,6 +660,46 @@
             border-radius: 10px;
         }
 
+        /* Ghost load animation for main content */
+        .ghost-shell {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ghost-shell .ghost-cover {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, #f8fafc 0%, #e2e8f0 40%, #f8fafc 80%);
+            opacity: .75;
+            animation: ghostShimmer 1.35s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ghost-shell.ghost-reveal {
+            animation: ghostFadeIn .65s ease forwards;
+        }
+
+        .ghost-shell.ghost-reveal .ghost-cover {
+            animation: ghostFadeCover .4s ease forwards;
+        }
+
+        @keyframes ghostShimmer {
+            0% { transform: translateX(-8%); }
+            50% { opacity: .55; }
+            100% { transform: translateX(8%); }
+        }
+
+        @keyframes ghostFadeCover {
+            from { opacity: .75; }
+            to { opacity: 0; }
+        }
+
+        @keyframes ghostFadeIn {
+            from { opacity: .35; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* --- END ADDED: Modal Styles --- */
     </style>
 </head>
@@ -750,7 +790,7 @@
                     class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse"><i
                         class="fa-solid fa-arrow-left"></i></button> </div>
         </aside>
-        <main class="flex-1 min-w-0">
+        <main class="flex-1 min-w-0 ghost-shell">
             <div class="px-4 md:px-6 pt-4">
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
@@ -1134,6 +1174,28 @@
             </div>
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         </main>
+
+        <script nonce="ALGOHIVE">
+            (function attachGhostLoader() {
+                const main = document.querySelector('main.ghost-shell');
+                if (!main) return;
+
+                const cover = document.createElement('div');
+                cover.className = 'ghost-cover';
+                main.appendChild(cover);
+
+                const reveal = () => {
+                    main.classList.add('ghost-reveal');
+                    cover.addEventListener('animationend', () => cover.remove(), { once: true });
+                };
+
+                if (document.readyState === 'complete') {
+                    requestAnimationFrame(reveal);
+                } else {
+                    window.addEventListener('load', () => requestAnimationFrame(reveal), { once: true });
+                }
+            })();
+        </script>
     </div>
 
     <div id="daily-modal-overlay" class="modal-overlay"></div>
