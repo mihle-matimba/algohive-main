@@ -71,8 +71,7 @@ def build_symbol_pct_from_universe(
             except Exception:
                 continue
 
-            # IMPORTANT: allow reloading for the existing last date
-            # Before: if start_date and d <= start_date: continue
+            # allow reloading for the existing last date
             if start_date and d < start_date:
                 continue
             if end_date and d > end_date:
@@ -421,6 +420,26 @@ def update_strategy_metrics_from_universe():
             for d, p in sorted(series_map.items())
         ]
 
+        # ===== NEW BIT: portfolio_holdings.daily_change_pct in percent =====
+        # Use latest daily pct per symbol from symbol_pct_map and store as percent (3.0 == 3%)
+        updated_holdings: List[Dict[str, Any]] = []
+        for asset in holdings:
+            if not isinstance(asset, dict):
+                continue
+            sym = asset.get("symbol")
+            asset_copy = dict(asset)
+            daily_pct_decimal = 0.0
+            if sym in symbol_pct_map:
+                sym_map = symbol_pct_map[sym]
+                if sym_map:
+                    # latest date for this symbol
+                    last_sym_date = max(sym_map.keys())
+                    daily_pct_decimal = sym_map[last_sym_date]
+            # convert decimal → percent
+            asset_copy["daily_change_pct"] = daily_pct_decimal * 100.0
+            updated_holdings.append(asset_copy)
+        # ===================================================================
+
         # derive windows, perf_summary, calendar_returns
         windows = build_window_series(series_all)
         perf_summary = compute_perf_summary(series_all)
@@ -437,6 +456,7 @@ def update_strategy_metrics_from_universe():
             "series_ytd": windows["series_ytd"],
             "perf_summary": perf_summary,
             "calendar_returns": calendar_returns,
+            "portfolio_holdings": updated_holdings,  # updated with daily_change_pct as percent
             "asof_date": today.isoformat(),
             "updated_at": now_utc().isoformat(),
         }
