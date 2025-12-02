@@ -22,10 +22,13 @@ def now_utc():
     return dt.datetime.now(dt.timezone.utc)
 
 
-def get_bars_last_3_months(symbol: str):
-    """Get daily bars for roughly the last 3 months (90 days) for one symbol."""
+LOOKBACK_DAYS = 365 * 3
+
+
+def get_bars_last_3_years(symbol: str):
+    """Get daily bars for roughly the last 3 years for one symbol."""
     end_dt = now_utc() + dt.timedelta(days=1)
-    start_dt = end_dt - dt.timedelta(days=90)
+    start_dt = end_dt - dt.timedelta(days=LOOKBACK_DAYS)
 
     start_iso = start_dt.replace(hour=0, minute=0, second=0, microsecond=0).isoformat(timespec="seconds").replace("+00:00", "Z")
     end_iso = end_dt.replace(hour=0, minute=0, second=0, microsecond=0).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -60,13 +63,13 @@ def get_bars_last_3_months(symbol: str):
     bars = bars_by_symbol.get(symbol, [])
 
     if not bars:
-        print(f"[WARN] No bars returned for {symbol} in last 3 months")
+        print(f"[WARN] No bars returned for {symbol} in last {LOOKBACK_DAYS} days")
         return []
 
     return bars
 
 
-def update_trading_universe_closes_3m():
+def update_trading_universe_closes_3y():
     print("[INFO] Fetching trading_universe rows...")
 
     resp = supabase.table("trading_universe").select("*").execute()
@@ -81,7 +84,7 @@ def update_trading_universe_closes_3m():
 
         print(f"[INFO] Updating {symbol}...")
 
-        bars = get_bars_last_3_months(symbol)
+        bars = get_bars_last_3_years(symbol)
         if not bars:
             print(f"[INFO] Skipping {symbol}, no bars in range")
             continue
@@ -115,8 +118,8 @@ def update_trading_universe_closes_3m():
         # Convert dict back to list
         closes = list(closes_by_date.values())
 
-        # Only keep last 90 days
-        cutoff_date = (now_utc().date() - dt.timedelta(days=90)).isoformat()
+        # Only keep the configured lookback window
+        cutoff_date = (now_utc().date() - dt.timedelta(days=LOOKBACK_DAYS)).isoformat()
         closes = [e for e in closes if e.get("date", "") >= cutoff_date]
 
         # Sort
@@ -131,7 +134,7 @@ def update_trading_universe_closes_3m():
 
         print(f"[INFO] {symbol} updated, total days stored: {len(closes)}")
 
-    print("[INFO] Done updating closes_30d for last 3 months.")
+    print(f"[INFO] Done updating closes_30d for last {LOOKBACK_DAYS} days.")
 
 
 # ===================== SCHEDULER =======================
@@ -142,7 +145,7 @@ if __name__ == "__main__":
     while True:
         try:
             print(f"\n[ENGINE] Run at {now_utc().isoformat()}")
-            update_trading_universe_closes_3m()
+            update_trading_universe_closes_3y()
         except Exception as e:
             print(f"[ERROR] Universe update failed: {e}")
 
