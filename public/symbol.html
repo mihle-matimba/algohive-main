@@ -74,6 +74,7 @@
     .order-form select:focus { outline:2px solid #0f172a; outline-offset:1px; }
     #tv-widget-host .tradingview-widget-container { height: 100%; }
     #symbol-info .tradingview-widget-container { height: 100%; }
+    #tv-widget-host { height: 640px; }
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-white">
@@ -469,11 +470,12 @@
     const computeDailyChange = (row = {}) => {
       if (Array.isArray(row?.closes_30d) && row.closes_30d.length) {
         const last = row.closes_30d[row.closes_30d.length - 1];
-        const pct = Number((last?.pct ?? 0) * 100);
+        const pctRaw = last?.pct ?? last?.pct_change ?? last?.change_pct;
+        const pct = Number(pctRaw) * 100;
         if (!Number.isNaN(pct)) return pct;
       }
 
-      const pct = Number(row?.daily_change ?? row?.dailyChange ?? row?.pct_change);
+      const pct = Number(row?.daily_change ?? row?.dailyChange ?? row?.pct_change ?? row?.change_pct);
       return Number.isNaN(pct) ? null : pct;
     };
 
@@ -540,7 +542,7 @@
 
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,price,daily_change')
+        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,intraday')
         .or(`symbol.ilike.%${term}%,name.ilike.%${term}%`)
         .limit(8);
 
@@ -632,11 +634,24 @@
       setText(exchangeEl, exchangeLabel || 'Exchange unavailable');
       orderSymbolEls.forEach(el => setText(el, symbol));
       setText(orderExchangeEl, exchangeLabel || '—');
-      if (typeof instrument?.price === 'number' && !Number.isNaN(instrument.price)) {
-        currentPrice = instrument.price;
-      } else if (Array.isArray(instrument?.closes_30d) && instrument.closes_30d.length) {
-        const lastClose = instrument.closes_30d[instrument.closes_30d.length - 1];
-        currentPrice = typeof lastClose?.close === 'number' ? lastClose.close : null;
+      const lastClose = Array.isArray(instrument?.closes_30d) && instrument.closes_30d.length
+        ? instrument.closes_30d[instrument.closes_30d.length - 1]
+        : null;
+      const closeValue = typeof lastClose?.close === 'number'
+        ? lastClose.close
+        : Number.isFinite(Number(lastClose?.close))
+          ? Number(lastClose.close)
+          : null;
+      const intradayPrice = typeof instrument?.intraday?.last_price === 'number'
+        ? instrument.intraday.last_price
+        : Number.isFinite(Number(instrument?.intraday?.last_price))
+          ? Number(instrument.intraday.last_price)
+          : null;
+
+      if (typeof intradayPrice === 'number' && !Number.isNaN(intradayPrice)) {
+        currentPrice = intradayPrice;
+      } else if (typeof closeValue === 'number' && !Number.isNaN(closeValue)) {
+        currentPrice = closeValue;
       } else {
         currentPrice = null;
       }
@@ -652,7 +667,7 @@
       setText(statusEl, 'Loading instrument…');
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,price,daily_change')
+        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,intraday')
         .ilike('symbol', symbol)
         .maybeSingle();
 
