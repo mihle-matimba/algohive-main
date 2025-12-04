@@ -239,21 +239,22 @@
           </div>
         </section>
 
-        <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-[0_10px_38px_-28px_rgba(15,23,42,0.5)] space-y-4">
+        <section class="bg-white rounded-2xl p-6 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p class="text-sm text-slate-500">Selected market</p>
-              <div class="flex items-center gap-3">
-                <div class="relative">
-                  <img id="selected-logo" class="market-logo hidden" alt="Selected market logo" />
-                  <div id="selected-pill" class="pill bg-slate-100 text-base">—</div>
-                </div>
                 <div>
-                  <p id="selected-name" class="font-semibold text-slate-900">Loading…</p>
-                  <p id="selected-exchange" class="text-sm text-slate-500">—</p>
+                  <p class="text-sm text-slate-500">Selected market</p>
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img id="selected-logo" class="market-logo hidden" alt="Selected market logo" />
+                      <div id="selected-pill" class="pill bg-slate-100 text-base">—</div>
+                    </div>
+                    <div>
+                      <p id="selected-name" class="font-semibold text-slate-900">Loading…</p>
+                      <p id="selected-exchange" class="text-sm text-slate-500">—</p>
+                      <p id="selected-daily" class="text-xs text-slate-500">Daily Change: —</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
             <div class="flex items-center gap-2 text-sm font-semibold">
               <span id="selected-change" class="px-2.5 py-1 rounded-full border border-slate-200">—</span>
             </div>
@@ -337,6 +338,7 @@
     const nameEl = document.getElementById('selected-name');
     const exchangeEl = document.getElementById('selected-exchange');
     const changeEl = document.getElementById('selected-change');
+    const dailyEl = document.getElementById('selected-daily');
     const rangeButtons = Array.from(document.querySelectorAll('[data-range]'));
     const profileModal = document.getElementById('profile-modal');
     const profileBtn = document.getElementById('hdr-profile-btn');
@@ -444,9 +446,9 @@
 
     const formatMarket = (row, idx) => {
       const series = buildSeries(row?.closes_30d);
-      const first = series[0]?.value || 100;
-      const last = series[series.length - 1]?.value || first;
-      const change = first ? ((last - first) / first) * 100 : 0;
+      const lastPct = Array.isArray(row?.closes_30d) && row.closes_30d.length
+        ? Number((row.closes_30d[row.closes_30d.length - 1]?.pct || 0) * 100)
+        : 0;
       return {
         id: row?.id || idx,
         symbol: row?.symbol || '—',
@@ -455,8 +457,7 @@
         logo: row?.logo || '',
         country: exchangeToCountry(row?.exchange),
         series,
-        last,
-        change
+        dailyChange: lastPct
       };
     };
 
@@ -466,8 +467,10 @@
       const series = applyRange(market.series, currentRange);
       const labels = series.map(point => point.label);
       const base = series[0]?.value || 1;
+      const last = series[series.length - 1]?.value || base;
       const data = series.map(point => base ? ((point.value - base) / base) * 100 : 0);
-      const color = market.change >= 0 ? '#16a34a' : '#dc2626';
+      const rangeChange = base ? ((last - base) / base) * 100 : 0;
+      const color = rangeChange >= 0 ? '#16a34a' : '#dc2626';
 
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 260);
       gradient.addColorStop(0, `${color}20`);
@@ -523,6 +526,8 @@
           maintainAspectRatio: false
         }
       });
+
+      return rangeChange;
     };
 
     const updateSelectedLogo = (market) => {
@@ -561,10 +566,11 @@
       updateSelectedLogo(market);
       nameEl.textContent = `${market.symbol} · ${market.name}`;
       exchangeEl.textContent = market.exchange;
-      changeEl.textContent = `${market.change >= 0 ? '+' : ''}${market.change.toFixed(2)}%`;
-      changeEl.className = `px-2.5 py-1 rounded-full border border-slate-200 ${market.change >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`;
+      dailyEl.textContent = `Daily Change: ${market.dailyChange >= 0 ? '+' : ''}${market.dailyChange.toFixed(2)}%`;
 
-      updateChart(market);
+      const rangeChange = updateChart(market);
+      changeEl.textContent = `${rangeChange >= 0 ? '+' : ''}${rangeChange.toFixed(2)}%`;
+      changeEl.className = `px-2.5 py-1 rounded-full border border-slate-200 ${rangeChange >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`;
     };
 
     const renderMarkets = () => {
@@ -607,14 +613,18 @@
         const exch = document.createElement('p');
         exch.className = 'text-xs text-slate-500';
         exch.textContent = mkt.exchange || '—';
+        const daily = document.createElement('p');
+        daily.className = 'text-xs text-slate-500';
+        daily.textContent = `Daily Change: ${mkt.dailyChange >= 0 ? '+' : ''}${mkt.dailyChange.toFixed(2)}%`;
         textWrap.appendChild(name);
         textWrap.appendChild(exch);
+        textWrap.appendChild(daily);
 
         const changeWrap = document.createElement('div');
         changeWrap.className = 'ml-auto text-right text-sm font-semibold flex items-center';
         const delta = document.createElement('span');
-        delta.className = `px-2.5 py-1 rounded-full border border-slate-200 ${mkt.change >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`;
-        delta.textContent = `${mkt.change >= 0 ? '+' : ''}${mkt.change.toFixed(2)}%`;
+        delta.className = `px-2.5 py-1 rounded-full border border-slate-200 ${mkt.dailyChange >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`;
+        delta.textContent = `${mkt.dailyChange >= 0 ? '+' : ''}${mkt.dailyChange.toFixed(2)}%`;
         changeWrap.append(delta);
 
         chip.append(logoWrap, textWrap, changeWrap);
