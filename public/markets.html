@@ -252,6 +252,26 @@
     </main>
   </div>
 
+  <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200">
+        <div class="text-sm font-semibold text-slate-900">Account</div>
+        <div id="pm-email" class="text-xs text-slate-500 truncate">user@example.com</div>
+      </div>
+      <div class="p-2">
+        <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-regular fa-user text-slate-500 w-4"></i>
+          <span>Profile settings</span>
+        </a>
+        <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+          <i class="fa-solid fa-right-from-bracket w-4"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script nonce="ALGOHIVE">
     // Mobile sidebar toggle
     (function () {
@@ -294,9 +314,28 @@
     const priceEl = document.getElementById('selected-price');
     const changeEl = document.getElementById('selected-change');
     const rangeButtons = Array.from(document.querySelectorAll('[data-range]'));
+    const profileModal = document.getElementById('profile-modal');
+    const profileBtn = document.getElementById('hdr-profile-btn');
+    const pmEmail = document.getElementById('pm-email');
+    const pmLogout = document.getElementById('pm-logout');
+    const pmProfile = document.getElementById('pm-profile');
+    const hdrAvatar = document.getElementById('hdr-avatar');
+    const hdrName = document.getElementById('hdr-name');
 
     let chart;
     let markets = [];
+
+    const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
+
+    const setText = (id, value) => {
+      const el = typeof id === 'string' ? document.getElementById(id) : id;
+      if (el) el.textContent = value;
+    };
+
+    const setSrc = (id, value) => {
+      const el = typeof id === 'string' ? document.getElementById(id) : id;
+      if (el) el.src = value;
+    };
 
     const fallbackSeries = () => {
       return Array.from({ length: 20 }, (_, i) => ({
@@ -436,7 +475,55 @@
       });
     });
 
+    const hydrateProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const fn = (profile?.first_name || '').trim();
+        const ln = (profile?.last_name || '').trim();
+        const fallback = (user.email || 'User').split('@')[0];
+        setText(hdrName, (fn || ln) ? `${fn} ${ln}`.trim() : fallback);
+        setText(pmEmail, user.email || '—');
+
+        const avatarUrl = profile?.avatar_url
+          ? `${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}v=${Date.now()}`
+          : BLANK_AVATAR;
+        setSrc(hdrAvatar, avatarUrl);
+
+        profileBtn?.addEventListener('click', (e) => {
+          e.preventDefault();
+          profileModal?.classList.toggle('hidden');
+        });
+
+        profileModal?.addEventListener('click', (e) => {
+          if (e.target === profileModal || (e.target instanceof HTMLElement && e.target.classList.contains('bg-black/40'))) {
+            profileModal.classList.add('hidden');
+          }
+        });
+
+        pmLogout?.addEventListener('click', async () => {
+          await supabase.auth.signOut();
+          location.replace('/auth.html?tab=in');
+        });
+
+        pmProfile?.addEventListener('click', () => profileModal?.classList.add('hidden'));
+      } catch (err) {
+        console.warn('Failed to hydrate profile', err);
+      }
+    };
+
     loadMarkets();
+    hydrateProfile();
   </script>
 </body>
 </html>
