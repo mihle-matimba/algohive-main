@@ -65,9 +65,9 @@
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker { background: transparent; width: 38px; height: 38px; box-shadow: none; }
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker img { width: 24px; height: 24px; }
 
-    .market-chip { border:1px solid #e2e8f0; border-radius:999px; padding:14px 18px; background:#fff; display:flex; align-items:center; gap:16px; min-width:360px; box-shadow:0 12px 30px -24px rgba(15,23,42,.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
-    .market-chip:hover { transform: translateY(-1px); box-shadow:0 16px 44px -24px rgba(15,23,42,.5); }
-    .market-chip.active { border-color:#0f172a; box-shadow:0 18px 48px -24px rgba(15,23,42,.55); }
+    .market-chip { border:1px solid #e2e8f0; border-radius:999px; padding:14px 18px; background:#fff; display:flex; align-items:center; gap:16px; min-width:360px; cursor:pointer; transition:border-color .15s ease; }
+    .market-chip:hover { transform: none; box-shadow:none; }
+    .market-chip.active { border-color:#0f172a; box-shadow:none; }
     .market-logo { width:56px; height:56px; border-radius:9999px; object-fit:cover; background:#f8fafc; border:1px solid #e2e8f0; }
     .pill { display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:9999px; font-weight:800; color:#0f172a; background:#f1f5f9; }
     .sparkline { width:100%; height:200px; max-height:220px; }
@@ -257,6 +257,7 @@
             <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="6M">6M</button>
             <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="1Y">1Y</button>
             <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="YTD">YTD</button>
+            <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="ALL">ALL</button>
           </div>
 
           <canvas id="market-chart" class="sparkline"></canvas>
@@ -339,6 +340,8 @@
     let chart;
     let markets = [];
     let selectedRegion = regionSelect?.value || 'US';
+    let currentRange = '1M';
+    let selectedMarketId = null;
 
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
 
@@ -352,23 +355,75 @@
       if (el) el.src = value;
     };
 
+    const shortDate = (date) => {
+      try {
+        return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
+      } catch (e) {
+        return '';
+      }
+    };
+
     const fallbackSeries = () => {
-      return Array.from({ length: 20 }, (_, i) => ({
-        label: `Day ${i + 1}`,
-        value: 100 + Math.sin(i / 2) * 4 + i * 0.4
-      }));
+      const points = 20;
+      const today = new Date();
+      return Array.from({ length: points }, (_, i) => {
+        const rawDate = new Date(today.getTime() - ((points - 1 - i) * 24 * 60 * 60 * 1000));
+        return {
+          label: shortDate(rawDate) || `Day ${i + 1}`,
+          value: 100 + Math.sin(i / 2) * 4 + i * 0.4,
+          rawDate
+        };
+      });
     };
 
     const buildSeries = (closes = []) => {
       if (!Array.isArray(closes) || closes.length === 0) return fallbackSeries();
       const sorted = [...closes].filter(Boolean).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       let value = 100;
-      const series = sorted.map(entry => {
+      const series = sorted.map((entry, idx) => {
         const pct = typeof entry.pct === 'number' ? entry.pct : 0;
         value = value * (1 + pct);
-        return { label: entry.date || '', value: Number(value.toFixed(2)) };
+        const rawDate = entry.date ? new Date(entry.date) : new Date(Date.now() - ((sorted.length - 1 - idx) * 24 * 60 * 60 * 1000));
+        return { label: shortDate(rawDate) || entry.date || `Day ${idx + 1}`, value: Number(value.toFixed(2)), rawDate };
       });
       return series.length ? series : fallbackSeries();
+    };
+
+    const applyRange = (series = [], range = 'ALL') => {
+      if (!series.length) return fallbackSeries();
+      const safeSeries = series.map((pt, idx) => {
+        const rawDate = pt.rawDate instanceof Date && !isNaN(pt.rawDate) ? pt.rawDate : new Date(Date.now() - ((series.length - 1 - idx) * 24 * 60 * 60 * 1000));
+        return { ...pt, rawDate };
+      });
+
+      const latest = safeSeries[safeSeries.length - 1]?.rawDate || new Date();
+      let cutoff;
+
+      switch (range) {
+        case '1M':
+          cutoff = new Date(latest.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '3M':
+          cutoff = new Date(latest.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '6M':
+          cutoff = new Date(latest.getTime() - 180 * 24 * 60 * 60 * 1000);
+          break;
+        case '1Y':
+          cutoff = new Date(latest.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        case 'YTD':
+          cutoff = new Date(latest.getFullYear(), 0, 1);
+          break;
+        default:
+          cutoff = null;
+      }
+
+      const filtered = cutoff
+        ? safeSeries.filter(point => point.rawDate >= cutoff)
+        : safeSeries;
+
+      return filtered.length ? filtered : safeSeries;
     };
 
     const exchangeToCountry = (exchange = '') => {
@@ -397,8 +452,9 @@
 
     const updateChart = (market) => {
       const ctx = document.getElementById('market-chart');
-      const labels = market.series.map(point => point.label);
-      const data = market.series.map(point => point.value);
+      const series = applyRange(market.series, currentRange);
+      const labels = series.map(point => point.label);
+      const data = series.map(point => point.value);
       const color = market.change >= 0 ? '#16a34a' : '#dc2626';
 
       if (chart) chart.destroy();
@@ -416,10 +472,29 @@
           }]
         },
         options: {
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.parsed.y.toFixed(2)}`
+              }
+            }
+          },
+          interaction: { mode: 'index', intersect: false },
           scales: {
-            x: { display: false },
-            y: { display: false }
+            x: {
+              display: true,
+              grid: { color: '#e2e8f0' },
+              ticks: { color: '#475569', maxTicksLimit: 6 }
+            },
+            y: {
+              display: true,
+              grid: { color: '#e2e8f0' },
+              ticks: {
+                color: '#475569',
+                callback: (value) => value.toFixed ? value.toFixed(0) : value
+              }
+            }
           },
           responsive: true,
           maintainAspectRatio: false
@@ -448,6 +523,7 @@
     const selectMarket = (marketId) => {
       const market = getVisibleMarkets().find(m => m.id === marketId);
       if (!market) return;
+      selectedMarketId = marketId;
       marketsRow.querySelectorAll('.market-chip').forEach(chip => chip.classList.remove('active'));
       const active = marketsRow.querySelector(`[data-id="${marketId}"]`);
       active?.classList.add('active');
@@ -551,6 +627,8 @@
         rangeButtons.forEach(b => b.classList.add('bg-white', 'text-slate-700'));
         btn.classList.add('bg-slate-900', 'text-white');
         btn.classList.remove('bg-white', 'text-slate-700');
+        currentRange = btn.dataset.range || 'ALL';
+        if (selectedMarketId) selectMarket(selectedMarketId);
       });
     });
 
