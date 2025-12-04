@@ -674,9 +674,11 @@
 
       const text = document.createElement('div');
       text.className = 'min-w-0 flex-1';
-      const name = document.createElement('p');
-      name.className = 'text-sm font-semibold text-slate-900 truncate';
+      const name = document.createElement('a');
+      name.className = 'text-sm font-semibold text-slate-900 truncate hover:underline';
+      name.href = `/symbol.html?instrument=${encodeURIComponent(mkt.symbol)}`;
       name.textContent = mkt.name || mkt.symbol;
+      name.addEventListener('click', (e) => e.stopPropagation());
       const exch = document.createElement('p');
       exch.className = 'text-xs text-slate-500';
       applyExchangeLabel(exch, mkt.exchange);
@@ -712,9 +714,11 @@
         marketsRow.innerHTML = '<div class="text-slate-500 text-sm">No markets available right now.</div>';
       } else {
         chipList.forEach((mkt, idx) => {
-          const chip = document.createElement('button');
+          const chip = document.createElement('div');
           chip.className = `market-chip ${idx === 0 ? 'active' : ''}`;
           chip.setAttribute('data-id', mkt.id);
+          chip.setAttribute('role', 'button');
+          chip.tabIndex = 0;
 
           const logoWrap = document.createElement('div');
           logoWrap.className = 'relative';
@@ -736,9 +740,11 @@
 
           const textWrap = document.createElement('div');
           textWrap.className = 'text-left min-w-0 flex-1';
-          const name = document.createElement('p');
-          name.className = 'text-sm font-semibold text-slate-900';
+          const name = document.createElement('a');
+          name.className = 'text-sm font-semibold text-slate-900 hover:underline';
           name.textContent = mkt.name || mkt.symbol;
+          name.href = `/symbol.html?instrument=${encodeURIComponent(mkt.symbol)}`;
+          name.addEventListener('click', (e) => e.stopPropagation());
           const exch = document.createElement('p');
           exch.className = 'text-xs text-slate-500';
           applyExchangeLabel(exch, mkt.exchange);
@@ -759,6 +765,12 @@
 
           chip.append(logoWrap, textWrap, changeWrap);
           chip.addEventListener('click', () => selectMarket(mkt.id));
+          chip.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              selectMarket(mkt.id);
+            }
+          });
           marketsRow.appendChild(chip);
         });
       }
