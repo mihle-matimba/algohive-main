@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlgoHive — News &amp; Insights</title>
+  <title>AlgoHive — Markets</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root { --page:#0b1220; --bg:#fff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --brand:#f59e0b; --line:#e5e7ef }
@@ -22,7 +23,7 @@
     @media (min-width: 768px) {
       #layout{ grid-template-columns:var(--sb) 1fr }
       #layout.is-collapsed{ --sb:64px }
-      #ah-sidebar{ position:sticky; top:0; width:var(--sb); max-width:none; height:100vh; transform:translateX(0); z-index:auto }
+      #ah-sidebar{ position:sticky; top:0; width:var(--sb); max-width:none; height:100vh; transform:translateX(0); z-index:auto}
     }
 
     #ah-sidebar[data-collapsed="true"] .label,
@@ -62,11 +63,11 @@
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker { margin: 0; }
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker img { width: 24px; height: 24px; }
 
-    .news-card { border:1px solid #e5e7eb; border-radius:16px; padding:18px; background:#fff; box-shadow:0 10px 30px -24px rgba(15,23,42,.5); transition: transform .2s ease, box-shadow .2s ease; cursor:pointer; }
-    .news-card:hover { transform: translateY(-2px); box-shadow:0 18px 44px -28px rgba(15,23,42,.5); }
-    .news-card.active { border-color: #0f172a; box-shadow:0 20px 48px -20px rgba(15,23,42,.4); }
-    .tag-pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-weight:700; font-size:12px; background:#f1f5f9; color:#0f172a; }
-    .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; font-weight:600; font-size:13px; border:1px solid #e2e8f0; }
+    .market-chip { border:1px solid #e2e8f0; border-radius:16px; padding:10px 14px; background:#fff; display:flex; align-items:center; gap:10px; min-width:170px; box-shadow:0 12px 30px -24px rgba(15,23,42,.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+    .market-chip:hover { transform: translateY(-1px); box-shadow:0 16px 44px -24px rgba(15,23,42,.5); }
+    .market-chip.active { border-color:#0f172a; box-shadow:0 18px 48px -24px rgba(15,23,42,.55); }
+    .pill { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:999px; font-weight:800; color:#0f172a; background:#f1f5f9; }
+    .sparkline { width:100%; height:240px; }
   </style>
 </head>
 
@@ -127,7 +128,12 @@
           </div>
         </details>
 
-        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 bg-slate-900 text-white font-semibold" href="/news-insights.html" title="News &amp; Insights">
+        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 bg-slate-900 text-white font-semibold" href="/markets.html" title="Markets">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/earth-stroke-rounded.svg" alt="" class="w-4 h-4" />
+          <span class="label">Markets</span>
+        </a>
+
+        <a class="mt-1 px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/news-insights.html" title="News &amp; Insights">
           <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
         </a>
 
@@ -184,7 +190,7 @@
             <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
               <i class="fa-solid fa-bars"></i>
             </button>
-            <h1 class="text-xl font-bold text-slate-800 truncate">News &amp; Insights</h1>
+            <h1 class="text-xl font-bold text-slate-800 truncate">Markets</h1>
           </div>
 
           <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
@@ -197,26 +203,53 @@
 
       <div class="max-w-6xl mx-auto px-6 py-8 space-y-10">
         <header class="text-center space-y-3">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">News</p>
-          <h2 class="text-3xl md:text-4xl font-bold text-slate-900">Don’t miss a trick with global real-time updates.</h2>
-          <p class="text-slate-500 text-lg">Fresh market-moving headlines and trading insights, refreshed live.</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Indices</p>
+          <h2 class="text-3xl md:text-4xl font-bold text-slate-900">Markets, everywhere</h2>
+          <p class="text-slate-500 text-lg">Tap into live market movers pulled directly from your trading universe.</p>
         </header>
 
         <section class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-slate-900">Top stories</h3>
-            <a class="text-[var(--olive)] font-semibold hover:underline" href="#">View more</a>
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-lg font-semibold text-slate-900">Global benchmarks</h3>
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+              <span class="inline-flex items-center gap-2 border border-slate-200 rounded-full px-3 py-1 bg-white shadow-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                Live from trading_universe
+              </span>
+            </div>
           </div>
-          <div id="news-list" class="grid gap-4 sm:grid-cols-2">
+          <div id="markets-row" class="flex gap-3 overflow-x-auto pb-2">
+            <div class="text-slate-500 text-sm">Loading markets…</div>
           </div>
         </section>
 
-        <section id="article-detail" class="space-y-3 border border-slate-200 rounded-2xl p-6 shadow-[0_10px_38px_-28px_rgba(15,23,42,0.5)] bg-white">
-          <div class="text-sm text-slate-500 flex items-center gap-2" id="breadcrumb"></div>
-          <h3 id="detail-title" class="text-3xl font-bold text-slate-900 leading-tight"></h3>
-          <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500" id="detail-meta"></div>
-          <div class="flex flex-wrap items-center gap-2" id="detail-tags"></div>
-          <div class="space-y-4 text-slate-700" id="detail-body"></div>
+        <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-[0_10px_38px_-28px_rgba(15,23,42,0.5)] space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-sm text-slate-500">Selected market</p>
+              <div class="flex items-center gap-3">
+                <div id="selected-pill" class="pill">—</div>
+                <div>
+                  <p id="selected-name" class="font-semibold text-slate-900">Loading…</p>
+                  <p id="selected-exchange" class="text-sm text-slate-500">—</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 text-sm font-semibold">
+              <span id="selected-price" class="text-slate-900">—</span>
+              <span id="selected-change" class="px-2 py-1 rounded-full border border-slate-200">—</span>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-900 text-white" data-range="1M">1M</button>
+            <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="3M">3M</button>
+            <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="6M">6M</button>
+            <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="1Y">1Y</button>
+            <button class="px-3 py-1.5 rounded-full border border-slate-200 bg-white" data-range="YTD">YTD</button>
+          </div>
+
+          <canvas id="market-chart" class="sparkline"></canvas>
         </section>
       </div>
     </main>
@@ -226,18 +259,10 @@
     // Mobile sidebar toggle
     (function () {
       const btn = document.getElementById('ah-mobile-menu-btn');
-      const overlay = document.getElementById('ah-overlay');
       const sidebar = document.getElementById('ah-sidebar');
-
-      function openMenu() {
-        sidebar.classList.add('is-open');
-        overlay.classList.remove('hidden');
-      }
-      function closeMenu() {
-        sidebar.classList.remove('is-open');
-        overlay.classList.add('hidden');
-      }
-
+      const overlay = document.getElementById('ah-overlay');
+      const openMenu = () => { sidebar.classList.add('is-open'); overlay?.classList.remove('hidden'); };
+      const closeMenu = () => { sidebar.classList.remove('is-open'); overlay?.classList.add('hidden'); };
       btn?.addEventListener('click', openMenu);
       overlay?.addEventListener('click', closeMenu);
       sidebar?.querySelectorAll('nav a, nav details a').forEach(link => link.addEventListener('click', closeMenu));
@@ -262,223 +287,159 @@
     })();
   </script>
 
-  <script nonce="ALGOHIVE">
-    // News rendering
-    (function () {
-      const stories = [
-        {
-          id: 'crm',
-          title: 'CRM: Salesforce Stock Jumps 2% as Traders Cheer Wider Profit Margins',
-          source: 'TradingView',
-          timeAgo: '2 hours ago',
-          tag: 'CRM',
-          badges: ['Software shares gain 2%', 'Company profit margins 3%', 'Guidance raised'],
-          blurb: 'Salesforce pops on Q3 earnings beat and upbeat full-year guidance as investors rotate into large-cap software.',
-          body: {
-            title: 'CRM: Salesforce Stock Jumps 2% as Traders Cheer Wider Profit Margins',
-            breadcrumb: ['News', 'TradingView'],
-            meta: 'Dec 4, 2025, 10:09 GMT+2 · Less than 1 min read',
-            tags: ['CRM', '+1.47%', 'Finance: shares'],
-            intro: 'Profitability picked up across the latest quarter, reaching a solid 35.6% operating margin and topping expectations and growing from last year.',
-            paragraphs: [
-              'Salesforce popped on Q3 earnings beat and upbeat full-year guidance. Efficiency stories are still early, especially in a shaky tech tape.',
-              'Investors like what they are seeing: margins are widening, revenue is grinding higher, and free cash flow is improving as spending normalizes.'
-            ],
-            bullets: [
-              'Salesforce shares gained 2% on margin expansion and guidance beat.',
-              'Q3 operating margin reached 35.6%, well above expectations and last year’s figures.',
-              'Topping expectations on revenue and profit helped the stock rebound despite mixed tech sentiment.'
-            ]
-          }
+  <script type="module" nonce="ALGOHIVE">
+    import { supabase } from "/js/supabase.js";
+
+    const marketsRow = document.getElementById('markets-row');
+    const pillEl = document.getElementById('selected-pill');
+    const nameEl = document.getElementById('selected-name');
+    const exchangeEl = document.getElementById('selected-exchange');
+    const priceEl = document.getElementById('selected-price');
+    const changeEl = document.getElementById('selected-change');
+    const rangeButtons = Array.from(document.querySelectorAll('[data-range]'));
+
+    let chart;
+    let markets = [];
+
+    const fallbackSeries = () => {
+      return Array.from({ length: 20 }, (_, i) => ({
+        label: `Day ${i + 1}`,
+        value: 100 + Math.sin(i / 2) * 4 + i * 0.4
+      }));
+    };
+
+    const buildSeries = (closes = []) => {
+      if (!Array.isArray(closes) || closes.length === 0) return fallbackSeries();
+      const sorted = [...closes].filter(Boolean).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      let value = 100;
+      const series = sorted.map(entry => {
+        const pct = typeof entry.pct === 'number' ? entry.pct : 0;
+        value = value * (1 + pct);
+        return { label: entry.date || '', value: Number(value.toFixed(2)) };
+      });
+      return series.length ? series : fallbackSeries();
+    };
+
+    const formatMarket = (row, idx) => {
+      const series = buildSeries(row?.closes_30d);
+      const first = series[0]?.value || 100;
+      const last = series[series.length - 1]?.value || first;
+      const change = first ? ((last - first) / first) * 100 : 0;
+      return {
+        id: row?.id || idx,
+        symbol: row?.symbol || '—',
+        name: row?.name || row?.symbol || 'Unknown instrument',
+        exchange: row?.exchange || '—',
+        series,
+        last,
+        change
+      };
+    };
+
+    const updateChart = (market) => {
+      const ctx = document.getElementById('market-chart');
+      const labels = market.series.map(point => point.label);
+      const data = market.series.map(point => point.value);
+      const color = market.change >= 0 ? '#16a34a' : '#dc2626';
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            borderColor: color,
+            borderWidth: 3,
+            pointRadius: 0,
+            tension: 0.35,
+            fill: false
+          }]
         },
-        {
-          id: 'aapl',
-          title: 'AAPL: Apple Sends Flag Higher, Hitting $2.1T After Holiday iPhone Beat',
-          source: 'TradingView',
-          timeAgo: '3 hours ago',
-          tag: 'AAPL',
-          badges: ['Hardware leads', 'iPhone strength', 'Services accel'],
-          blurb: 'iPhone 16 demand outpaces last year while services notch record margins, pushing Apple near fresh highs.',
-          body: {
-            title: 'AAPL: Apple Sends Flag Higher, Hitting $2.1T After Holiday iPhone Beat',
-            breadcrumb: ['News', 'TradingView'],
-            meta: 'Dec 4, 2025, 09:02 GMT+2 · 2 min read',
-            tags: ['AAPL', '+2.10%', 'Consumer tech'],
-            intro: 'Apple stock firmed as holiday device demand and accelerating services growth topped analyst estimates.',
-            paragraphs: [
-              'Management highlighted resilient device upgrades and stronger than expected App Store trends.',
-              'Services margins expanded again, cushioning hardware cycles and reassuring investors about earnings stability.'
-            ],
-            bullets: [
-              'Holiday iPhone 16 demand outpacing last year’s cycle.',
-              'Services revenue prints another record with expanding margins.',
-              'Stock challenges highs as traders eye continued buybacks and product refreshes.'
-            ]
-          }
-        },
-        {
-          id: 'gold',
-          title: 'XAUUSD: Gold Breaks Resistance as Traders Ramp Up Bets on Late-2025 Cuts',
-          source: 'TradingView',
-          timeAgo: '5 hours ago',
-          tag: 'Gold',
-          badges: ['Risk-on pause', 'Bulls seize control', 'Macro catalysts'],
-          blurb: 'Bullion clears a key level near $2,140 as futures pricing shifts toward multiple rate cuts next year.',
-          body: {
-            title: 'XAUUSD: Gold Breaks Resistance as Traders Ramp Up Bets on Late-2025 Cuts',
-            breadcrumb: ['News', 'TradingView'],
-            meta: 'Dec 4, 2025, 07:44 GMT+2 · 3 min read',
-            tags: ['XAUUSD', '+0.95%', 'Macro'],
-            intro: 'Gold vaulted through resistance while traders price deeper rate cuts, reigniting the precious metals bid.',
-            paragraphs: [
-              'Falling yields and a softer dollar underpinned the move, while ETF inflows hit a two-month high.',
-              'Bulls now eye the $2,200 area if the macro backdrop keeps supporting haven demand.'
-            ],
-            bullets: [
-              'Breakout above $2,140 sets up test of prior highs.',
-              'Futures now imply multiple late-2025 rate cuts, aiding metals.',
-              'ETF flows turned positive for a second straight week.'
-            ]
-          }
-        },
-        {
-          id: 'nvda',
-          title: 'NVDA: Bulls Defend Trendline After AI Selloff; Watch $120 Support Zone',
-          source: 'TradingView',
-          timeAgo: '8 hours ago',
-          tag: 'NVDA',
-          badges: ['Chip strength', 'Trend intact', 'Buyers step in'],
-          blurb: 'NVIDIA clings to its rising trendline as AI names cool off; bulls eye value buyers near round numbers.',
-          body: {
-            title: 'NVDA: Bulls Defend Trendline After AI Selloff; Watch $120 Support Zone',
-            breadcrumb: ['News', 'TradingView'],
-            meta: 'Dec 4, 2025, 06:18 GMT+2 · 1 min read',
-            tags: ['NVDA', '-0.42%', 'AI/Chips'],
-            intro: 'NVIDIA held the key trendline on lighter volume as traders gauge whether AI momentum can reaccelerate into year-end.',
-            paragraphs: [
-              'Semis lagged broader tech after profit-taking, but dip buyers emerged near the 50-day moving average.',
-              'Eyes now on upcoming product roadmap updates and incremental cloud GPU demand signals.'
-            ],
-            bullets: [
-              'Shares defended $120 intraday support and trendline.',
-              'Volume lighter than average, suggesting consolidation not panic.',
-              'Cloud GPU demand and roadmap updates are next catalysts.'
-            ]
-          }
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          },
+          responsive: true,
+          maintainAspectRatio: false
         }
-      ];
+      });
+    };
 
-      const list = document.getElementById('news-list');
-      const detailTitle = document.getElementById('detail-title');
-      const detailMeta = document.getElementById('detail-meta');
-      const detailTags = document.getElementById('detail-tags');
-      const detailBody = document.getElementById('detail-body');
-      const breadcrumb = document.getElementById('breadcrumb');
-      let activeId = stories[0]?.id;
+    const selectMarket = (marketId) => {
+      const market = markets.find(m => m.id === marketId);
+      if (!market) return;
+      marketsRow.querySelectorAll('.market-chip').forEach(chip => chip.classList.remove('active'));
+      const active = marketsRow.querySelector(`[data-id="${marketId}"]`);
+      active?.classList.add('active');
 
-      function renderDetail(article) {
-        if (!article) return;
-        breadcrumb.innerHTML = '';
-        const crumbs = [...article.body.breadcrumb, article.body.title];
-        crumbs.forEach((c, i) => {
-          const span = document.createElement('span');
-          span.textContent = c;
-          breadcrumb.appendChild(span);
-          if (i < crumbs.length - 1) {
-            const arrow = document.createElement('span');
-            arrow.className = 'text-slate-400';
-            arrow.textContent = '/';
-            breadcrumb.appendChild(arrow);
-          }
-        });
+      pillEl.textContent = market.symbol.slice(0, 3).toUpperCase();
+      nameEl.textContent = `${market.symbol} · ${market.name}`;
+      exchangeEl.textContent = market.exchange;
+      priceEl.textContent = market.last ? market.last.toFixed(2) : '—';
+      changeEl.textContent = `${market.change >= 0 ? '+' : ''}${market.change.toFixed(2)}%`;
+      changeEl.className = `px-2 py-1 rounded-full border border-slate-200 ${market.change >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`;
 
-        detailTitle.textContent = article.body.title;
-        detailMeta.innerHTML = '';
-        const metaPieces = [article.body.meta];
-        metaPieces.forEach(txt => {
-          const span = document.createElement('span');
-          span.textContent = txt;
-          detailMeta.appendChild(span);
-        });
+      updateChart(market);
+    };
 
-        detailTags.innerHTML = '';
-        article.body.tags.forEach((tag, idx) => {
-          const pill = document.createElement('span');
-          pill.className = 'tag-pill';
-          pill.textContent = tag;
-          detailTags.appendChild(pill);
-          if (idx === 0) {
-            const status = document.createElement('span');
-            status.className = 'badge text-green-700 bg-green-50 border-green-200';
-            status.innerHTML = '<i class="fa-solid fa-bolt"></i> Pops on earnings';
-            detailTags.appendChild(status);
-          }
-        });
-
-        detailBody.innerHTML = '';
-        const intro = document.createElement('p');
-        intro.className = 'text-lg font-medium text-slate-800';
-        intro.textContent = article.body.intro;
-        detailBody.appendChild(intro);
-
-        const bulletList = document.createElement('ul');
-        bulletList.className = 'space-y-2 text-slate-700';
-        article.body.bullets.forEach(b => {
-          const li = document.createElement('li');
-          li.className = 'flex items-start gap-2';
-          li.innerHTML = '<span class="text-yellow-500 mt-1">⚡</span><span>' + b + '</span>';
-          bulletList.appendChild(li);
-        });
-        detailBody.appendChild(bulletList);
-
-        article.body.paragraphs.forEach(p => {
-          const para = document.createElement('p');
-          para.textContent = p;
-          detailBody.appendChild(para);
-        });
+    const renderMarkets = () => {
+      marketsRow.innerHTML = '';
+      if (!markets.length) {
+        marketsRow.innerHTML = '<div class="text-slate-500 text-sm">No markets available right now.</div>';
+        return;
       }
 
-      function renderList() {
-        list.innerHTML = '';
-        stories.forEach(story => {
-          const card = document.createElement('article');
-          card.className = 'news-card flex flex-col gap-2';
-          card.dataset.id = story.id;
+      markets.forEach((mkt, idx) => {
+        const chip = document.createElement('button');
+        chip.className = `market-chip ${idx === 0 ? 'active' : ''}`;
+        chip.setAttribute('data-id', mkt.id);
+        chip.innerHTML = `
+          <span class="pill">${mkt.symbol.slice(0,2).toUpperCase()}</span>
+          <div class="text-left min-w-0">
+            <p class="text-sm font-semibold text-slate-900 truncate">${mkt.symbol} · ${mkt.name}</p>
+            <p class="text-xs text-slate-500">${mkt.exchange || '—'}</p>
+          </div>
+          <div class="ml-auto text-right text-sm font-semibold">
+            <p class="text-slate-900">${mkt.last ? mkt.last.toFixed(2) : '—'}</p>
+            <p class="${mkt.change >= 0 ? 'text-green-600' : 'text-red-600'}">${mkt.change >= 0 ? '+' : ''}${mkt.change.toFixed(2)}%</p>
+          </div>`;
+        chip.addEventListener('click', () => selectMarket(mkt.id));
+        marketsRow.appendChild(chip);
+      });
 
-          const meta = document.createElement('div');
-          meta.className = 'text-xs uppercase tracking-[0.16em] text-slate-500 font-semibold';
-          meta.textContent = `${story.source} · ${story.timeAgo}`;
-          card.appendChild(meta);
+      selectMarket(markets[0]?.id);
+    };
 
-          const title = document.createElement('h4');
-          title.className = 'text-lg font-semibold text-slate-900 leading-snug';
-          title.textContent = story.title;
-          card.appendChild(title);
+    const loadMarkets = async () => {
+      const { data, error } = await supabase
+        .from('trading_universe')
+        .select('id,symbol,name,exchange,closes_30d')
+        .limit(12);
 
-          const blurb = document.createElement('p');
-          blurb.className = 'text-sm text-slate-600';
-          blurb.textContent = story.blurb;
-          card.appendChild(blurb);
-
-          const footer = document.createElement('div');
-          footer.className = 'flex items-center justify-between pt-2 text-sm';
-          footer.innerHTML = `<span class="font-semibold text-slate-900">${story.tag}</span><span class="text-[var(--olive)] font-semibold">Read</span>`;
-          card.appendChild(footer);
-
-          card.addEventListener('click', () => {
-            activeId = story.id;
-            document.querySelectorAll('.news-card').forEach(el => el.classList.toggle('active', el.dataset.id === activeId));
-            renderDetail(story);
-          });
-
-          if (story.id === activeId) card.classList.add('active');
-          list.appendChild(card);
-        });
+      if (error) {
+        marketsRow.innerHTML = `<div class="text-red-600 text-sm">Failed to load markets: ${error.message}</div>`;
+        markets = Array.from({ length: 5 }, (_, idx) => formatMarket({ symbol: `SIM${idx + 1}`, name: 'Sample Index', exchange: 'Simulated' }, idx));
+        renderMarkets();
+        return;
       }
 
-      renderList();
-      renderDetail(stories.find(s => s.id === activeId));
-    })();
+      markets = (data || []).map(formatMarket);
+      renderMarkets();
+    };
+
+    rangeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        rangeButtons.forEach(b => b.classList.remove('bg-slate-900', 'text-white'));
+        rangeButtons.forEach(b => b.classList.add('bg-white', 'text-slate-700'));
+        btn.classList.add('bg-slate-900', 'text-white');
+        btn.classList.remove('bg-white', 'text-slate-700');
+      });
+    });
+
+    loadMarkets();
   </script>
 </body>
 </html>
