@@ -72,11 +72,34 @@
     .order-form select { width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; font-weight:600; color:#0f172a; background:#fff; }
     .order-form input:focus,
     .order-form select:focus { outline:2px solid #0f172a; outline-offset:1px; }
-    #tv-widget-host { min-height: 640px; width: 100%; display: flex; height: 100%; }
-    #tv-widget-host .tradingview-widget-container { height: 100%; width: 100%; flex: 1; }
+    /* Make the chart card truly full-height inside its grid cell */
+    #tv-widget-host {
+      min-height: 0;              /* crucial – allows flex child to shrink below min-content */
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #tv-widget-host .tradingview-widget-container {
+      flex: 1;
+      height: 100% !important;
+      width: 100% !important;
+    }
+
     #tv-widget-host .tradingview-widget-container__widget,
-    #tv-widget-host iframe,
-    #tv-widget-host > div { height: 100% !important; width: 100% !important; flex: 1; }
+    #tv-widget-host iframe {
+      height: 100% !important;
+      width: 100% !important;
+    }
+
+    /* Ensure the section itself can grow properly */
+    .chart-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: clamp(420px, 56.25vw, 760px);
+    }
     #symbol-info .tradingview-widget-container { height: 100%; }
   </style>
 </head>
@@ -227,7 +250,7 @@
                   <div id="symbol-info" class="rounded-xl border border-slate-200 bg-white w-full min-h-[240px]"></div>
                 </section>
 
-                <section class="bg-white info-card p-4 space-y-3 h-full flex flex-col">
+                <section class="bg-white info-card p-4 space-y-3 chart-card">
                   <header class="flex items-center justify-between">
                     <div>
                       <p class="text-sm text-slate-500">Advanced chart</p>
@@ -235,7 +258,7 @@
                     </div>
                     <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Powered by TradingView</span>
                   </header>
-                  <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white w-full min-h-[720px] flex-1"></div>
+                  <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white w-full flex-1"></div>
                 </section>
 
                 <section class="bg-white info-card p-4 space-y-4">
@@ -705,6 +728,7 @@
       script.async = true;
       script.innerHTML = `{
   "allow_symbol_change": true,
+  "autosize": true,
   "calendar": false,
   "details": false,
   "hide_side_toolbar": true,
@@ -726,8 +750,8 @@
   "withdateranges": false,
   "compareSymbols": [],
   "studies": [],
-  "width": 980,
-  "height": 610
+  "width": "100%",
+  "height": "100%"
 }`;
       const container = widgetHost.querySelector('.tradingview-widget-container');
       container?.appendChild(script);
