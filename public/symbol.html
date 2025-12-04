@@ -325,11 +325,9 @@
 
     const formatTradingViewSymbol = (instrument) => {
       const symbol = (instrument?.symbol || 'AAPL').toUpperCase();
-      const exch = (instrument?.exchange || '').toUpperCase();
-      if (exch.includes('NASDAQ')) return `NASDAQ:${symbol}`;
-      if (exch.includes('NYSE')) return `NYSE:${symbol}`;
-      if (exch.includes('JSE')) return `JSE:${symbol}`;
-      return `NASDAQ:${symbol}`;
+      const exch = (instrument?.source_exchange || instrument?.exchange || '').toUpperCase().trim();
+      const exchangeCode = exch || 'NASDAQ';
+      return `${exchangeCode}:${symbol}`;
     };
 
     const applyLogo = (logoUrl, symbol) => {
@@ -398,7 +396,7 @@
       setText(headingEl, `${symbol} overview`);
       setText(nameEl, instrument?.name || symbol);
       setText(tickerEl, symbol);
-      const exchangeLabel = formatExchangeLabel(instrument?.exchange);
+      const exchangeLabel = formatExchangeLabel(instrument?.source_exchange || instrument?.exchange);
       setText(exchangeEl, exchangeLabel || 'Exchange unavailable');
       applyLogo(instrument?.logo, symbol);
       linkEl.href = `/symbol.html?instrument=${encodeURIComponent(symbol)}`;
@@ -411,7 +409,7 @@
       setText(statusEl, 'Loading instrument…');
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,logo')
+        .select('id,symbol,name,exchange,source_exchange,logo')
         .ilike('symbol', symbol)
         .maybeSingle();
 
