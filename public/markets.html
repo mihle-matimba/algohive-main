@@ -186,7 +186,7 @@
     </aside>
 
     <main class="flex-1 min-w-0">
-      <div class="px-4 md:px-6 pt-4">
+      <div class="px-3 md:px-4 pt-4">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-start md:items-center gap-3 flex-1 min-w-0 max-w-3xl">
             <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
@@ -206,7 +206,7 @@
         </div>
       </div>
 
-      <div class="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-10">
+      <div class="px-3 md:px-4 py-8 space-y-10">
         <header class="text-center space-y-4">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">AlgoHive Markets</p>
           <div class="flex flex-wrap items-center justify-center gap-3">
@@ -553,6 +553,17 @@
       return filtered;
     };
 
+    const ensureProfile = async (userId, email) => {
+      let { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data) return data;
+
+      const payload = { id: userId, email, updated_at: new Date().toISOString() };
+      const upsert = await supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select('*').single();
+      if (upsert.error) throw upsert.error;
+      return upsert.data;
+    };
+
     const selectMarket = (marketId) => {
       const market = getVisibleMarkets().find(m => m.id === marketId);
       if (!market) return;
@@ -683,16 +694,15 @@
     const hydrateProfile = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session) {
+          setText(hdrName, 'Guest');
+          setSrc(hdrAvatar, BLANK_AVATAR);
+          return;
+        }
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
+        const profile = await ensureProfile(user.id, user.email || null);
 
         const fn = (profile?.first_name || '').trim();
         const ln = (profile?.last_name || '').trim();
@@ -716,12 +726,18 @@
           }
         });
 
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') profileModal?.classList.add('hidden'); });
+
         pmLogout?.addEventListener('click', async () => {
           await supabase.auth.signOut();
           location.replace('/auth.html?tab=in');
         });
 
         pmProfile?.addEventListener('click', () => profileModal?.classList.add('hidden'));
+
+        supabase.auth.onAuthStateChange((_event, sess) => {
+          if (!sess) location.replace('/auth.html?tab=in');
+        });
       } catch (err) {
         console.warn('Failed to hydrate profile', err);
       }
