@@ -65,6 +65,13 @@
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker img { width: 24px; height: 24px; }
 
     .info-card { border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 10px 30px -18px rgba(15,23,42,0.1); }
+    .order-tab { border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; font-weight:700; color:#0f172a; background:#f8fafc; transition:all .15s ease; }
+    .order-tab.active { background:#0f172a; color:#fff; box-shadow:0 8px 18px -12px rgba(15,23,42,.8); }
+    .order-form label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#475569; display:block; margin-bottom:6px; }
+    .order-form input,
+    .order-form select { width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; font-weight:600; color:#0f172a; background:#fff; }
+    .order-form input:focus,
+    .order-form select:focus { outline:2px solid #0f172a; outline-offset:1px; }
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-white">
@@ -91,7 +98,7 @@
         </div>
       </details>
 
-      <nav id="main-nav" class="px-3 pb-4 space-y-1 text-sm">
+      <nav id="main-nav" class="px-3 pb-4 space-y-1 text-sm flex-1 overflow-y-auto">
         <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/home.html" title="Home">
           <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
         </a>
@@ -162,7 +169,7 @@
         </details>
       </nav>
 
-      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2 mt-auto">
         <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="/settings.html" title="Settings">
           <i class="fa-solid fa-gear"></i>
         </a>
@@ -192,8 +199,12 @@
           </div>
         </div>
 
-        <div class="grid lg:grid-cols-[1fr_1.2fr] gap-6 items-start">
-          <section class="bg-white info-card p-6 space-y-4">
+        <section class="bg-white info-card p-4">
+          <div id="tv-symbol-info" class="w-full"></div>
+        </section>
+
+        <div class="grid lg:grid-cols-[420px_1fr] gap-6 items-start">
+          <section class="bg-white info-card p-6 space-y-5">
             <header class="flex items-center gap-4">
               <div class="relative">
                 <img id="symbol-logo" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 hidden" alt="Symbol logo" />
@@ -208,6 +219,7 @@
                 <p id="symbol-exchange" class="text-sm text-slate-500">—</p>
               </div>
             </header>
+
             <p id="symbol-status" class="text-sm text-slate-600">Looking up instrument…</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-600">
               <div class="p-3 rounded-xl border border-slate-200 bg-slate-50">
@@ -219,17 +231,76 @@
                 <p id="symbol-tv" class="font-semibold text-slate-900">—</p>
               </div>
             </div>
+
+            <div class="pt-2 border-t border-slate-200"></div>
+
+            <div class="flex items-center gap-3">
+              <button class="order-tab active" type="button" data-order-tab="buy">Buy</button>
+              <button class="order-tab" type="button" data-order-tab="sell">Sell</button>
+            </div>
+
+            <form class="order-form space-y-4">
+              <div>
+                <label>Symbol</label>
+                <div class="flex items-center justify-between border border-slate-200 rounded-xl px-4 py-3 bg-slate-50">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-slate-900" data-order-symbol>—</span>
+                    <span class="text-xs font-semibold text-slate-500" id="order-exchange">—</span>
+                  </div>
+                  <span class="text-xs font-semibold text-slate-500">Market</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label>Quantity</label>
+                  <input id="order-qty" type="number" min="0" step="1" value="1" />
+                </div>
+                <div>
+                  <label>Order Type</label>
+                  <select id="order-type">
+                    <option value="market">Market</option>
+                    <option value="limit">Limit</option>
+                    <option value="stop">Stop</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label>Time in Force</label>
+                  <select id="order-tif">
+                    <option value="day">Day</option>
+                    <option value="gtc">GTC</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Order Value</label>
+                  <div class="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-3 bg-white">
+                    <span class="text-sm font-semibold text-slate-900" id="order-value">—</span>
+                    <span class="text-xs font-semibold text-slate-500">Estimated</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+                <span class="text-sm font-semibold text-slate-700">Market price</span>
+                <span class="text-base font-bold text-slate-900" id="order-price">—</span>
+              </div>
+
+              <button id="order-submit" type="button" class="btn w-full h-11 rounded-xl bg-emerald-600 text-white border-0 font-semibold">Review Order</button>
+            </form>
           </section>
 
-          <section class="bg-white info-card p-4">
-            <header class="flex items-center justify-between mb-3">
+          <section class="bg-white info-card p-4 space-y-3">
+            <header class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-slate-500">Advanced chart</p>
                 <p id="chart-heading" class="text-lg font-semibold text-slate-900">Loading chart…</p>
               </div>
               <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Powered by TradingView</span>
             </header>
-            <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-[#0F0F0F] min-h-[520px]"></div>
+            <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white min-h-[520px]"></div>
           </section>
         </div>
       </div>
@@ -294,6 +365,7 @@
     const tvLabelEl = document.getElementById('symbol-tv');
     const headingEl = document.getElementById('page-heading');
     const chartHeadingEl = document.getElementById('chart-heading');
+    const symbolInfoHost = document.getElementById('tv-symbol-info');
     const widgetHost = document.getElementById('tv-widget-host');
     const profileModal = document.getElementById('profile-modal');
     const profileBtn = document.getElementById('hdr-profile-btn');
@@ -302,12 +374,26 @@
     const pmProfile = document.getElementById('pm-profile');
     const pmAvatar = document.getElementById('pm-avatar');
     const hdrAvatar = document.getElementById('hdr-avatar');
+    const orderSymbolEls = document.querySelectorAll('[data-order-symbol]');
+    const orderExchangeEl = document.getElementById('order-exchange');
+    const orderPriceEl = document.getElementById('order-price');
+    const orderValueEl = document.getElementById('order-value');
+    const orderSubmitBtn = document.getElementById('order-submit');
+    const orderTabs = document.querySelectorAll('[data-order-tab]');
+    const orderQtyInput = document.getElementById('order-qty');
 
     const params = new URLSearchParams(window.location.search);
     const requestedSymbol = params.get('instrument') || params.get('instrumnent');
     const initialSymbol = (requestedSymbol || 'AAPL').toUpperCase();
+    let currentPrice = null;
+    let currentSide = 'buy';
 
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
+
+    const formatCurrency = (value) => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return '—';
+      return `$${value.toFixed(2)}`;
+    };
 
     const setText = (el, value) => {
       if (!el) return;
@@ -347,6 +433,49 @@
       }
     };
 
+    const setOrderSide = (side) => {
+      currentSide = side;
+      orderTabs.forEach(btn => btn.classList.toggle('active', btn.dataset.orderTab === side));
+      if (!orderSubmitBtn) return;
+      orderSubmitBtn.classList.toggle('bg-emerald-600', side === 'buy');
+      orderSubmitBtn.classList.toggle('bg-rose-600', side === 'sell');
+      orderSubmitBtn.textContent = side === 'buy' ? 'Review Buy Order' : 'Review Sell Order';
+    };
+
+    const updateOrderValue = () => {
+      const qty = Number(orderQtyInput?.value || 0);
+      if (typeof currentPrice === 'number' && !Number.isNaN(currentPrice) && qty > 0) {
+        setText(orderValueEl, formatCurrency(currentPrice * qty));
+      } else {
+        setText(orderValueEl, '—');
+      }
+    };
+
+    const renderSymbolInfoWidget = (instrument) => {
+      const tvSymbol = formatTradingViewSymbol(instrument);
+      const tvSlug = tvSymbol.replace(':', '-');
+      if (!symbolInfoHost) return;
+      symbolInfoHost.innerHTML = `
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/${tvSlug}/" rel="noopener nofollow" target="_blank"><span class="blue-text">${instrument.symbol || 'AAPL'} performance</span></a><span class="trademark"> by TradingView</span></div>
+        </div>
+      `;
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js';
+      script.async = true;
+      script.innerHTML = `{
+  "symbol": "${tvSymbol}",
+  "colorTheme": "light",
+  "isTransparent": true,
+  "locale": "en",
+  "width": "100%"
+}`;
+      const container = symbolInfoHost.querySelector('.tradingview-widget-container');
+      container?.appendChild(script);
+    };
+
     const renderWidget = (instrument) => {
       const tvSymbol = formatTradingViewSymbol(instrument);
       const tvSlug = tvSymbol.replace(':', '-');
@@ -372,12 +501,12 @@
   "interval": "D",
   "locale": "en",
   "save_image": true,
-  "style": "1",
+  "style": "3",
   "symbol": "${tvSymbol}",
-  "theme": "dark",
-  "timezone": "Etc/UTC",
-  "backgroundColor": "#0F0F0F",
-  "gridColor": "rgba(242, 242, 242, 0.06)",
+  "theme": "light",
+  "timezone": "Africa/Johannesburg",
+  "backgroundColor": "#ffffff",
+  "gridColor": "rgba(46, 46, 46, 0.06)",
   "watchlist": [],
   "withdateranges": false,
   "compareSymbols": [],
@@ -386,8 +515,9 @@
 }`;
       const container = widgetHost.querySelector('.tradingview-widget-container');
       container?.appendChild(script);
+      const exchangeLabel = formatExchangeLabel(instrument?.source_exchange || instrument?.exchange);
       setText(tvLabelEl, tvSymbol);
-      setText(chartHeadingEl, `${instrument.symbol || 'AAPL'} chart`);
+      setText(chartHeadingEl, `${instrument.symbol || 'AAPL'} chart${exchangeLabel ? ` — ${exchangeLabel}` : ''}`);
     };
 
     const renderInstrument = (instrument, found = true) => {
@@ -398,10 +528,16 @@
       setText(tickerEl, symbol);
       const exchangeLabel = formatExchangeLabel(instrument?.source_exchange || instrument?.exchange);
       setText(exchangeEl, exchangeLabel || 'Exchange unavailable');
+      orderSymbolEls.forEach(el => setText(el, symbol));
+      setText(orderExchangeEl, exchangeLabel || '—');
+      currentPrice = typeof instrument?.price === 'number' ? instrument.price : typeof instrument?.last_price === 'number' ? instrument.last_price : null;
+      setText(orderPriceEl, formatCurrency(currentPrice));
+      updateOrderValue();
       applyLogo(instrument?.logo, symbol);
       linkEl.href = `/symbol.html?instrument=${encodeURIComponent(symbol)}`;
       linkEl.textContent = `/symbol.html?instrument=${symbol}`;
       statusEl.textContent = found ? 'Loaded from trading_universe.' : 'Not found in trading_universe. Showing requested symbol.';
+      renderSymbolInfoWidget({ ...instrument, symbol });
       renderWidget({ ...instrument, symbol });
     };
 
@@ -455,6 +591,10 @@
       await supabase.auth.signOut();
       window.location.href = '/auth.html';
     });
+
+    orderTabs.forEach(btn => btn.addEventListener('click', () => setOrderSide(btn.dataset.orderTab || 'buy')));
+    orderQtyInput?.addEventListener('input', updateOrderValue);
+    setOrderSide(currentSide);
 
     hydrateProfile();
     lookupInstrument(initialSymbol);
