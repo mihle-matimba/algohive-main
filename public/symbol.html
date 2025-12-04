@@ -198,7 +198,7 @@
             </div>
           </div>
           <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
-            <img id="hdr-avatar" src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/user-01-stroke-rounded.svg" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+            <img id="hdr-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%25' height='100%25' fill='%23f1f5f9'/><text x='50%25' y='54%25' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
             <span id="hdr-name" class="hidden lg:inline-block lg:truncate lg:max-w-xs text-sm font-semibold text-slate-900">—</span>
             <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
@@ -216,9 +216,22 @@
 
           <div class="space-y-6">
             <div class="grid lg:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
-              <section class="bg-white info-card p-4 h-full">
-                <div id="symbol-info" class="rounded-xl border border-slate-200 bg-white w-full min-h-[240px]"></div>
-              </section>
+              <div class="space-y-6">
+                <section class="bg-white info-card p-4 h-full">
+                  <div id="symbol-info" class="rounded-xl border border-slate-200 bg-white w-full min-h-[240px]"></div>
+                </section>
+
+                <section class="bg-white info-card p-4 space-y-3 h-full">
+                  <header class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm text-slate-500">Advanced chart</p>
+                      <p id="chart-heading" class="text-lg font-semibold text-slate-900">Loading chart…</p>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Powered by TradingView</span>
+                  </header>
+                  <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white w-full min-h-[560px]"></div>
+                </section>
+              </div>
 
               <section class="bg-white info-card p-6 space-y-5 lg:sticky lg:top-4">
                 <header class="flex items-center gap-4">
@@ -296,17 +309,6 @@
                 </form>
               </section>
             </div>
-
-          <section class="bg-white info-card p-4 space-y-3 h-full">
-            <header class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-slate-500">Advanced chart</p>
-                <p id="chart-heading" class="text-lg font-semibold text-slate-900">Loading chart…</p>
-              </div>
-              <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Powered by TradingView</span>
-            </header>
-            <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white w-full aspect-[16/9] min-h-[520px]"></div>
-          </section>
         </div>
       </div>
     </main>
@@ -315,7 +317,7 @@
   <dialog id="profile-modal" class="backdrop:bg-black/40 rounded-2xl shadow-xl border border-slate-200 max-w-sm w-[94vw]">
     <div class="p-4 space-y-3">
       <div class="flex items-center gap-3">
-        <img id="pm-avatar" src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/user-01-stroke-rounded.svg" alt="Profile avatar" class="w-12 h-12 rounded-full border border-slate-200 bg-white object-cover" />
+        <img id="pm-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%25' height='100%25' fill='%23f1f5f9'/><text x='50%25' y='54%25' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>" alt="Profile avatar" class="w-12 h-12 rounded-full border border-slate-200 bg-white object-cover" />
         <div>
           <p id="pm-email" class="text-sm font-semibold text-slate-900">Signed out</p>
           <p id="pm-profile" class="text-xs text-slate-500">Loading…</p>
@@ -395,6 +397,13 @@
     let currentSide = 'buy';
 
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
+
+    const applyAvatarFallback = (img) => {
+      if (!img) return;
+      img.onerror = () => { img.src = BLANK_AVATAR; };
+    };
+    applyAvatarFallback(hdrAvatar);
+    applyAvatarFallback(pmAvatar);
 
     const formatCurrency = (value) => {
       if (typeof value !== 'number' || Number.isNaN(value)) return '—';
@@ -531,7 +540,7 @@
 
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,last_price,price')
+        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,price,daily_change')
         .or(`symbol.ilike.%${term}%,name.ilike.%${term}%`)
         .limit(8);
 
@@ -623,7 +632,14 @@
       setText(exchangeEl, exchangeLabel || 'Exchange unavailable');
       orderSymbolEls.forEach(el => setText(el, symbol));
       setText(orderExchangeEl, exchangeLabel || '—');
-      currentPrice = typeof instrument?.price === 'number' ? instrument.price : typeof instrument?.last_price === 'number' ? instrument.last_price : null;
+      if (typeof instrument?.price === 'number' && !Number.isNaN(instrument.price)) {
+        currentPrice = instrument.price;
+      } else if (Array.isArray(instrument?.closes_30d) && instrument.closes_30d.length) {
+        const lastClose = instrument.closes_30d[instrument.closes_30d.length - 1];
+        currentPrice = typeof lastClose?.close === 'number' ? lastClose.close : null;
+      } else {
+        currentPrice = null;
+      }
       setText(orderPriceEl, formatCurrency(currentPrice));
       updateOrderValue();
       applyLogo(instrument?.logo, symbol);
@@ -636,7 +652,7 @@
       setText(statusEl, 'Loading instrument…');
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,last_price,price')
+        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,price,daily_change')
         .ilike('symbol', symbol)
         .maybeSingle();
 
