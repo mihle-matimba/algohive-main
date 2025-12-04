@@ -372,6 +372,12 @@
       return series.length ? series : fallbackSeries();
     };
 
+    const exchangeToCountry = (exchange = '') => {
+      const code = exchange.toUpperCase();
+      if (code.includes('JSE')) return 'ZA';
+      return 'US';
+    };
+
     const formatMarket = (row, idx) => {
       const series = buildSeries(row?.closes_30d);
       const first = series[0]?.value || 100;
@@ -383,7 +389,7 @@
         name: row?.name || row?.symbol || 'Unknown instrument',
         exchange: row?.exchange || '—',
         logo: row?.logo || '',
-        country: (row?.country || '').toUpperCase(),
+        country: exchangeToCountry(row?.exchange),
         series,
         last,
         change
@@ -521,13 +527,13 @@
     const loadMarkets = async () => {
       let { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,closes_30d,logo,country')
+        .select('id,symbol,name,exchange,closes_30d,logo')
         .limit(12);
 
       if (error) {
         const fallback = await supabase
           .from('trading_universe')
-          .select('id,symbol,name,exchange,logo,country')
+          .select('id,symbol,name,exchange,logo')
           .limit(12);
         data = fallback.data;
         error = fallback.error;
