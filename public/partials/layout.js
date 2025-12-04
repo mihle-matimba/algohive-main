@@ -62,6 +62,10 @@ export function renderSidebar(activePage) {
            <i class="fa-solid fa-wallet w-4 shrink-0 ${activePage === 'money' ? 'text-slate-900' : 'text-slate-500'}"></i><span class="label">Money</span>
         </a>
 
+        <a class="mt-1 flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-50" href="/news-insights.html">
+          <i class="fa-solid fa-newspaper w-4 text-slate-500"></i><span class="label">News &amp; Insights</span>
+        </a>
+
       </nav>
 
       <div class="p-2 border-t border-slate-200 footer flex items-center justify-between gap-2 bg-slate-50/50 mt-auto">

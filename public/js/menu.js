@@ -14,7 +14,7 @@ window.initSidebar = function initSidebar(opts = {}) {
       { key: "reports",          label: "Reports",           icon: "fa-file-invoice",     href: "/reports.html" },
     ]},
     { section: "Extras", key: "extras", items: [
-      { key: "news",             label: "News & Insights",   icon: "fa-newspaper",        href: "/news.html" },
+      { key: "news",             label: "News & Insights",   icon: "fa-newspaper",        href: "/news-insights.html" },
       { key: "alerts",           label: "Notifications",     icon: "fa-bell",             href: "/alerts.html" },
     ]},
     { section: "Support", key: "support", items: [
