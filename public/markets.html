@@ -451,24 +451,30 @@
     };
 
     const updateChart = (market) => {
-      const ctx = document.getElementById('market-chart');
+      const canvas = document.getElementById('market-chart');
+      const ctx = canvas.getContext('2d');
       const series = applyRange(market.series, currentRange);
       const labels = series.map(point => point.label);
       const data = series.map(point => point.value);
       const color = market.change >= 0 ? '#16a34a' : '#dc2626';
 
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 260);
+      gradient.addColorStop(0, `${color}20`);
+      gradient.addColorStop(1, `${color}00`);
+
       if (chart) chart.destroy();
-      chart = new Chart(ctx, {
+      chart = new Chart(canvas, {
         type: 'line',
         data: {
           labels,
           datasets: [{
             data,
             borderColor: color,
-            borderWidth: 3,
+            borderWidth: 2.5,
+            backgroundColor: gradient,
             pointRadius: 0,
             tension: 0.35,
-            fill: false
+            fill: 'start'
           }]
         },
         options: {
@@ -484,12 +490,15 @@
           scales: {
             x: {
               display: true,
-              grid: { color: '#e2e8f0' },
+              grid: { display: false, drawBorder: false },
+              border: { display: false },
               ticks: { color: '#475569', maxTicksLimit: 6 }
             },
             y: {
               display: true,
-              grid: { color: '#e2e8f0' },
+              position: 'right',
+              grid: { display: false, drawBorder: false },
+              border: { display: false },
               ticks: {
                 color: '#475569',
                 callback: (value) => value.toFixed ? value.toFixed(0) : value
