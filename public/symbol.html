@@ -187,6 +187,14 @@
             <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
               <i class="fa-solid fa-bars"></i>
             </button>
+
+            <div class="relative flex-1 max-w-2xl">
+              <label class="flex items-center gap-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
+                <i class="fa-solid fa-magnifying-glass text-slate-500"></i>
+                <input id="symbol-search" type="search" placeholder="Search symbols or names" class="w-full bg-transparent focus:outline-none text-sm font-semibold text-slate-900 placeholder:text-slate-400" />
+              </label>
+              <div id="search-results" class="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-80 overflow-y-auto hidden z-20"></div>
+            </div>
           </div>
           <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
             <img id="hdr-avatar" src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/user-01-stroke-rounded.svg" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
@@ -204,10 +212,6 @@
             <h1 id="page-heading" class="text-3xl md:text-4xl font-bold text-slate-900">Loading…</h1>
           </div>
         </header>
-
-        <section class="bg-white info-card p-4">
-          <div id="tv-symbol-info" class="w-full"></div>
-        </section>
 
         <div class="grid lg:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
           <section class="bg-white info-card p-4 space-y-3 h-full">
@@ -297,8 +301,6 @@
             </form>
           </section>
         </div>
-
-        <p class="text-sm text-slate-500">Search query via URL parameter <code>instrument</code></p>
       </div>
     </main>
   </div>
@@ -359,7 +361,6 @@
     const statusEl = document.getElementById('symbol-status');
     const headingEl = document.getElementById('page-heading');
     const chartHeadingEl = document.getElementById('chart-heading');
-    const symbolInfoHost = document.getElementById('tv-symbol-info');
     const widgetHost = document.getElementById('tv-widget-host');
     const profileModal = document.getElementById('profile-modal');
     const profileBtn = document.getElementById('hdr-profile-btn');
@@ -376,6 +377,8 @@
     const orderSubmitBtn = document.getElementById('order-submit');
     const orderTabs = document.querySelectorAll('[data-order-tab]');
     const orderQtyInput = document.getElementById('order-qty');
+    const searchInput = document.getElementById('symbol-search');
+    const searchResults = document.getElementById('search-results');
 
     const params = new URLSearchParams(window.location.search);
     const requestedSymbol = params.get('instrument') || params.get('instrumnent');
@@ -446,29 +449,92 @@
       }
     };
 
-    const renderSymbolInfoWidget = (instrument) => {
-      const tvSymbol = formatTradingViewSymbol(instrument);
-      const tvSlug = tvSymbol.replace(':', '-');
-      if (!symbolInfoHost) return;
-      symbolInfoHost.innerHTML = `
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/${tvSlug}/" rel="noopener nofollow" target="_blank"><span class="blue-text">${instrument.symbol || 'AAPL'} performance</span></a><span class="trademark"> by TradingView</span></div>
-        </div>
+    const computeDailyChange = (row = {}) => {
+      if (Array.isArray(row?.closes_30d) && row.closes_30d.length) {
+        const last = row.closes_30d[row.closes_30d.length - 1];
+        const pct = Number((last?.pct ?? 0) * 100);
+        if (!Number.isNaN(pct)) return pct;
+      }
+
+      const pct = Number(row?.daily_change ?? row?.dailyChange ?? row?.pct_change);
+      return Number.isNaN(pct) ? null : pct;
+    };
+
+    const buildResultItem = (item) => {
+      const symbol = (item?.symbol || '—').toUpperCase();
+      const name = item?.name || symbol;
+      const daily = computeDailyChange(item);
+      const dailyClass = daily === null ? 'text-slate-500' : daily >= 0 ? 'text-green-600' : 'text-red-600';
+      const dailyLabel = daily === null ? '—' : `${daily >= 0 ? '+' : ''}${daily.toFixed(2)}%`;
+      const exchangeLabel = formatExchangeLabel(item?.source_exchange || item?.exchange);
+      const logo = item?.logo
+        ? `<img src="${item.logo}" alt="${symbol} logo" class="w-10 h-10 rounded-xl object-cover border border-slate-200" />`
+        : `<div class="w-10 h-10 rounded-xl bg-slate-900 text-white text-sm font-bold grid place-items-center border border-slate-200">${symbol.slice(0, 3)}</div>`;
+
+      return `
+        <button type="button" data-symbol-result="${symbol}" class="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-slate-50 transition">
+          ${logo}
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold text-slate-900 truncate">${name}</p>
+              <span class="text-xs font-semibold text-slate-500">${symbol}</span>
+            </div>
+            <p class="text-xs text-slate-500 truncate">${exchangeLabel || 'Exchange unavailable'}</p>
+          </div>
+          <span class="text-xs font-semibold ${dailyClass}">${dailyLabel}</span>
+        </button>
       `;
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js';
-      script.async = true;
-      script.innerHTML = `{
-  "symbol": "${tvSymbol}",
-  "colorTheme": "light",
-  "isTransparent": true,
-  "locale": "en",
-  "width": "100%"
-}`;
-      const container = symbolInfoHost.querySelector('.tradingview-widget-container');
-      container?.appendChild(script);
+    };
+
+    const renderSearchResults = (items, term = '') => {
+      if (!searchResults) return;
+      if (!term) {
+        searchResults.classList.add('hidden');
+        searchResults.innerHTML = '';
+        return;
+      }
+
+      if (!items.length) {
+        searchResults.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No matches for "${term}"</div>`;
+        searchResults.classList.remove('hidden');
+        return;
+      }
+
+      searchResults.innerHTML = items.map(buildResultItem).join('');
+      searchResults.classList.remove('hidden');
+
+      searchResults.querySelectorAll('[data-symbol-result]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const symbol = btn.getAttribute('data-symbol-result');
+          if (symbol) window.location.href = `/symbol.html?instrument=${encodeURIComponent(symbol)}`;
+        });
+      });
+    };
+
+    const searchSymbols = async (term) => {
+      if (!searchResults) return;
+      if (!term) {
+        renderSearchResults([], '');
+        return;
+      }
+
+      searchResults.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">Searching…</div>';
+      searchResults.classList.remove('hidden');
+
+      const { data, error } = await supabase
+        .from('trading_universe')
+        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,last_price,price')
+        .or(`symbol.ilike.%${term}%,name.ilike.%${term}%`)
+        .limit(8);
+
+      if (error) {
+        console.error('Search failed', error);
+        searchResults.innerHTML = `<div class="px-4 py-3 text-sm text-red-600">Unable to search right now.</div>`;
+        searchResults.classList.remove('hidden');
+        return;
+      }
+
+      renderSearchResults(data || [], term);
     };
 
     const renderWidget = (instrument) => {
@@ -529,7 +595,6 @@
       updateOrderValue();
       applyLogo(instrument?.logo, symbol);
       statusEl.textContent = found ? '' : 'Not found in trading_universe. Showing requested symbol.';
-      renderSymbolInfoWidget({ ...instrument, symbol });
       renderWidget({ ...instrument, symbol });
     };
 
@@ -537,7 +602,7 @@
       setText(statusEl, 'Loading instrument…');
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,source_exchange,logo')
+        .select('id,symbol,name,exchange,source_exchange,logo,closes_30d,last_price,price')
         .ilike('symbol', symbol)
         .maybeSingle();
 
@@ -583,6 +648,25 @@
         console.error('Failed to hydrate profile', err);
       }
     };
+
+    let searchTimer = null;
+    searchInput?.addEventListener('input', (e) => {
+      const term = (e.target.value || '').trim();
+      clearTimeout(searchTimer);
+      if (!term) {
+        renderSearchResults([], '');
+        return;
+      }
+
+      searchTimer = setTimeout(() => searchSymbols(term), 200);
+    });
+
+    document.addEventListener('click', (evt) => {
+      if (!searchResults) return;
+      if (!searchResults.contains(evt.target) && !searchInput?.contains(evt.target)) {
+        renderSearchResults([], '');
+      }
+    });
 
     profileBtn?.addEventListener('click', () => profileModal?.showModal());
     pmLogout?.addEventListener('click', async () => {
