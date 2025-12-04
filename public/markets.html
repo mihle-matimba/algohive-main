@@ -401,6 +401,15 @@
     let showAllGainers = false;
     let showAllLosers = false;
 
+    const requireSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.replace('/auth.html?tab=in');
+        return false;
+      }
+      return true;
+    };
+
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
 
     const setText = (id, value) => {
@@ -674,9 +683,11 @@
 
       const text = document.createElement('div');
       text.className = 'min-w-0 flex-1';
-      const name = document.createElement('p');
-      name.className = 'text-sm font-semibold text-slate-900 truncate';
+      const name = document.createElement('a');
+      name.className = 'text-sm font-semibold text-slate-900 truncate hover:underline';
+      name.href = `/symbol.html?instrument=${encodeURIComponent(mkt.symbol)}`;
       name.textContent = mkt.name || mkt.symbol;
+      name.addEventListener('click', (e) => e.stopPropagation());
       const exch = document.createElement('p');
       exch.className = 'text-xs text-slate-500';
       applyExchangeLabel(exch, mkt.exchange);
@@ -712,9 +723,11 @@
         marketsRow.innerHTML = '<div class="text-slate-500 text-sm">No markets available right now.</div>';
       } else {
         chipList.forEach((mkt, idx) => {
-          const chip = document.createElement('button');
+          const chip = document.createElement('div');
           chip.className = `market-chip ${idx === 0 ? 'active' : ''}`;
           chip.setAttribute('data-id', mkt.id);
+          chip.setAttribute('role', 'button');
+          chip.tabIndex = 0;
 
           const logoWrap = document.createElement('div');
           logoWrap.className = 'relative';
@@ -736,9 +749,11 @@
 
           const textWrap = document.createElement('div');
           textWrap.className = 'text-left min-w-0 flex-1';
-          const name = document.createElement('p');
-          name.className = 'text-sm font-semibold text-slate-900';
+          const name = document.createElement('a');
+          name.className = 'text-sm font-semibold text-slate-900 hover:underline';
           name.textContent = mkt.name || mkt.symbol;
+          name.href = `/symbol.html?instrument=${encodeURIComponent(mkt.symbol)}`;
+          name.addEventListener('click', (e) => e.stopPropagation());
           const exch = document.createElement('p');
           exch.className = 'text-xs text-slate-500';
           applyExchangeLabel(exch, mkt.exchange);
@@ -759,6 +774,12 @@
 
           chip.append(logoWrap, textWrap, changeWrap);
           chip.addEventListener('click', () => selectMarket(mkt.id));
+          chip.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              selectMarket(mkt.id);
+            }
+          });
           marketsRow.appendChild(chip);
         });
       }
@@ -905,8 +926,11 @@
       }
     };
 
-    loadMarkets();
-    hydrateProfile();
+    (async () => {
+      if (!await requireSession()) return;
+      loadMarkets();
+      hydrateProfile();
+    })();
   </script>
 </body>
 </html>
