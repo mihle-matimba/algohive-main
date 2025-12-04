@@ -291,13 +291,19 @@
           </div>
           <div class="grid gap-4 md:grid-cols-2">
             <div class="space-y-2">
-              <div class="flex items-center justify-between"><p class="text-base font-semibold text-slate-900">Today's Gainers</p></div>
+              <div class="flex items-center justify-between">
+                <p class="text-base font-semibold text-slate-900">Today's Gainers</p>
+                <button id="toggle-gainers" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View all</button>
+              </div>
               <div id="today-gainers" class="space-y-2">
                 <div class="text-slate-500 text-sm">Loading…</div>
               </div>
             </div>
             <div class="space-y-2">
-              <div class="flex items-center justify-between"><p class="text-base font-semibold text-slate-900">Today's Losers</p></div>
+              <div class="flex items-center justify-between">
+                <p class="text-base font-semibold text-slate-900">Today's Losers</p>
+                <button id="toggle-losers" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View all</button>
+              </div>
               <div id="today-losers" class="space-y-2">
                 <div class="text-slate-500 text-sm">Loading…</div>
               </div>
@@ -383,6 +389,8 @@
     const allTimeLosersEl = document.getElementById('alltime-losers');
     const todayGainersEl = document.getElementById('today-gainers');
     const todayLosersEl = document.getElementById('today-losers');
+    const toggleGainersBtn = document.getElementById('toggle-gainers');
+    const toggleLosersBtn = document.getElementById('toggle-losers');
 
     let chart;
     let markets = [];
@@ -390,6 +398,8 @@
     let currentRange = '1M';
     let searchTerm = '';
     let selectedMarketId = null;
+    let showAllGainers = false;
+    let showAllLosers = false;
 
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
 
@@ -472,6 +482,11 @@
         : safeSeries;
 
       return filtered.length ? filtered : safeSeries;
+    };
+
+    const formatExchangeLabel = (value = '') => {
+      if (!value) return '—';
+      return value.replace(/\s*\(?US\)?/gi, '').replace(/\s+/g, ' ').trim() || '—';
     };
 
     const exchangeToCountry = (exchange = '') => {
@@ -616,7 +631,7 @@
 
       updateSelectedLogo(market);
       nameEl.textContent = `${market.symbol} · ${market.name}`;
-      exchangeEl.textContent = market.exchange;
+      exchangeEl.textContent = formatExchangeLabel(market.exchange);
       dailyEl.textContent = `Daily Change: ${market.dailyChange >= 0 ? '+' : ''}${market.dailyChange.toFixed(2)}%`;
 
       const rangeChange = updateChart(market);
@@ -626,7 +641,9 @@
 
     const buildListItem = (mkt, changeValue, positiveText = '+', negativeText = '') => {
       const row = document.createElement('div');
-      row.className = 'list-card';
+      row.className = 'list-card cursor-pointer hover:bg-slate-50 transition-colors';
+      row.setAttribute('data-id', mkt.id);
+      row.addEventListener('click', () => selectMarket(mkt.id));
 
       const logo = document.createElement('img');
       logo.className = 'market-logo';
@@ -649,7 +666,7 @@
       name.textContent = `${mkt.symbol} · ${mkt.name}`;
       const exch = document.createElement('p');
       exch.className = 'text-xs text-slate-500';
-      exch.textContent = mkt.exchange || '—';
+      exch.textContent = formatExchangeLabel(mkt.exchange);
       text.append(name, exch);
 
       const tag = document.createElement('span');
@@ -711,7 +728,7 @@
           name.textContent = `${mkt.symbol} · ${mkt.name}`;
           const exch = document.createElement('p');
           exch.className = 'text-xs text-slate-500';
-          exch.textContent = mkt.exchange || '—';
+          exch.textContent = formatExchangeLabel(mkt.exchange);
           const daily = document.createElement('p');
           daily.className = 'text-xs text-slate-500';
           daily.textContent = `Daily Change: ${mkt.dailyChange >= 0 ? '+' : ''}${mkt.dailyChange.toFixed(2)}%`;
@@ -742,20 +759,26 @@
         });
       }
 
-      const renderDailyList = (container, list, emptyText) => {
+      const renderDailyList = (container, list, emptyText, showAll = false, toggleBtn) => {
         container.innerHTML = '';
         if (!list.length) {
           container.innerHTML = `<div class="text-slate-500 text-sm">${emptyText}</div>`;
           return;
         }
-        list.forEach(mkt => {
+        const slice = showAll ? list : list.slice(0, 5);
+        slice.forEach(mkt => {
           const row = buildListItem(mkt, mkt.dailyChange, '+', '');
           container.appendChild(row);
         });
+
+        if (toggleBtn) {
+          toggleBtn.textContent = showAll ? 'Show top 5' : 'View all';
+          toggleBtn.classList.toggle('hidden', list.length <= 5);
+        }
       };
 
-      renderDailyList(todayGainersEl, todaysGainers, 'No gainers yet.');
-      renderDailyList(todayLosersEl, todaysLosers, 'No losers yet.');
+      renderDailyList(todayGainersEl, todaysGainers, 'No gainers yet.', showAllGainers, toggleGainersBtn);
+      renderDailyList(todayLosersEl, todaysLosers, 'No losers yet.', showAllLosers, toggleLosersBtn);
 
       const chosen = chipList.find(m => m.id === selectedMarketId) || chipList[0];
       if (chosen) selectMarket(chosen.id);
@@ -803,6 +826,16 @@
 
     searchInput?.addEventListener('input', (e) => {
       searchTerm = (e.target.value || '').trim();
+      renderMarkets();
+    });
+
+    toggleGainersBtn?.addEventListener('click', () => {
+      showAllGainers = !showAllGainers;
+      renderMarkets();
+    });
+
+    toggleLosersBtn?.addEventListener('click', () => {
+      showAllLosers = !showAllLosers;
       renderMarkets();
     });
 
