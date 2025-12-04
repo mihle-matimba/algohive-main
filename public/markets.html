@@ -519,10 +519,19 @@
     };
 
     const loadMarkets = async () => {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('trading_universe')
         .select('id,symbol,name,exchange,closes_30d,logo,country')
         .limit(12);
+
+      if (error) {
+        const fallback = await supabase
+          .from('trading_universe')
+          .select('id,symbol,name,exchange,logo,country')
+          .limit(12);
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         marketsRow.innerHTML = `<div class="text-red-600 text-sm">Failed to load markets: ${error.message}</div>`;
