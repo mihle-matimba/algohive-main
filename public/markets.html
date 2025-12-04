@@ -65,9 +65,10 @@
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker { background: transparent; width: 38px; height: 38px; box-shadow: none; }
     #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker img { width: 24px; height: 24px; }
 
-    .market-chip { border:1px solid #e2e8f0; border-radius:16px; padding:10px 14px; background:#fff; display:flex; align-items:center; gap:10px; min-width:170px; box-shadow:0 12px 30px -24px rgba(15,23,42,.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+    .market-chip { border:1px solid #e2e8f0; border-radius:16px; padding:12px 16px; background:#fff; display:flex; align-items:center; gap:12px; min-width:240px; box-shadow:0 12px 30px -24px rgba(15,23,42,.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
     .market-chip:hover { transform: translateY(-1px); box-shadow:0 16px 44px -24px rgba(15,23,42,.5); }
     .market-chip.active { border-color:#0f172a; box-shadow:0 18px 48px -24px rgba(15,23,42,.55); }
+    .market-logo { width:48px; height:48px; border-radius:14px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0; }
     .pill { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:999px; font-weight:800; color:#0f172a; background:#f1f5f9; }
     .sparkline { width:100%; height:240px; }
   </style>
@@ -199,9 +200,18 @@
       </div>
 
       <div class="max-w-6xl mx-auto px-6 py-8 space-y-10">
-        <header class="text-center space-y-3">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Indices</p>
-          <h2 class="text-3xl md:text-4xl font-bold text-slate-900">Markets, everywhere</h2>
+        <header class="text-center space-y-4">
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">AlgoHive Markets</p>
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-900">Markets,</h2>
+            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm text-base font-semibold">
+              <span class="text-slate-500 text-sm">View:</span>
+              <select id="region-select" class="bg-transparent focus:outline-none font-semibold text-slate-900">
+                <option value="US">🇺🇸 US Stocks</option>
+                <option value="ZA">🇿🇦 South African Stocks</option>
+              </select>
+            </label>
+          </div>
           <p class="text-slate-500 text-lg">Tap into live market movers pulled directly from your trading universe.</p>
         </header>
 
@@ -225,7 +235,10 @@
             <div>
               <p class="text-sm text-slate-500">Selected market</p>
               <div class="flex items-center gap-3">
-                <div id="selected-pill" class="pill">—</div>
+                <div class="relative">
+                  <img id="selected-logo" class="w-12 h-12 rounded-xl object-contain border border-slate-200 bg-slate-50 hidden" alt="Selected market logo" />
+                  <div id="selected-pill" class="pill w-12 h-12 rounded-xl bg-slate-100 text-base">—</div>
+                </div>
                 <div>
                   <p id="selected-name" class="font-semibold text-slate-900">Loading…</p>
                   <p id="selected-exchange" class="text-sm text-slate-500">—</p>
@@ -308,7 +321,9 @@
     import { supabase } from "/js/supabase.js";
 
     const marketsRow = document.getElementById('markets-row');
+    const regionSelect = document.getElementById('region-select');
     const pillEl = document.getElementById('selected-pill');
+    const logoEl = document.getElementById('selected-logo');
     const nameEl = document.getElementById('selected-name');
     const exchangeEl = document.getElementById('selected-exchange');
     const priceEl = document.getElementById('selected-price');
@@ -324,6 +339,7 @@
 
     let chart;
     let markets = [];
+    let selectedRegion = regionSelect?.value || 'US';
 
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
 
@@ -366,6 +382,8 @@
         symbol: row?.symbol || '—',
         name: row?.name || row?.symbol || 'Unknown instrument',
         exchange: row?.exchange || '—',
+        logo: row?.logo || '',
+        country: (row?.country || '').toUpperCase(),
         series,
         last,
         change
@@ -404,14 +422,32 @@
       });
     };
 
+    const updateSelectedLogo = (market) => {
+      if (market.logo) {
+        logoEl?.classList.remove('hidden');
+        logoEl.src = market.logo;
+        logoEl.onerror = () => { logoEl.classList.add('hidden'); pillEl?.classList.remove('hidden'); };
+        pillEl?.classList.add('hidden');
+      } else {
+        logoEl?.classList.add('hidden');
+        pillEl?.classList.remove('hidden');
+      }
+      pillEl.textContent = market.symbol.slice(0, 3).toUpperCase();
+    };
+
+    const getVisibleMarkets = () => {
+      const filtered = markets.filter(m => !selectedRegion || (m.country || '').toUpperCase() === selectedRegion.toUpperCase());
+      return filtered.length ? filtered : markets;
+    };
+
     const selectMarket = (marketId) => {
-      const market = markets.find(m => m.id === marketId);
+      const market = getVisibleMarkets().find(m => m.id === marketId);
       if (!market) return;
       marketsRow.querySelectorAll('.market-chip').forEach(chip => chip.classList.remove('active'));
       const active = marketsRow.querySelector(`[data-id="${marketId}"]`);
       active?.classList.add('active');
 
-      pillEl.textContent = market.symbol.slice(0, 3).toUpperCase();
+      updateSelectedLogo(market);
       nameEl.textContent = `${market.symbol} · ${market.name}`;
       exchangeEl.textContent = market.exchange;
       priceEl.textContent = market.last ? market.last.toFixed(2) : '—';
@@ -422,37 +458,70 @@
     };
 
     const renderMarkets = () => {
+      const visibleMarkets = getVisibleMarkets();
+
       marketsRow.innerHTML = '';
-      if (!markets.length) {
+      if (!visibleMarkets.length) {
         marketsRow.innerHTML = '<div class="text-slate-500 text-sm">No markets available right now.</div>';
         return;
       }
 
-      markets.forEach((mkt, idx) => {
+      visibleMarkets.forEach((mkt, idx) => {
         const chip = document.createElement('button');
         chip.className = `market-chip ${idx === 0 ? 'active' : ''}`;
         chip.setAttribute('data-id', mkt.id);
-        chip.innerHTML = `
-          <span class="pill">${mkt.symbol.slice(0,2).toUpperCase()}</span>
-          <div class="text-left min-w-0">
-            <p class="text-sm font-semibold text-slate-900 truncate">${mkt.symbol} · ${mkt.name}</p>
-            <p class="text-xs text-slate-500">${mkt.exchange || '—'}</p>
-          </div>
-          <div class="ml-auto text-right text-sm font-semibold">
-            <p class="text-slate-900">${mkt.last ? mkt.last.toFixed(2) : '—'}</p>
-            <p class="${mkt.change >= 0 ? 'text-green-600' : 'text-red-600'}">${mkt.change >= 0 ? '+' : ''}${mkt.change.toFixed(2)}%</p>
-          </div>`;
+
+        const logoWrap = document.createElement('div');
+        logoWrap.className = 'relative';
+        const logo = document.createElement('img');
+        logo.className = 'market-logo';
+        logo.alt = `${mkt.symbol} logo`;
+        const fallbackPill = document.createElement('div');
+        fallbackPill.className = 'pill w-12 h-12 rounded-xl bg-slate-100 text-base hidden';
+        fallbackPill.textContent = mkt.symbol.slice(0, 3).toUpperCase();
+        if (mkt.logo) {
+          logo.src = mkt.logo;
+          logo.onerror = () => { logo.classList.add('hidden'); fallbackPill.classList.remove('hidden'); };
+        } else {
+          logo.classList.add('hidden');
+          fallbackPill.classList.remove('hidden');
+        }
+        logoWrap.appendChild(logo);
+        logoWrap.appendChild(fallbackPill);
+
+        const textWrap = document.createElement('div');
+        textWrap.className = 'text-left min-w-0';
+        const name = document.createElement('p');
+        name.className = 'text-sm font-semibold text-slate-900';
+        name.textContent = `${mkt.symbol} · ${mkt.name}`;
+        const exch = document.createElement('p');
+        exch.className = 'text-xs text-slate-500';
+        exch.textContent = mkt.exchange || '—';
+        textWrap.appendChild(name);
+        textWrap.appendChild(exch);
+
+        const priceWrap = document.createElement('div');
+        priceWrap.className = 'ml-auto text-right text-sm font-semibold';
+        const price = document.createElement('p');
+        price.className = 'text-slate-900';
+        price.textContent = mkt.last ? mkt.last.toFixed(2) : '—';
+        const delta = document.createElement('p');
+        delta.className = mkt.change >= 0 ? 'text-green-600' : 'text-red-600';
+        delta.textContent = `${mkt.change >= 0 ? '+' : ''}${mkt.change.toFixed(2)}%`;
+        priceWrap.append(price, delta);
+
+        chip.append(logoWrap, textWrap, priceWrap);
         chip.addEventListener('click', () => selectMarket(mkt.id));
         marketsRow.appendChild(chip);
       });
 
-      selectMarket(markets[0]?.id);
+      selectMarket(visibleMarkets[0]?.id);
     };
 
     const loadMarkets = async () => {
       const { data, error } = await supabase
         .from('trading_universe')
-        .select('id,symbol,name,exchange,closes_30d')
+        .select('id,symbol,name,exchange,closes_30d,logo,country')
         .limit(12);
 
       if (error) {
@@ -473,6 +542,11 @@
         btn.classList.add('bg-slate-900', 'text-white');
         btn.classList.remove('bg-white', 'text-slate-700');
       });
+    });
+
+    regionSelect?.addEventListener('change', () => {
+      selectedRegion = regionSelect.value;
+      renderMarkets();
     });
 
     const hydrateProfile = async () => {
