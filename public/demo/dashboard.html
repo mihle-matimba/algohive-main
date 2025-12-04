@@ -358,12 +358,9 @@
     }
 
     .allocation-card {
-      background: radial-gradient(circle at 10% 20%, rgba(190, 242, 100, 0.18), transparent 35%),
-        radial-gradient(circle at 90% 10%, rgba(190, 242, 100, 0.16), transparent 30%),
-        linear-gradient(135deg, #1a2a15, #2f4a2a);
-      border: 1px solid rgba(163, 190, 90, 0.35);
-      box-shadow: 0 24px 60px -32px rgba(137, 168, 72, 0.5);
-      color: #f8fafc;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 30px -24px rgba(15, 23, 42, 0.35);
     }
 
     .chip {
@@ -972,26 +969,26 @@
           </div>
         </section>
 
-        <section class="card col-span-12 border border-slate-200 shadow-none allocation-card">
-          <div class="flex flex-col gap-1 border-b border-white/30 px-5 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <section class="card col-span-12 lg:col-span-4 border border-slate-200 shadow-none allocation-card">
+          <div class="flex flex-col gap-1 border-b border-slate-200 px-5 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/80">Allocations</p>
-              <h3 class="text-lg font-semibold text-white">My demo allocations</h3>
-              <p class="text-sm text-white/80">Strategy snapshots tied to this demo profile.</p>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Allocations</p>
+              <h3 class="text-lg font-semibold text-slate-900">My demo allocations</h3>
+              <p class="text-sm text-slate-600">Strategy snapshots tied to this demo profile.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button data-alloc-filter="active" class="btn h-9 text-xs bg-white/20 text-white border-white/40 hover:bg-white/30">
+              <button data-alloc-filter="active" class="btn h-9 text-xs bg-[var(--olive)] text-white border-[var(--olive)] hover:bg-[var(--olive-700)] hover:border-[var(--olive-700)]">
                 View active only
               </button>
-              <button data-alloc-filter="all" class="btn h-9 text-xs bg-white/10 text-white border-white/30 hover:bg-white/20">
+              <button data-alloc-filter="all" class="btn h-9 text-xs bg-white text-slate-700 border-slate-200 hover:bg-slate-50">
                 View all allocations
               </button>
             </div>
           </div>
 
           <div class="overflow-x-auto">
-            <table id="allocations-table" class="min-w-full divide-y divide-white/20 text-sm">
-              <thead class="bg-white/10 text-left text-[13px] font-semibold text-white/90">
+            <table id="allocations-table" class="min-w-full divide-y divide-slate-200 text-sm">
+              <thead class="bg-slate-50 text-left text-[13px] font-semibold text-slate-600">
                 <tr>
                   <th class="px-5 py-3">Strategy</th>
                   <th class="px-5 py-3">Amount</th>
@@ -1003,14 +1000,14 @@
                   <th class="px-5 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody id="allocation-rows" class="divide-y divide-white/10 bg-white/5"></tbody>
+              <tbody id="allocation-rows" class="divide-y divide-slate-100 bg-white"></tbody>
             </table>
-            <p id="allocation-loading" class="px-5 py-4 text-sm text-white/80">Loading your allocations…</p>
-            <p id="allocation-empty" class="hidden px-5 py-4 text-sm text-white/80">No demo allocations yet. Allocate a strategy to see it here.</p>
+            <p id="allocation-loading" class="px-5 py-4 text-sm text-slate-600">Loading your allocations…</p>
+            <p id="allocation-empty" class="hidden px-5 py-4 text-sm text-slate-600">No demo allocations yet. Allocate a strategy to see it here.</p>
           </div>
         </section>
 
-        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 min-w-0">
+        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-8 min-w-0">
           <div class="px-5 pt-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -2508,29 +2505,29 @@
         const startDate = row?.start_date ? new Date(row.start_date).toLocaleDateString() : "—";
         const status = (row?.status || "").toString().toLowerCase();
         const statusTone = status === "active"
-          ? "border border-emerald-200/70 bg-emerald-500/20 text-emerald-50"
-          : "border border-white/20 bg-white/10 text-white";
+          ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border border-slate-200 bg-slate-50 text-slate-700";
         const returnPct = typeof row?.latest_return_pct === "number" ? row.latest_return_pct : Number(row?.latest_return_pct);
-        const returnTone = Number.isFinite(returnPct) ? (returnPct >= 0 ? "text-emerald-200" : "text-rose-200") : "text-white";
+        const returnTone = Number.isFinite(returnPct) ? (returnPct >= 0 ? "text-emerald-600" : "text-rose-600") : "text-slate-600";
         const isCurrent = activeAllocationId && row?.id === activeAllocationId;
         const currentChip = isCurrent
-          ? '<span class="chip ml-2 border border-emerald-300/60 bg-emerald-500/30 text-white text-[11px]">Current</span>'
+          ? '<span class="chip ml-2 border border-emerald-200 bg-emerald-50 text-emerald-700 text-[11px]">Current</span>'
           : "";
 
         tr.innerHTML = `
-          <td class="px-5 py-3 font-semibold text-white flex items-center">${strategyLabel}${currentChip}</td>
-          <td class="px-5 py-3 text-white">${formatMoney(row?.amount_invested, row?.base_currency)}</td>
-          <td class="px-5 py-3 uppercase text-white/80">${(row?.base_currency || activeCurrency || "USD").toString().toUpperCase()}</td>
-          <td class="px-5 py-3 text-white/80">${startDate}</td>
+          <td class="px-5 py-3 font-semibold text-slate-900 flex items-center">${strategyLabel}${currentChip}</td>
+          <td class="px-5 py-3 text-slate-900">${formatMoney(row?.amount_invested, row?.base_currency)}</td>
+          <td class="px-5 py-3 uppercase text-slate-600">${(row?.base_currency || activeCurrency || "USD").toString().toUpperCase()}</td>
+          <td class="px-5 py-3 text-slate-600">${startDate}</td>
           <td class="px-5 py-3"><span class="chip text-xs ${statusTone}">${status || "—"}</span></td>
-          <td class="px-5 py-3 text-white">${formatMoney(row?.latest_value ?? row?.amount_invested, row?.base_currency)}</td>
+          <td class="px-5 py-3 text-slate-900">${formatMoney(row?.latest_value ?? row?.amount_invested, row?.base_currency)}</td>
           <td class="px-5 py-3 font-semibold ${returnTone}">${formatReturnPct(returnPct)}</td>
           <td class="px-5 py-3 text-right">
             <div class="flex items-center justify-end gap-2">
-              <button type="button" class="btn h-9 text-[13px] border-white/40 bg-white/20 text-white hover:bg-white/30" data-visualize-id="${row?.id}" data-strategy="${strategyLabel}">
+              <button type="button" class="btn h-9 text-[13px] border-[var(--olive)] bg-[var(--olive)] text-white hover:bg-[var(--olive-700)]" data-visualize-id="${row?.id}" data-strategy="${strategyLabel}">
                 ${isCurrent ? "Viewing" : "Visualize"}
               </button>
-              <button type="button" class="btn h-9 text-[13px] border-white/30 bg-white/10 text-white hover:bg-white/20" data-liquidate-id="${row?.id}" data-strategy="${strategyLabel}">
+              <button type="button" class="btn h-9 text-[13px] border-slate-200 bg-white text-slate-700 hover:bg-slate-50" data-liquidate-id="${row?.id}" data-strategy="${strategyLabel}">
                 Liquidate
               </button>
             </div>
