@@ -72,6 +72,7 @@
     .order-form select { width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; font-weight:600; color:#0f172a; background:#fff; }
     .order-form input:focus,
     .order-form select:focus { outline:2px solid #0f172a; outline-offset:1px; }
+    #tv-widget-host .tradingview-widget-container { height: 100%; }
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-white">
@@ -182,18 +183,24 @@
     <main class="flex-1 min-w-0">
       <div class="px-4 md:px-6 pt-4 pb-8 space-y-6">
         <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
             <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
               <i class="fa-solid fa-bars"></i>
             </button>
             <div class="hidden md:flex items-center text-sm font-semibold text-slate-600">Symbols overview</div>
           </div>
-          <button id="hdr-profile-btn" class="btn h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Profile">
-            <img id="hdr-avatar" src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/user-01-stroke-rounded.svg" alt="Profile avatar" class="w-5 h-5 rounded-full object-cover" />
+          <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+            <img id="hdr-avatar" src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/user-01-stroke-rounded.svg" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+            <span id="hdr-name" class="hidden lg:inline-block lg:truncate lg:max-w-xs text-sm font-semibold text-slate-900">—</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
         </div>
 
         <header class="space-y-3">
+          <a href="/markets.html" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to markets</span>
+          </a>
           <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">AlgoHive Symbols</p>
           <div class="flex flex-wrap items-center gap-3">
             <h1 id="page-heading" class="text-3xl md:text-4xl font-bold text-slate-900">Loading…</h1>
@@ -207,7 +214,7 @@
         </section>
 
         <div class="grid lg:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
-          <section class="bg-white info-card p-4 space-y-3">
+          <section class="bg-white info-card p-4 space-y-3 h-full min-h-[840px]">
             <header class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-slate-500">Advanced chart</p>
@@ -215,7 +222,7 @@
               </div>
               <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Powered by TradingView</span>
             </header>
-            <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white min-h-[640px] md:min-h-[720px]"></div>
+            <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white h-full min-h-[740px] md:min-h-[860px]"></div>
           </section>
 
           <section class="bg-white info-card p-6 space-y-5">
@@ -379,6 +386,7 @@
     const pmProfile = document.getElementById('pm-profile');
     const pmAvatar = document.getElementById('pm-avatar');
     const hdrAvatar = document.getElementById('hdr-avatar');
+    const hdrName = document.getElementById('hdr-name');
     const orderSymbolEls = document.querySelectorAll('[data-order-symbol]');
     const orderExchangeEl = document.getElementById('order-exchange');
     const orderPriceEl = document.getElementById('order-price');
@@ -577,12 +585,18 @@
           setText(pmProfile, 'Guest session');
           pmAvatar.src = BLANK_AVATAR;
           if (hdrAvatar) hdrAvatar.src = BLANK_AVATAR;
+          if (hdrName) setText(hdrName, 'Guest');
           return;
         }
 
         const { data: { user } } = await supabase.auth.getUser();
         setText(pmEmail, user?.email || 'Signed in');
         setText(pmProfile, user?.user_metadata?.account_mode || user?.user_metadata?.account_type || 'AlgoHive user');
+
+        const fullName = `${user?.user_metadata?.first_name || ''} ${user?.user_metadata?.last_name || ''}`.trim();
+        const fallbackName = (user?.email || '').split('@')[0] || 'User';
+        if (hdrName) setText(hdrName, fullName || user?.user_metadata?.full_name || fallbackName);
+
         const avatar = user?.user_metadata?.avatar_url || BLANK_AVATAR;
         pmAvatar.src = avatar;
         if (hdrAvatar) hdrAvatar.src = avatar;
