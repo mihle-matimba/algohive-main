@@ -446,6 +446,15 @@
     let currentPrice = null;
     let currentSide = 'buy';
 
+    const requireSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.replace('/auth.html?tab=in');
+        return false;
+      }
+      return true;
+    };
+
     const BLANK_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23f1f5f9'/><text x='50%' y='54%' text-anchor='middle' fill='%2394a3b8' font-size='22' font-family='Inter, sans-serif'>AH</text></svg>";
 
     const applyAvatarFallback = (img) => {
@@ -842,8 +851,11 @@
     orderQtyInput?.addEventListener('input', updateOrderValue);
     setOrderSide(currentSide);
 
-    hydrateProfile();
-    lookupInstrument(initialSymbol);
+    (async () => {
+      if (!await requireSession()) return;
+      hydrateProfile();
+      lookupInstrument(initialSymbol);
+    })();
   </script>
 </body>
 </html>
