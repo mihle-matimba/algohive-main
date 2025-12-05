@@ -668,7 +668,7 @@
             </div>
           </details>
 
-          <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="News &amp; Insights">
+          <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="/demo/news-insights.html" title="News &amp; Insights">
             <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
           </a>
 
@@ -679,7 +679,7 @@
           <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/my-strategies.html" title="My Strategies">
             <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">My Strategies</span>
           </a>
-          <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Account Statements">
+          <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/account-statements.html" title="Account Statements">
             <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Account Statements</span>
           </a>
           <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Funding">
@@ -1012,7 +1012,7 @@
         <div id="profile-email" class="text-xs text-slate-500 truncate">—</div>
       </div>
       <div class="p-2">
-        <a id="profile-settings" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+        <a id="profile-settings" href="/demo/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
           <i class="fa-regular fa-user text-slate-500 w-4"></i>
           <span>Profile settings</span>
         </a>
@@ -1176,6 +1176,7 @@
     let latestAccount = null;
     let currentUser = null;
     let displayName = "—";
+    let firstName = "";
     let allocationsCache = [];
     let activeAllocationId = null;
     let allocationFilter = "active";
@@ -2188,7 +2189,7 @@
       }
       const metaType = session.user?.user_metadata?.account_type;
       if (metaType !== "paper") {
-        location.replace("/home.html");
+        location.replace("/demo/dashboard.html");
         return null;
       }
       return session.user;
@@ -2266,15 +2267,23 @@
       return "Good evening";
     }
 
+    function formatDateLabel(dateLike) {
+      if (!dateLike) return "";
+      const date = new Date(dateLike);
+      if (Number.isNaN(date.valueOf())) return "";
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
     function renderProfile(profile = {}, fallbackEmail = "") {
       const fullName =
         [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || profile?.full_name || fallbackEmail || "Demo User";
       const greeting = getGreeting();
 
       displayName = fullName || fallbackEmail || "Demo User";
+      firstName = (profile?.first_name || fullName || "").split(" ")[0] || "there";
 
-      if (welcomeName) welcomeName.textContent = `${greeting}, ${fullName}.`;
-      if (welcomeSub) welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+      if (welcomeName) welcomeName.textContent = `${greeting}, ${firstName}`;
+      updateWelcomeSummary();
       if (pfName) pfName.textContent = "Strategy";
       if (pfSub) pfSub.textContent = "Select a strategy to view its equity curve.";
 
@@ -2329,6 +2338,8 @@
       const filtered = allocationFilter === "active"
         ? allocationsCache.filter((row) => (row?.status || "").toLowerCase() === "active")
         : allocationsCache;
+
+      updateWelcomeSummary(allocationsCache);
 
       if (filtered.length && (!activeAllocationId || !filtered.some((row) => row?.id === activeAllocationId))) {
         activeAllocationId = filtered[0]?.id || activeAllocationId;
@@ -2547,6 +2558,44 @@
       const returns = (activeAllocs || []).map((row) => Number(row?.latest_return_pct)).filter((num) => Number.isFinite(num));
       const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
       if (avgAllocReturn) avgAllocReturn.textContent = avg === null ? "—" : formatReturnPct(avg);
+    }
+
+    function updateWelcomeSummary(allocations = allocationsCache || []) {
+      const greeting = getGreeting();
+      const name = firstName || displayName || "there";
+      if (welcomeName) welcomeName.textContent = `${greeting}, ${name}`;
+
+      if (!welcomeSub) return;
+      if (!Array.isArray(allocations) || allocations.length === 0) {
+        welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+        return;
+      }
+
+      const activeAllocs = allocations.filter((row) => (row?.status || "").toLowerCase() === "active");
+      if (activeAllocs.length === 0) {
+        welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+        return;
+      }
+
+      const totalLatest = activeAllocs.reduce((sum, row) => {
+        const value = Number(row?.latest_value);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      const totalAllocated = activeAllocs.reduce((sum, row) => sum + (Number(row?.amount_invested) || 0), 0);
+      const delta = totalLatest - totalAllocated;
+
+      const currency = activeAllocs.find((row) => row?.base_currency)?.base_currency || activeCurrency || "USD";
+      const earliest = activeAllocs.reduce((min, row) => {
+        const start = row?.start_date ? new Date(row.start_date) : null;
+        if (!start || Number.isNaN(start.valueOf())) return min;
+        return !min || start < min ? start : min;
+      }, null);
+
+      const dateLabel = formatDateLabel(earliest);
+      const sinceLabel = dateLabel ? `since ${dateLabel}` : "since you started";
+      const trendClass = delta >= 0 ? "text-emerald-600" : "text-rose-600";
+      const deltaLabel = formatMoneyDelta(delta, currency);
+      welcomeSub.innerHTML = `Your AlgoHive strategies have returned <span class="font-semibold ${trendClass}">${deltaLabel}</span> ${sinceLabel}.`;
     }
 
     async function loadStrategyContext(allocation = null) {
@@ -2848,7 +2897,8 @@
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
-        await hydrateAllocations(user.id);
+        const allocations = await hydrateAllocations(user.id);
+        updateWelcomeSummary(allocations);
         await hydrateWatchlist(latestProfile, currentUser);
         refreshChart(latestProfile, latestAccount);
       } catch (error) {
