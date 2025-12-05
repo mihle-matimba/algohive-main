@@ -721,8 +721,14 @@
 
     @media (max-width: 768px) {
         .news-grid {
-            grid-template-columns: 1fr;
+            display: flex;
+            overflow-x: auto;
             gap: 16px;
+            padding-bottom: 12px;
+            scroll-snap-type: x mandatory;
+        }
+        .news-grid::-webkit-scrollbar {
+            display: none;
         }
         .top-stories-grid {
             grid-template-columns: 1fr;
@@ -790,6 +796,9 @@
 
         .news-card {
             padding: 20px;
+            min-width: 280px;
+            flex-shrink: 0;
+            scroll-snap-align: start;
         }
 
         .news-title {
@@ -1005,6 +1014,7 @@
 
           <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
             <img id="hdr-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200"/>
+                        <span id="hdr-name" class="hidden lg:inline-block text-sm font-semibold text-slate-900">—</span>
             <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
         </div>
@@ -1080,6 +1090,26 @@
       </div>
     </main>
   </div>
+
+    <div id="profile-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/40"></div>
+        <div class="absolute right-6 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-200">
+                <div class="text-sm font-semibold text-slate-900">Account</div>
+                <div id="pm-email" class="text-xs text-slate-500 truncate">—</div>
+            </div>
+            <div class="p-2">
+                <a id="pm-profile" href="/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+                    <i class="fa-regular fa-user text-slate-500 w-4"></i>
+                    <span>Profile settings</span>
+                </a>
+                <button id="pm-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
+                    <i class="fa-solid fa-right-from-bracket w-4"></i>
+                    <span>Log out</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
   <div id="articleModal" class="article-modal" aria-hidden="true">
       <div class="article-modal-content" role="dialog" aria-modal="true" aria-label="Story preview">
@@ -1179,6 +1209,10 @@
     })();
   </script>
 
+        <script type="module" nonce="ALGOHIVE">
+                import '/js/guard.js';
+        </script>
+
     <script type="module" nonce="ALGOHIVE">
         import { supabase } from '/js/supabase.js';
 
@@ -1192,6 +1226,11 @@
         const articleModalFrame = document.getElementById('articleModalFrame');
         const articleModalPreview = document.getElementById('articleModalPreview');
         const articleModalCloseBtn = document.getElementById('articleModalClose');
+        const headerNameEl = document.getElementById('hdr-name');
+        const headerAvatarEl = document.getElementById('hdr-avatar');
+        const profileDropdownLabel = document.getElementById('pm-email');
+        const profileButton = document.getElementById('hdr-profile-btn');
+        const profileLogoutBtn = document.getElementById('pm-logout');
 
         let loadedCount = 0;
         let totalCount = null;
@@ -1207,6 +1246,79 @@
                 applyFilters();
             });
         });
+
+        async function hydrateHeader() {
+            try {
+                const { data: userWrap } = await supabase.auth.getUser();
+                const user = userWrap?.user;
+                if (!user) return null;
+
+                let profile = null;
+                try {
+                    const { data } = await supabase
+                        .from('profiles')
+                        .select('full_name,first_name,last_name,avatar_url')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    profile = data || null;
+                } catch (error) {
+                    console.warn('Profile lookup failed', error);
+                }
+
+                const displayName = computeDisplayName(user, profile);
+                if (headerNameEl) headerNameEl.textContent = displayName;
+                if (profileDropdownLabel) profileDropdownLabel.textContent = displayName;
+
+                if (headerAvatarEl) {
+                    const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
+                    headerAvatarEl.src = avatarUrl || buildFallbackAvatar(displayName);
+                }
+
+                return user;
+            } catch (error) {
+                console.error('Failed to hydrate header', error);
+                return null;
+            }
+        }
+
+        function computeDisplayName(user = {}, profile = {}) {
+            const candidates = [
+                profile.full_name,
+                [profile.first_name, profile.last_name].filter(Boolean).join(' '),
+                user?.user_metadata?.full_name,
+                [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(' '),
+                user?.email
+            ];
+            return candidates.find(name => name && name.trim()) || '—';
+        }
+
+        function buildFallbackAvatar(name = '') {
+            const initial = (name.match(/[A-Za-z]/)?.[0] || 'A').toUpperCase();
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+                <rect width='100%' height='100%' rx='8' ry='8' fill='#111827'/>
+                <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle' font-family='Inter, Arial, sans-serif' font-size='36' fill='#fff'>${initial}</text>
+            </svg>`;
+            return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+        }
+
+        function wireProfileMenu() {
+            const modal = document.getElementById('profile-modal');
+            profileButton?.addEventListener('click', () => {
+                modal?.classList.toggle('hidden');
+            });
+            modal?.addEventListener('click', (event) => {
+                if (event.target === modal) modal.classList.add('hidden');
+            });
+            profileLogoutBtn?.addEventListener('click', async () => {
+                try {
+                    await supabase.auth.signOut();
+                } catch (error) {
+                    console.error('Sign out failed', error);
+                } finally {
+                    location.replace('/auth.html');
+                }
+            });
+        }
 
         searchInput?.addEventListener('input', (event) => {
             searchKeyword = event.target.value.trim().toLowerCase();
@@ -1494,8 +1606,14 @@
             })[char] || char);
         }
 
-        loadInitialNews();
-        loadTopStories();
+        async function initPage() {
+            await hydrateHeader();
+            wireProfileMenu();
+            await loadInitialNews();
+            await loadTopStories();
+        }
+
+        initPage();
     </script>
 
     <script nonce="ALGOHIVE">
