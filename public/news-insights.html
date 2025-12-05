@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoHive — News &amp; Insights</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
@@ -550,7 +550,10 @@
     }
 
     @media (max-width: 768px) {
-        .news-grid, .top-stories-grid {
+        .news-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .top-stories-grid {
             grid-template-columns: 1fr;
         }
         
@@ -654,7 +657,7 @@
           </div>
         </details>
 
-        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 bg-slate-900 text-white font-semibold" href="/news-insights.html" title="News &amp; Insights">
+        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="/news-insights.html" title="News &amp; Insights">
           <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
         </a>
 
@@ -803,7 +806,7 @@
       </div>
   </div>
 
-  <script>
+    <script nonce="ALGOHIVE">
     // Mobile sidebar toggle
     (function () {
       const btn = document.getElementById('ah-mobile-menu-btn');
@@ -825,7 +828,7 @@
     })();
   </script>
 
-  <script>
+    <script nonce="ALGOHIVE">
     // Desktop sidebar collapse memory
     (function () {
       const layout = document.getElementById('layout');
@@ -843,200 +846,229 @@
     })();
   </script>
 
-    <script type="module">
+    <script type="module" nonce="ALGOHIVE">
         import { supabase } from '/js/supabase.js';
 
-      // Tab functionality
-      document.querySelectorAll('.tab').forEach(tab => {
-          tab.addEventListener('click', () => {
-              document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-              tab.classList.add('active');
-          });
-      });
+        const PAGE_SIZE = 8;
+        const newsContainer = document.getElementById('newsContainer');
+        const viewMoreContainer = document.getElementById('viewMoreContainer');
+        const viewMoreLink = document.getElementById('viewMoreLink');
+        const topStoriesContainer = document.getElementById('topStories');
+        const searchInput = document.getElementById('searchInput');
 
-      // Search functionality
-      document.getElementById('searchInput').addEventListener('input', (e) => {
-          const searchTerm = e.target.value.toLowerCase();
-          document.querySelectorAll('.news-card').forEach(card => {
-              const title = card.querySelector('.news-title').textContent.toLowerCase();
-              card.style.display = title.includes(searchTerm) ? 'block' : 'none';
-          });
-      });
+        let loadedCount = 0;
+        let totalCount = null;
+        let isLoadingMore = false;
 
-      // Inline article modal controls
-      const articleModal = document.getElementById('articleModal');
-      const articleModalFrame = document.getElementById('articleModalFrame');
-      const articleModalCloseBtn = document.getElementById('articleModalClose');
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
 
-      const openArticleModal = (link) => {
-          if (!link) return;
+        searchInput?.addEventListener('input', (event) => {
+            const searchTerm = event.target.value.toLowerCase();
+            document.querySelectorAll('.news-card').forEach(card => {
+                const title = card.querySelector('.news-title')?.textContent.toLowerCase() || '';
+                card.style.display = title.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
 
-          if (!articleModal || !articleModalFrame) {
-              window.open(link, '_blank');
-              return;
-          }
+        const articleModal = document.getElementById('articleModal');
+        const articleModalFrame = document.getElementById('articleModalFrame');
+        const articleModalCloseBtn = document.getElementById('articleModalClose');
 
-          articleModalFrame.src = link;
-          articleModal.classList.add('is-visible');
-          articleModal.setAttribute('aria-hidden', 'false');
-      };
+        const openArticleModal = (link) => {
+            if (!link) return;
+            if (!articleModal || !articleModalFrame) {
+                window.open(link, '_blank');
+                return;
+            }
+            articleModalFrame.src = link;
+            articleModal.classList.add('is-visible');
+            articleModal.setAttribute('aria-hidden', 'false');
+        };
 
-      const closeArticleModal = () => {
-          if (!articleModal || !articleModalFrame) return;
-          articleModalFrame.src = 'about:blank';
-          articleModal.classList.remove('is-visible');
-          articleModal.setAttribute('aria-hidden', 'true');
-      };
+        const closeArticleModal = () => {
+            if (!articleModal || !articleModalFrame) return;
+            articleModalFrame.src = 'about:blank';
+            articleModal.classList.remove('is-visible');
+            articleModal.setAttribute('aria-hidden', 'true');
+        };
 
-      articleModalCloseBtn?.addEventListener('click', closeArticleModal);
-      articleModal?.addEventListener('click', (event) => {
-          if (event.target === articleModal) {
-              closeArticleModal();
-          }
-      });
-      document.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape') {
-              closeArticleModal();
-          }
-      });
+        articleModalCloseBtn?.addEventListener('click', closeArticleModal);
+        articleModal?.addEventListener('click', (event) => {
+            if (event.target === articleModal) closeArticleModal();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeArticleModal();
+        });
 
-      // Fetch and render news items from Supabase
-      async function loadNewsFeed() {
-          const newsContainer = document.getElementById('newsContainer');
-          const viewMoreContainer = document.getElementById('viewMoreContainer');
-          const viewMoreLink = document.getElementById('viewMoreLink');
-          
-          try {
-              // Fetch articles from Supabase, ordered by published date
-              const { data: articles, error } = await supabase
-                  .from('news_articles')
-                  .select('*')
-                  .order('published_at', { ascending: false })
-                  .limit(8);
-              
-              if (error) throw error;
-              
-              if (!articles || articles.length === 0) {
-                  newsContainer.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> No news items found</div>';
-                  return;
-              }
-              
-              newsContainer.innerHTML = '';
-              
-              // Populate main grid
-              articles.forEach((article, index) => {
-                  const card = createNewsCard(article);
-                  
-                  // Hide cards after the first 4
-                  if (index >= 4) {
-                      card.classList.add('hidden');
-                  }
-                  
-                  newsContainer.appendChild(card);
-              });
+        viewMoreLink?.addEventListener('click', async (event) => {
+            event.preventDefault();
+            if (!isLoadingMore) await loadMoreNews();
+        });
 
-              // Show view more link if there are more than 4 items which they are in the table 
-              if (articles.length > 4) {
-                  viewMoreContainer.classList.remove('hidden');
-                  
-                  viewMoreLink.addEventListener('click', (e) => {
-                      e.preventDefault();
-                      document.querySelectorAll('.news-card.hidden').forEach(card => {
-                          card.classList.remove('hidden');
-                      });
-                      viewMoreContainer.classList.add('hidden');
-                  });
-              }
+        async function fetchArticles(offset) {
+            const { data, count, error } = await supabase
+                .from('news_articles')
+                .select('id,title,preview_text,source,primary_ticker,tickers,category,published_at,link,is_top_story', { count: 'exact' })
+                .order('published_at', { ascending: false })
+                .range(offset, offset + PAGE_SIZE - 1);
 
-              // Populate top stories (articles marked as top stories)
-              populateTopStories(articles.filter(a => a.is_top_story).slice(0, 6));
-          } catch (error) {
-              console.error('Error loading news:', error);
-              newsContainer.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> Failed to load news articles</div>';
-          }
-      }
+            if (error) throw error;
+            if (typeof count === 'number') totalCount = count;
+            return data || [];
+        }
 
-      function populateTopStories(articles) {
-          const topStoriesContainer = document.getElementById('topStories');
-          topStoriesContainer.innerHTML = '';
-          
-          if (!articles || articles.length === 0) {
-              topStoriesContainer.innerHTML = '<p style="color: #9ca3af;">No top stories available</p>';
-              return;
-          }
-          
-          articles.forEach((article, index) => {
-              const dateObj = new Date(article.published_at);
-              
-              const storyDiv = document.createElement('div');
-              storyDiv.className = 'top-story';
-              storyDiv.innerHTML = `
-                  <span class="top-story-number">${index + 1}</span>
-                  <div class="top-story-content">
-                      <div class="top-story-title">${article.title}</div>
-                      <div class="top-story-meta">
-                          <i class="far fa-clock"></i>
-                          ${getTimeAgo(dateObj)}
-                      </div>
-                  </div>
-              `;
-              if (article.link) {
-                  storyDiv.addEventListener('click', () => openArticleModal(article.link));
-              }
-              topStoriesContainer.appendChild(storyDiv);
-          });
-      }
+        function appendArticles(articles) {
+            articles.forEach(article => {
+                const card = createNewsCard(article);
+                newsContainer?.appendChild(card);
+            });
+            loadedCount += articles.length;
+        }
 
-      function createNewsCard(article) {
-          const card = document.createElement('div');
-          card.className = 'news-card';
-          
-          const date = new Date(article.published_at);
-          const timeAgo = getTimeAgo(date);
-          const primaryTicker = article.primary_ticker;
-          const tickers = article.tickers || [];
-          
-          card.innerHTML = `
-              <div class="news-source">
-                  <i class="fas fa-newspaper"></i>
-                  ${article.source || 'Alliance News SA'}
-              </div>
-              ${primaryTicker ? `<span class="news-ticker">${primaryTicker}</span>` : ''}
-              ${tickers.slice(0, 2).map(t => t !== primaryTicker ? `<span class="news-ticker">${t}</span>` : '').join('')}
-              <div class="news-title">${article.title}</div>
-              <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin: 12px 0;">${article.preview_text || 'Click to read more...'}</p>
-              <div class="news-meta">
-                  <div class="news-time">
-                      <i class="far fa-clock"></i>
-                      <span>${timeAgo}</span>
-                  </div>
-                  <div class="news-time">
-                      <i class="fas fa-chart-line"></i>
-                      <span>${article.category || 'Markets'}</span>
-                  </div>
-              </div>
-          `;
-          
-          if (article.link) {
-              card.addEventListener('click', () => {
-                  openArticleModal(article.link);
-              });
-          }
-          
-          return card;
-      }
+        function updateViewMoreVisibility(lastBatchLength) {
+            if (!viewMoreContainer) return;
+            const moreAvailable = totalCount === null ? lastBatchLength === PAGE_SIZE : loadedCount < totalCount;
+            viewMoreContainer.classList.toggle('hidden', !moreAvailable);
+        }
 
-      function getTimeAgo(date) {
-          const seconds = Math.floor((new Date() - date) / 1000);
-          
-          if (seconds < 60) return `${seconds}s ago`;
-          if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-          if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-          return `${Math.floor(seconds / 86400)}d ago`;
-      }
+        async function loadInitialNews() {
+            try {
+                const articles = await fetchArticles(0);
+                if (!articles.length) {
+                    newsContainer.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> No news items found</div>';
+                    updateViewMoreVisibility(0);
+                    return;
+                }
+                newsContainer.innerHTML = '';
+                appendArticles(articles);
+                updateViewMoreVisibility(articles.length);
+            } catch (error) {
+                console.error('Error loading news:', error);
+                newsContainer.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> Failed to load news articles</div>';
+            }
+        }
 
-      // Load news feed on page load or at least i hope it does 
-      loadNewsFeed();
-  </script>
+        async function loadMoreNews() {
+            isLoadingMore = true;
+            const originalLabel = viewMoreLink?.innerHTML;
+            if (viewMoreLink) {
+                viewMoreLink.innerHTML = 'Loading <i class="fas fa-circle-notch fa-spin"></i>';
+                viewMoreLink.setAttribute('aria-busy', 'true');
+            }
+            try {
+                const articles = await fetchArticles(loadedCount);
+                if (!articles.length) {
+                    updateViewMoreVisibility(0);
+                    return;
+                }
+                appendArticles(articles);
+                updateViewMoreVisibility(articles.length);
+            } catch (error) {
+                console.error('Error loading more news:', error);
+            } finally {
+                isLoadingMore = false;
+                if (viewMoreLink) {
+                    viewMoreLink.innerHTML = originalLabel || 'View More <i class="fas fa-arrow-right"></i>';
+                    viewMoreLink.removeAttribute('aria-busy');
+                }
+            }
+        }
+
+        async function loadTopStories() {
+            if (!topStoriesContainer) return;
+            try {
+                const { data: topStories, error } = await supabase
+                    .from('news_articles')
+                    .select('id,title,link,published_at')
+                    .eq('is_top_story', true)
+                    .order('published_at', { ascending: false })
+                    .limit(6);
+
+                if (error) throw error;
+
+                if (!topStories || !topStories.length) {
+                    topStoriesContainer.innerHTML = '<p style="color: #9ca3af;">No top stories available</p>';
+                    return;
+                }
+
+                topStoriesContainer.innerHTML = '';
+                topStories.forEach((article, index) => {
+                    const storyDiv = document.createElement('div');
+                    storyDiv.className = 'top-story';
+                    storyDiv.innerHTML = `
+                        <span class="top-story-number">${index + 1}</span>
+                        <div class="top-story-content">
+                            <div class="top-story-title">${article.title}</div>
+                            <div class="top-story-meta">
+                                <i class="far fa-clock"></i>
+                                ${getTimeAgo(new Date(article.published_at))}
+                            </div>
+                        </div>
+                    `;
+                    if (article.link) storyDiv.addEventListener('click', () => openArticleModal(article.link));
+                    topStoriesContainer.appendChild(storyDiv);
+                });
+            } catch (error) {
+                console.error('Error loading top stories:', error);
+                topStoriesContainer.innerHTML = '<p style="color: #dc2626;">Failed to load top stories</p>';
+            }
+        }
+
+        function createNewsCard(article) {
+            const card = document.createElement('div');
+            card.className = 'news-card';
+
+            const date = new Date(article.published_at);
+            const timeAgo = getTimeAgo(date);
+            const primaryTicker = article.primary_ticker;
+            const tickers = normaliseTickers(article.tickers).filter(ticker => ticker !== primaryTicker);
+
+            card.innerHTML = `
+                <div class="news-source">
+                    <i class="fas fa-newspaper"></i>
+                    ${article.source || 'Alliance News SA'}
+                </div>
+                ${primaryTicker ? `<span class="news-ticker">${primaryTicker}</span>` : ''}
+                ${tickers.slice(0, 2).map(t => `<span class="news-ticker">${t}</span>`).join('')}
+                <div class="news-title">${article.title}</div>
+                <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin: 12px 0;">${article.preview_text || 'Click to read more...'}</p>
+                <div class="news-meta">
+                    <div class="news-time">
+                        <i class="far fa-clock"></i>
+                        <span>${timeAgo}</span>
+                    </div>
+                    <div class="news-time">
+                        <i class="fas fa-chart-line"></i>
+                        <span>${article.category || 'Markets'}</span>
+                    </div>
+                </div>
+            `;
+
+            if (article.link) card.addEventListener('click', () => openArticleModal(article.link));
+            return card;
+        }
+
+        function normaliseTickers(value) {
+            if (Array.isArray(value)) return value.filter(Boolean);
+            if (typeof value === 'string') return value.split(',').map(t => t.trim()).filter(Boolean);
+            return [];
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        loadInitialNews();
+        loadTopStories();
+    </script>
 </body>
 </html>
