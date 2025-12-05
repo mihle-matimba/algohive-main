@@ -269,21 +269,9 @@
                     <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Latest</span>
                   </div>
                   <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                      <thead class="text-left text-slate-500 uppercase tracking-[0.08em] text-[11px]">
-                        <tr>
-                          <th class="py-2 pr-3">Symbol</th>
-                          <th class="py-2 pr-3">Qty</th>
-                          <th class="py-2 pr-3">Avg Price</th>
-                          <th class="py-2 pr-3">P/L</th>
-                          <th class="py-2">Day</th>
-                        </tr>
-                      </thead>
-                      <tbody id="positions-body" class="divide-y divide-slate-200 text-slate-900"></tbody>
-                    </table>
-                    <p class="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <p class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                       <i class="fa-solid fa-circle-info text-slate-500"></i>
-                      Positions can only be viewed on a live account. Demo data is shown here for reference.
+                      Positions can only be viewed on a live account.
                     </p>
                   </div>
                 </section>
@@ -623,35 +611,13 @@
     };
 
     const renderActivityTables = (instrument) => {
-      if (!positionsBody) return;
-
       const symbol = (instrument?.symbol || 'AAPL').toUpperCase();
-      const name = instrument?.name || symbol;
-      const price = typeof currentPrice === 'number' && !Number.isNaN(currentPrice) ? currentPrice : null;
 
       loadStrategyExposure(symbol);
 
-      const previewPositions = [
-        { symbol, qty: 25, avg: price ?? 125.12, pl: 245.6, day: 0.84 },
-        { symbol: 'CASH', qty: 1, avg: 1, pl: 0, day: 0 },
-      ];
-
-      positionsBody.innerHTML = previewPositions
-        .map((pos) => {
-          const isCash = pos.symbol === 'CASH';
-          const plClass = pos.pl >= 0 ? 'text-emerald-600' : 'text-rose-600';
-          const dayClass = pos.day >= 0 ? 'text-emerald-600' : 'text-rose-600';
-          return `
-            <tr>
-              <td class="py-2 pr-3 font-semibold">${pos.symbol}${isCash ? '' : ` · ${name}`}</td>
-              <td class="py-2 pr-3">${pos.qty}</td>
-              <td class="py-2 pr-3">${formatCurrency(pos.avg)}</td>
-              <td class="py-2 pr-3 ${plClass}">${formatCurrency(pos.pl)}</td>
-              <td class="py-2 ${dayClass}">${formatSigned(pos.day)}</td>
-            </tr>
-          `;
-        })
-        .join('');
+      if (positionsBody) {
+        positionsBody.innerHTML = '';
+      }
     };
 
     const applyLogo = (logoUrl, symbol) => {
