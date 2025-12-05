@@ -557,6 +557,10 @@
         overflow-y: auto;
     }
 
+    .article-modal-preview p + p {
+        margin-top: 1rem;
+    }
+
     .article-modal-meta {
         font-size: 13px;
         color: #94a3b8;
@@ -976,7 +980,7 @@
         async function fetchArticles(offset) {
             const { data, count, error } = await supabase
                 .from('news_articles')
-                .select('id,title,preview_text,source,primary_ticker,tickers,category,published_at,link,is_top_story', { count: 'exact' })
+                .select('id,title,preview_text,full_content,source,primary_ticker,tickers,category,published_at,link,is_top_story', { count: 'exact' })
                 .order('published_at', { ascending: false })
                 .range(offset, offset + PAGE_SIZE - 1);
 
@@ -1048,7 +1052,7 @@
             try {
                 const { data: topStories, error } = await supabase
                     .from('news_articles')
-                    .select('id,title,link,published_at,preview_text,category,source,primary_ticker,tickers')
+                    .select('id,title,link,published_at,preview_text,full_content,category,source,primary_ticker,tickers')
                     .eq('is_top_story', true)
                     .order('published_at', { ascending: false })
                     .limit(6);
@@ -1088,7 +1092,7 @@
             const card = document.createElement('div');
             card.className = 'news-card';
             card.dataset.category = article.category || 'Markets';
-            card.dataset.search = `${(article.title || '')} ${(article.preview_text || '')}`.toLowerCase();
+            card.dataset.search = `${(article.title || '')} ${(article.preview_text || '')} ${(article.full_content || '')}`.toLowerCase();
             card.dataset.title = article.title || '';
 
             const date = new Date(article.published_at);
@@ -1145,9 +1149,8 @@
             `;
             container.appendChild(meta);
 
-            const body = document.createElement('p');
-            body.textContent = article.preview_text || 'No preview available.';
-            container.appendChild(body);
+            const bodyText = article.full_content || article.preview_text || 'No story content available.';
+            appendArticleParagraphs(container, bodyText);
 
             if (article.link) {
                 const link = document.createElement('a');
@@ -1169,6 +1172,21 @@
             if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
             if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
             return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        function appendArticleParagraphs(container, text) {
+            const segments = String(text || '')
+                .split(/\n{2,}/)
+                .map(segment => segment.trim())
+                .filter(Boolean);
+
+            if (!segments.length) segments.push('No story content available.');
+
+            segments.forEach(segment => {
+                const paragraph = document.createElement('p');
+                paragraph.textContent = segment;
+                container.appendChild(paragraph);
+            });
         }
 
         function escapeHTML(value = '') {
