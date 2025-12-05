@@ -736,14 +736,38 @@
         });
     };
 
+    const normalizePct = (raw) => {
+      if (!Number.isFinite(raw)) return null;
+      const pct = Number(raw);
+      // If we get whole-number percentages (e.g., 5 for 5%), scale them down to decimals.
+      if (Math.abs(pct) > 2) return pct / 100;
+      return pct;
+    };
+
+    const sampleSeries = (series = [], maxPoints = 365) => {
+      if (!Array.isArray(series) || series.length <= maxPoints) return series || [];
+      const step = Math.ceil(series.length / maxPoints);
+      const sampled = [];
+      for (let i = 0; i < series.length; i += step) {
+        sampled.push(series[i]);
+      }
+      // Ensure we include the latest point for an accurate ending value.
+      if (sampled[sampled.length - 1] !== series[series.length - 1]) {
+        sampled.push(series[series.length - 1]);
+      }
+      return sampled;
+    };
+
     const buildCurveFromDailySeries = (src = []) => {
       const labels = [];
       const curveVals = [];
       let level = 100;
       let firstLevel = null;
 
-      for (const point of src || []) {
-        const pct = Number(point?.pct);
+      const series = sampleSeries(src || [], 360);
+
+      for (const point of series) {
+        const pct = normalizePct(point?.pct);
         if (!Number.isFinite(pct)) continue;
         level = level * (1 + pct);
         const lvlRounded = Number(level.toFixed(2));
