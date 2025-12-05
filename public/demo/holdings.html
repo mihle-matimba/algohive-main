@@ -117,6 +117,23 @@
       rotate: 180deg
     }
 
+    .avatar-ring {
+      box-shadow: 0 0 0 2px #fff, 0 0 0 3px #e2e8f0;
+    }
+
+    .asset-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      object-fit: contain;
+      background: #fff;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #475569;
+    }
+
     #ah-brand-switcher summary {
       list-style: none;
       cursor: pointer
@@ -322,10 +339,11 @@
             </div>
           </div>
 
-          <a href="/demo/strategies.html" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50 text-sm font-semibold">
-            <i class="fa-solid fa-diagram-project text-slate-500"></i>
-            Explore Strategies
-          </a>
+          <button id="profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+            <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200 avatar-ring" />
+            <span id="profile-name" class="text-sm font-semibold text-slate-900 hidden sm:inline">Demo User</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
         </div>
       </div>
 
@@ -349,12 +367,21 @@
         </div>
 
         <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
             <div>
-              <p class="text-sm font-semibold text-slate-900">Current Allocation</p>
-              <p class="text-xs text-slate-500">Demo balances update with every refresh.</p>
+              <p class="text-sm font-semibold text-slate-900">Aggregate Holdings</p>
+              <p class="text-xs text-slate-500">Across all demo strategies using target weights.</p>
             </div>
-            <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Live Mock Data</span>
+            <div class="flex items-center gap-3 text-sm font-semibold text-slate-700">
+              <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <i class="fa-solid fa-wallet text-[var(--olive)]"></i>
+                <span id="total-invested">—</span>
+              </span>
+              <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <i class="fa-solid fa-chart-pie text-[var(--olive)]"></i>
+                <span id="distinct-assets">— assets</span>
+              </span>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -362,34 +389,13 @@
                 <tr>
                   <th class="px-4 py-3">Asset</th>
                   <th class="px-4 py-3">Allocation</th>
-                  <th class="px-4 py-3">Value</th>
+                  <th class="px-4 py-3">Market value</th>
                   <th class="px-4 py-3">P/L</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100 bg-white">
+              <tbody id="holdings-body" class="divide-y divide-slate-100 bg-white">
                 <tr>
-                  <td class="px-4 py-3 font-semibold text-slate-900">US Equity Basket</td>
-                  <td class="px-4 py-3 text-slate-700">45%</td>
-                  <td class="px-4 py-3 text-slate-700">$12,450.00</td>
-                  <td class="px-4 py-3 font-semibold text-emerald-600">+3.4%</td>
-                </tr>
-                <tr class="bg-slate-50/40">
-                  <td class="px-4 py-3 font-semibold text-slate-900">Digital Assets</td>
-                  <td class="px-4 py-3 text-slate-700">25%</td>
-                  <td class="px-4 py-3 text-slate-700">$6,900.00</td>
-                  <td class="px-4 py-3 font-semibold text-emerald-600">+1.2%</td>
-                </tr>
-                <tr>
-                  <td class="px-4 py-3 font-semibold text-slate-900">Fixed Income</td>
-                  <td class="px-4 py-3 text-slate-700">20%</td>
-                  <td class="px-4 py-3 text-slate-700">$5,500.00</td>
-                  <td class="px-4 py-3 font-semibold text-orange-500">–0.4%</td>
-                </tr>
-                <tr class="bg-slate-50/40">
-                  <td class="px-4 py-3 font-semibold text-slate-900">Cash</td>
-                  <td class="px-4 py-3 text-slate-700">10%</td>
-                  <td class="px-4 py-3 text-slate-700">$2,750.00</td>
-                  <td class="px-4 py-3 font-semibold text-slate-600">0.0%</td>
+                  <td colspan="4" class="px-4 py-4 text-sm text-slate-500">Loading holdings…</td>
                 </tr>
               </tbody>
             </table>
@@ -408,6 +414,33 @@
         </div>
       </footer>
     </main>
+  </div>
+
+  <div id="profile-menu" class="fixed inset-0 z-[120] hidden">
+    <div id="profile-overlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-4 top-20 w-[320px] max-w-[calc(100%-2rem)] rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div class="flex items-center gap-3 px-4 py-3">
+        <img id="profile-menu-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-12 h-12 rounded-full object-cover border border-slate-200 avatar-ring" />
+        <div class="min-w-0">
+          <div id="profile-menu-name" class="text-sm font-semibold text-slate-900 truncate">Demo User</div>
+          <div id="profile-email" class="text-xs text-slate-500 truncate">demo@user.com</div>
+        </div>
+      </div>
+      <div class="border-t border-slate-200 px-3 py-2 text-sm text-slate-700">
+        <a href="/demo/settings.html#basic" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-solid fa-gear text-slate-500"></i>
+          Settings
+        </a>
+        <a href="/demo/strategies.html" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-solid fa-diagram-project text-slate-500"></i>
+          View strategies
+        </a>
+        <button id="profile-logout" class="flex w-full items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-left text-rose-700">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          Sign out of demo
+        </button>
+      </div>
+    </div>
   </div>
 
   <script nonce="ALGOHIVE">
@@ -455,6 +488,169 @@
 
       sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
         link.addEventListener('click', closeMenu);
+      });
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const profileBtn = document.getElementById('profile-btn');
+      const profileMenu = document.getElementById('profile-menu');
+      const profileOverlay = document.getElementById('profile-overlay');
+      const profileName = document.getElementById('profile-name');
+      const profileMenuName = document.getElementById('profile-menu-name');
+      const profileEmail = document.getElementById('profile-email');
+      const profileAvatar = document.getElementById('profile-avatar');
+      const profileMenuAvatar = document.getElementById('profile-menu-avatar');
+
+      const demoProfile = {
+        name: 'Demo User',
+        email: 'demo@user.com',
+        avatar: 'https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/profile/demo-avatar.png',
+      };
+
+      function setProfile(profile) {
+        if (profileName) profileName.textContent = profile?.name || 'Demo User';
+        if (profileMenuName) profileMenuName.textContent = profile?.name || 'Demo User';
+        if (profileEmail) profileEmail.textContent = profile?.email || 'demo@user.com';
+        const avatarSrc = profile?.avatar || profileAvatar?.src;
+        if (avatarSrc) {
+          if (profileAvatar) profileAvatar.src = avatarSrc;
+          if (profileMenuAvatar) profileMenuAvatar.src = avatarSrc;
+        }
+      }
+
+      function closeMenu() {
+        profileMenu?.classList.add('hidden');
+      }
+
+      profileBtn?.addEventListener('click', () => {
+        profileMenu?.classList.toggle('hidden');
+      });
+
+      profileOverlay?.addEventListener('click', closeMenu);
+      profileMenu?.addEventListener('click', (e) => {
+        if (e.target === profileMenu) closeMenu();
+      });
+
+      document.getElementById('profile-logout')?.addEventListener('click', () => {
+        alert('Switch to a live account to manage your real profile.');
+        closeMenu();
+      });
+
+      setProfile(demoProfile);
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const holdingsBody = document.getElementById('holdings-body');
+      const totalInvested = document.getElementById('total-invested');
+      const distinctAssets = document.getElementById('distinct-assets');
+
+      const strategies = [
+        {
+          name: 'US Growth Pulse',
+          amount: 12500,
+          currency: 'USD',
+          targetWeights: [
+            { symbol: 'AAPL', name: 'Apple', weight: 0.22, changePct: 2.4, logo: 'https://logo.clearbit.com/apple.com' },
+            { symbol: 'MSFT', name: 'Microsoft', weight: 0.2, changePct: 1.8, logo: 'https://logo.clearbit.com/microsoft.com' },
+            { symbol: 'NVDA', name: 'NVIDIA', weight: 0.18, changePct: 3.1, logo: 'https://logo.clearbit.com/nvidia.com' },
+            { symbol: 'AMZN', name: 'Amazon', weight: 0.16, changePct: 1.2, logo: 'https://logo.clearbit.com/amazon.com' },
+            { symbol: 'GOOGL', name: 'Alphabet', weight: 0.14, changePct: 0.9, logo: 'https://logo.clearbit.com/abc.xyz' },
+            { symbol: 'TSLA', name: 'Tesla', weight: 0.1, changePct: -0.6, logo: 'https://logo.clearbit.com/tesla.com' },
+          ],
+        },
+        {
+          name: 'Global Income Blend',
+          amount: 8200,
+          currency: 'USD',
+          targetWeights: [
+            { symbol: 'VOO', name: 'S&P 500 ETF', weight: 0.32, changePct: 0.8, logo: 'https://logo.clearbit.com/vanguard.com' },
+            { symbol: 'BND', name: 'Total Bond ETF', weight: 0.28, changePct: -0.1, logo: 'https://logo.clearbit.com/vanguard.com' },
+            { symbol: 'GLD', name: 'Gold Trust', weight: 0.14, changePct: 0.6, logo: 'https://logo.clearbit.com/spdrgoldshares.com' },
+            { symbol: 'VEU', name: 'FTSE All-World ex-US', weight: 0.16, changePct: 0.4, logo: 'https://logo.clearbit.com/vanguard.com' },
+            { symbol: 'CASH', name: 'Cash Position', weight: 0.1, changePct: 0, logo: '' },
+          ],
+        },
+        {
+          name: 'Digital Edge',
+          amount: 6100,
+          currency: 'USD',
+          targetWeights: [
+            { symbol: 'BTC', name: 'Bitcoin', weight: 0.42, changePct: 2.2, logo: 'https://logo.clearbit.com/bitcoin.org' },
+            { symbol: 'ETH', name: 'Ethereum', weight: 0.36, changePct: 1.6, logo: 'https://logo.clearbit.com/ethereum.org' },
+            { symbol: 'SOL', name: 'Solana', weight: 0.14, changePct: -1.2, logo: 'https://logo.clearbit.com/solana.com' },
+            { symbol: 'USDC', name: 'USD Coin', weight: 0.08, changePct: 0.01, logo: 'https://logo.clearbit.com/circle.com' },
+          ],
+        },
+      ];
+
+      const totalAmount = strategies.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+      const holdingsMap = new Map();
+
+      strategies.forEach((strategy) => {
+        const base = Number(strategy.amount) || 0;
+        strategy.targetWeights.forEach((asset) => {
+          const weight = Number(asset.weight) || 0;
+          const value = base * weight;
+          if (!holdingsMap.has(asset.symbol)) {
+            holdingsMap.set(asset.symbol, {
+              symbol: asset.symbol,
+              name: asset.name,
+              logo: asset.logo,
+              value: 0,
+              weightValue: 0,
+              changePct: asset.changePct ?? null,
+            });
+          }
+          const record = holdingsMap.get(asset.symbol);
+          record.value += value;
+          record.weightValue += weight * base;
+          if (record.changePct == null && asset.changePct != null) record.changePct = asset.changePct;
+        });
+      });
+
+      const holdings = Array.from(holdingsMap.values())
+        .map((item) => ({
+          ...item,
+          weightPct: totalAmount ? (item.value / totalAmount) * 100 : 0,
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      if (totalInvested) totalInvested.textContent = `$${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (distinctAssets) distinctAssets.textContent = `${holdings.length} assets`;
+
+      if (!holdingsBody) return;
+      holdingsBody.innerHTML = '';
+
+      holdings.forEach((asset, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 === 1 ? 'bg-slate-50/40' : '';
+        const logo = asset.logo
+          ? `<img src="${asset.logo}" alt="${asset.symbol} logo" class="asset-logo" />`
+          : `<div class="asset-logo">${asset.symbol.slice(0, 2).toUpperCase()}</div>`;
+
+        const tone = asset.changePct == null ? 'text-slate-600' : asset.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600';
+        const changeLabel = asset.changePct == null ? '—' : `${asset.changePct >= 0 ? '+' : ''}${asset.changePct.toFixed(2)}%`;
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-900">
+            <div class="flex items-center gap-3">
+              ${logo}
+              <div>
+                <div>${asset.symbol}</div>
+                <div class="text-xs text-slate-500">${asset.name}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-slate-700">${asset.weightPct.toFixed(2)}%</td>
+          <td class="px-4 py-3 text-slate-700">$${asset.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="px-4 py-3 font-semibold ${tone}">${changeLabel}</td>
+        `;
+
+        holdingsBody.appendChild(tr);
       });
     })();
   </script>
