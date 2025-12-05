@@ -549,6 +549,39 @@
         background: #f9fafb;
     }
 
+    .article-modal-preview {
+        padding: 28px;
+        font-size: 15px;
+        line-height: 1.8;
+        color: #475569;
+        overflow-y: auto;
+    }
+
+    .article-modal-meta {
+        font-size: 13px;
+        color: #94a3b8;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .article-modal-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #7e8d52;
+        text-decoration: none;
+    }
+
+    .article-modal-link:hover {
+        color: #99aa66;
+    }
+
     @media (max-width: 768px) {
         .news-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -741,15 +774,15 @@
               <h2 class="section-title" style="margin-bottom: 24px;">Latest News</h2>
               
               <div class="tabs" style="margin-bottom: 32px;">
-                  <button class="tab active">All News</button>
-                  <button class="tab">Markets</button>
-                  <button class="tab">Stocks</button>
-                  <button class="tab">Forex</button>
-                  <button class="tab">Crypto</button>
-                  <button class="tab">Commodities</button>
-                  <button class="tab">Economics</button>
-                  <button class="tab">Technology</button>
-                  <button class="tab">Energy</button>
+                  <button class="tab active" data-category="All News">All News</button>
+                  <button class="tab" data-category="Markets">Markets</button>
+                  <button class="tab" data-category="Stocks">Stocks</button>
+                  <button class="tab" data-category="Forex">Forex</button>
+                  <button class="tab" data-category="Crypto">Crypto</button>
+                  <button class="tab" data-category="Commodities">Commodities</button>
+                  <button class="tab" data-category="Economics">Economics</button>
+                  <button class="tab" data-category="Technology">Technology</button>
+                  <button class="tab" data-category="Energy">Energy</button>
               </div>
 
               <div id="newsContainer" class="news-grid">
@@ -803,6 +836,7 @@
               </div>
           </div>
           <iframe id="articleModalFrame" class="article-modal-frame" title="News story" sandbox="allow-scripts allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
+          <div id="articleModalPreview" class="article-modal-frame article-modal-preview" style="display: none;"></div>
       </div>
   </div>
 
@@ -855,44 +889,61 @@
         const viewMoreLink = document.getElementById('viewMoreLink');
         const topStoriesContainer = document.getElementById('topStories');
         const searchInput = document.getElementById('searchInput');
+        const articleModal = document.getElementById('articleModal');
+        const articleModalFrame = document.getElementById('articleModalFrame');
+        const articleModalPreview = document.getElementById('articleModalPreview');
+        const articleModalCloseBtn = document.getElementById('articleModalClose');
 
         let loadedCount = 0;
         let totalCount = null;
         let isLoadingMore = false;
+        let activeCategory = 'All News';
+        let searchKeyword = '';
 
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
+                activeCategory = tab.dataset.category || tab.textContent.trim();
+                applyFilters();
             });
         });
 
         searchInput?.addEventListener('input', (event) => {
-            const searchTerm = event.target.value.toLowerCase();
-            document.querySelectorAll('.news-card').forEach(card => {
-                const title = card.querySelector('.news-title')?.textContent.toLowerCase() || '';
-                card.style.display = title.includes(searchTerm) ? 'block' : 'none';
-            });
+            searchKeyword = event.target.value.trim().toLowerCase();
+            applyFilters();
         });
 
-        const articleModal = document.getElementById('articleModal');
-        const articleModalFrame = document.getElementById('articleModalFrame');
-        const articleModalCloseBtn = document.getElementById('articleModalClose');
+        const openArticleModal = (article) => {
+            if (!article) return;
+            if (!articleModal) return;
 
-        const openArticleModal = (link) => {
-            if (!link) return;
-            if (!articleModal || !articleModalFrame) {
-                window.open(link, '_blank');
-                return;
+            // Set title
+            const titleEl = articleModal.querySelector('.article-modal-title span');
+            if (titleEl) titleEl.textContent = article.title || 'News Article';
+
+            if (articleModalFrame) {
+                articleModalFrame.style.display = 'none';
             }
-            articleModalFrame.src = link;
+            if (articleModalPreview) {
+                articleModalPreview.style.display = 'block';
+                renderArticlePreview(articleModalPreview, article);
+            }
+
             articleModal.classList.add('is-visible');
             articleModal.setAttribute('aria-hidden', 'false');
         };
 
         const closeArticleModal = () => {
-            if (!articleModal || !articleModalFrame) return;
-            articleModalFrame.src = 'about:blank';
+            if (!articleModal) return;
+            if (articleModalFrame) {
+                articleModalFrame.src = 'about:blank';
+                articleModalFrame.style.display = 'block';
+            }
+            if (articleModalPreview) {
+                articleModalPreview.style.display = 'none';
+                articleModalPreview.innerHTML = '';
+            }
             articleModal.classList.remove('is-visible');
             articleModal.setAttribute('aria-hidden', 'true');
         };
@@ -909,6 +960,18 @@
             event.preventDefault();
             if (!isLoadingMore) await loadMoreNews();
         });
+
+        function applyFilters() {
+            const normalizedCategory = activeCategory.toLowerCase();
+            const cards = document.querySelectorAll('.news-card');
+            cards.forEach(card => {
+                const cardCategory = (card.dataset.category || 'markets').toLowerCase();
+                const matchesCategory = normalizedCategory === 'all news' || cardCategory === normalizedCategory;
+                const searchableText = card.dataset.search || '';
+                const matchesSearch = !searchKeyword || searchableText.includes(searchKeyword);
+                card.style.display = matchesCategory && matchesSearch ? 'block' : 'none';
+            });
+        }
 
         async function fetchArticles(offset) {
             const { data, count, error } = await supabase
@@ -928,6 +991,7 @@
                 newsContainer?.appendChild(card);
             });
             loadedCount += articles.length;
+            applyFilters();
         }
 
         function updateViewMoreVisibility(lastBatchLength) {
@@ -984,7 +1048,7 @@
             try {
                 const { data: topStories, error } = await supabase
                     .from('news_articles')
-                    .select('id,title,link,published_at')
+                    .select('id,title,link,published_at,preview_text,category,source,primary_ticker,tickers')
                     .eq('is_top_story', true)
                     .order('published_at', { ascending: false })
                     .limit(6);
@@ -998,19 +1062,20 @@
 
                 topStoriesContainer.innerHTML = '';
                 topStories.forEach((article, index) => {
+                    const safeTitle = escapeHTML(article.title || 'Untitled');
                     const storyDiv = document.createElement('div');
                     storyDiv.className = 'top-story';
                     storyDiv.innerHTML = `
                         <span class="top-story-number">${index + 1}</span>
                         <div class="top-story-content">
-                            <div class="top-story-title">${article.title}</div>
+                            <div class="top-story-title">${safeTitle}</div>
                             <div class="top-story-meta">
                                 <i class="far fa-clock"></i>
                                 ${getTimeAgo(new Date(article.published_at))}
                             </div>
                         </div>
                     `;
-                    if (article.link) storyDiv.addEventListener('click', () => openArticleModal(article.link));
+                    storyDiv.addEventListener('click', () => openArticleModal(article));
                     topStoriesContainer.appendChild(storyDiv);
                 });
             } catch (error) {
@@ -1022,21 +1087,28 @@
         function createNewsCard(article) {
             const card = document.createElement('div');
             card.className = 'news-card';
+            card.dataset.category = article.category || 'Markets';
+            card.dataset.search = `${(article.title || '')} ${(article.preview_text || '')}`.toLowerCase();
+            card.dataset.title = article.title || '';
 
             const date = new Date(article.published_at);
             const timeAgo = getTimeAgo(date);
             const primaryTicker = article.primary_ticker;
             const tickers = normaliseTickers(article.tickers).filter(ticker => ticker !== primaryTicker);
+            const safeSource = escapeHTML(article.source || 'Alliance News SA');
+            const safeTitle = escapeHTML(article.title || 'Untitled');
+            const safePreview = escapeHTML(article.preview_text || 'Click to read more...');
+            const safeCategory = escapeHTML(article.category || 'Markets');
 
             card.innerHTML = `
                 <div class="news-source">
                     <i class="fas fa-newspaper"></i>
-                    ${article.source || 'Alliance News SA'}
+                    ${safeSource}
                 </div>
-                ${primaryTicker ? `<span class="news-ticker">${primaryTicker}</span>` : ''}
-                ${tickers.slice(0, 2).map(t => `<span class="news-ticker">${t}</span>`).join('')}
-                <div class="news-title">${article.title}</div>
-                <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin: 12px 0;">${article.preview_text || 'Click to read more...'}</p>
+                ${primaryTicker ? `<span class="news-ticker">${escapeHTML(primaryTicker)}</span>` : ''}
+                ${tickers.slice(0, 2).map(t => `<span class="news-ticker">${escapeHTML(t)}</span>`).join('')}
+                <div class="news-title">${safeTitle}</div>
+                <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin: 12px 0;">${safePreview}</p>
                 <div class="news-meta">
                     <div class="news-time">
                         <i class="far fa-clock"></i>
@@ -1044,12 +1116,12 @@
                     </div>
                     <div class="news-time">
                         <i class="fas fa-chart-line"></i>
-                        <span>${article.category || 'Markets'}</span>
+                        <span>${safeCategory}</span>
                     </div>
                 </div>
             `;
 
-            if (article.link) card.addEventListener('click', () => openArticleModal(article.link));
+            card.addEventListener('click', () => openArticleModal(article));
             return card;
         }
 
@@ -1059,12 +1131,54 @@
             return [];
         }
 
+        function renderArticlePreview(container, article) {
+            container.innerHTML = '';
+
+            const meta = document.createElement('div');
+            meta.className = 'article-modal-meta';
+            meta.innerHTML = `
+                <span>${escapeHTML(article.source || 'Alliance News SA')}</span>
+                <span>&middot;</span>
+                <span>${escapeHTML(article.category || 'Markets')}</span>
+                <span>&middot;</span>
+                <span>${getTimeAgo(new Date(article.published_at || Date.now()))}</span>
+            `;
+            container.appendChild(meta);
+
+            const body = document.createElement('p');
+            body.textContent = article.preview_text || 'No preview available.';
+            container.appendChild(body);
+
+            if (article.link) {
+                const link = document.createElement('a');
+                link.href = article.link;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = 'article-modal-link';
+                link.textContent = 'Read full story ';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-arrow-up-right-from-square';
+                link.appendChild(icon);
+                container.appendChild(link);
+            }
+        }
+
         function getTimeAgo(date) {
             const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
             if (seconds < 60) return `${seconds}s ago`;
             if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
             if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
             return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        function escapeHTML(value = '') {
+            return String(value).replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[char] || char);
         }
 
         loadInitialNews();
