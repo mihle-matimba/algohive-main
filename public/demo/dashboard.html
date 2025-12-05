@@ -2571,12 +2571,21 @@
         return;
       }
 
-      const totalLatest = allocations.reduce((sum, row) => {
-        const value = Number(row?.latest_value ?? row?.amount_invested);
+      const activeAllocs = allocations.filter((row) => (row?.status || "").toLowerCase() === "active");
+      if (activeAllocs.length === 0) {
+        welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+        return;
+      }
+
+      const totalLatest = activeAllocs.reduce((sum, row) => {
+        const value = Number(row?.latest_value);
         return sum + (Number.isFinite(value) ? value : 0);
       }, 0);
-      const currency = allocations.find((row) => row?.base_currency)?.base_currency || activeCurrency || "USD";
-      const earliest = allocations.reduce((min, row) => {
+      const totalAllocated = activeAllocs.reduce((sum, row) => sum + (Number(row?.amount_invested) || 0), 0);
+      const delta = totalLatest - totalAllocated;
+
+      const currency = activeAllocs.find((row) => row?.base_currency)?.base_currency || activeCurrency || "USD";
+      const earliest = activeAllocs.reduce((min, row) => {
         const start = row?.start_date ? new Date(row.start_date) : null;
         if (!start || Number.isNaN(start.valueOf())) return min;
         return !min || start < min ? start : min;
@@ -2584,7 +2593,9 @@
 
       const dateLabel = formatDateLabel(earliest);
       const sinceLabel = dateLabel ? `since ${dateLabel}` : "since you started";
-      welcomeSub.textContent = `Your AlgoHive strategies have returned ${formatMoney(totalLatest, currency)} ${sinceLabel}.`;
+      const trendClass = delta >= 0 ? "text-emerald-600" : "text-rose-600";
+      const deltaLabel = formatMoneyDelta(delta, currency);
+      welcomeSub.innerHTML = `Your AlgoHive strategies have returned <span class="font-semibold ${trendClass}">${deltaLabel}</span> ${sinceLabel}.`;
     }
 
     async function loadStrategyContext(allocation = null) {
