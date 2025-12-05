@@ -1,1 +1,432 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Account Statements</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <style>
+    /* --- CORE VARIABLES --- */
+    :root {
+      --bg-app: #F5F5F7; /* Apple System Gray */
+      --text-main: #1D1D1F;
+      --text-sec: #86868B;
+      --line: #E5E5EA;
+      --sb: 275px; 
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- SIDEBAR STYLES --- */
+    #layout { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+    
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 350px; max-width: 85vw; position: fixed; top: 0; z-index: 50; height: 100vh; transform: translateX(-100%);
+      background: #ffffff; border-right: 1px solid var(--line);
+    }
+    #ah-sidebar.is-open { transform: translateX(0); }
+    
+    @media (min-width: 768px) {
+      #layout { grid-template-columns: var(--sb) 1fr; }
+      #layout.is-collapsed { --sb: 64px; }
+      #ah-sidebar { position: sticky; top: 0; width: var(--sb); max-width: none; height: 100vh; transform: translateX(0); z-index: auto; }
+    }
+
+    /* Sidebar Collapse Logic */
+    #ah-sidebar[data-collapsed="true"] .label, 
+    #ah-sidebar[data-collapsed="true"] .chevron,
+    #ah-sidebar[data-collapsed="true"] .brand-menu { display: none; }
+    #ah-sidebar[data-collapsed="true"] #main-nav { visibility: hidden; pointer-events: none; }
+    #ah-sidebar[data-collapsed="true"] details > .sub { display: none !important; }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) { transform: rotate(180deg); }
+    
+    /* Brand Switcher */
+    .brand-toggle {
+      margin: 10px 12px; border: 1px solid #e2e8f0; border-radius: 14px;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer;
+    }
+    .brand-marker {
+      width: 42px; height: 42px; border-radius: 12px; background: #111827; display: grid; place-items: center;
+    }
+
+    /* --- APPLE STYLE STATEMENT SHEET --- */
+    .sheet-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding-bottom: 80px;
+    }
+
+    .glass-header {
+        position: sticky; top: 0; z-index: 30;
+        background: rgba(245, 245, 247, 0.85);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .paper-sheet {
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+
+    /* Grid System */
+    .sheet-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr; /* Name | Last | Current */
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--line);
+    }
+    .sheet-grid:last-child { border-bottom: none; }
+    
+    .sheet-grid.header {
+        background: #fafafa;
+        font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-sec);
+        padding: 12px 24px;
+    }
+
+    /* Typography */
+    .t-label { font-size: 14px; font-weight: 500; color: var(--text-main); }
+    .t-num { 
+        font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+        font-size: 14px; color: var(--text-main); text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+    .t-mute { color: var(--text-sec); }
+    
+    .section-title {
+        padding: 32px 24px 12px;
+        font-size: 17px; font-weight: 700; color: var(--text-main); letter-spacing: -0.01em;
+        background: #fff;
+    }
+
+    /* Status Indicators & Dots */
+    .status-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; background: #E5E5EA; border-radius: 20px;
+        font-size: 12px; font-weight: 500; color: var(--text-sec);
+    }
+    
+    /* Dot Styles */
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #8E8E93; transition: all 0.3s ease; }
+    .dot.ok { background: #34C759; box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.2); }
+    .dot.load { background: #FF9500; animation: pulse 1.5s infinite; }
+    .dot.error { background: #FF3B30; box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2); }
+
+    @keyframes pulse { 50% { opacity: 0.5; } }
+
+  </style>
+</head>
+
+<body class="min-h-screen">
+  
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+        
+        <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
+          <summary class="brand-toggle list-none">
+            <div class="brand-marker">
+              <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-7 h-7 object-contain" />
+            </div>
+            <div class="min-w-0">
+              <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+              <div class="text-[11px] text-slate-500 label">Markets</div>
+            </div>
+            <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div class="px-4 pb-2 brand-menu">
+            <div class="p-2 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-500 text-center">
+                Switching workspaces is disabled in demo.
+            </div>
+          </div>
+        </details>
+  
+        <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+          <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Overview</p>
+  
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/demo/dashboard.html">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
+          </a>
+  
+          <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Markets</p>
+          
+          <details class="group mt-1">
+            <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+              <span class="flex items-center gap-3">
+                <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/market-analysis-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Invest</span>
+              </span>
+              <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+            </summary>
+            <div class="ml-8 mt-1 flex flex-col sub">
+               <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/strategies.html">
+                 <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" class="w-4 h-4" /><span class="label">OpenStrategies</span>
+               </a>
+               <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/markets.html">
+                 <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/earth-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Markets</span>
+               </a>
+            </div>
+          </details>
+
+          <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
+          </a>
+  
+          <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Account</p>
+          <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Holdings</span>
+          </a>
+          <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#">
+             <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" class="w-4 h-4" /><span class="label">My Strategies</span>
+          </a>
+          
+          <a class="px-3 py-2 rounded-lg bg-slate-100 flex items-center gap-2 font-medium text-slate-900" href="/public/account-statements.html">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Account Statements</span>
+          </a>
+          
+          <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/coins-01-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Funding</span>
+          </a>
+
+          <details class="group mt-4">
+            <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+              <span class="flex items-center">
+                <span class="label">Other</span>
+              </span>
+              <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+            </summary>
+            <div class="ml-8 mt-1 flex flex-col sub">
+              <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#">
+                <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/help-circle-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Help</span>
+              </a>
+              <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#">
+                <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/audit-01-stroke-rounded.svg" class="w-4 h-4" /><span class="label">Legal</span>
+              </a>
+            </div>
+          </details>
+        </nav>
+  
+        <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+            <a class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200" href="/demo/settings.html"><i class="fa-solid fa-gear text-slate-600"></i></a>
+            <button id="ah-collapse" class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 btn-collapse"><i class="fa-solid fa-arrow-left text-slate-600"></i></button>
+        </div>
+    </aside>
+
+    <main class="flex-1 min-w-0 relative">
+      
+      <header class="glass-header px-6 py-4 flex items-center justify-between">
+         <div class="flex items-center gap-3">
+            <button id="ah-mobile-menu-btn" class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-200/50">
+                <i class="fa-solid fa-bars text-gray-600"></i>
+            </button>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Account Statements</h1>
+         </div>
+         
+         <div id="connection-status" class="status-pill">
+             <div class="dot load" id="status-dot-main"></div>
+             <span id="status-label">Syncing...</span>
+         </div>
+      </header>
+    
+      <div class="sheet-container px-4 md:px-8 py-8">
+        
+        <div class="paper-sheet">
+            
+            <div class="sheet-grid header">
+                <div>Balance Item</div>
+                
+                <div class="text-right">
+                    Last Close 
+                    <span id="header-date" class="font-normal text-gray-400 ml-1 opacity-80">(--/--)</span>
+                </div>
+
+                <div class="text-right flex items-center justify-end gap-2">
+                    Current
+                    <div id="status-dot-header" class="dot load"></div>
+                </div>
+            </div>
+
+            <div class="section-title">Buying Power</div>
+            <div class="sheet-grid">
+                <div class="t-label">RegT Buying Power</div>
+                <div class="t-num t-mute">$0.00</div>
+                <div class="t-num" id="curr-regt">---</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Day Trading Buying Power</div>
+                <div class="t-num t-mute">$0.00</div>
+                <div class="t-num" id="curr-dtbp">---</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Effective Buying Power</div>
+                <div class="t-num t-mute">-$51,595.05</div>
+                <div class="t-num" id="curr-eff">---</div>
+            </div>
+
+            <div class="section-title">Margin</div>
+            <div class="sheet-grid">
+                <div class="t-label">Initial Margin</div>
+                <div class="t-num t-mute">$171,983.49</div>
+                <div class="t-num" id="curr-init-margin">---</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Maintenance Margin</div>
+                <div class="t-num t-mute">$51,595.05</div>
+                <div class="t-num" id="curr-maint">---</div>
+            </div>
+
+            <div class="section-title">Cash</div>
+            <div class="sheet-grid">
+                <div class="t-label">Cash Balance</div>
+                <div class="t-num t-mute">-$59,394.19</div>
+                <div class="t-num" id="curr-cash">---</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Withdrawable Cash</div>
+                <div class="t-num t-mute">$0.00</div>
+                <div class="t-num" id="curr-withdrawable">---</div>
+            </div>
+
+            <div class="section-title">Positions</div>
+            <div class="sheet-grid">
+                <div class="t-label">Total Equity</div>
+                <div class="t-num t-mute" id="prev-equity">---</div>
+                <div class="t-num font-bold text-slate-900" id="curr-equity">---</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Long Market Value</div>
+                <div class="t-num t-mute">$171,983.49</div>
+                <div class="t-num text-emerald-600" id="curr-long">---</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Short Market Value</div>
+                <div class="t-num t-mute">$0.00</div>
+                <div class="t-num text-rose-600" id="curr-short">---</div>
+            </div>
+
+            <div class="section-title">Miscellaneous</div>
+            <div class="sheet-grid">
+                <div class="t-label">Accrued Fees</div>
+                <div class="t-num t-mute">—</div>
+                <div class="t-num" id="curr-fees">$0.00</div>
+            </div>
+            <div class="sheet-grid">
+                <div class="t-label">Day Trade Count</div>
+                <div class="t-num t-mute">—</div>
+                <div class="t-num" id="curr-dt-count">0</div>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-8">
+            Paper Trading Environment • Values delayed by 15 mins
+        </p>
+
+      </div>
+    </main>
+  </div>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+      const mobileBtn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+
+      // 1. Restore Collapsed State
+      const saved = localStorage.getItem('ah_collapsed') === 'true';
+      if (saved) {
+        aside.setAttribute('data-collapsed', 'true');
+        layout.classList.add('is-collapsed');
+        aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+      }
+
+      // 2. Desktop Collapse
+      btn?.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+      });
+
+      // 3. Mobile Menu
+      function openMenu() { aside.classList.add('is-open'); overlay.classList.remove('hidden'); }
+      function closeMenu() { aside.classList.remove('is-open'); overlay.classList.add('hidden'); }
+      
+      mobileBtn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+    })();
+  </script>
+
+  <script type="module" nonce="ALGOHIVE">
+    const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num || 0);
+
+    async function loadAccountData() {
+        const mainDot = document.getElementById('status-dot-main');
+        const headerDot = document.getElementById('status-dot-header');
+        const label = document.getElementById('status-label');
+
+        // --- NEW LOGIC: Set Last Close Date (Previous Day) ---
+        const d = new Date();
+        d.setDate(d.getDate() - 1); // Subtract 1 day
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        document.getElementById('header-date').innerText = `(${dateStr})`;
+
+        try {
+            const response = await fetch('/api/alpaca/account');
+
+            if (!response.ok) {
+                const errJson = await response.json();
+                throw new Error(errJson.error || "Server Error");
+            }
+
+            const data = await response.json();
+
+            // Populate Fields
+            document.getElementById('curr-regt').innerText        = fmt(data.regt_buying_power);
+            document.getElementById('curr-dtbp').innerText        = fmt(data.daytrading_buying_power);
+            document.getElementById('curr-eff').innerText         = fmt(data.buying_power);
+            document.getElementById('curr-init-margin').innerText = fmt(data.initial_margin);
+            document.getElementById('curr-maint').innerText       = fmt(data.maintenance_margin);
+            document.getElementById('curr-cash').innerText        = fmt(data.cash);
+            document.getElementById('curr-withdrawable').innerText= fmt(data.cash_withdrawable);
+            document.getElementById('prev-equity').innerText      = fmt(data.last_equity);
+            document.getElementById('curr-equity').innerText      = fmt(data.equity);
+            document.getElementById('curr-long').innerText        = fmt(data.long_market_value);
+            document.getElementById('curr-short').innerText       = fmt(data.short_market_value);
+            document.getElementById('curr-dt-count').innerText    = data.daytrade_count;
+
+            // Success State
+            mainDot.className = 'dot ok';
+            headerDot.className = 'dot ok';
+            label.innerText = 'Connected';
+
+        } catch (error) {
+            console.error("Alpaca Load Error:", error);
+            mainDot.className = 'dot error';
+            headerDot.className = 'dot error';
+            label.innerText = 'Connection Failed';
+        }
+    }
+
+    loadAccountData();
+  </script>
+</body>
+</html>
