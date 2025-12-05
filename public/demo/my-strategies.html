@@ -31,6 +31,12 @@
     #ah-sidebar[data-collapsed="true"] #main-nav { visibility: hidden; pointer-events: none; }
     #ah-collapse { display: none; }
     @media (min-width: 768px) { #ah-collapse { display: inline-flex; } }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 9999px; font-weight: 600; font-size: 13px; }
+    .allocation-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+    .allocation-card { border-radius: 14px; padding: 14px; color: #0f172a; border: 1px solid #e2e8f0; background: #fff; min-width: 160px; flex: 1 1 160px; transition: box-shadow .15s ease, transform .15s ease; }
+    .allocation-card:hover { box-shadow: 0 10px 25px rgba(15,23,42,0.06); transform: translateY(-2px); }
+    .breakdown-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; }
+    .breakdown-row:hover { background: #f8fafc; }
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden">
@@ -95,79 +101,103 @@
           </a>
         </div>
       </div>
+
       <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <section class="card border-emerald-200 bg-gradient-to-r from-emerald-50 via-emerald-50 to-white p-5 sm:p-6">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="space-y-2">
-              <p class="text-sm font-semibold text-emerald-700 uppercase tracking-[0.08em]">Demo Allocation</p>
-              <h2 class="text-2xl font-bold text-slate-900">Keep your demo portfolio on track</h2>
-              <p class="text-sm text-slate-700 max-w-xl">Preview how a diversified mix of demo strategies would have performed with a simple equity curve. Use it to sanity check allocations before going live.</p>
-              <div class="flex flex-wrap gap-2 text-sm font-semibold">
-                <span class="inline-flex items-center gap-2 rounded-lg bg-emerald-100 text-emerald-800 px-3 py-1">Gross return <span class="text-lg font-bold">+14.6%</span></span>
-                <span class="inline-flex items-center gap-2 rounded-lg bg-white text-slate-800 px-3 py-1 border border-emerald-200">Max drawdown <span class="font-bold">-6.3%</span></span>
+        <div class="grid lg:grid-cols-5 gap-6">
+          <section class="card lg:col-span-3 p-5 sm:p-6 space-y-4">
+            <div class="flex flex-wrap items-start gap-4 justify-between">
+              <div class="space-y-2">
+                <p class="text-xs uppercase font-semibold tracking-[0.12em] text-emerald-700">Evaluation</p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900" id="equityTotal">$49,825.82</h2>
+                  <span class="pill bg-emerald-50 text-emerald-700 border border-emerald-100" id="equityChange">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span class="change-text">+$1,829 (3.81%)</span>
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-sm text-emerald-700">
+                  <i class="fa-solid fa-circle text-[10px]"></i>
+                  <span id="equityNote">Strong performance</span>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-2 w-full sm:w-auto">
+                <label class="text-xs font-semibold text-slate-500">Period</label>
+                <select id="periodSelect" class="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="1M">Last 30 days</option>
+                  <option value="3M">Last 3 months</option>
+                  <option value="6M">Last 6 months</option>
+                  <option value="1Y" selected>Last 12 months</option>
+                  <option value="3Y">Last 3 years</option>
+                </select>
               </div>
             </div>
-            <div class="bg-white border border-emerald-200 rounded-xl p-4 shadow-sm w-full lg:w-[360px]">
-              <div class="flex items-center justify-between text-sm text-slate-700">
-                <span class="font-semibold text-slate-900">Equity Curve</span>
-                <span class="flex items-center gap-1 text-emerald-700"><i class="fa-solid fa-circle text-[10px]"></i> Demo blend</span>
+            <div class="bg-slate-50/60 border border-slate-200 rounded-2xl p-4">
+              <div class="flex items-center gap-3 text-sm text-slate-600">
+                <span class="font-semibold text-slate-900">Equity curve</span>
+                <div class="flex items-center gap-2 text-emerald-700 text-xs">
+                  <span class="h-2 w-2 rounded-full bg-emerald-600"></span>
+                  Demo blend
+                </div>
               </div>
-              <canvas id="equityChart" class="mt-3 h-36"></canvas>
-              <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                <div class="rounded-lg bg-emerald-50 text-emerald-800 px-3 py-2 font-semibold">CAGR 1Y: 9.8%</div>
-                <div class="rounded-lg bg-emerald-50 text-emerald-800 px-3 py-2 font-semibold">Volatility: 7.1%</div>
+              <canvas id="equityChart" class="mt-3 h-44"></canvas>
+              <div class="mt-4 grid sm:grid-cols-3 gap-3 text-sm text-slate-700">
+                <div class="flex flex-col gap-1 p-3 rounded-xl bg-white border border-slate-200">
+                  <span class="text-slate-500">Total P/L</span>
+                  <span class="text-lg font-bold text-emerald-700" id="metricPl">+$6,801.19</span>
+                </div>
+                <div class="flex flex-col gap-1 p-3 rounded-xl bg-white border border-slate-200">
+                  <span class="text-slate-500">Newly Growing</span>
+                  <span class="text-lg font-bold text-slate-900" id="metricGrow">+1.34%</span>
+                </div>
+                <div class="flex flex-col gap-1 p-3 rounded-xl bg-white border border-slate-200">
+                  <span class="text-slate-500">Top Performer</span>
+                  <span class="text-lg font-bold text-slate-900" id="metricTop">Cardano</span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+            <div class="grid sm:grid-cols-3 gap-3 text-sm text-slate-600">
+              <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+                <div class="h-11 w-11 rounded-full bg-slate-100 flex items-center justify-center text-lg font-bold text-slate-800">6</div>
+                <div>
+                  <div class="text-xs uppercase tracking-[0.1em] text-slate-500">Portfolio age</div>
+                  <div class="text-lg font-semibold text-slate-900">6d 00h</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+                <div class="h-11 w-11 rounded-full bg-emerald-50 flex items-center justify-center text-lg font-bold text-emerald-700">74%</div>
+                <div>
+                  <div class="text-xs uppercase tracking-[0.1em] text-slate-500">Rebalance accuracy</div>
+                  <div class="text-lg font-semibold text-slate-900">Risk-averse</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+                <div class="h-11 w-11 rounded-full bg-slate-900 text-white flex items-center justify-center text-lg font-bold">0.45</div>
+                <div>
+                  <div class="text-xs uppercase tracking-[0.1em] text-slate-500">Corr factor</div>
+                  <div class="text-lg font-semibold text-slate-900">Mirrored instead of risky</div>
+                </div>
+              </div>
+            </div>
+          </section>
 
-        <section class="grid gap-4 md:grid-cols-2">
-          <article class="card p-5">
-            <div class="flex items-center justify-between">
+          <section class="card lg:col-span-2 p-5 sm:p-6 space-y-5">
+            <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-xs uppercase font-semibold tracking-wide text-emerald-600">Live Demo</p>
-                <h3 class="text-lg font-bold text-slate-900">Momentum Plus</h3>
-                <p class="text-sm text-slate-600">Trend-following equities with weekly risk checks.</p>
+                <p class="text-xs uppercase font-semibold tracking-[0.12em] text-slate-500">Allocation</p>
+                <h3 class="text-xl font-bold text-slate-900">Demo mix</h3>
               </div>
-              <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
+              <span class="pill bg-slate-900 text-white text-xs">Total allocated: <span id="totalAllocated">$29,289</span></span>
             </div>
-            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
-              <div><dt class="text-slate-500">Allocation</dt><dd class="font-semibold">40%</dd></div>
-              <div><dt class="text-slate-500">7D Return</dt><dd class="font-semibold text-emerald-600">+2.1%</dd></div>
-              <div><dt class="text-slate-500">Risk</dt><dd class="font-semibold">Balanced</dd></div>
-              <div><dt class="text-slate-500">Next Rebalance</dt><dd class="font-semibold">In 3 days</dd></div>
-            </dl>
-            <div class="mt-4 flex gap-2 text-sm font-semibold">
-              <a href="/demo/strategy.html?strategy=momentum-plus" class="btn px-3 py-2 border-slate-200 hover:bg-slate-50">
-                <i class="fa-solid fa-chart-line text-slate-500"></i> View Details
-              </a>
-              <button class="btn px-3 py-2 text-[var(--olive)] border-slate-200 hover:bg-slate-50">Rebalance</button>
-            </div>
-          </article>
-
-          <article class="card p-5">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-xs uppercase font-semibold tracking-wide text-orange-600">Paused Demo</p>
-                <h3 class="text-lg font-bold text-slate-900">Income Guard</h3>
-                <p class="text-sm text-slate-600">Multi-asset yield with capital preservation rules.</p>
+            <div id="allocationGrid" class="allocation-grid"></div>
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <h4 class="text-sm font-bold text-slate-900">Breakdown</h4>
+                <span class="text-xs font-semibold text-slate-500">Holdings preview</span>
               </div>
-              <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">Paused</span>
+              <div id="breakdownList" class="space-y-1"></div>
             </div>
-            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
-              <div><dt class="text-slate-500">Allocation</dt><dd class="font-semibold">25%</dd></div>
-              <div><dt class="text-slate-500">7D Return</dt><dd class="font-semibold text-slate-700">+0.4%</dd></div>
-              <div><dt class="text-slate-500">Risk</dt><dd class="font-semibold">Conservative</dd></div>
-              <div><dt class="text-slate-500">Next Review</dt><dd class="font-semibold">Manual</dd></div>
-            </dl>
-            <div class="mt-4 flex gap-2 text-sm font-semibold">
-              <a href="/demo/strategy.html?strategy=income-guard" class="btn px-3 py-2 border-slate-200 hover:bg-slate-50">
-                <i class="fa-solid fa-chart-line text-slate-500"></i> View Details
-              </a>
-              <button class="btn px-3 py-2 text-[var(--olive)] border-slate-200 hover:bg-slate-50">Resume</button>
-            </div>
-          </article>
-        </section>
+          </section>
+        </div>
 
         <section class="card border-dashed border-slate-300 bg-white/60 px-4 py-6 text-center text-sm text-slate-600">
           <p>Need more ideas? Visit the <a href="/demo/strategies.html" class="font-semibold text-[var(--olive)] hover:underline">OpenStrategies</a> list to add more demos to this collection.</p>
@@ -205,37 +235,137 @@
       });
     })();
 
-    // equity curve sample
-    (function () {
+    const periodData = {
+      '1M': { labels: ['W1', 'W2', 'W3', 'W4'], values: [126, 128, 125, 131], change: '+$642 (1.31%)', note: 'Tactical lift', pl: '+$420.11', grow: '+0.52%', top: 'Bitcoin' },
+      '3M': { labels: ['Jan', 'Feb', 'Mar'], values: [118, 124, 131], change: '+$1,004 (2.07%)', note: 'Momentum building', pl: '+$1,021.04', grow: '+0.84%', top: 'Ethereum' },
+      '6M': { labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'], values: [102, 106, 108, 115, 121, 128], change: '+$2,412 (5.09%)', note: 'Stable climb', pl: '+$3,914.55', grow: '+1.02%', top: 'Power Ledger' },
+      '1Y': { labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'], values: [100, 103, 107, 111, 108, 114, 118, 122, 125, 128, 132, 137], change: '+$1,829 (3.81%)', note: 'Strong performance', pl: '+$6,801.19', grow: '+1.34%', top: 'Cardano' },
+      '3Y': { labels: ['2022', '2023', '2024'], values: [86, 94, 137], change: '+$9,884 (24.5%)', note: 'Cycle growth', pl: '+$12,114.03', grow: '+2.44%', top: 'Algo' }
+    };
+
+    const allocationData = [
+      { name: 'Bitcoin', ticker: 'BTC', allocation: 29.95, value: 12996.28, change: '+2.31%', color: '#E4FBEA', accent: '#0E9F6E' },
+      { name: 'Ethereum', ticker: 'ETH', allocation: 23.05, value: 10009.16, change: '+1.98%', color: '#E3F2FD', accent: '#1D4ED8' },
+      { name: 'Cardano', ticker: 'ADA', allocation: 21.09, value: 9015.44, change: '+2.75%', color: '#ECFEFF', accent: '#0EA5E9' },
+      { name: 'Algorand', ticker: 'ALGO', allocation: 13.21, value: 5644.11, change: '+1.16%', color: '#FDF6E3', accent: '#F59E0B' },
+      { name: 'Power Ledger', ticker: 'POWR', allocation: 7.37, value: 3148.22, change: '+0.63%', color: '#F1F5F9', accent: '#0F172A' },
+      { name: 'Polkadot', ticker: 'DOT', allocation: 5.33, value: 2270.65, change: '-0.21%', color: '#FFF1F2', accent: '#E11D48' }
+    ];
+
+    const breakdownData = [
+      { name: 'Bitcoin', ticker: 'BTC', value: '$43,050.59', weight: '29.95%', perf: '+2.31%' },
+      { name: 'Cardano', ticker: 'ADA', value: '$14,397.31', weight: '21.09%', perf: '+2.75%' },
+      { name: 'Algorand', ticker: 'ALGO', value: '$9,080.32', weight: '13.21%', perf: '+1.16%' },
+      { name: 'Ethereum', ticker: 'ETH', value: '$10,009.16', weight: '23.05%', perf: '+1.98%' },
+      { name: 'Power Ledger', ticker: 'POWR', value: '$3,148.22', weight: '7.37%', perf: '+0.63%' },
+      { name: 'Polkadot', ticker: 'DOT', value: '$2,270.65', weight: '5.33%', perf: '-0.21%' }
+    ];
+
+    (function renderAllocation() {
+      const grid = document.getElementById('allocationGrid');
+      document.getElementById('totalAllocated').textContent = `$${breakdownData.reduce((s, i) => s + Number(i.value.replace(/[$,]/g, '')), 0).toLocaleString()}`;
+      allocationData.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'allocation-card';
+        card.style.background = item.color;
+        card.style.borderColor = item.accent + '33';
+        card.style.flexGrow = item.allocation;
+        const inner = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="text-xs font-semibold text-slate-600">${item.ticker}</div>
+              <div class="text-lg font-bold text-slate-900">${item.name}</div>
+            </div>
+            <span class="pill text-xs" style="background:${item.accent};color:white;border:none;">${item.change}</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-sm text-slate-700">
+            <div>
+              <div class="text-slate-500">Allocation</div>
+              <div class="font-semibold">${item.allocation.toFixed(2)}%</div>
+            </div>
+            <div class="text-right">
+              <div class="text-slate-500">Value</div>
+              <div class="font-semibold">$${item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+            </div>
+          </div>
+        `;
+        card.innerHTML = inner;
+        grid?.appendChild(card);
+      });
+    })();
+
+    (function renderBreakdown() {
+      const list = document.getElementById('breakdownList');
+      breakdownData.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-700">${item.ticker}</div>
+            <div>
+              <div class="font-semibold text-slate-900">${item.name}</div>
+              <div class="text-xs text-slate-500">${item.weight} of portfolio</div>
+            </div>
+          </div>
+          <div class="text-sm font-semibold text-slate-900">${item.value}</div>
+          <div class="text-sm font-semibold ${item.perf.startsWith('-') ? 'text-rose-600' : 'text-emerald-700'}">${item.perf}</div>
+        `;
+        list?.appendChild(row);
+      });
+    })();
+
+    (function initChart() {
       const ctx = document.getElementById('equityChart');
       if (!ctx) return;
-      const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const data = [100, 103, 107, 111, 108, 114, 118, 122, 125, 128, 132, 137];
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Demo blend',
-            data,
-            tension: 0.35,
-            borderWidth: 2,
-            borderColor: '#16a34a',
-            backgroundColor: 'rgba(22, 163, 74, 0.12)',
-            pointRadius: 0,
-            fill: true,
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-          scales: {
-            x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 11 } } },
-            y: { grid: { color: 'rgba(148,163,184,.3)' }, ticks: { color: '#475569', font: { size: 11 }, callback: v => `$${v}` } }
+      const select = document.getElementById('periodSelect');
+      const changeEl = document.querySelector('.change-text');
+      const noteEl = document.getElementById('equityNote');
+      const plEl = document.getElementById('metricPl');
+      const growEl = document.getElementById('metricGrow');
+      const topEl = document.getElementById('metricTop');
+      let chart;
+
+      const update = () => {
+        const period = select.value;
+        const { labels, values, change, note, pl, grow, top } = periodData[period];
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Demo blend',
+              data: values,
+              tension: 0.35,
+              borderWidth: 2,
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22, 163, 74, 0.12)',
+              pointRadius: 0,
+              fill: true,
+            }]
           },
-          layout: { padding: { top: 6, right: 6, left: 0, bottom: 0 } },
-          interaction: { intersect: false, mode: 'index' }
-        }
-      });
+          options: {
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 11 } } },
+              y: {
+                grid: { color: 'rgba(148,163,184,.3)' },
+                ticks: { color: '#475569', font: { size: 11 }, callback: v => `$${v}` }
+              }
+            },
+            layout: { padding: { top: 6, right: 6, left: 0, bottom: 0 } },
+            interaction: { intersect: false, mode: 'index' }
+          }
+        });
+        if (changeEl) changeEl.textContent = change;
+        if (noteEl) noteEl.textContent = note;
+        if (plEl) plEl.textContent = pl;
+        if (growEl) growEl.textContent = grow;
+        if (topEl) topEl.textContent = top;
+      };
+
+      select?.addEventListener('change', update);
+      update();
     })();
   </script>
 </body>
