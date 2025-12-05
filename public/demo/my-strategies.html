@@ -421,19 +421,6 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
-        <div>
-          <p class="text-xs uppercase font-semibold tracking-wide text-slate-500">Demo Portfolio</p>
-          <h1 class="text-xl font-bold text-slate-800 truncate">My Strategies</h1>
-        </div>
-        <div class="flex items-center gap-2">
-          <a href="/demo/strategies.html" class="btn h-10 text-sm bg-[var(--olive)] text-white border-none hover:opacity-90">
-            <i class="fa-solid fa-plus"></i>
-            Add Demo Strategy
-          </a>
-        </div>
-      </div>
-
       <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div class="grid lg:grid-cols-5 gap-6">
           <section class="card lg:col-span-3 p-5 sm:p-6 space-y-4">
@@ -595,37 +582,15 @@
       });
     })();
 
-    // profile menu (mirrors dashboard chrome)
+    // profile menu toggle wiring (data loaded via module script)
     (function () {
       const profileBtn = document.getElementById('profile-btn');
       const profileMenu = document.getElementById('profile-menu');
       const profileOverlay = document.getElementById('profile-overlay');
-      const profileName = document.getElementById('profile-name');
-      const profileEmail = document.getElementById('profile-email');
-      const profileAvatar = document.getElementById('profile-avatar');
       const profileLogout = document.getElementById('profile-logout');
-
-      const displayName = 'Demo User';
-      const displayEmail = 'demo@algohive.com';
-
-      const setAvatar = (name = displayName) => {
-        if (!profileAvatar) return;
-        const initial = (name.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
-        const svg = encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
-            <rect width='100%' height='100%' rx='12' ry='12' fill='#0f172a'/>
-            <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle' font-family='Inter, Arial, sans-serif' font-size='32' fill='#fff'>${initial}</text>
-          </svg>`
-        );
-        profileAvatar.src = `data:image/svg+xml;utf8,${svg}`;
-      };
 
       const closeMenu = () => profileMenu?.classList.add('hidden');
       const toggleMenu = () => profileMenu?.classList.toggle('hidden');
-
-      profileName && (profileName.textContent = displayName);
-      profileEmail && (profileEmail.textContent = displayEmail);
-      setAvatar(displayName);
 
       profileBtn?.addEventListener('click', toggleMenu);
       profileOverlay?.addEventListener('click', closeMenu);
@@ -767,6 +732,65 @@
       select?.addEventListener('change', update);
       update();
     })();
+  </script>
+  <script type="module" nonce="ALGOHIVE">
+    import { supabase } from "/js/supabase.js";
+
+    const profileName = document.getElementById('profile-name');
+    const profileEmail = document.getElementById('profile-email');
+    const profileAvatar = document.getElementById('profile-avatar');
+
+    const fallbackName = 'Demo User';
+    const fallbackEmail = 'demo@algohive.com';
+
+    const setAvatar = (name = fallbackName, src = '') => {
+      if (!profileAvatar) return;
+      if (src) {
+        profileAvatar.src = src;
+        return;
+      }
+
+      const initial = (name.match(/[A-Za-z]/)?.[0] || '?').toUpperCase();
+      const svg = encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
+          <rect width='100%' height='100%' rx='12' ry='12' fill='#0f172a'/>
+          <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle' font-family='Inter, Arial, sans-serif' font-size='32' fill='#fff'>${initial}</text>
+        </svg>`
+      );
+      profileAvatar.src = `data:image/svg+xml;utf8,${svg}`;
+    };
+
+    const hydrateProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
+
+        let displayName = fallbackName;
+        let displayEmail = user?.email || fallbackEmail;
+        let avatarUrl = user?.user_metadata?.avatar_url || '';
+
+        if (user?.id) {
+          const { data, error } = await supabase.from('demo_profiles').select('*').eq('id', user.id).maybeSingle();
+          if (error) throw error;
+          if (data) {
+            displayName = [data.first_name, data.last_name].filter(Boolean).join(' ') || data.full_name || displayEmail || fallbackName;
+            displayEmail = data.email || displayEmail;
+            avatarUrl = data.avatar_url || avatarUrl;
+          }
+        }
+
+        if (profileName) profileName.textContent = displayName;
+        if (profileEmail) profileEmail.textContent = displayEmail;
+        setAvatar(displayName, avatarUrl);
+      } catch (err) {
+        console.warn('profile hydrate failed; falling back to defaults', err);
+        if (profileName) profileName.textContent = fallbackName;
+        if (profileEmail) profileEmail.textContent = fallbackEmail;
+        setAvatar(fallbackName);
+      }
+    };
+
+    hydrateProfile();
   </script>
 </body>
 </html>
