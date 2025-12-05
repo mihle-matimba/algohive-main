@@ -1176,6 +1176,7 @@
     let latestAccount = null;
     let currentUser = null;
     let displayName = "—";
+    let firstName = "";
     let allocationsCache = [];
     let activeAllocationId = null;
     let allocationFilter = "active";
@@ -2266,15 +2267,23 @@
       return "Good evening";
     }
 
+    function formatDateLabel(dateLike) {
+      if (!dateLike) return "";
+      const date = new Date(dateLike);
+      if (Number.isNaN(date.valueOf())) return "";
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
     function renderProfile(profile = {}, fallbackEmail = "") {
       const fullName =
         [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || profile?.full_name || fallbackEmail || "Demo User";
       const greeting = getGreeting();
 
       displayName = fullName || fallbackEmail || "Demo User";
+      firstName = (profile?.first_name || fullName || "").split(" ")[0] || "there";
 
-      if (welcomeName) welcomeName.textContent = `${greeting}, ${fullName}.`;
-      if (welcomeSub) welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+      if (welcomeName) welcomeName.textContent = `${greeting}, ${firstName}`;
+      updateWelcomeSummary();
       if (pfName) pfName.textContent = "Strategy";
       if (pfSub) pfSub.textContent = "Select a strategy to view its equity curve.";
 
@@ -2329,6 +2338,8 @@
       const filtered = allocationFilter === "active"
         ? allocationsCache.filter((row) => (row?.status || "").toLowerCase() === "active")
         : allocationsCache;
+
+      updateWelcomeSummary(allocationsCache);
 
       if (filtered.length && (!activeAllocationId || !filtered.some((row) => row?.id === activeAllocationId))) {
         activeAllocationId = filtered[0]?.id || activeAllocationId;
@@ -2547,6 +2558,33 @@
       const returns = (activeAllocs || []).map((row) => Number(row?.latest_return_pct)).filter((num) => Number.isFinite(num));
       const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
       if (avgAllocReturn) avgAllocReturn.textContent = avg === null ? "—" : formatReturnPct(avg);
+    }
+
+    function updateWelcomeSummary(allocations = allocationsCache || []) {
+      const greeting = getGreeting();
+      const name = firstName || displayName || "there";
+      if (welcomeName) welcomeName.textContent = `${greeting}, ${name}`;
+
+      if (!welcomeSub) return;
+      if (!Array.isArray(allocations) || allocations.length === 0) {
+        welcomeSub.textContent = "Your paper portfolio snapshot is below.";
+        return;
+      }
+
+      const totalLatest = allocations.reduce((sum, row) => {
+        const value = Number(row?.latest_value ?? row?.amount_invested);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      const currency = allocations.find((row) => row?.base_currency)?.base_currency || activeCurrency || "USD";
+      const earliest = allocations.reduce((min, row) => {
+        const start = row?.start_date ? new Date(row.start_date) : null;
+        if (!start || Number.isNaN(start.valueOf())) return min;
+        return !min || start < min ? start : min;
+      }, null);
+
+      const dateLabel = formatDateLabel(earliest);
+      const sinceLabel = dateLabel ? `since ${dateLabel}` : "since you started";
+      welcomeSub.textContent = `Your AlgoHive strategies have returned ${formatMoney(totalLatest, currency)} ${sinceLabel}.`;
     }
 
     async function loadStrategyContext(allocation = null) {
@@ -2848,7 +2886,8 @@
 
         renderProfile(latestProfile, user.email || "");
         renderAccount(latestAccount, user.id);
-        await hydrateAllocations(user.id);
+        const allocations = await hydrateAllocations(user.id);
+        updateWelcomeSummary(allocations);
         await hydrateWatchlist(latestProfile, currentUser);
         refreshChart(latestProfile, latestAccount);
       } catch (error) {
