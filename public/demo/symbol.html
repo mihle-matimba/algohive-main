@@ -72,7 +72,7 @@
     .order-form select { width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; font-weight:600; color:#0f172a; background:#fff; }
     .order-form input:focus,
     .order-form select:focus { outline:2px solid #0f172a; outline-offset:1px; }
-    #tv-widget-host { position: relative; min-height: 720px; width: 100%; height: 100%; display: flex; flex: 1; }
+    #tv-widget-host { position: relative; width: 100%; display: flex; flex: 1; aspect-ratio: 21 / 9; min-height: 360px; }
     #tv-widget-host .tradingview-widget-container { position: absolute; inset: 0; height: 100%; width: 100%; flex: 1; display: flex; }
     #tv-widget-host .tradingview-widget-container__widget,
     #tv-widget-host iframe,
@@ -142,8 +142,8 @@
         </a>
 
         <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Account</p>
-        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/my-investment.html" title="Holdings">
-          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Holdings</span>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/holdings.html" title="Holdings">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Holdings</span>
         </a>
         <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/my-strategies.html" title="My Strategies">
           <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">My Strategies</span>
@@ -235,7 +235,7 @@
                     </div>
                     <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Powered by TradingView</span>
                   </header>
-                  <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white w-full min-h-[720px] flex flex-1 relative"></div>
+                  <div id="tv-widget-host" class="rounded-xl overflow-hidden border border-slate-200 bg-white w-full min-h-[560px] flex flex-1 relative"></div>
                 </section>
 
                 <section class="bg-white info-card p-4 space-y-4">
@@ -269,18 +269,10 @@
                     <span class="text-xs font-semibold text-slate-500 px-3 py-1 rounded-full border border-slate-200">Latest</span>
                   </div>
                   <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                      <thead class="text-left text-slate-500 uppercase tracking-[0.08em] text-[11px]">
-                        <tr>
-                          <th class="py-2 pr-3">Symbol</th>
-                          <th class="py-2 pr-3">Qty</th>
-                          <th class="py-2 pr-3">Avg Price</th>
-                          <th class="py-2 pr-3">P/L</th>
-                          <th class="py-2">Day</th>
-                        </tr>
-                      </thead>
-                      <tbody id="positions-body" class="divide-y divide-slate-200 text-slate-900"></tbody>
-                    </table>
+                    <p class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                      <i class="fa-solid fa-circle-info text-slate-500"></i>
+                      Positions can only be viewed on a live account.
+                    </p>
                   </div>
                 </section>
               </div>
@@ -619,35 +611,13 @@
     };
 
     const renderActivityTables = (instrument) => {
-      if (!positionsBody) return;
-
       const symbol = (instrument?.symbol || 'AAPL').toUpperCase();
-      const name = instrument?.name || symbol;
-      const price = typeof currentPrice === 'number' && !Number.isNaN(currentPrice) ? currentPrice : null;
 
       loadStrategyExposure(symbol);
 
-      const previewPositions = [
-        { symbol, qty: 25, avg: price ?? 125.12, pl: 245.6, day: 0.84 },
-        { symbol: 'CASH', qty: 1, avg: 1, pl: 0, day: 0 },
-      ];
-
-      positionsBody.innerHTML = previewPositions
-        .map((pos) => {
-          const isCash = pos.symbol === 'CASH';
-          const plClass = pos.pl >= 0 ? 'text-emerald-600' : 'text-rose-600';
-          const dayClass = pos.day >= 0 ? 'text-emerald-600' : 'text-rose-600';
-          return `
-            <tr>
-              <td class="py-2 pr-3 font-semibold">${pos.symbol}${isCash ? '' : ` · ${name}`}</td>
-              <td class="py-2 pr-3">${pos.qty}</td>
-              <td class="py-2 pr-3">${formatCurrency(pos.avg)}</td>
-              <td class="py-2 pr-3 ${plClass}">${formatCurrency(pos.pl)}</td>
-              <td class="py-2 ${dayClass}">${formatSigned(pos.day)}</td>
-            </tr>
-          `;
-        })
-        .join('');
+      if (positionsBody) {
+        positionsBody.innerHTML = '';
+      }
     };
 
     const applyLogo = (logoUrl, symbol) => {
@@ -673,7 +643,7 @@
       if (!orderSubmitBtn) return;
       orderSubmitBtn.classList.toggle('bg-emerald-600', side === 'buy');
       orderSubmitBtn.classList.toggle('bg-rose-600', side === 'sell');
-      orderSubmitBtn.textContent = side === 'buy' ? 'Review Buy Order' : 'Review Sell Order';
+      orderSubmitBtn.textContent = 'Switch to live to place orders';
     };
 
     const updateOrderValue = () => {

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Demo Holdings</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <style>
+    :root {
+      --page: #0b1220;
+      --bg: #ffffff;
+      --muted: #64748b;
+      --ink: #0f172a;
+      --olive: #7e8d52;
+      --olive-700: #576138;
+      --brand: #7e8d52;
+      --line: #e2e8f0
+    }
+
+    html,
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    #layout {
+      --sb: 275px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh
+    }
+
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 350px;
+      max-width: 85vw;
+      position: fixed;
+      top: 0;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%)
+    }
+
+    #ah-sidebar.is-open {
+      transform: translateX(0)
+    }
+
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr
+      }
+
+      #layout.is-collapsed {
+        --sb: 64px
+      }
+
+      #ah-sidebar {
+        position: sticky;
+        top: 0;
+        width: var(--sb);
+        max-width: none;
+        height: 100vh;
+        transform: translateX(0);
+        z-index: auto
+      }
+    }
+
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron {
+      display: none
+    }
+
+    #ah-sidebar[data-collapsed="true"] #main-nav {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-menu {
+      display: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] details>.sub {
+      display: none !important
+    }
+
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details>summary {
+      justify-content: center
+    }
+
+    #ah-sidebar[data-collapsed="true"] details>summary span {
+      width: auto;
+      margin-left: 0
+    }
+
+    #ah-sidebar .footer {
+      opacity: 1;
+      visibility: visible;
+      height: auto;
+      transition: opacity .2s ease
+    }
+
+    #ah-sidebar[data-collapsed="true"] .footer {
+      opacity: 0;
+      visibility: hidden;
+      height: 0;
+      overflow: hidden;
+    }
+
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
+      rotate: 180deg
+    }
+
+    .avatar-ring {
+      box-shadow: 0 0 0 2px #fff, 0 0 0 3px #e2e8f0;
+    }
+
+    .asset-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      object-fit: contain;
+      background: #fff;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    #ah-brand-switcher summary {
+      list-style: none;
+      cursor: pointer
+    }
+
+    #ah-brand-switcher summary::-webkit-details-marker {
+      display: none
+    }
+
+    #ah-brand-switcher .brand-toggle {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: 16px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    #ah-brand-switcher .brand-marker {
+      width: 40px;
+      height: 40px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center
+    }
+
+    #ah-brand-switcher .brand-menu {
+      padding: 12px 12px 16px;
+      display: grid;
+      gap: 8px
+    }
+
+    #ah-brand-switcher .brand-menu-header {
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #94a3b8
+    }
+
+    #ah-brand-switcher .brand-option {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-weight: 600
+    }
+
+    #ah-brand-switcher .brand-option img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain
+    }
+
+    #ah-brand-switcher .brand-marker img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain
+    }
+
+    #ah-sidebar .footer .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 .875rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-weight: 600
+    }
+  </style>
+</head>
+
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+      <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
+        <summary class="brand-toggle">
+          <div class="brand-marker">
+            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-7 h-7 object-contain" />
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+            <div class="text-[11px] text-slate-500 label">Markets</div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="brand-menu">
+          <div class="brand-menu-header">Switch workspace</div>
+          <a href="#" class="brand-option">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" />
+            <div class="min-w-0 font-semibold text-slate-900 label algomoney-word">AlgoMoney</div>
+          </a>
+        </div>
+      </details>
+
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Overview</p>
+
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/demo/dashboard.html" title="Home">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Markets</p>
+
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/market-analysis-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Invest</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/strategies.html" title="OpenStrategies">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">OpenStrategies</span>
+            </a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/corporate-stroke-rounded.svg" alt="" class="w-4 h-4" />
+              <span class="flex items-center gap-2">
+                <span class="label">Funds</span>
+                <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span>
+              </span>
+            </a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/markets.html" title="Markets">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/earth-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Markets</span>
+            </a>
+          </div>
+        </details>
+
+        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="News &amp; Insights">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Account</p>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900 bg-slate-50" href="/demo/holdings.html" title="Holdings">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Holdings</span>
+        </a>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/my-strategies.html" title="My Strategies">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">My Strategies</span>
+        </a>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Account Statements">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Account Statements</span>
+        </a>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Funding">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/coins-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Funding</span>
+        </a>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Rewards">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/gift-stroke-rounded.svg" alt="" class="w-4 h-4" />
+          <span class="flex items-center gap-2">
+            <span class="label">Rewards</span>
+            <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span>
+          </span>
+        </a>
+
+        <details class="group mt-4">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center">
+              <span class="label">Other</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Help">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/help-circle-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Help</span>
+            </a>
+            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Legal">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/audit-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Legal</span>
+            </a>
+            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Learn">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pencil-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="flex items-center gap-2"><span class="label">Learn</span><span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span></span>
+            </a>
+          </div>
+        </details>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="/demo/settings.html" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="px-4 md:px-6 pt-4">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
+            <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
+              <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
+              <p class="whitespace-normal">Demo Account</p>
+            </div>
+          </div>
+
+          <button id="profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+            <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200 avatar-ring" />
+            <span id="profile-name" class="text-sm font-semibold text-slate-900 hidden sm:inline">Demo User</span>
+            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="px-4 md:px-6 py-6 space-y-6">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Portfolio</p>
+            <h1 class="text-2xl font-bold text-slate-900">Your Demo Holdings</h1>
+            <p class="text-slate-600">Track how the sample portfolio is performing before going live.</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="/demo/markets.html" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+              <i class="fa-solid fa-earth-americas text-slate-500"></i>
+              Markets
+            </a>
+            <a href="/demo/my-strategies.html" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+              <i class="fa-solid fa-diagram-project text-slate-500"></i>
+              My Strategies
+            </a>
+          </div>
+        </div>
+
+        <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Aggregate Holdings</p>
+              <p class="text-xs text-slate-500">Across all demo strategies using target weights.</p>
+            </div>
+            <div class="flex items-center gap-3 text-sm font-semibold text-slate-700">
+              <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <i class="fa-solid fa-wallet text-[var(--olive)]"></i>
+                <span id="total-invested">—</span>
+              </span>
+              <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <i class="fa-solid fa-chart-pie text-[var(--olive)]"></i>
+                <span id="distinct-assets">— assets</span>
+              </span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+              <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="px-4 py-3">Asset</th>
+                  <th class="px-4 py-3">Allocation</th>
+                  <th class="px-4 py-3">Market value</th>
+                  <th class="px-4 py-3">P/L</th>
+                </tr>
+              </thead>
+              <tbody id="holdings-body" class="divide-y divide-slate-100 bg-white">
+                <tr>
+                  <td colspan="4" class="px-4 py-4 text-sm text-slate-500">Loading holdings…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-4 py-6 text-center text-sm text-slate-600">
+          <p>Want to rebalance? Jump back to <a href="/demo/strategies.html" class="font-semibold text-[#7e8d52] hover:underline">OpenStrategies</a> and adjust your demo allocations.</p>
+        </section>
+      </div>
+
+      <footer class="border-t border-slate-200 bg-white py-4">
+        <div class="mx-auto flex w-full max-w-5xl items-center justify-between px-4 text-xs text-slate-500">
+          <span>AlgoHive Demo</span>
+          <span>For preview purposes only</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div id="profile-menu" class="fixed inset-0 z-[120] hidden">
+    <div id="profile-overlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute right-4 top-20 w-[320px] max-w-[calc(100%-2rem)] rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div class="flex items-center gap-3 px-4 py-3">
+        <img id="profile-menu-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-12 h-12 rounded-full object-cover border border-slate-200 avatar-ring" />
+        <div class="min-w-0">
+          <div id="profile-menu-name" class="text-sm font-semibold text-slate-900 truncate">Demo User</div>
+          <div id="profile-email" class="text-xs text-slate-500 truncate">demo@user.com</div>
+        </div>
+      </div>
+      <div class="border-t border-slate-200 px-3 py-2 text-sm text-slate-700">
+        <a href="/demo/settings.html#basic" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-solid fa-gear text-slate-500"></i>
+          Settings
+        </a>
+        <a href="/demo/strategies.html" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
+          <i class="fa-solid fa-diagram-project text-slate-500"></i>
+          View strategies
+        </a>
+        <button id="profile-logout" class="flex w-full items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-left text-rose-700">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          Sign out of demo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+      const saved = localStorage.getItem('ah_collapsed') === 'true';
+
+      if (saved) {
+        aside.setAttribute('data-collapsed', 'true');
+        layout.classList.add('is-collapsed');
+        aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+      }
+
+      btn?.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_collapsed', String(!isCollapsed));
+        layout.offsetHeight;
+        window.dispatchEvent(new Event('resize'));
+      });
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const btn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+      const sidebar = document.getElementById('ah-sidebar');
+
+      function openMenu() {
+        sidebar.classList.add('is-open');
+        overlay.classList.remove('hidden');
+      }
+      function closeMenu() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.add('hidden');
+      }
+
+      btn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+
+      sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
+        link.addEventListener('click', closeMenu);
+      });
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const profileBtn = document.getElementById('profile-btn');
+      const profileMenu = document.getElementById('profile-menu');
+      const profileOverlay = document.getElementById('profile-overlay');
+      const profileName = document.getElementById('profile-name');
+      const profileMenuName = document.getElementById('profile-menu-name');
+      const profileEmail = document.getElementById('profile-email');
+      const profileAvatar = document.getElementById('profile-avatar');
+      const profileMenuAvatar = document.getElementById('profile-menu-avatar');
+
+      const demoProfile = {
+        name: 'Demo User',
+        email: 'demo@user.com',
+        avatar: 'https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/profile/demo-avatar.png',
+      };
+
+      function setProfile(profile) {
+        if (profileName) profileName.textContent = profile?.name || 'Demo User';
+        if (profileMenuName) profileMenuName.textContent = profile?.name || 'Demo User';
+        if (profileEmail) profileEmail.textContent = profile?.email || 'demo@user.com';
+        const avatarSrc = profile?.avatar || profileAvatar?.src;
+        if (avatarSrc) {
+          if (profileAvatar) profileAvatar.src = avatarSrc;
+          if (profileMenuAvatar) profileMenuAvatar.src = avatarSrc;
+        }
+      }
+
+      function closeMenu() {
+        profileMenu?.classList.add('hidden');
+      }
+
+      profileBtn?.addEventListener('click', () => {
+        profileMenu?.classList.toggle('hidden');
+      });
+
+      profileOverlay?.addEventListener('click', closeMenu);
+      profileMenu?.addEventListener('click', (e) => {
+        if (e.target === profileMenu) closeMenu();
+      });
+
+      document.getElementById('profile-logout')?.addEventListener('click', () => {
+        alert('Switch to a live account to manage your real profile.');
+        closeMenu();
+      });
+
+      setProfile(demoProfile);
+    })();
+  </script>
+
+  <script nonce="ALGOHIVE">
+    (function () {
+      const holdingsBody = document.getElementById('holdings-body');
+      const totalInvested = document.getElementById('total-invested');
+      const distinctAssets = document.getElementById('distinct-assets');
+
+      const strategies = [
+        {
+          name: 'US Growth Pulse',
+          amount: 12500,
+          currency: 'USD',
+          targetWeights: [
+            { symbol: 'AAPL', name: 'Apple', weight: 0.22, changePct: 2.4, logo: 'https://logo.clearbit.com/apple.com' },
+            { symbol: 'MSFT', name: 'Microsoft', weight: 0.2, changePct: 1.8, logo: 'https://logo.clearbit.com/microsoft.com' },
+            { symbol: 'NVDA', name: 'NVIDIA', weight: 0.18, changePct: 3.1, logo: 'https://logo.clearbit.com/nvidia.com' },
+            { symbol: 'AMZN', name: 'Amazon', weight: 0.16, changePct: 1.2, logo: 'https://logo.clearbit.com/amazon.com' },
+            { symbol: 'GOOGL', name: 'Alphabet', weight: 0.14, changePct: 0.9, logo: 'https://logo.clearbit.com/abc.xyz' },
+            { symbol: 'TSLA', name: 'Tesla', weight: 0.1, changePct: -0.6, logo: 'https://logo.clearbit.com/tesla.com' },
+          ],
+        },
+        {
+          name: 'Global Income Blend',
+          amount: 8200,
+          currency: 'USD',
+          targetWeights: [
+            { symbol: 'VOO', name: 'S&P 500 ETF', weight: 0.32, changePct: 0.8, logo: 'https://logo.clearbit.com/vanguard.com' },
+            { symbol: 'BND', name: 'Total Bond ETF', weight: 0.28, changePct: -0.1, logo: 'https://logo.clearbit.com/vanguard.com' },
+            { symbol: 'GLD', name: 'Gold Trust', weight: 0.14, changePct: 0.6, logo: 'https://logo.clearbit.com/spdrgoldshares.com' },
+            { symbol: 'VEU', name: 'FTSE All-World ex-US', weight: 0.16, changePct: 0.4, logo: 'https://logo.clearbit.com/vanguard.com' },
+            { symbol: 'CASH', name: 'Cash Position', weight: 0.1, changePct: 0, logo: '' },
+          ],
+        },
+        {
+          name: 'Digital Edge',
+          amount: 6100,
+          currency: 'USD',
+          targetWeights: [
+            { symbol: 'BTC', name: 'Bitcoin', weight: 0.42, changePct: 2.2, logo: 'https://logo.clearbit.com/bitcoin.org' },
+            { symbol: 'ETH', name: 'Ethereum', weight: 0.36, changePct: 1.6, logo: 'https://logo.clearbit.com/ethereum.org' },
+            { symbol: 'SOL', name: 'Solana', weight: 0.14, changePct: -1.2, logo: 'https://logo.clearbit.com/solana.com' },
+            { symbol: 'USDC', name: 'USD Coin', weight: 0.08, changePct: 0.01, logo: 'https://logo.clearbit.com/circle.com' },
+          ],
+        },
+      ];
+
+      const totalAmount = strategies.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+      const holdingsMap = new Map();
+
+      strategies.forEach((strategy) => {
+        const base = Number(strategy.amount) || 0;
+        strategy.targetWeights.forEach((asset) => {
+          const weight = Number(asset.weight) || 0;
+          const value = base * weight;
+          if (!holdingsMap.has(asset.symbol)) {
+            holdingsMap.set(asset.symbol, {
+              symbol: asset.symbol,
+              name: asset.name,
+              logo: asset.logo,
+              value: 0,
+              weightValue: 0,
+              changePct: asset.changePct ?? null,
+            });
+          }
+          const record = holdingsMap.get(asset.symbol);
+          record.value += value;
+          record.weightValue += weight * base;
+          if (record.changePct == null && asset.changePct != null) record.changePct = asset.changePct;
+        });
+      });
+
+      const holdings = Array.from(holdingsMap.values())
+        .map((item) => ({
+          ...item,
+          weightPct: totalAmount ? (item.value / totalAmount) * 100 : 0,
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      if (totalInvested) totalInvested.textContent = `$${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (distinctAssets) distinctAssets.textContent = `${holdings.length} assets`;
+
+      if (!holdingsBody) return;
+      holdingsBody.innerHTML = '';
+
+      holdings.forEach((asset, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 === 1 ? 'bg-slate-50/40' : '';
+        const logo = asset.logo
+          ? `<img src="${asset.logo}" alt="${asset.symbol} logo" class="asset-logo" />`
+          : `<div class="asset-logo">${asset.symbol.slice(0, 2).toUpperCase()}</div>`;
+
+        const tone = asset.changePct == null ? 'text-slate-600' : asset.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600';
+        const changeLabel = asset.changePct == null ? '—' : `${asset.changePct >= 0 ? '+' : ''}${asset.changePct.toFixed(2)}%`;
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-900">
+            <div class="flex items-center gap-3">
+              ${logo}
+              <div>
+                <div>${asset.symbol}</div>
+                <div class="text-xs text-slate-500">${asset.name}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-slate-700">${asset.weightPct.toFixed(2)}%</td>
+          <td class="px-4 py-3 text-slate-700">$${asset.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="px-4 py-3 font-semibold ${tone}">${changeLabel}</td>
+        `;
+
+        holdingsBody.appendChild(tr);
+      });
+    })();
+  </script>
+</body>
+
+</html>
