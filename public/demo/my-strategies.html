@@ -740,7 +740,7 @@
       if (!Number.isFinite(raw)) return null;
       const pct = Number(raw);
       // If we get whole-number percentages (e.g., 5 for 5%), scale them down to decimals.
-      if (Math.abs(pct) > 2) return pct / 100;
+      if (Math.abs(pct) > 1) return pct / 100;
       return pct;
     };
 
@@ -767,9 +767,13 @@
       const series = sampleSeries(src || [], 360);
 
       for (const point of series) {
-        const pct = normalizePct(point?.pct);
-        if (!Number.isFinite(pct)) continue;
+        const rawPct = normalizePct(point?.pct);
+        if (!Number.isFinite(rawPct)) continue;
+        // Keep per-point moves within a sane band to avoid runaway curves from noisy data.
+        const pct = Math.max(-0.2, Math.min(0.2, rawPct));
         level = level * (1 + pct);
+        // Prevent unrealistic blow-ups that stretch the chart container.
+        level = Math.max(20, Math.min(500, level));
         const lvlRounded = Number(level.toFixed(2));
         curveVals.push(lvlRounded);
 
