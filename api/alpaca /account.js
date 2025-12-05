@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // Configuration
 const ALPACA_BASE_URL = "https://paper-api.alpaca.markets";
-// Use environment variables in production!
+// Use environment variables in production! 
 const ALPACA_KEY_ID = process.env.ALPACA_KEY_ID || "PKARM7PKO5AYOTHGHBAEYNLXV2";
 const ALPACA_SECRET_KEY = process.env.ALPACA_SECRET_KEY || "AfVJWotnuyuSE2LBqFhX744zia9qc65xPSwbGEvCEC1T";
 
