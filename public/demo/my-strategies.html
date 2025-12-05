@@ -6,137 +6,237 @@
   <title>AlgoHive – Demo My Strategies</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    body { font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif; }
+    :root { --bg:#fff; --muted:#64748b; --ink:#0f172a; --olive:#556B2F; --line:#e5e7ef; }
+    html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; height: 40px; padding: 0 .875rem; border-radius: 10px; border: 1px solid var(--line); font-weight: 600; }
+    /* layout */
+    #layout { --sb: 260px; display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+    #ah-sidebar { transition: transform .3s ease, width .2s ease; width: 320px; max-width: 85vw; position: fixed; z-index: 50; height: 100vh; transform: translateX(-100%); overflow-y: auto; }
+    #ah-sidebar.is-open { transform: translateX(0); }
+    @media (min-width: 768px) {
+      #layout { grid-template-columns: var(--sb) 1fr; }
+      #layout.is-collapsed { --sb: 72px; }
+      #ah-sidebar { position: sticky; top: 0; width: var(--sb); max-width: none; transform: translateX(0); z-index: auto; }
+    }
+    #ah-sidebar[data-collapsed="true"] .label, #ah-sidebar[data-collapsed="true"] .chevron { display: none; }
+    #ah-sidebar[data-collapsed="true"] nav a, #ah-sidebar[data-collapsed="true"] details>summary { justify-content: center; gap: .25rem; }
+    #ah-sidebar[data-collapsed="true"] details>.sub { display: none !important; }
+    #ah-sidebar .footer { transition: all .2s ease; }
+    #ah-sidebar[data-collapsed="true"] .footer { justify-content: center; flex-direction: column; gap: 12px; }
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg,i) { transform: rotate(180deg); }
+    #ah-sidebar[data-collapsed="true"] #main-nav { visibility: hidden; pointer-events: none; }
+    #ah-collapse { display: none; }
+    @media (min-width: 768px) { #ah-collapse { display: inline-flex; } }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
-  <div class="min-h-screen flex flex-col">
-    <header class="border-b border-slate-200 bg-white">
-      <div class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4">
-        <div class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-full bg-[#7e8d52] text-white grid place-items-center font-semibold">AH</div>
+<body class="min-h-screen overflow-x-hidden">
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-screen bg-white flex flex-col overflow-hidden">
+      <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-200">
+        <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-10 h-10 object-contain" />
+        <div class="min-w-0">
+          <div class="font-bold text-[15px] text-slate-900 label">AlgoHive Demo</div>
+          <div class="text-[11px] text-slate-500 label">Preview workspace</div>
+        </div>
+      </div>
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/demo/dashboard.html" title="Dashboard">
+          <i class="fa-solid fa-house text-slate-500 w-4 shrink-0"></i><span class="label">Dashboard</span>
+        </a>
+        <details class="group mt-1" open>
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-regular fa-user w-4 text-slate-500"></i><span class="label">Portfolio</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 bg-slate-100 font-semibold" href="/demo/my-strategies.html"><i class="fa-solid fa-chart-pie w-4 text-slate-500"></i><span class="label">My Strategies</span></a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/holdings.html"><i class="fa-solid fa-pie-chart w-4 text-slate-500"></i><span class="label">Holdings</span></a>
+          </div>
+        </details>
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-link w-4 text-slate-500"></i><span class="label">Invest</span></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/strategies.html"><i class="fa-solid fa-chart-line w-4 text-slate-500"></i><span class="label">OpenStrategies</span></a>
+          </div>
+        </details>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/demo/news-insights.html"><i class="fa-solid fa-newspaper w-4 text-slate-500"></i><span class="label">News &amp; Insights</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/demo/account-statements.html"><i class="fa-solid fa-receipt w-4 text-slate-500"></i><span class="label">Account Statements</span></a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50" href="/demo/settings.html"><i class="fa-solid fa-gear w-4 text-slate-500"></i><span class="label">Settings</span></a>
+      </nav>
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+    <main class="flex-1 min-w-0">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-30">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
           <div>
-            <p class="text-xs uppercase font-semibold tracking-wide text-slate-500">Demo</p>
-            <p class="text-lg font-bold">My Strategies</p>
+            <p class="text-xs uppercase font-semibold tracking-wide text-slate-500">Demo Portfolio</p>
+            <h1 class="text-xl font-bold text-slate-800 truncate">My Strategies</h1>
           </div>
         </div>
-        <div class="flex items-center gap-2 text-sm font-semibold">
-          <a href="/demo/dashboard.html" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50">
-            <i class="fa-solid fa-house text-slate-500"></i>
-            Dashboard
-          </a>
-          <a href="/demo/strategies.html" class="inline-flex items-center gap-2 rounded-lg border border-[#7e8d52] bg-[#7e8d52] px-3 py-2 text-white shadow-sm hover:bg-[#6e7b46]">
-            Browse OpenStrategies
+        <div class="flex items-center gap-2">
+          <a href="/demo/strategies.html" class="btn h-10 text-sm bg-[var(--olive)] text-white border-none hover:opacity-90">
+            <i class="fa-solid fa-plus"></i>
+            Add Demo Strategy
           </a>
         </div>
       </div>
-    </header>
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <section class="card border-emerald-200 bg-gradient-to-r from-emerald-50 via-emerald-50 to-white p-5 sm:p-6">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="space-y-2">
+              <p class="text-sm font-semibold text-emerald-700 uppercase tracking-[0.08em]">Demo Allocation</p>
+              <h2 class="text-2xl font-bold text-slate-900">Keep your demo portfolio on track</h2>
+              <p class="text-sm text-slate-700 max-w-xl">Preview how a diversified mix of demo strategies would have performed with a simple equity curve. Use it to sanity check allocations before going live.</p>
+              <div class="flex flex-wrap gap-2 text-sm font-semibold">
+                <span class="inline-flex items-center gap-2 rounded-lg bg-emerald-100 text-emerald-800 px-3 py-1">Gross return <span class="text-lg font-bold">+14.6%</span></span>
+                <span class="inline-flex items-center gap-2 rounded-lg bg-white text-slate-800 px-3 py-1 border border-emerald-200">Max drawdown <span class="font-bold">-6.3%</span></span>
+              </div>
+            </div>
+            <div class="bg-white border border-emerald-200 rounded-xl p-4 shadow-sm w-full lg:w-[360px]">
+              <div class="flex items-center justify-between text-sm text-slate-700">
+                <span class="font-semibold text-slate-900">Equity Curve</span>
+                <span class="flex items-center gap-1 text-emerald-700"><i class="fa-solid fa-circle text-[10px]"></i> Demo blend</span>
+              </div>
+              <canvas id="equityChart" class="mt-3 h-36"></canvas>
+              <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div class="rounded-lg bg-emerald-50 text-emerald-800 px-3 py-2 font-semibold">CAGR 1Y: 9.8%</div>
+                <div class="rounded-lg bg-emerald-50 text-emerald-800 px-3 py-2 font-semibold">Volatility: 7.1%</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-    <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8 space-y-6">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-2xl font-bold text-slate-900">Saved Demo Allocations</h1>
-          <p class="text-slate-600">Review the demo strategies you pinned while exploring the marketplace.</p>
-        </div>
-        <div class="flex gap-2">
-          <a href="/demo/holdings.html" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
-            <i class="fa-solid fa-pie-chart text-slate-500"></i>
-            Holdings
-          </a>
-          <a href="/demo/markets.html" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
-            <i class="fa-solid fa-earth-americas text-slate-500"></i>
-            Markets
-          </a>
-        </div>
+        <section class="grid gap-4 md:grid-cols-2">
+          <article class="card p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase font-semibold tracking-wide text-emerald-600">Live Demo</p>
+                <h3 class="text-lg font-bold text-slate-900">Momentum Plus</h3>
+                <p class="text-sm text-slate-600">Trend-following equities with weekly risk checks.</p>
+              </div>
+              <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
+            </div>
+            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
+              <div><dt class="text-slate-500">Allocation</dt><dd class="font-semibold">40%</dd></div>
+              <div><dt class="text-slate-500">7D Return</dt><dd class="font-semibold text-emerald-600">+2.1%</dd></div>
+              <div><dt class="text-slate-500">Risk</dt><dd class="font-semibold">Balanced</dd></div>
+              <div><dt class="text-slate-500">Next Rebalance</dt><dd class="font-semibold">In 3 days</dd></div>
+            </dl>
+            <div class="mt-4 flex gap-2 text-sm font-semibold">
+              <a href="/demo/strategy.html?strategy=momentum-plus" class="btn px-3 py-2 border-slate-200 hover:bg-slate-50">
+                <i class="fa-solid fa-chart-line text-slate-500"></i> View Details
+              </a>
+              <button class="btn px-3 py-2 text-[var(--olive)] border-slate-200 hover:bg-slate-50">Rebalance</button>
+            </div>
+          </article>
+
+          <article class="card p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase font-semibold tracking-wide text-orange-600">Paused Demo</p>
+                <h3 class="text-lg font-bold text-slate-900">Income Guard</h3>
+                <p class="text-sm text-slate-600">Multi-asset yield with capital preservation rules.</p>
+              </div>
+              <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">Paused</span>
+            </div>
+            <dl class="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
+              <div><dt class="text-slate-500">Allocation</dt><dd class="font-semibold">25%</dd></div>
+              <div><dt class="text-slate-500">7D Return</dt><dd class="font-semibold text-slate-700">+0.4%</dd></div>
+              <div><dt class="text-slate-500">Risk</dt><dd class="font-semibold">Conservative</dd></div>
+              <div><dt class="text-slate-500">Next Review</dt><dd class="font-semibold">Manual</dd></div>
+            </dl>
+            <div class="mt-4 flex gap-2 text-sm font-semibold">
+              <a href="/demo/strategy.html?strategy=income-guard" class="btn px-3 py-2 border-slate-200 hover:bg-slate-50">
+                <i class="fa-solid fa-chart-line text-slate-500"></i> View Details
+              </a>
+              <button class="btn px-3 py-2 text-[var(--olive)] border-slate-200 hover:bg-slate-50">Resume</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="card border-dashed border-slate-300 bg-white/60 px-4 py-6 text-center text-sm text-slate-600">
+          <p>Need more ideas? Visit the <a href="/demo/strategies.html" class="font-semibold text-[var(--olive)] hover:underline">OpenStrategies</a> list to add more demos to this collection.</p>
+        </section>
       </div>
-
-      <section class="grid gap-4 md:grid-cols-2">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs uppercase font-semibold tracking-wide text-emerald-600">Live Demo</p>
-              <h2 class="text-lg font-bold text-slate-900">Momentum Plus</h2>
-              <p class="text-sm text-slate-600">Trend-following equities with weekly risk checks.</p>
-            </div>
-            <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
-          </div>
-          <dl class="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
-            <div>
-              <dt class="text-slate-500">Allocation</dt>
-              <dd class="font-semibold">40%</dd>
-            </div>
-            <div>
-              <dt class="text-slate-500">7D Return</dt>
-              <dd class="font-semibold text-emerald-600">+2.1%</dd>
-            </div>
-            <div>
-              <dt class="text-slate-500">Risk</dt>
-              <dd class="font-semibold">Balanced</dd>
-            </div>
-            <div>
-              <dt class="text-slate-500">Next Rebalance</dt>
-              <dd class="font-semibold">In 3 days</dd>
-            </div>
-          </dl>
-          <div class="mt-4 flex gap-2 text-sm font-semibold">
-            <a href="/demo/strategy.html?strategy=momentum-plus" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50">
-              <i class="fa-solid fa-chart-line text-slate-500"></i>
-              View Details
-            </a>
-            <button class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-[#7e8d52] hover:bg-slate-50">Rebalance</button>
-          </div>
-        </article>
-
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs uppercase font-semibold tracking-wide text-orange-600">Paused Demo</p>
-              <h2 class="text-lg font-bold text-slate-900">Income Guard</h2>
-              <p class="text-sm text-slate-600">Multi-asset yield with capital preservation rules.</p>
-            </div>
-            <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">Paused</span>
-          </div>
-          <dl class="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-700">
-            <div>
-              <dt class="text-slate-500">Allocation</dt>
-              <dd class="font-semibold">25%</dd>
-            </div>
-            <div>
-              <dt class="text-slate-500">7D Return</dt>
-              <dd class="font-semibold text-slate-700">+0.4%</dd>
-            </div>
-            <div>
-              <dt class="text-slate-500">Risk</dt>
-              <dd class="font-semibold">Conservative</dd>
-            </div>
-            <div>
-              <dt class="text-slate-500">Next Review</dt>
-              <dd class="font-semibold">Manual</dd>
-            </div>
-          </dl>
-          <div class="mt-4 flex gap-2 text-sm font-semibold">
-            <a href="/demo/strategy.html?strategy=income-guard" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50">
-              <i class="fa-solid fa-chart-line text-slate-500"></i>
-              View Details
-            </a>
-            <button class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-[#7e8d52] hover:bg-slate-50">Resume</button>
-          </div>
-        </article>
-      </section>
-
-      <section class="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-4 py-6 text-center text-sm text-slate-600">
-        <p>Need more ideas? Visit the <a href="/demo/strategies.html" class="font-semibold text-[#7e8d52] hover:underline">OpenStrategies</a> list to add more demos to this collection.</p>
-      </section>
     </main>
-
-    <footer class="border-t border-slate-200 bg-white py-4">
-      <div class="mx-auto flex w-full max-w-5xl items-center justify-between px-4 text-xs text-slate-500">
-        <span>AlgoHive Demo</span>
-        <span>For preview purposes only</span>
-      </div>
-    </footer>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+
+  <script nonce="ALGOHIVE">
+    // mobile sidebar
+    (function () {
+      const btn = document.getElementById('ah-mobile-menu-btn');
+      const overlay = document.getElementById('ah-overlay');
+      const sidebar = document.getElementById('ah-sidebar');
+      const closeMenu = () => { sidebar.classList.remove('is-open'); overlay.classList.add('hidden'); };
+      const openMenu = () => { sidebar.classList.add('is-open'); overlay.classList.remove('hidden'); };
+      btn?.addEventListener('click', openMenu);
+      overlay?.addEventListener('click', closeMenu);
+      sidebar?.querySelectorAll('nav a, nav details a').forEach(link => { link.addEventListener('click', closeMenu); });
+    })();
+
+    // sidebar collapse memory
+    (function () {
+      const layout = document.getElementById('layout');
+      const aside = document.getElementById('ah-sidebar');
+      const btn = document.getElementById('ah-collapse');
+      const saved = localStorage.getItem('ah_demo_collapsed') === 'true';
+      if (saved) { aside.setAttribute('data-collapsed', 'true'); layout.classList.add('is-collapsed'); }
+      btn?.addEventListener('click', () => {
+        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
+        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
+        aside.setAttribute('data-collapsed', String(!isCollapsed));
+        layout.classList.toggle('is-collapsed', !isCollapsed);
+        localStorage.setItem('ah_demo_collapsed', String(!isCollapsed));
+      });
+    })();
+
+    // equity curve sample
+    (function () {
+      const ctx = document.getElementById('equityChart');
+      if (!ctx) return;
+      const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const data = [100, 103, 107, 111, 108, 114, 118, 122, 125, 128, 132, 137];
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Demo blend',
+            data,
+            tension: 0.35,
+            borderWidth: 2,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22, 163, 74, 0.12)',
+            pointRadius: 0,
+            fill: true,
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 11 } } },
+            y: { grid: { color: 'rgba(148,163,184,.3)' }, ticks: { color: '#475569', font: { size: 11 }, callback: v => `$${v}` } }
+          },
+          layout: { padding: { top: 6, right: 6, left: 0, bottom: 0 } },
+          interaction: { intersect: false, mode: 'index' }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
