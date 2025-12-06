@@ -660,6 +660,48 @@
             border-radius: 10px;
         }
 
+        /* Skeleton loading treatment for main content */
+        main.skeletonize {
+            position: relative;
+        }
+
+        main.skeletonize :is(p, h1, h2, h3, h4, h5, h6, li, dt, dd, span, small, strong, label, th, td, button, input, select, textarea, .chip, .badge, .tag) {
+            position: relative;
+            color: transparent !important;
+            background: #e2e8f0 !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        main.skeletonize :is(button, input, select, textarea) {
+            cursor: default;
+        }
+
+        main.skeletonize :is(p, h1, h2, h3, h4, h5, h6, li, dt, dd, span, small, strong, label, th, td, button, input, select, textarea, .chip, .badge, .tag)::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(226, 232, 240, 0) 0%, rgba(226, 232, 240, 0.9) 45%, rgba(226, 232, 240, 0) 90%);
+            transform: translateX(-100%);
+            animation: skeletonShimmer 1.1s ease-in-out infinite;
+        }
+
+        main.skeletonize img,
+        main.skeletonize svg,
+        main.skeletonize canvas,
+        main.skeletonize video,
+        main.skeletonize picture,
+        main.skeletonize figure {
+            opacity: 0;
+        }
+
+        @keyframes skeletonShimmer {
+            to { transform: translateX(100%); }
+        }
+
         /* --- END ADDED: Modal Styles --- */
     </style>
 </head>
@@ -746,7 +788,7 @@
                     class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse"><i
                         class="fa-solid fa-arrow-left"></i></button> </div>
         </aside>
-        <main class="flex-1 min-w-0">
+        <main class="flex-1 min-w-0 skeletonize">
             <div class="px-4 md:px-6 pt-4">
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
@@ -1130,6 +1172,23 @@
             </div>
             <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         </main>
+
+    <script nonce="ALGOHIVE">
+        (function attachSkeletonLoader() {
+            const main = document.querySelector('main.skeletonize');
+            if (!main) return;
+
+            const reveal = () => {
+                requestAnimationFrame(() => main.classList.remove('skeletonize'));
+            };
+
+            if (document.readyState === 'complete') {
+                setTimeout(reveal, 150);
+            } else {
+                window.addEventListener('load', () => setTimeout(reveal, 150), { once: true });
+            }
+        })();
+    </script>
     </div>
 
     <div id="daily-modal-overlay" class="modal-overlay"></div>
