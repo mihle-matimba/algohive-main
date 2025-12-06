@@ -91,22 +91,61 @@ def build_value_window_series(series_all: List[Dict[str, Any]]) -> Dict[str, Lis
 
 # ================ MAIN ENGINE ===================
 
-def update_demo_allocations_from_strategies():
-    print("[INFO] Loading strategy_metrics (series_all)...")
+def build_allocation_value_series(
+    strategy_returns: List[Tuple[dt.date, float]],
+    amount_invested: float,
+    start_date: dt.date,
+    end_date: dt.date,
+) -> List[Dict[str, Any]]:
+    filtered_returns = [
+        (d, r) for (d, r) in strategy_returns if d >= start_date and d <= end_date
+    ]
+    if not filtered_returns:
+        return []
 
-    # Get strategy returns once, build a map: strategy_id -> [(date, pct_decimal)]
-    strat_resp = supabase.table("strategy_metrics").select("strategy_id, series_all").execute()
+    value_series: List[Dict[str, Any]] = []
+    prev_value = amount_invested
+
+    for d, r in filtered_returns:
+        prev_value = prev_value * (1.0 + r)
+        value_series.append({
+            "date": d.isoformat(),
+            "value": round(prev_value, 2),
+        })
+
+    try:
+        value_series.sort(key=lambda x: x.get("date", ""))
+    except Exception as e:
+        print(f"[WARN] Could not sort value series: {e}")
+
+    return value_series
+
+
+def update_demo_allocations_from_strategies():
+    print("[INFO] Loading strategy_metrics (series_all + series_1d)...")
+
+    # Get strategy returns once, build a map: strategy_id -> {all: [...], 1d: [...]}
+    strat_resp = supabase.table("strategy_metrics").select(
+        "strategy_id, series_all, series_1d"
+    ).execute()
     strat_rows = strat_resp.data or []
 
-    strategy_returns: Dict[str, List[Tuple[dt.date, float]]] = {}
+    strategy_returns: Dict[str, Dict[str, List[Tuple[dt.date, float]]]] = {}
     for row in strat_rows:
         sid = row.get("strategy_id")
         if not sid:
             continue
         series_all = row.get("series_all") or []
+        series_1d = row.get("series_1d") or []
         if not isinstance(series_all, list):
             series_all = []
-        strategy_returns[sid] = _strategy_series_to_date_returns(series_all)
+        if not isinstance(series_1d, list):
+            series_1d = []
+
+        strategy_returns[sid] = {
+            "all": _strategy_series_to_date_returns(series_all),
+            "1d": _strategy_series_to_date_returns(series_1d),
+        }
 
     print(f"[INFO] Loaded {len(strategy_returns)} strategies with return series")
 
@@ -141,41 +180,28 @@ def update_demo_allocations_from_strategies():
 
         print(f"[INFO] Updating demo allocation {alloc_id} (strategy {strategy_id})")
 
-        strat_series = strategy_returns.get(strategy_id)
+        strat_series = strategy_returns.get(strategy_id, {}).get("all")
         if not strat_series:
             print(f"[INFO] Allocation {alloc_id}: no strategy series found, skipping")
             continue
 
-        # Filter strategy daily returns for dates >= start_date and <= today
-        strat_rets = [(d, r) for (d, r) in strat_series if d >= start_date and d <= today]
-        if not strat_rets:
+        # Build allocation value path from scratch every time
+        value_series = build_allocation_value_series(strat_series, amount_invested, start_date, today)
+        if not value_series:
             print(f"[INFO] Allocation {alloc_id}: no strategy returns after start_date, skipping")
             continue
 
-        # Build allocation value path from scratch every time
-        value_series: List[Dict[str, Any]] = []
-        prev_value = amount_invested
-
-        for d, r in strat_rets:
-            # r is decimal, e.g. 0.01 == 1%
-            prev_value = prev_value * (1.0 + r)
-            value_series.append({
-                "date": d.isoformat(),
-                "value": round(prev_value, 2),
-            })
-
-        if not value_series:
-            print(f"[INFO] Allocation {alloc_id}: no value series built, skipping update")
-            continue
-
-        # Ensure sorted
-        try:
-            value_series.sort(key=lambda x: x.get("date", ""))
-        except Exception as e:
-            print(f"[WARN] Allocation {alloc_id}: could not sort series_all: {e}")
-
         # Windows
         windows = build_value_window_series(value_series)
+
+        # Dedicated 1D series from strategy_metrics (if available)
+        strat_1d_series = strategy_returns.get(strategy_id, {}).get("1d") or []
+        series_1d_values = build_allocation_value_series(
+            strat_1d_series,
+            amount_invested,
+            start_date,
+            today,
+        )
 
         # Latest
         latest_value = value_series[-1]["value"]
@@ -186,7 +212,7 @@ def update_demo_allocations_from_strategies():
 
         update_payload = {
             "series_all": value_series,
-            "series_1d": windows["series_1d"],
+            "series_1d": series_1d_values or windows["series_1d"],
             "series_1m": windows["series_1m"],
             "series_3m": windows["series_3m"],
             "series_6m": windows["series_6m"],
