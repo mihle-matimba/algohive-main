@@ -611,7 +611,7 @@
   </style>
 </head>
 
-<body class="min-h-screen overflow-x-hidden bg-gray-50">
+<body class="min-h-screen overflow-x-hidden bg-white">
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
@@ -717,7 +717,7 @@
       </div>
     </aside>
 
-    <main class="flex-1 min-w-0 bg-gray-50">
+    <main class="flex-1 min-w-0 bg-white">
       <div class="px-4 md:px-6 pt-4">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
@@ -740,8 +740,11 @@
 
       <div class="px-6 md:px-10 py-6 space-y-6">
         <section class="space-y-2" id="header-section">
-          <h1 class="text-[28px] md:text-[32px] font-semibold text-slate-900">Dashboard</h1>
+          <h1 id="dashboard-title" class="text-[28px] md:text-[32px] font-semibold text-slate-900">Dashboard</h1>
           <p class="text-sm md:text-base text-slate-500">Here's your financial snapshot for today.</p>
+        </section>
+
+        <section id="greeting-cards" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         </section>
 
         <section id="stats-cards" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"></section>
@@ -846,7 +849,56 @@
     </div>
   </div>
 
+  <script type="module">
+    import { supabase } from '/js/supabase.js';
+
+    const dashboardTitle = document.getElementById('dashboard-title');
+    const profileNameEl = document.getElementById('profile-name');
+    const profileAvatarEl = document.getElementById('profile-avatar');
+
+    const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return 'Good Morning';
+      if (hour < 18) return 'Good Afternoon';
+      return 'Good Evening';
+    };
+
+    async function hydrateProfileFromLive() {
+      try {
+        const { data: userWrap } = await supabase.auth.getUser();
+        const user = userWrap?.user;
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const firstName = profile?.first_name || user.user_metadata?.first_name || 'User';
+        const lastName = profile?.last_name || user.user_metadata?.last_name || '';
+        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
+        if (dashboardTitle) dashboardTitle.textContent = `${getGreeting()} ${firstName}`;
+        if (profileNameEl) profileNameEl.textContent = fullName || firstName;
+
+        const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
+        if (avatarUrl && profileAvatarEl) profileAvatarEl.src = avatarUrl;
+      } catch (error) {
+        console.warn('Profile hydration failed; using defaults', error);
+      }
+    }
+
+    hydrateProfileFromLive();
+  </script>
+
   <script>
+    const greetingCards = [
+      { title: 'Portfolio Value', value: '$148,600', caption: '+6.2% vs benchmark' },
+      { title: 'Daily P&L', value: '+$1,240', caption: 'Net across active strategies' },
+      { title: 'Win Rate', value: '62%', caption: 'Trailing 30d hit ratio' },
+    ];
+
     const statsData = [
       { title: 'Total Accounts', value: '1,929', changePercent: 2.9, changeDirection: 'up', subtitle: 'Growth in total users' },
       { title: 'Total Transactions', value: '179', changePercent: -1.1, changeDirection: 'down', subtitle: 'Number of trades this period' },
@@ -915,6 +967,7 @@
     let currentDateFilter = 'all';
 
     const statsContainer = document.getElementById('stats-cards');
+    const greetingCardsContainer = document.getElementById('greeting-cards');
     const assetList = document.getElementById('asset-list');
     const performingCount = document.getElementById('performing-count');
     const decliningCount = document.getElementById('declining-count');
@@ -928,6 +981,20 @@
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const modalCloseBtns = [document.getElementById('close-modal'), document.getElementById('modal-close-btn')];
+
+    function renderGreetingCards() {
+      if (!greetingCardsContainer) return;
+      greetingCardsContainer.innerHTML = greetingCards
+        .map(
+          (item) => `
+            <article class="bg-white rounded-xl shadow-sm p-5 space-y-3 border border-slate-100">
+              <p class="text-sm font-semibold text-slate-500">${item.title}</p>
+              <p class="text-[28px] md:text-[32px] font-bold text-slate-900">${item.value}</p>
+              <p class="text-sm text-slate-500">${item.caption}</p>
+            </article>`
+        )
+        .join('');
+    }
 
     function renderStats() {
       if (!statsContainer) return;
@@ -1206,6 +1273,7 @@
     }
 
     function init() {
+      renderGreetingCards();
       renderStats();
       toggleRange(currentRange);
       renderAssets();
