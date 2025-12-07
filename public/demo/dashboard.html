@@ -190,6 +190,36 @@
       scrollbar-width: none
     }
 
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: #e5e7eb;
+    }
+
+    .skeleton::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 100%);
+      animation: shimmer 1.25s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    #dashboard-skeleton {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(1px);
+      transition: opacity .25s ease;
+    }
+
     /* Brand switcher */
     #ah-brand-switcher {
       position: relative;
@@ -717,7 +747,79 @@
       </div>
     </aside>
 
-    <main class="flex-1 min-w-0 bg-white">
+    <main class="relative flex-1 min-w-0 bg-white">
+      <div id="dashboard-skeleton" class="overflow-y-auto px-4 md:px-6 pt-4 pb-10">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
+            <div class="h-11 w-11 rounded-xl skeleton"></div>
+            <div class="h-10 w-32 rounded-full skeleton"></div>
+          </div>
+          <div class="h-11 w-32 rounded-full skeleton"></div>
+        </div>
+
+        <div class="px-6 md:px-10 py-6 space-y-6">
+          <div class="space-y-2">
+            <div class="h-8 w-72 rounded-lg skeleton"></div>
+            <div class="h-4 w-80 max-w-full rounded-lg skeleton"></div>
+          </div>
+
+          <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="bg-white rounded-xl shadow-sm p-5 space-y-3">
+              <div class="h-4 w-24 rounded skeleton"></div>
+              <div class="h-8 w-24 rounded skeleton"></div>
+              <div class="h-4 w-32 rounded skeleton"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-5 space-y-3">
+              <div class="h-4 w-20 rounded skeleton"></div>
+              <div class="h-8 w-24 rounded skeleton"></div>
+              <div class="h-4 w-28 rounded skeleton"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-5 space-y-3">
+              <div class="h-4 w-28 rounded skeleton"></div>
+              <div class="h-8 w-28 rounded skeleton"></div>
+              <div class="h-4 w-24 rounded skeleton"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-5 space-y-3">
+              <div class="h-4 w-24 rounded skeleton"></div>
+              <div class="h-8 w-24 rounded skeleton"></div>
+              <div class="h-4 w-24 rounded skeleton"></div>
+            </div>
+          </div>
+
+          <div class="grid gap-6 lg:grid-cols-3">
+            <div class="bg-white rounded-xl shadow-sm p-6 lg:col-span-2 space-y-4">
+              <div class="h-5 w-56 rounded skeleton"></div>
+              <div class="h-4 w-72 rounded skeleton"></div>
+              <div class="h-[240px] rounded-lg skeleton"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
+              <div class="h-5 w-40 rounded skeleton"></div>
+              <div class="h-4 w-52 rounded skeleton"></div>
+              <div class="grid grid-cols-3 gap-3">
+                <div class="h-16 rounded-lg skeleton"></div>
+                <div class="h-16 rounded-lg skeleton"></div>
+                <div class="h-16 rounded-lg skeleton"></div>
+              </div>
+              <div class="space-y-3">
+                <div class="h-12 rounded-lg skeleton"></div>
+                <div class="h-12 rounded-lg skeleton"></div>
+                <div class="h-12 rounded-lg skeleton"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
+            <div class="h-5 w-48 rounded skeleton"></div>
+            <div class="h-4 w-64 rounded skeleton"></div>
+            <div class="flex flex-wrap gap-2">
+              <div class="h-11 w-full md:w-64 rounded-lg skeleton"></div>
+              <div class="h-11 w-28 rounded-lg skeleton"></div>
+              <div class="h-11 w-28 rounded-lg skeleton"></div>
+            </div>
+            <div class="h-[260px] rounded-lg skeleton"></div>
+          </div>
+        </div>
+      </div>
       <div class="px-4 md:px-6 pt-4">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
@@ -987,6 +1089,7 @@
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const modalCloseBtns = [document.getElementById('close-modal'), document.getElementById('modal-close-btn')];
+    const skeletonLayer = document.getElementById('dashboard-skeleton');
 
     function renderStats() {
       if (!statsContainer) return;
@@ -1239,6 +1342,12 @@
       });
     }
 
+    function hideSkeleton() {
+      if (!skeletonLayer) return;
+      skeletonLayer.style.opacity = '0';
+      setTimeout(() => skeletonLayer.remove(), 260);
+    }
+
     function wireSidebar() {
       const sidebar = document.getElementById('ah-sidebar');
       const overlay = document.getElementById('ah-overlay');
@@ -1276,6 +1385,7 @@
       wireExport();
       wireRangeButtons();
       wireSidebar();
+      hideSkeleton();
     }
 
     document.addEventListener('DOMContentLoaded', init);
