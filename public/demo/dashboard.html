@@ -891,7 +891,22 @@
                 </button>
               </div>
             </div>
-            <div class="px-5 pt-4">
+            <div class="px-5 pt-4 flex flex-wrap gap-3 items-center">
+              <label class="text-sm text-slate-600 flex items-center gap-2">
+                Strategy
+                <select id="strategy-select" class="h-10 rounded-lg border border-slate-200 px-3 text-sm min-w-[180px]">
+                  <option value="" disabled selected>Loading…</option>
+                </select>
+              </label>
+              <label class="text-sm text-slate-600 flex items-center gap-2">
+                Benchmark
+                <select id="benchmark-select" class="h-10 rounded-lg border border-slate-200 px-3 text-sm min-w-[180px]">
+                  <option value="none">None</option>
+                </select>
+              </label>
+            </div>
+            <div id="allocation-toggles" class="px-5 pb-2 flex flex-wrap gap-2 text-xs"></div>
+            <div class="px-5 pb-4">
               <div class="flex items-baseline gap-3">
                 <div class="text-2xl font-bold" id="pf-value">—</div>
                 <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
@@ -975,33 +990,88 @@
           </div>
         </section>
 
-        <section class="bg-white rounded-xl shadow-sm p-5">
-          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p class="text-lg font-semibold text-slate-900">Top Holdings</p>
-              <p class="text-sm text-slate-500">Largest positions across your demo portfolio.</p>
+        <section class="col-span-12 lg:col-span-9 min-w-0">
+          <div class="card rounded-2xl border border-slate-200 p-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-medium text-slate-900">Top Positions</h3>
+              <a href="/demo/holdings.html" class="text-sm text-slate-500 hover:text-slate-700">View Holdings</a>
             </div>
-            <a href="/demo/holdings.html" class="text-sm font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">View Holdings</a>
-          </div>
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <label class="text-sm text-slate-500">Asset Class</label>
+              <select id="position-asset-class" class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
+                <option value="all">All</option>
+                <option value="stocks">Stocks</option>
+                <option value="crypto">Crypto</option>
+                <option value="etf">ETFs</option>
+              </select>
+              <label class="ml-2 text-sm text-slate-500">Side</label>
+              <select id="position-side" class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
+                <option value="all">All</option>
+                <option value="buy">Buy</option>
+                <option value="sell">Sell</option>
+              </select>
+            </div>
 
-          <div class="mt-4 hidden md:block">
-            <div class="overflow-x-auto rounded-lg border border-slate-200">
-              <table class="min-w-full divide-y divide-slate-200 text-sm" aria-label="Top holdings table">
-                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th class="px-4 py-3">Asset</th>
-                    <th class="px-4 py-3">Allocation</th>
-                    <th class="px-4 py-3">Market value</th>
-                    <th class="px-4 py-3">Strategy mix</th>
-                    <th class="px-4 py-3">P/L</th>
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full text-sm" aria-label="Top positions table">
+                <thead>
+                  <tr class="text-slate-500">
+                    <th class="py-3 text-left font-normal">Asset</th>
+                    <th class="py-3 text-left font-normal">Price</th>
+                    <th class="py-3 text-left font-normal">Qty</th>
+                    <th class="py-3 text-left font-normal">Market Value</th>
+                    <th class="py-3 text-left font-normal">Total P/L ($)</th>
+                    <th class="py-3 text-center font-normal"> </th>
                   </tr>
                 </thead>
-                <tbody id="holdings-rows" class="divide-y divide-slate-100 bg-white"></tbody>
+                <tbody id="positions-body" class="divide-y divide-slate-100"></tbody>
               </table>
             </div>
           </div>
+        </section>
 
-          <div class="mt-4 space-y-3 md:hidden" id="holdings-cards" aria-label="Top holdings list"></div>
+        <section class="col-span-12 lg:col-span-9 min-w-0">
+          <div class="card rounded-2xl border border-slate-200 p-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-medium text-slate-900">Recent Orders</h3>
+              <a href="/demo/orders.html" class="text-sm text-slate-500 hover:text-slate-700">View All</a>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <div class="relative">
+                <input id="orders-search" class="h-9 w-64 rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search..." />
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              </div>
+              <button id="cancel-selected" class="h-9 rounded-lg bg-amber-100 text-amber-900 px-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                Cancel <span id="sel-count">0</span> selected
+              </button>
+              <button class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
+                <i class="fa-solid fa-table-cells-large mr-2 text-slate-500"></i> Columns
+              </button>
+            </div>
+
+            <div class="mt-3 text-xs text-slate-400" id="clear-selection" hidden>Clear Selection</div>
+
+            <div class="mt-2 overflow-x-auto">
+              <table class="w-full text-sm" aria-label="Recent orders table">
+                <thead>
+                  <tr class="text-slate-500">
+                    <th class="py-3 pl-3"><input id="chk-all" type="checkbox" class="h-4 w-4 rounded border-slate-300" /></th>
+                    <th class="py-3 text-left font-normal">Asset</th>
+                    <th class="py-3 text-left font-normal">Order Type</th>
+                    <th class="py-3 text-left font-normal">Side</th>
+                    <th class="py-3 text-left font-normal">Qty</th>
+                    <th class="py-3 text-left font-normal">Filled Qty</th>
+                    <th class="py-3 text-left font-normal">Avg. Fill Price</th>
+                    <th class="py-3 text-left font-normal">Status</th>
+                    <th class="py-3 text-left font-normal">Source</th>
+                    <th class="py-3 text-left font-normal">Submitted At</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-body" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -1113,6 +1183,9 @@
     let currentUserId = null;
     let cachedAllocations = [];
     let cachedMetricsMap = new Map();
+    let positionsCache = [];
+    let ordersCache = [...fallbackOrders];
+    let selectedOrders = new Set();
 
     const statsData = [
       { title: 'Total Balance', value: '$0.00', changePercent: 0, changeDirection: 'up', subtitle: 'Funds available in demo wallet' },
@@ -1178,6 +1251,17 @@
     const strategyMetricsCache = new Map();
     let strategySpotlights = [];
     let strategyIndex = 0;
+    let strategySeriesMap = new Map();
+    let selectedStrategyId = null;
+    let allocationVisibility = new Map();
+    let benchmarkSelection = 'none';
+
+    const fallbackOrders = [
+      { asset: 'AAPL', type: 'Market', side: 'Buy', qty: 12, filled: 12, price: 254.12, status: 'Filled', source: 'Algo', submitted: '2024/06/14 10:23', logo: null },
+      { asset: 'ETH', type: 'Limit', side: 'Sell', qty: 1.6, filled: 1.4, price: 3520.12, status: 'Partial', source: 'Manual', submitted: '2024/06/13 16:08', logo: null },
+      { asset: 'QQQ', type: 'Market', side: 'Buy', qty: 8, filled: 8, price: 471.21, status: 'Filled', source: 'Algo', submitted: '2024/06/12 13:44', logo: null },
+      { asset: 'BTC', type: 'Stop', side: 'Buy', qty: 0.05, filled: 0.05, price: 68750.55, status: 'Filled', source: 'Strategy', submitted: '2024/06/10 09:10', logo: null },
+    ];
 
     function normalizeWeight(weight = 0) {
       const value = Number(weight);
@@ -1304,7 +1388,7 @@
     }
 
     let chartInstance = null;
-    let currentRange = '1D';
+    let currentRange = '1Y';
 
     function formatCurrency(value = 0, currency = 'USD') {
       try {
@@ -1387,6 +1471,15 @@
     const statsContainer = document.getElementById('stats-cards');
     const holdingsRows = document.getElementById('holdings-rows');
     const holdingsCards = document.getElementById('holdings-cards');
+    const positionsBody = document.getElementById('positions-body');
+    const positionAssetClass = document.getElementById('position-asset-class');
+    const positionSide = document.getElementById('position-side');
+    const ordersBody = document.getElementById('orders-body');
+    const ordersSearch = document.getElementById('orders-search');
+    const cancelSelected = document.getElementById('cancel-selected');
+    const clearSelection = document.getElementById('clear-selection');
+    const selectionCount = document.getElementById('sel-count');
+    const chkAll = document.getElementById('chk-all');
     const skeletonLayer = document.getElementById('dashboard-skeleton');
     const fundsModal = document.getElementById('funds-modal');
     const fundsOverlay = document.getElementById('funds-overlay');
@@ -1396,6 +1489,9 @@
     const fundsCancel = document.getElementById('funds-cancel');
     const fundsSubmit = document.getElementById('funds-submit');
     const toastStack = document.getElementById('toast-stack');
+    const strategySelectEl = document.getElementById('strategy-select');
+    const benchmarkSelectEl = document.getElementById('benchmark-select');
+    const allocationToggleWrap = document.getElementById('allocation-toggles');
 
     function showToast(message, tone = 'ok') {
       if (!toastStack || !message) return;
@@ -1464,26 +1560,89 @@
       });
     }
 
-    function renderEquityChart(rangeKey = '1D') {
-      const cfg = equityRanges[rangeKey] || equityRanges['1D'];
-      if (!cfg) return;
+    function renderEquityChart(rangeKey = '1Y') {
       setActiveRange(rangeKey);
+      const ctxEl = document.getElementById('pf-chart');
+      if (!ctxEl) return;
 
-      const labels = cfg.labels || [];
-      const points = cfg.data || [];
-      const first = points[0] || 0;
-      const last = points[points.length - 1] || 0;
+      const ctx = ctxEl.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+      gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
+
+      const firstStrategy = strategySeriesMap.get(selectedStrategyId) || strategySeriesMap.values().next().value || null;
+      const fallbackCfg = equityRanges[rangeKey] || equityRanges['1Y'];
+      let labels = fallbackCfg.labels || [];
+      let baseData = fallbackCfg.data || [];
+      let datasets = [];
+      let currencyForValue = baseCurrency;
+
+      if (firstStrategy) {
+        const basePayload = buildRangePayload(firstStrategy.series, rangeKey);
+        labels = basePayload.labels;
+        baseData = basePayload.data;
+        currencyForValue = firstStrategy.currency || baseCurrency;
+        const palette = ['#556B2F', '#2563EB', '#7C3AED', '#16A34A', '#DC2626', '#0EA5E9', '#F59E0B'];
+
+        datasets.push({
+          label: `${firstStrategy.name} (My allocation)`,
+          data: baseData,
+          tension: 0.35,
+          borderWidth: 2,
+          borderColor: palette[0],
+          backgroundColor: gradient,
+          fill: true,
+          pointRadius: 0,
+        });
+
+        firstStrategy.allocations.forEach((alloc, idx) => {
+          if (allocationVisibility.get(alloc.id) === false) return;
+          const payload = buildRangePayload(alloc.series, rangeKey);
+          datasets.push({
+            label: alloc.label || `Allocation ${idx + 1}`,
+            data: alignData(baseData.length, payload.data),
+            tension: 0.35,
+            borderWidth: 1.8,
+            borderColor: palette[(idx + 1) % palette.length],
+            fill: false,
+            pointRadius: 0,
+            borderDash: idx % 2 === 0 ? [] : [5, 4],
+          });
+        });
+
+        if (benchmarkSelection && benchmarkSelection !== 'none') {
+          const benchmark = benchmarkSelection === 'baseline'
+            ? firstStrategy
+            : strategySeriesMap.get(benchmarkSelection);
+          if (benchmark) {
+            const sourceSeries = benchmarkSelection === 'baseline' ? benchmark.baselineSeries : benchmark.series;
+            const benchPayload = buildRangePayload(sourceSeries, rangeKey);
+            datasets.push({
+              label: benchmarkSelection === 'baseline' ? `${benchmark.name} (Strategy benchmark)` : `${benchmark.name} benchmark`,
+              data: alignData(baseData.length, benchPayload.data),
+              tension: 0.35,
+              borderWidth: 2,
+              borderColor: '#0f172a',
+              fill: false,
+              pointRadius: 0,
+              borderDash: [6, 4],
+            });
+          }
+        }
+      }
+
+      const first = baseData[0] || 0;
+      const last = baseData[baseData.length - 1] || 0;
       const changePct = first ? ((last - first) / first) * 100 : 0;
 
-      if (pfValue) pfValue.textContent = formatCurrency(last, baseCurrency);
+      if (pfValue) pfValue.textContent = formatCurrency(last, currencyForValue);
       if (pfChange) {
         pfChange.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
         pfChange.classList.toggle('text-green-600', changePct >= 0);
         pfChange.classList.toggle('text-rose-600', changePct < 0);
       }
       if (pfUpdated) {
-        const ts = cfg.updated ? cfg.updated() : new Date();
-        pfUpdated.textContent = new Date(ts).toLocaleString('en-ZA', {
+        pfUpdated.textContent = new Date().toLocaleString('en-ZA', {
           month: 'long',
           day: '2-digit',
           hour: '2-digit',
@@ -1491,35 +1650,15 @@
         });
       }
 
-      const ctxEl = document.getElementById('pf-chart');
-      if (!ctxEl) return;
-      const ctx = ctxEl.getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-      gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
-      gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
-
       if (chartInstance) chartInstance.destroy();
 
       chartInstance = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              data: points,
-              tension: 0.35,
-              borderWidth: 2,
-              borderColor: '#556B2F',
-              backgroundColor: gradient,
-              fill: true,
-              pointRadius: 0,
-            },
-          ],
-        },
+        data: { labels, datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { enabled: true, displayColors: false } },
+          plugins: { legend: { display: true }, tooltip: { enabled: true, displayColors: true } },
           scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } } },
         },
       });
@@ -1583,6 +1722,7 @@
     }
 
     function renderHoldingsView(data = [], currency = 'USD') {
+      if (!holdingsRows || !holdingsCards) return;
       const rows = Array.isArray(data) ? data.slice(0, 5) : [];
       holdingsRows.innerHTML = '';
       holdingsCards.innerHTML = '';
@@ -1641,6 +1781,150 @@
       });
     }
 
+    function buildPositionsFromHoldings(data = []) {
+      const holdings = Array.isArray(data) ? data : [];
+      return holdings.slice(0, 5).map((asset, idx) => {
+        const value = Number(asset.value || 0) || 0;
+        const basePrice = value / Math.max(1, (asset.weightPct || 1) * 0.6);
+        const price = Math.max(1, basePrice || 100 + idx * 12);
+        const qty = Math.max(1, Math.round(value / price) || 1);
+        const pl = (Number(asset.changePct ?? 0) / 100) * value;
+        const side = pl >= 0 ? 'buy' : 'sell';
+        const assetClass = ['BTC', 'ETH', 'SOL'].includes((asset.symbol || '').toUpperCase()) ? 'crypto' : 'stocks';
+        return {
+          symbol: asset.symbol,
+          name: asset.name || asset.symbol,
+          price,
+          qty,
+          value,
+          pl,
+          side,
+          class: assetClass,
+          logo: asset.logo || null,
+        };
+      });
+    }
+
+    function renderTopPositions(data = [], currency = baseCurrency) {
+      if (!positionsBody) return;
+      positionsBody.innerHTML = '';
+      const classFilter = (positionAssetClass?.value || 'all').toLowerCase();
+      const sideFilter = (positionSide?.value || 'all').toLowerCase();
+      positionsCache = Array.isArray(data) ? data : [];
+
+      const filtered = positionsCache.filter((row) => {
+        const classOk = classFilter === 'all' || row.class === classFilter;
+        const sideOk = sideFilter === 'all' || row.side === sideFilter;
+        return classOk && sideOk;
+      });
+
+      if (!filtered.length) {
+        positionsBody.innerHTML = '<tr><td colspan="6" class="py-4 text-sm text-slate-500">No positions available.</td></tr>';
+        return;
+      }
+
+      filtered.forEach((row, idx) => {
+        const plTone = row.pl >= 0 ? 'text-green-600' : 'text-red-600';
+        const logo = buildLogo(row.symbol, row.logo, 'h-10 w-10');
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 === 1 ? 'bg-slate-50/60' : 'hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="py-3">
+            <div class="flex items-center gap-3">
+              ${logo}
+              <div>
+                <div class="text-slate-800 font-semibold">${row.symbol}</div>
+                <div class="text-xs text-slate-500">${row.name || ''}</div>
+              </div>
+            </div>
+          </td>
+          <td class="py-3">${formatMoney(row.price, currency)}</td>
+          <td class="py-3">${row.qty}</td>
+          <td class="py-3">${formatMoney(row.value, currency)}</td>
+          <td class="py-3 ${plTone}">${row.pl >= 0 ? '+' : ''}${formatMoney(row.pl, currency)}</td>
+          <td class="py-3 text-center"></td>
+        `;
+        positionsBody.appendChild(tr);
+      });
+    }
+
+    function buildOrdersFromHoldings(data = []) {
+      const holdings = Array.isArray(data) ? data.slice(0, 4) : [];
+      if (!holdings.length) return [...fallbackOrders];
+      return holdings.map((asset, idx) => {
+        const qty = Math.max(1, Math.round((asset.weightPct || 1) * 2 + idx));
+        const price = Math.max(1, (asset.value || 1000) / Math.max(1, qty));
+        return {
+          id: `order-${idx}`,
+          asset: asset.symbol,
+          orderType: idx % 2 === 0 ? 'Market' : 'Limit',
+          side: (asset.changePct ?? 0) >= 0 ? 'Buy' : 'Sell',
+          qty,
+          filled: qty - (idx % 2 === 0 ? 0 : 1),
+          price,
+          status: idx % 2 === 0 ? 'Filled' : 'Partial',
+          source: idx % 2 === 0 ? 'Algo' : 'Manual',
+          submitted: '2024/06/12 10:00',
+          logo: asset.logo || null,
+        };
+      });
+    }
+
+    function updateOrderSelectionUI() {
+      if (selectionCount) selectionCount.textContent = selectedOrders.size;
+      if (cancelSelected) cancelSelected.disabled = selectedOrders.size === 0;
+      if (clearSelection) clearSelection.hidden = selectedOrders.size === 0;
+    }
+
+    function renderOrdersTable(data = ordersCache) {
+      if (!ordersBody) return;
+      const query = (ordersSearch?.value || '').toLowerCase();
+      const rows = (Array.isArray(data) ? data : []).filter((row) =>
+        !query || row.asset?.toLowerCase().includes(query) || row.orderType?.toLowerCase?.().includes?.(query) || row.side?.toLowerCase?.().includes?.(query)
+      );
+
+      ordersBody.innerHTML = '';
+      if (!rows.length) {
+        ordersBody.innerHTML = '<tr><td colspan="10" class="py-4 text-sm text-slate-500">No orders found.</td></tr>';
+        updateOrderSelectionUI();
+        return;
+      }
+
+      rows.forEach((row, idx) => {
+        const id = row.id || `order-${idx}`;
+        const logo = buildLogo(row.asset, row.logo, 'h-8 w-8');
+        const checked = selectedOrders.has(id);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="py-3 pl-3"><input type="checkbox" class="row-chk h-4 w-4 rounded border-slate-300" data-order-id="${id}" ${checked ? 'checked' : ''} /></td>
+          <td class="py-3">
+            <div class="flex items-center gap-2">${logo}<span class="text-slate-800 font-semibold">${row.asset}</span></div>
+          </td>
+          <td class="py-3">${row.orderType || row.type || 'Market'}</td>
+          <td class="py-3">${row.side || 'Buy'}</td>
+          <td class="py-3">${row.qty}</td>
+          <td class="py-3">${row.filled}</td>
+          <td class="py-3">${formatMoney(row.price, baseCurrency)}</td>
+          <td class="py-3">${row.status || 'Filled'}</td>
+          <td class="py-3">${row.source || 'Algo'}</td>
+          <td class="py-3">${row.submitted || ''}</td>
+        `;
+        ordersBody.appendChild(tr);
+      });
+
+      ordersBody.querySelectorAll('.row-chk').forEach((chk) => {
+        chk.addEventListener('change', (event) => {
+          const id = event.target.dataset.orderId;
+          if (event.target.checked) selectedOrders.add(id);
+          else selectedOrders.delete(id);
+          updateOrderSelectionUI();
+        });
+      });
+
+      updateOrderSelectionUI();
+    }
+
     async function loadTopHoldings() {
       try {
         const allocations = await fetchDemoAllocations(currentUserId || '');
@@ -1657,25 +1941,239 @@
           holdingsSet = holdings.length ? holdings : fallbackHoldings;
         }
 
+        positionsCache = buildPositionsFromHoldings(holdingsSet);
+        renderTopPositions(positionsCache, baseCurrency);
+        ordersCache = buildOrdersFromHoldings(holdingsSet);
+        renderOrdersTable(ordersCache);
+
         renderHoldingsView(holdingsSet, baseCurrency);
         renderHoldingsCarousel(holdingsSet, baseCurrency);
         const strategyData = buildStrategySpotlights(allocations, metricsMap);
         strategySpotlights = strategyData.length ? strategyData : [];
         renderStrategySpotlight(strategyIndex);
+
+        strategySeriesMap = buildStrategySeries(allocations, metricsMap);
+        if (!selectedStrategyId || !strategySeriesMap.has(selectedStrategyId)) {
+          selectedStrategyId = strategySeriesMap.keys().next().value || null;
+        }
+        allocationVisibility = new Map();
+        const activeStrategy = selectedStrategyId ? strategySeriesMap.get(selectedStrategyId) : null;
+        activeStrategy?.allocations?.forEach((alloc) => allocationVisibility.set(alloc.id, true));
+        populateStrategySelect();
+        populateBenchmarkOptions();
+        renderAllocationToggles();
+        renderEquityChart(currentRange);
       } catch (error) {
         console.warn('Top holdings load failed; showing fallback', error);
+        positionsCache = buildPositionsFromHoldings(fallbackHoldings);
+        renderTopPositions(positionsCache, baseCurrency);
+        ordersCache = buildOrdersFromHoldings(fallbackHoldings);
+        renderOrdersTable(ordersCache);
         renderHoldingsView(fallbackHoldings, baseCurrency);
         renderHoldingsCarousel(fallbackHoldings, baseCurrency);
         strategySpotlights = [];
         renderStrategySpotlight(strategyIndex);
+        strategySeriesMap = buildStrategySeries([], new Map());
+        selectedStrategyId = strategySeriesMap.keys().next().value || null;
+        allocationVisibility = new Map();
+        const activeStrategy = selectedStrategyId ? strategySeriesMap.get(selectedStrategyId) : null;
+        activeStrategy?.allocations?.forEach((alloc) => allocationVisibility.set(alloc.id, true));
+        populateStrategySelect();
+        populateBenchmarkOptions();
+        renderAllocationToggles();
+        renderEquityChart(currentRange);
       }
+    }
+
+    function populateStrategySelect() {
+      if (!strategySelectEl) return;
+      strategySelectEl.innerHTML = '';
+      strategySeriesMap.forEach((strategy, id) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${strategy.name || 'Strategy'}${strategy.code ? ` (${strategy.code})` : ''}`;
+        if (selectedStrategyId === id) opt.selected = true;
+        strategySelectEl.appendChild(opt);
+      });
+    }
+
+    function populateBenchmarkOptions() {
+      if (!benchmarkSelectEl) return;
+      benchmarkSelectEl.innerHTML = '';
+      const none = document.createElement('option');
+      none.value = 'none';
+      none.textContent = 'None';
+      benchmarkSelectEl.appendChild(none);
+
+      const active = selectedStrategyId ? strategySeriesMap.get(selectedStrategyId) : null;
+      if (active) {
+        const baseline = document.createElement('option');
+        baseline.value = 'baseline';
+        baseline.textContent = `${active.name} benchmark`;
+        benchmarkSelectEl.appendChild(baseline);
+      }
+
+      strategySeriesMap.forEach((strategy, id) => {
+        if (id === selectedStrategyId) return;
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${strategy.name} benchmark`;
+        if (benchmarkSelection === id) opt.selected = true;
+        benchmarkSelectEl.appendChild(opt);
+      });
+      if (benchmarkSelection === 'baseline' && active) benchmarkSelectEl.value = 'baseline';
+      if (benchmarkSelection === 'none') benchmarkSelectEl.value = 'none';
+      if (benchmarkSelection && benchmarkSelection !== 'none' && benchmarkSelectEl.querySelector(`option[value="${benchmarkSelection}"]`)) {
+        benchmarkSelectEl.value = benchmarkSelection;
+      }
+    }
+
+    function renderAllocationToggles() {
+      if (!allocationToggleWrap) return;
+      allocationToggleWrap.innerHTML = '';
+      const activeStrategy = selectedStrategyId ? strategySeriesMap.get(selectedStrategyId) : null;
+      if (!activeStrategy || !activeStrategy.allocations.length) {
+        allocationToggleWrap.innerHTML = '<span class="text-xs text-slate-500">No allocations available.</span>';
+        return;
+      }
+
+      activeStrategy.allocations.forEach((alloc, idx) => {
+        const id = alloc.id || `${selectedStrategyId}-alloc-${idx}`;
+        const checked = allocationVisibility.get(id) !== false;
+        const btn = document.createElement('label');
+        btn.className = `inline-flex items-center gap-2 rounded-full border px-3 py-1.5 cursor-pointer transition ${checked ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-white border-slate-200 text-slate-600'} hover:border-emerald-300`;
+        btn.innerHTML = `<input type="checkbox" class="sr-only" data-allocation-toggle value="${id}" ${checked ? 'checked' : ''} /><span class="text-[12px] font-semibold">${alloc.label || 'Allocation'}</span>`;
+        allocationToggleWrap.appendChild(btn);
+      });
+
+      allocationToggleWrap.querySelectorAll('[data-allocation-toggle]').forEach((input) => {
+        input.addEventListener('change', (event) => {
+          const allocId = event.target.value;
+          const isChecked = event.target.checked;
+          allocationVisibility.set(allocId, isChecked);
+          renderAllocationToggles();
+          renderEquityChart(currentRange);
+        });
+      });
     }
 
     function computeReturnPct(allocated = 0, latestValue = 0) {
       const alloc = Number(allocated) || 0;
       const latest = Number(latestValue) || 0;
       if (!alloc || alloc <= 0) return 0;
-      return (latest / alloc) * 100;
+      return ((latest - alloc) / alloc) * 100;
+    }
+
+    function generateSeries(base = 10000, points = 12) {
+      let value = base || 10000;
+      const series = [];
+      for (let i = 0; i < points; i++) {
+        const drift = 0.004 * Math.sin(i / 2);
+        const momentum = 0.003 * Math.cos(i / 3);
+        value = value * (1 + drift + momentum);
+        series.push(Number(value.toFixed(2)));
+      }
+      return series;
+    }
+
+    function buildRangePayload(series = [], rangeKey = '1Y') {
+      const arr = Array.isArray(series) ? series : [];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const take = (n) => (n > 0 ? arr.slice(-n) : []);
+      if (!arr.length) {
+        return { labels: months.slice(0, 7), data: [14650, 14690, 14710, 14780, 14810, 14840, 14860] };
+      }
+
+      switch (rangeKey) {
+        case '1D': {
+          const slice = take(7);
+          const labels = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM'].slice(-slice.length);
+          return { labels, data: slice };
+        }
+        case '1M': {
+          const slice = take(4);
+          return { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'].slice(-slice.length), data: slice };
+        }
+        case 'ALL': {
+          const labels = Array.from({ length: arr.length }, (_, i) => `M${i + 1}`);
+          return { labels, data: arr };
+        }
+        default: {
+          const slice = take(12);
+          return { labels: months.slice(0, slice.length), data: slice };
+        }
+      }
+    }
+
+    function alignData(baseLength = 0, values = []) {
+      const arr = Array.isArray(values) ? values : [];
+      if (!baseLength) return arr;
+      const trimmed = arr.slice(-baseLength);
+      if (trimmed.length === baseLength) return trimmed;
+      const padValue = trimmed.length ? trimmed[trimmed.length - 1] : 0;
+      return [...Array(baseLength - trimmed.length).fill(padValue), ...trimmed];
+    }
+
+    function buildStrategySeries(allocations = [], metricsMap = new Map()) {
+      const grouped = new Map();
+
+      allocations.forEach((allocation, idx) => {
+        const strategyId = allocation?.strategy_id;
+        if (!strategyId) return;
+
+        const name = allocation?.strategies?.name || allocation?.strategies?.code || `Strategy ${strategyId}`;
+        const code = allocation?.strategies?.code || '';
+        const group = grouped.get(strategyId) || {
+          id: strategyId,
+          name,
+          code,
+          currency: allocation?.base_currency || baseCurrency,
+          allocated: 0,
+          latestValue: 0,
+          allocations: [],
+        };
+
+        group.allocated += Number(allocation?.amount_invested ?? 0) || 0;
+        group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
+        group.currency = allocation?.base_currency || group.currency;
+        group.allocations.push({ ...allocation, label: name || `Allocation ${idx + 1}` });
+
+        grouped.set(strategyId, group);
+      });
+
+      if (!grouped.size) {
+        fallbackStrategies.forEach((strat, idx) => {
+          grouped.set(strat.id, {
+            id: strat.id,
+            name: strat.name,
+            code: strat.code,
+            currency: strat.currency || 'USD',
+            allocated: strat.allocated || 8000,
+            latestValue: strat.latestValue || strat.allocated || 9500,
+            allocations: [
+              { id: `${strat.id}-a`, amount_invested: strat.allocated * 0.6, latest_value: strat.latestValue * 0.62, base_currency: strat.currency || 'USD', label: `${strat.name} A` },
+              { id: `${strat.id}-b`, amount_invested: strat.allocated * 0.4, latest_value: strat.latestValue * 0.38, base_currency: strat.currency || 'USD', label: `${strat.name} B` },
+            ],
+          });
+        });
+      }
+
+      const map = new Map();
+      grouped.forEach((group, id) => {
+        const series = generateSeries(group.latestValue || group.allocated || 10000);
+        const baselineSeries = series.map((val, i) => Number((val * (1 + 0.002 * Math.sin(i / 1.5))).toFixed(2)));
+        const allocationsSeries = group.allocations.map((alloc, idx) => ({
+          id: alloc.id || `${id}-alloc-${idx}`,
+          label: alloc.label || alloc.strategies?.name || alloc.strategies?.code || `Allocation ${idx + 1}`,
+          series: generateSeries(alloc.latest_value || alloc.amount_invested || group.allocated / Math.max(group.allocations.length, 1) || 1000),
+          currency: alloc.base_currency || group.currency,
+          logo: metricsMap.get(alloc.strategy_id)?.portfolio_holdings?.[0]?.logo || null,
+        }));
+
+        map.set(id, { id, name: group.name, code: group.code, currency: group.currency, series, baselineSeries, allocations: allocationsSeries });
+      });
+
+      return map;
     }
 
     function deriveTopAsset(holdings = []) {
@@ -1803,6 +2301,21 @@
       });
 
       pfRefresh?.addEventListener('click', () => renderEquityChart(currentRange));
+
+      strategySelectEl?.addEventListener('change', (event) => {
+        selectedStrategyId = event.target.value;
+        const active = selectedStrategyId ? strategySeriesMap.get(selectedStrategyId) : null;
+        allocationVisibility = new Map();
+        active?.allocations?.forEach((alloc) => allocationVisibility.set(alloc.id, true));
+        populateBenchmarkOptions();
+        renderAllocationToggles();
+        renderEquityChart(currentRange);
+      });
+
+      benchmarkSelectEl?.addEventListener('change', (event) => {
+        benchmarkSelection = event.target.value || 'none';
+        renderEquityChart(currentRange);
+      });
     }
 
     function populateFundsAccount() {
@@ -1909,6 +2422,37 @@
       });
     }
 
+    function wireTableControls() {
+      positionAssetClass?.addEventListener('change', () => renderTopPositions(positionsCache, baseCurrency));
+      positionSide?.addEventListener('change', () => renderTopPositions(positionsCache, baseCurrency));
+      ordersSearch?.addEventListener('input', () => renderOrdersTable(ordersCache));
+      chkAll?.addEventListener('change', () => {
+        const shouldCheck = chkAll.checked;
+        ordersBody?.querySelectorAll('.row-chk').forEach((chk) => {
+          chk.checked = shouldCheck;
+          const id = chk.dataset.orderId;
+          if (shouldCheck) selectedOrders.add(id);
+          else selectedOrders.delete(id);
+        });
+        updateOrderSelectionUI();
+      });
+
+      clearSelection?.addEventListener('click', () => {
+        selectedOrders.clear();
+        chkAll.checked = false;
+        ordersBody?.querySelectorAll('.row-chk').forEach((chk) => { chk.checked = false; });
+        updateOrderSelectionUI();
+      });
+
+      cancelSelected?.addEventListener('click', () => {
+        if (!selectedOrders.size) return;
+        showToast(`Cancelled ${selectedOrders.size} order(s).`, 'warn');
+        selectedOrders.clear();
+        chkAll.checked = false;
+        renderOrdersTable(ordersCache);
+      });
+    }
+
     async function init() {
       await profileReady;
       renderStats();
@@ -1918,6 +2462,7 @@
       wireStrategyNav();
       wireFundsModal();
       wireSidebar();
+      wireTableControls();
       hideSkeleton();
     }
 
