@@ -915,31 +915,6 @@
                 <canvas id="six-months-earnings" class="max-w-full"></canvas>
               </div>
             </div>
-
-            <article class="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4" id="asset-panel">
-              <div class="flex items-start justify-between gap-2">
-                <div>
-                  <p class="text-sm font-semibold text-slate-900">Asset Allocation Status</p>
-                  <p class="text-sm text-slate-500">Portfolio health by performance.</p>
-                </div>
-                <a href="#" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View all</a>
-              </div>
-              <div class="grid grid-cols-3 gap-3 text-center">
-                <div class="rounded-lg bg-green-50 py-3">
-                  <p class="text-xl font-bold text-slate-900" id="performing-count">0</p>
-                  <p class="text-xs font-semibold uppercase tracking-wide text-green-600">Performing</p>
-                </div>
-                <div class="rounded-lg bg-rose-50 py-3">
-                  <p class="text-xl font-bold text-slate-900" id="declining-count">0</p>
-                  <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">Declining</p>
-                </div>
-                <div class="rounded-lg bg-yellow-50 py-3">
-                  <p class="text-xl font-bold text-slate-900" id="idle-count">0</p>
-                  <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Idle Capital</p>
-                </div>
-              </div>
-              <div class="space-y-4" id="asset-list"></div>
-            </article>
           </aside>
         </section>
 
@@ -1122,18 +1097,6 @@
       },
     };
 
-    const assetSummary = {
-      performing: 72,
-      declining: 24,
-      idle: 16,
-      assets: [
-        { symbol: 'DASH', name: 'Dash', type: 'Cryptocurrency', status: 'Performing' },
-        { symbol: 'ETH', name: 'Ethereum', type: 'Cryptocurrency', status: 'Performing' },
-        { symbol: 'BTC', name: 'Bitcoin', type: 'Cryptocurrency', status: 'Declining' },
-        { symbol: 'USDC', name: 'USDC', type: 'Stablecoin', status: 'Idle' },
-      ],
-    };
-
     const fallbackHoldings = [
       { symbol: 'BTC', name: 'Bitcoin', weightPct: 24.8, value: 18250, changePct: 1.8, breakdown: [{ strategyName: 'Momentum BTC', weightPct: 14.4, value: 10600 }] },
       { symbol: 'ETH', name: 'Ethereum', weightPct: 21.6, value: 15850, changePct: 2.3, breakdown: [{ strategyName: 'ETH Growth', weightPct: 12.2, value: 8950 }] },
@@ -1143,13 +1106,6 @@
     ];
 
     const strategyMetricsCache = new Map();
-
-    const pillStyles = {
-      Performing: 'bg-green-100 text-green-700',
-      Declining: 'bg-red-100 text-red-700',
-      Idle: 'bg-yellow-100 text-yellow-700',
-      'Idle Capital': 'bg-yellow-100 text-yellow-700',
-    };
 
     function normalizeWeight(weight = 0) {
       const value = Number(weight);
@@ -1357,10 +1313,6 @@
     const profileReady = hydrateProfileFromLive().catch(() => null);
 
     const statsContainer = document.getElementById('stats-cards');
-    const assetList = document.getElementById('asset-list');
-    const performingCount = document.getElementById('performing-count');
-    const decliningCount = document.getElementById('declining-count');
-    const idleCount = document.getElementById('idle-count');
     const holdingsRows = document.getElementById('holdings-rows');
     const holdingsCards = document.getElementById('holdings-cards');
     const skeletonLayer = document.getElementById('dashboard-skeleton');
@@ -1499,29 +1451,6 @@
           scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } } },
         },
       });
-    }
-
-    function renderAssets() {
-      performingCount.textContent = assetSummary.performing;
-      decliningCount.textContent = assetSummary.declining;
-      idleCount.textContent = assetSummary.idle;
-
-      assetList.innerHTML = assetSummary.assets.slice(0, 3)
-        .map((asset) => {
-          const pill = pillStyles[asset.status] || 'bg-slate-100 text-slate-700';
-          return `
-            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-full bg-slate-100 text-slate-700 grid place-items-center text-sm font-semibold">${asset.symbol.slice(0, 3)}</div>
-                <div>
-                  <p class="font-semibold text-slate-900">${asset.name || asset.symbol}</p>
-                  <p class="text-xs text-slate-500">${asset.type}</p>
-                </div>
-              </div>
-              <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${pill}">${asset.status}</span>
-            </div>`;
-        })
-        .join('');
     }
 
     function renderHoldingsCarousel(data = [], currency = baseCurrency) {
@@ -1816,7 +1745,6 @@
       renderStats();
       renderEquityChart(currentRange);
       initEarningsChart();
-      renderAssets();
       await loadTopHoldings();
       wirePortfolioCard();
       wireFundsModal();
