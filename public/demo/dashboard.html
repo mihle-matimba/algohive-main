@@ -1525,6 +1525,14 @@
       });
     }
 
+    const buildLogo = (symbol = '', logoUrl = null, size = 'h-11 w-11', bgTone = 'bg-slate-100') => {
+      const clean = (symbol || '—').toString();
+      if (logoUrl) {
+        return `<img src="${logoUrl}" alt="${clean} logo" class="${size} rounded-full object-cover border border-slate-200" loading="lazy" />`;
+      }
+      return `<div class="${size} rounded-full ${bgTone} grid place-items-center text-slate-800 font-semibold">${clean.slice(0, 2).toUpperCase()}</div>`;
+    };
+
     function renderHoldingsCarousel(data = [], currency = baseCurrency) {
       if (!holdTrack) return;
       const rows = Array.isArray(data) ? data.slice(0, 8) : [];
@@ -1532,9 +1540,6 @@
         holdTrack.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
         return;
       }
-
-      const logo = (ticker = '', bg = '#e2e8f0') =>
-        `<div class="h-11 w-11 rounded-xl grid place-items-center text-slate-800 font-semibold" style="background:${bg}">${ticker.slice(0, 3)}</div>`;
 
       const chip = (pct = 0) => {
         const tone = pct >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700';
@@ -1549,7 +1554,7 @@
           return `
             <article class="min-w-[280px] max-w-[280px] snap-start bg-white border border-slate-200 rounded-2xl p-5 flex justify-between items-center">
               <div class="flex items-center gap-3">
-                ${logo(h.symbol || h.ticker, bg)}
+                ${buildLogo(h.symbol || h.ticker, h.logo, 'h-11 w-11', 'bg-indigo-50')}
                 <div>
                   <div class="text-sm font-normal text-slate-900">${h.symbol || h.ticker || 'Asset'}</div>
                   <div class="text-xs text-slate-500">${h.name || 'Holding'}</div>
@@ -1592,13 +1597,14 @@
         const tone = asset.changePct == null ? 'text-slate-600' : asset.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600';
         const changeLabel = asset.changePct == null ? '—' : `${asset.changePct >= 0 ? '+' : ''}${Number(asset.changePct).toFixed(2)}%`;
         const mixLabel = summarizeMix(asset);
+        const logo = buildLogo(asset.symbol, asset.logo, 'h-10 w-10');
 
         const tr = document.createElement('tr');
         tr.className = idx % 2 === 1 ? 'bg-slate-50/50' : '';
         tr.innerHTML = `
           <td class="px-4 py-3 font-semibold text-slate-900">
             <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-full bg-slate-100 text-slate-700 grid place-items-center text-sm font-semibold">${asset.symbol.slice(0, 3)}</div>
+              ${logo}
               <div>
                 <div class="text-[var(--olive)] font-semibold">${asset.symbol}</div>
                 <div class="text-xs text-slate-500">${asset.name || asset.symbol}</div>
@@ -1615,14 +1621,17 @@
         const card = document.createElement('div');
         card.className = 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm space-y-2';
         card.innerHTML = `
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-base font-semibold text-slate-900">${asset.symbol}</p>
+          <div class="flex items-center gap-3">
+            ${buildLogo(asset.symbol, asset.logo, 'h-10 w-10')}
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <p class="text-base font-semibold text-slate-900">${asset.symbol}</p>
+                <span class="text-xs font-semibold ${tone}">${changeLabel}</span>
+              </div>
               <p class="text-xs text-slate-500">${asset.name || asset.symbol}</p>
             </div>
-            <span class="text-xs font-semibold ${tone}">${changeLabel}</span>
           </div>
-          <div class="flex items-center justify-between text-sm text-slate-700">
+          <div class="flex items-center justify-between text-sm text-slate-700 mt-2">
             <span>${(asset.weightPct || 0).toFixed(2)}% alloc</span>
             <span class="font-semibold">${formatMoney(asset.value, currency)}</span>
           </div>
