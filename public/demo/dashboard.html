@@ -871,6 +871,11 @@
         </section>
 
         <section id="stats-cards" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"></section>
+        <div class="flex items-center justify-end text-sm text-slate-600">
+          <a href="/demo/account-statements.html" class="inline-flex items-center gap-2 text-olive-700 font-semibold hover:underline">
+            View statements <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+          </a>
+        </div>
 
         <section class="grid gap-6 lg:grid-cols-12" id="performance-grid">
           <article id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-8 min-w-0">
@@ -1003,8 +1008,6 @@
                 <thead>
                   <tr class="text-slate-500">
                     <th class="py-3 text-left font-normal">Asset</th>
-                    <th class="py-3 text-left font-normal">Price</th>
-                    <th class="py-3 text-left font-normal">Qty</th>
                     <th class="py-3 text-left font-normal">Market Value</th>
                     <th class="py-3 text-left font-normal">Total P/L ($)</th>
                     <th class="py-3 text-center font-normal"> </th>
@@ -1182,9 +1185,9 @@
 
     const statsData = [
       { title: 'Total Balance', value: '$0.00', changePercent: 0, changeDirection: 'up', subtitle: 'Funds available in demo wallet' },
-      { title: 'Total Transactions', value: '179', changePercent: -1.1, changeDirection: 'down', subtitle: 'Number of trades this period' },
-      { title: 'Total Revenue', value: '$7,209.29', changePercent: 2.3, changeDirection: 'up', subtitle: 'Net revenue' },
-      { title: 'Active Investments', value: '234', changePercent: 6.4, changeDirection: 'up', subtitle: 'Live portfolios following strategies' },
+      { title: 'Total Allocations', value: '0', changePercent: 0, changeDirection: 'up', subtitle: 'Number of allocations' },
+      { title: 'Total Income', value: '$0.00', changePercent: 0, changeDirection: 'up', subtitle: 'Performance income to date' },
+      { title: 'Avg. Return', value: '0%', changePercent: 0, changeDirection: 'up', subtitle: 'Average return across allocations' },
     ];
 
     const equityRanges = {
@@ -1510,10 +1513,10 @@
         .map((item) => {
           const positive = item.changeDirection === 'up';
           const pillClass = positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-          const arrow = positive ? '↑' : '↓';
-          const isBalanceCard = item.title === 'Total Balance';
-          const addFundsCta = isBalanceCard
-              ? `<div class="pt-2"><button data-add-funds class="btn btn-olive w-full justify-center text-sm">
+      const arrow = positive ? '↑' : '↓';
+      const isBalanceCard = item.title === 'Total Balance';
+      const addFundsCta = isBalanceCard
+          ? `<div class="pt-2"><button data-add-funds class="btn btn-olive w-full justify-center text-sm">
                   <i class="fa-solid fa-plus text-xs"></i><span>Add funds</span>
                 </button></div>`
               : '';
@@ -1531,6 +1534,33 @@
         .join('');
 
       attachAddFundsHandler();
+    }
+
+    function updateStatsFromAllocations(allocations = [], currency = baseCurrency) {
+      const rows = Array.isArray(allocations) ? allocations : [];
+      const totalAllocations = rows.length;
+      const totalIncome = rows.reduce((sum, row) => {
+        const latest = Number(row?.latest_value ?? 0) || 0;
+        const allocated = Number(row?.amount_invested ?? 0) || 0;
+        return sum + (latest - allocated);
+      }, 0);
+      const avgReturn = totalAllocations
+        ? rows.reduce((sum, row) => sum + computeReturnPct(row?.amount_invested, row?.latest_value), 0) / totalAllocations
+        : 0;
+
+      statsData[1].value = `${totalAllocations}`;
+      statsData[1].changePercent = 0;
+      statsData[1].changeDirection = 'up';
+
+      statsData[2].value = formatCurrency(totalIncome, currency);
+      statsData[2].changePercent = Number(Math.abs(avgReturn).toFixed(2));
+      statsData[2].changeDirection = totalIncome >= 0 ? 'up' : 'down';
+
+      statsData[3].value = `${Number(avgReturn).toFixed(2)}%`;
+      statsData[3].changePercent = Number(avgReturn.toFixed(2));
+      statsData[3].changeDirection = avgReturn >= 0 ? 'up' : 'down';
+
+      renderStats();
     }
 
     function setActiveRange(range = '1D') {
@@ -1728,26 +1758,24 @@
 
     function buildPositionsFromHoldings(data = []) {
       const holdings = Array.isArray(data) ? data : [];
-      return holdings.slice(0, 5).map((asset, idx) => {
-        const value = Number(asset.value || 0) || 0;
-        const basePrice = value / Math.max(1, (asset.weightPct || 1) * 0.6);
-        const price = Math.max(1, basePrice || 100 + idx * 12);
-        const qty = Math.max(1, Math.round(value / price) || 1);
-        const pl = (Number(asset.changePct ?? 0) / 100) * value;
-        const side = pl >= 0 ? 'buy' : 'sell';
-        const assetClass = ['BTC', 'ETH', 'SOL'].includes((asset.symbol || '').toUpperCase()) ? 'crypto' : 'stocks';
-        return {
-          symbol: asset.symbol,
-          name: asset.name || asset.symbol,
-          price,
-          qty,
-          value,
-          pl,
-          side,
-          class: assetClass,
-          logo: asset.logo || null,
-        };
-      });
+      return holdings
+        .slice(0, 5)
+        .map((asset) => {
+          const value = Number(asset.value || 0) || 0;
+          const pl = (Number(asset.changePct ?? 0) / 100) * value;
+          const side = pl >= 0 ? 'buy' : 'sell';
+          const assetClass = ['BTC', 'ETH', 'SOL'].includes((asset.symbol || '').toUpperCase()) ? 'crypto' : 'stocks';
+          return {
+            symbol: asset.symbol,
+            name: asset.name || asset.symbol,
+            value,
+            pl,
+            side,
+            class: assetClass,
+            logo: asset.logo || null,
+          };
+        })
+        .sort((a, b) => b.value - a.value);
     }
 
     function renderTopPositions(data = [], currency = baseCurrency) {
@@ -1764,11 +1792,11 @@
       });
 
       if (!filtered.length) {
-        positionsBody.innerHTML = '<tr><td colspan="6" class="py-4 text-sm text-slate-500">No positions available.</td></tr>';
+        positionsBody.innerHTML = '<tr><td colspan="4" class="py-4 text-sm text-slate-500">No positions available.</td></tr>';
         return;
       }
 
-      filtered.forEach((row, idx) => {
+      filtered.slice(0, 5).forEach((row, idx) => {
         const plTone = row.pl >= 0 ? 'text-green-600' : 'text-red-600';
         const logo = buildLogo(row.symbol, row.logo, 'h-10 w-10');
         const tr = document.createElement('tr');
@@ -1783,8 +1811,6 @@
               </div>
             </div>
           </td>
-          <td class="py-3">${formatMoney(row.price, currency)}</td>
-          <td class="py-3">${row.qty}</td>
           <td class="py-3">${formatMoney(row.value, currency)}</td>
           <td class="py-3 ${plTone}">${row.pl >= 0 ? '+' : ''}${formatMoney(row.pl, currency)}</td>
           <td class="py-3 text-center"></td>
@@ -1823,6 +1849,9 @@
 
     function renderOrdersTable(data = ordersCache) {
       if (!ordersBody) return;
+      ordersBody.innerHTML = '<tr><td colspan="10" class="py-4 text-sm text-slate-600 text-center">Switch to live to view recent orders.</td></tr>';
+      updateOrderSelectionUI();
+      return;
       const query = (ordersSearch?.value || '').toLowerCase();
       const rows = (Array.isArray(data) ? data : []).filter((row) =>
         !query || row.asset?.toLowerCase().includes(query) || row.orderType?.toLowerCase?.().includes?.(query) || row.side?.toLowerCase?.().includes?.(query)
@@ -1884,6 +1913,14 @@
           const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
           baseCurrency = currency || baseCurrency;
           holdingsSet = holdings.length ? holdings : fallbackHoldings;
+          updateStatsFromAllocations(allocations, baseCurrency);
+        } else {
+          const fallbackRows = fallbackStrategies.map((item) => ({
+            amount_invested: item.allocated || 0,
+            latest_value: item.latestValue ?? item.allocated || 0,
+            base_currency: item.currency || baseCurrency,
+          }));
+          updateStatsFromAllocations(fallbackRows, baseCurrency);
         }
 
         positionsCache = buildPositionsFromHoldings(holdingsSet);
@@ -1910,6 +1947,12 @@
         renderOrdersTable(ordersCache);
         renderHoldingsView(fallbackHoldings, baseCurrency);
         renderHoldingsCarousel(fallbackHoldings, baseCurrency);
+        const fallbackRows = fallbackStrategies.map((item) => ({
+          amount_invested: item.allocated || 0,
+          latest_value: item.latestValue ?? item.allocated || 0,
+          base_currency: item.currency || baseCurrency,
+        }));
+        updateStatsFromAllocations(fallbackRows, baseCurrency);
         strategySpotlights = [];
         renderStrategySpotlight(strategyIndex);
         strategySeriesMap = buildStrategySeries([], new Map());
@@ -2138,6 +2181,11 @@
       if (strategyAllocationsEl) strategyAllocationsEl.textContent = `${current?.allocationsCount || 0}`;
       if (strategyAllocatedEl) strategyAllocatedEl.textContent = formatCurrency(current?.allocated || 0, current?.currency || baseCurrency);
       if (strategyReturnEl) strategyReturnEl.textContent = `${Number(current?.returnPct || 0).toFixed(2)}%`;
+
+      if (current?.id) {
+        selectedStrategyId = current.id;
+        renderEquityChart(currentRange);
+      }
 
       renderTopAsset(current?.topAsset);
     }
