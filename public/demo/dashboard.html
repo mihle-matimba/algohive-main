@@ -918,36 +918,30 @@
         <section class="bg-white rounded-xl shadow-sm p-5">
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p class="text-lg font-semibold text-slate-900">Transactions List</p>
-              <p class="text-sm text-slate-500">Recent portfolio movements and status.</p>
+              <p class="text-lg font-semibold text-slate-900">Top Holdings</p>
+              <p class="text-sm text-slate-500">Largest positions across your demo portfolio.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <input id="transaction-search" type="search" placeholder="Search transactions" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 shadow-sm focus:border-slate-400 focus:outline-none md:w-64" />
-              <button id="date-filter" class="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">All dates</button>
-              <button id="export-csv" class="h-11 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">Export CSV</button>
-            </div>
+            <a href="/demo/holdings.html" class="text-sm font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">View Holdings</a>
           </div>
 
           <div class="mt-4 hidden md:block">
             <div class="overflow-x-auto rounded-lg border border-slate-200">
-              <table class="min-w-full divide-y divide-slate-200 text-sm" aria-label="Transactions table">
+              <table class="min-w-full divide-y divide-slate-200 text-sm" aria-label="Top holdings table">
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th class="px-4 py-3">Transaction ID</th>
                     <th class="px-4 py-3">Asset</th>
-                    <th class="px-4 py-3">Type</th>
-                    <th class="px-4 py-3">Amount</th>
-                    <th class="px-4 py-3">Date</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Notes</th>
+                    <th class="px-4 py-3">Allocation</th>
+                    <th class="px-4 py-3">Market value</th>
+                    <th class="px-4 py-3">Strategy mix</th>
+                    <th class="px-4 py-3">P/L</th>
                   </tr>
                 </thead>
-                <tbody id="transaction-rows" class="divide-y divide-slate-100 bg-white"></tbody>
+                <tbody id="holdings-rows" class="divide-y divide-slate-100 bg-white"></tbody>
               </table>
             </div>
           </div>
 
-          <div class="mt-4 space-y-3 md:hidden" id="transaction-cards" aria-label="Transactions list"></div>
+          <div class="mt-4 space-y-3 md:hidden" id="holdings-cards" aria-label="Top holdings list"></div>
         </section>
       </div>
     </main>
@@ -1082,19 +1076,15 @@
       ],
     };
 
-    const transactions = [
-      { id: '#TX29814', asset: 'Dash', type: 'Cryptocurrency', amount: 250.0, date: '2024-01-24', status: 'Performing', notes: 'Live trade' },
-      { id: '#TX58982', asset: 'Ethereum', type: 'Cryptocurrency', amount: 74.29, date: '2024-01-26', status: 'Performing', notes: 'Live trade' },
-      { id: '#TX52607', asset: 'Bitcoin', type: 'Cryptocurrency', amount: 82.14, date: '2024-01-08', status: 'Declining', notes: 'Price drawdown' },
-      { id: '#TX95867', asset: 'USDC', type: 'Stablecoin', amount: 1200.0, date: '2024-01-18', status: 'Idle', notes: 'Idle capital' },
-      { id: '#TX63411', asset: 'AAPL', type: 'Equity', amount: 410.75, date: '2024-01-20', status: 'Performing', notes: 'Earnings momentum' },
-      { id: '#TX72188', asset: 'GLD', type: 'ETF', amount: 160.5, date: '2024-01-12', status: 'Performing', notes: 'Rebalance' },
-      { id: '#TX81132', asset: 'TSLA', type: 'Equity', amount: 300.25, date: '2024-01-02', status: 'Declining', notes: 'Volatility hedge' },
-      { id: '#TX90221', asset: 'QQQ', type: 'ETF', amount: 285.9, date: '2024-01-29', status: 'Performing', notes: 'Momentum add' },
-      { id: '#TX13215', asset: 'ADA', type: 'Cryptocurrency', amount: 92.5, date: '2024-01-17', status: 'Idle', notes: 'Waiting signal' },
-      { id: '#TX82144', asset: 'SOL', type: 'Cryptocurrency', amount: 210.1, date: '2024-01-05', status: 'Performing', notes: 'Trend follow' },
-      { id: '#TX44119', asset: 'SPY', type: 'ETF', amount: 510.0, date: '2023-12-28', status: 'Performing', notes: 'Year-end allocation' },
+    const fallbackHoldings = [
+      { symbol: 'BTC', name: 'Bitcoin', weightPct: 24.8, value: 18250, changePct: 1.8, breakdown: [{ strategyName: 'Momentum BTC', weightPct: 14.4, value: 10600 }] },
+      { symbol: 'ETH', name: 'Ethereum', weightPct: 21.6, value: 15850, changePct: 2.3, breakdown: [{ strategyName: 'ETH Growth', weightPct: 12.2, value: 8950 }] },
+      { symbol: 'QQQ', name: 'Invesco QQQ', weightPct: 18.2, value: 13420, changePct: 0.7, breakdown: [{ strategyName: 'Tech Momentum', weightPct: 10.5, value: 7750 }] },
+      { symbol: 'GLD', name: 'SPDR Gold Shares', weightPct: 17.4, value: 12820, changePct: -0.4, breakdown: [{ strategyName: 'Defensive', weightPct: 9.2, value: 6780 }] },
+      { symbol: 'SPY', name: 'SPDR S&P 500', weightPct: 15.3, value: 11240, changePct: 1.1, breakdown: [{ strategyName: 'Index Core', weightPct: 8.1, value: 5960 }] },
     ];
+
+    const strategyMetricsCache = new Map();
 
     const pillStyles = {
       Performing: 'bg-green-100 text-green-700',
@@ -1102,6 +1092,130 @@
       Idle: 'bg-yellow-100 text-yellow-700',
       'Idle Capital': 'bg-yellow-100 text-yellow-700',
     };
+
+    function normalizeWeight(weight = 0) {
+      const value = Number(weight);
+      if (!Number.isFinite(value) || value <= 0) return 0;
+      return value > 1 ? value / 100 : value;
+    }
+
+    function formatMoney(value = 0, currency = 'USD') {
+      try {
+        return Number(value || 0).toLocaleString('en-US', {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      } catch (error) {
+        return `$${Number(value || 0).toFixed(2)}`;
+      }
+    }
+
+    async function fetchDemoAllocations(profileId = '') {
+      if (!profileId) return [];
+      try {
+        const { data, error } = await supabase
+          .from('demo_allocations')
+          .select('id, strategy_id, amount_invested, latest_value, base_currency, status, strategies(name, code)')
+          .eq('demo_profile_id', profileId);
+
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.warn('demo_allocations fetch failed', error);
+        return [];
+      }
+    }
+
+    async function fetchStrategyMetrics(strategyIds = []) {
+      const ids = Array.from(new Set(strategyIds.filter(Boolean)));
+      const results = new Map();
+      const uncached = ids.filter((id) => !strategyMetricsCache.has(id));
+
+      if (uncached.length) {
+        try {
+          const { data, error } = await supabase
+            .from('strategy_metrics')
+            .select('strategy_id, portfolio_holdings')
+            .in('strategy_id', uncached);
+
+          if (error) throw error;
+          (data || []).forEach((row) => strategyMetricsCache.set(row.strategy_id, row));
+        } catch (error) {
+          console.warn('strategy_metrics fetch failed', error);
+        }
+      }
+
+      ids.forEach((id) => {
+        if (strategyMetricsCache.has(id)) results.set(id, strategyMetricsCache.get(id));
+      });
+      return results;
+    }
+
+    function aggregateHoldings(allocations = [], metricsMap = new Map()) {
+      const activeAllocs = allocations.filter((row) => (row?.status || '').toLowerCase() === 'active');
+      const rows = activeAllocs.length ? activeAllocs : allocations;
+      const holdingsMap = new Map();
+
+      let totalAmount = 0;
+      let currency = 'USD';
+
+      rows.forEach((allocation) => {
+        const amount = Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
+        if (amount <= 0) return;
+
+        currency = allocation?.base_currency || currency;
+        totalAmount += amount;
+
+        const metrics = metricsMap.get(allocation?.strategy_id) || {};
+        const strategyName = allocation?.strategies?.name || allocation?.strategies?.code || `Strategy ${allocation?.strategy_id || ''}`;
+        const holdings = Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [];
+
+        holdings.forEach((holding) => {
+          const weight = normalizeWeight(holding?.weight_pct ?? holding?.weight);
+          if (!weight) return;
+
+          const value = amount * weight;
+          const symbol = (holding?.symbol || holding?.name || '—').toString().trim();
+          if (!symbol) return;
+
+          if (!holdingsMap.has(symbol)) {
+            holdingsMap.set(symbol, {
+              symbol,
+              name: (holding?.company_name || holding?.name || symbol || 'Unknown').toString().trim() || 'Unknown',
+              logo: holding?.logo_url || holding?.logo || null,
+              value: 0,
+              changePct: holding?.daily_change_pct ?? holding?.change_pct ?? null,
+              breakdown: [],
+            });
+          }
+
+          const record = holdingsMap.get(symbol);
+          record.value += value;
+          const existing = record.breakdown.find((item) => item.strategyId === allocation?.strategy_id);
+          const contribution = { strategyId: allocation?.strategy_id, strategyName, weightPct: weight * 100, value };
+          if (existing) {
+            existing.value += value;
+            existing.weightPct = weight * 100;
+          } else {
+            record.breakdown.push(contribution);
+          }
+          if (record.changePct == null && holding?.daily_change_pct != null) {
+            record.changePct = holding.daily_change_pct;
+          }
+        });
+      });
+
+      const holdings = Array.from(holdingsMap.values())
+        .map((item) => ({
+          ...item,
+          weightPct: totalAmount ? (item.value / totalAmount) * 100 : 0,
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      return { holdings, totalAmount, currency };
+    }
 
     let chartInstance = null;
     let currentRange = 'monthly';
@@ -1183,22 +1297,15 @@
     }
 
     setGreetingName();
-    hydrateProfileFromLive();
+    const profileReady = hydrateProfileFromLive().catch(() => null);
 
     const statsContainer = document.getElementById('stats-cards');
     const assetList = document.getElementById('asset-list');
     const performingCount = document.getElementById('performing-count');
     const decliningCount = document.getElementById('declining-count');
     const idleCount = document.getElementById('idle-count');
-    const transactionRows = document.getElementById('transaction-rows');
-    const transactionCards = document.getElementById('transaction-cards');
-    const searchInput = document.getElementById('transaction-search');
-    const dateFilter = document.getElementById('date-filter');
-    const exportBtn = document.getElementById('export-csv');
-    const modal = document.getElementById('transaction-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    const modalCloseBtns = [document.getElementById('close-modal'), document.getElementById('modal-close-btn')];
+    const holdingsRows = document.getElementById('holdings-rows');
+    const holdingsCards = document.getElementById('holdings-cards');
     const skeletonLayer = document.getElementById('dashboard-skeleton');
     const fundsModal = document.getElementById('funds-modal');
     const fundsOverlay = document.getElementById('funds-overlay');
@@ -1363,134 +1470,85 @@
         .join('');
     }
 
-    function formatAmount(value) {
-      return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+    function summarizeMix(asset) {
+      const mix = (asset.breakdown || []).slice(0, 2);
+      if (!mix.length) return '—';
+      return mix
+        .map((row) => `${row.strategyName || 'Strategy'} (${row.weightPct?.toFixed?.(1) || '0.0'}%)`)
+        .join(', ');
     }
 
-    function matchSearch(tx, term) {
-      const haystack = `${tx.id} ${tx.asset} ${tx.type} ${tx.status} ${tx.notes}`.toLowerCase();
-      return haystack.includes(term.toLowerCase());
-    }
+    function renderHoldingsView(data = [], currency = 'USD') {
+      const rows = Array.isArray(data) ? data.slice(0, 5) : [];
+      holdingsRows.innerHTML = '';
+      holdingsCards.innerHTML = '';
 
-    function withinDate(tx) {
-      if (currentDateFilter === 'all') return true;
-      const txDate = new Date(tx.date);
-      const cutoff = new Date();
-      if (currentDateFilter === '30') cutoff.setDate(cutoff.getDate() - 30);
-      if (currentDateFilter === '90') cutoff.setDate(cutoff.getDate() - 90);
-      return txDate >= cutoff;
-    }
+      if (!rows.length) {
+        holdingsRows.innerHTML = '<tr><td class="px-4 py-4 text-sm text-slate-500" colspan="5">No holdings available yet.</td></tr>';
+        holdingsCards.innerHTML = '<div class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">No holdings available yet.</div>';
+        return;
+      }
 
-    function filteredTransactions() {
-      const term = searchInput.value.trim();
-      return transactions.filter((tx) => (!term || matchSearch(tx, term)) && withinDate(tx));
-    }
+      rows.forEach((asset, idx) => {
+        const tone = asset.changePct == null ? 'text-slate-600' : asset.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600';
+        const changeLabel = asset.changePct == null ? '—' : `${asset.changePct >= 0 ? '+' : ''}${Number(asset.changePct).toFixed(2)}%`;
+        const mixLabel = summarizeMix(asset);
 
-    function renderTable() {
-      const rows = filteredTransactions();
-      transactionRows.innerHTML = rows
-        .map((tx) => {
-          const pill = pillStyles[tx.status] || 'bg-slate-100 text-slate-700';
-          return `
-            <tr class="hover:bg-slate-50 cursor-pointer" data-id="${tx.id}">
-              <td class="px-4 py-3 font-semibold text-slate-900">${tx.id}</td>
-              <td class="px-4 py-3 text-slate-700">${tx.asset}</td>
-              <td class="px-4 py-3 text-slate-700">${tx.type}</td>
-              <td class="px-4 py-3 text-slate-700">${formatAmount(tx.amount)}</td>
-              <td class="px-4 py-3 text-slate-700">${tx.date.replace(/-/g, '/')}</td>
-              <td class="px-4 py-3"><span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pill}">${tx.status}</span></td>
-              <td class="px-4 py-3 text-slate-500">${tx.notes}</td>
-            </tr>`;
-        })
-        .join('');
-
-      transactionCards.innerHTML = rows
-        .map((tx) => {
-          const pill = pillStyles[tx.status] || 'bg-slate-100 text-slate-700';
-          return `
-            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm space-y-2" data-id="${tx.id}">
-              <div class="flex items-center justify-between gap-2">
-                <div>
-                  <p class="text-base font-semibold text-slate-900">${tx.asset}</p>
-                  <p class="text-xs text-slate-500">${formatAmount(tx.amount)}</p>
-                </div>
-                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pill}">${tx.status}</span>
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 === 1 ? 'bg-slate-50/50' : '';
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-900">
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 rounded-full bg-slate-100 text-slate-700 grid place-items-center text-sm font-semibold">${asset.symbol.slice(0, 3)}</div>
+              <div>
+                <div class="text-[var(--olive)] font-semibold">${asset.symbol}</div>
+                <div class="text-xs text-slate-500">${asset.name || asset.symbol}</div>
               </div>
-              <div class="flex items-center justify-between text-xs text-slate-500">
-                <span>${tx.id}</span>
-                <span>${tx.date.replace(/-/g, '/')}</span>
-              </div>
-              <p class="text-sm text-slate-600">${tx.notes}</p>
-            </div>`;
-        })
-        .join('');
-    }
+            </div>
+          </td>
+          <td class="px-4 py-3 text-slate-700">${(asset.weightPct || 0).toFixed(2)}%</td>
+          <td class="px-4 py-3 text-slate-700">${formatMoney(asset.value, currency)}</td>
+          <td class="px-4 py-3 text-slate-700">${mixLabel}</td>
+          <td class="px-4 py-3 font-semibold ${tone}">${changeLabel}</td>
+        `;
+        holdingsRows.appendChild(tr);
 
-    function showModal(txId) {
-      const tx = transactions.find((item) => item.id === txId);
-      if (!tx) return;
-      modalTitle.textContent = tx.asset;
-      modalBody.innerHTML = `
-        <div class="grid grid-cols-2 gap-3">
-          <div><p class="text-xs text-slate-500">Transaction ID</p><p class="font-semibold text-slate-900">${tx.id}</p></div>
-          <div><p class="text-xs text-slate-500">Type</p><p class="font-semibold text-slate-900">${tx.type}</p></div>
-          <div><p class="text-xs text-slate-500">Amount</p><p class="font-semibold text-slate-900">${formatAmount(tx.amount)}</p></div>
-          <div><p class="text-xs text-slate-500">Date</p><p class="font-semibold text-slate-900">${tx.date.replace(/-/g, '/')}</p></div>
-          <div><p class="text-xs text-slate-500">Status</p><p class="font-semibold text-slate-900">${tx.status}</p></div>
-          <div><p class="text-xs text-slate-500">Notes</p><p class="font-semibold text-slate-900">${tx.notes}</p></div>
-        </div>`;
-      modal.classList.remove('hidden');
-    }
-
-    function wireTableClicks() {
-      transactionRows.addEventListener('click', (event) => {
-        const row = event.target.closest('tr');
-        if (row?.dataset.id) showModal(row.dataset.id);
-      });
-      transactionCards.addEventListener('click', (event) => {
-        const card = event.target.closest('[data-id]');
-        if (card?.dataset.id) showModal(card.dataset.id);
+        const card = document.createElement('div');
+        card.className = 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm space-y-2';
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-base font-semibold text-slate-900">${asset.symbol}</p>
+              <p class="text-xs text-slate-500">${asset.name || asset.symbol}</p>
+            </div>
+            <span class="text-xs font-semibold ${tone}">${changeLabel}</span>
+          </div>
+          <div class="flex items-center justify-between text-sm text-slate-700">
+            <span>${(asset.weightPct || 0).toFixed(2)}% alloc</span>
+            <span class="font-semibold">${formatMoney(asset.value, currency)}</span>
+          </div>
+          <p class="text-xs text-slate-500">${mixLabel}</p>
+        `;
+        holdingsCards.appendChild(card);
       });
     }
 
-    function wireModal() {
-      modalCloseBtns.forEach((btn) => btn?.addEventListener('click', () => modal.classList.add('hidden')));
-      modal.addEventListener('click', (event) => {
-        if (event.target === modal) modal.classList.add('hidden');
-      });
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') modal.classList.add('hidden');
-      });
-    }
+    async function loadTopHoldings() {
+      try {
+        const allocations = await fetchDemoAllocations(currentUserId || '');
+        if (!allocations.length) {
+          renderHoldingsView(fallbackHoldings, baseCurrency);
+          return;
+        }
 
-    function wireSearch() {
-      searchInput.addEventListener('input', renderTable);
-    }
-
-    function wireDateFilter() {
-      const options = ['all', '30', '90'];
-      dateFilter.addEventListener('click', () => {
-        const nextIndex = (options.indexOf(currentDateFilter) + 1) % options.length;
-        currentDateFilter = options[nextIndex];
-        const label = currentDateFilter === 'all' ? 'All dates' : `Last ${currentDateFilter} days`;
-        dateFilter.textContent = label;
-        renderTable();
-      });
-    }
-
-    function wireExport() {
-      exportBtn.addEventListener('click', () => {
-        const rows = filteredTransactions();
-        const header = ['Transaction ID', 'Asset', 'Type', 'Amount', 'Date', 'Status', 'Notes'];
-        const csv = [header.join(',')].concat(
-          rows.map((tx) => [tx.id, tx.asset, tx.type, tx.amount, tx.date, tx.status, tx.notes].map((v) => `"${v}"`).join(','))
-        );
-        const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'transactions.csv';
-        link.click();
-      });
+        const strategyIds = allocations.map((row) => row?.strategy_id).filter(Boolean);
+        const metricsMap = await fetchStrategyMetrics(strategyIds);
+        const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
+        renderHoldingsView(holdings.length ? holdings : fallbackHoldings, currency || baseCurrency);
+      } catch (error) {
+        console.warn('Top holdings load failed; showing fallback', error);
+        renderHoldingsView(fallbackHoldings, baseCurrency);
+      }
     }
 
     function wireRangeButtons() {
@@ -1603,23 +1661,19 @@
       });
     }
 
-    function init() {
+    async function init() {
+      await profileReady;
       renderStats();
       toggleRange(currentRange);
       renderAssets();
-      renderTable();
-      wireTableClicks();
-      wireModal();
-      wireSearch();
-      wireDateFilter();
-      wireExport();
+      await loadTopHoldings();
       wireRangeButtons();
       wireFundsModal();
       wireSidebar();
       hideSkeleton();
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => { init(); });
   </script>
 </body>
 
