@@ -14,7 +14,7 @@
   <style>
     :root {
       --page: #0b1220;
-      --bg: #ffffff;
+      --bg: #f9fafb;
       --muted: #64748b;
       --ink: #0f172a;
       --olive: #7e8d52;
@@ -611,7 +611,7 @@
   </style>
 </head>
 
-<body class="min-h-screen overflow-x-hidden">
+<body class="min-h-screen overflow-x-hidden bg-gray-50">
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
@@ -717,2189 +717,509 @@
       </div>
     </aside>
 
-    <main class="flex-1 min-w-0">
+    <main class="flex-1 min-w-0 bg-gray-50">
       <div class="px-4 md:px-6 pt-4">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
-            <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+            <button id="ah-mobile-menu-btn" class="md:hidden btn h-11 w-11 p-0 rounded-xl border-0" title="Open Menu">
               <i class="fa-solid fa-bars"></i>
             </button>
             <div class="inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
-              <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">
-                ⓘ
-              </div>
-              <p id="banner-copy" class="whitespace-normal">Demo Account</p>
+              <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
+              <p class="whitespace-normal">Demo Account</p>
             </div>
           </div>
 
           <button id="profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
             <img id="profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
-            <span id="profile-name" class="text-sm font-semibold text-slate-900 hidden sm:inline">—</span>
+            <span id="profile-name" class="text-sm font-semibold text-slate-900 hidden sm:inline">Demo User</span>
             <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
           </button>
         </div>
       </div>
 
-      <div class="px-4 md:px-6 py-6 grid grid-cols-12 gap-6 min-w-0">
-        <section class="col-span-12 px-1">
-          <div class="px-4 py-3 md:px-5 md:py-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Welcome back</p>
-            <h2 class="text-2xl font-semibold text-slate-900" id="welcome-name">Good afternoon</h2>
-            <p class="mt-1 text-sm text-slate-600" id="welcome-sub">Your paper portfolio snapshot is below.</p>
-          </div>
+      <div class="px-6 md:px-10 py-6 space-y-6">
+        <section class="space-y-2" id="header-section">
+          <h1 class="text-[28px] md:text-[32px] font-semibold text-slate-900">Dashboard</h1>
+          <p class="text-sm md:text-base text-slate-500">Here's your financial snapshot for today.</p>
         </section>
 
-        <div class="col-span-12 flex justify-end px-1">
-          <button id="watchlist-toggle" type="button" class="text-sm font-semibold text-[var(--olive)] hover:text-[var(--olive-700)]">
-            Show my watchlist
-          </button>
-        </div>
+        <section id="stats-cards" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"></section>
 
-        <section class="col-span-12 px-1">
-          <div class="grid gap-4 md:grid-cols-3">
-            <article class="card border border-slate-200 shadow-sm px-5 py-4 rounded-2xl">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive-700)]">Balance</p>
-              <div id="funds-balance" class="mt-2 text-3xl font-bold text-slate-900">—</div>
-              <p class="text-sm text-slate-500">Available paper funds.</p>
-              <button
-                id="funds-open"
-                type="button"
-                class="mt-3 inline-flex items-center gap-2 rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]"
-              >
-                <i class="fa-solid fa-circle-plus text-xs"></i>
-                Add funds
-              </button>
-            </article>
-            <article class="card border border-slate-200 shadow-sm px-5 py-4 rounded-2xl">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive-700)]">Total allocated</p>
-              <div id="funds-allocated" class="mt-2 text-3xl font-bold text-slate-900">—</div>
-              <p class="text-sm text-slate-500">Capital placed into strategies.</p>
-            </article>
-            <article class="card border border-slate-200 shadow-sm px-5 py-4 rounded-2xl">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--olive-700)]">Avg. allocation performance</p>
-              <div id="avg-alloc-return" class="mt-2 text-3xl font-bold text-slate-900">—</div>
-              <p class="text-sm text-slate-500">Mean return across your allocations.</p>
-            </article>
-          </div>
+        <section class="grid gap-6 lg:grid-cols-3" id="performance-grid">
+          <article class="bg-white rounded-xl shadow-sm p-6 lg:col-span-2">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">Portfolio Growth &amp; Equity Curve</p>
+                <p class="text-sm text-slate-500">Compare AlgoHive performance against the benchmark.</p>
+              </div>
+              <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" id="equity-toggle" role="group" aria-label="Equity range">
+                <button data-range="monthly" class="h-10 min-w-[88px] rounded-md px-4 text-sm font-semibold text-slate-700">Monthly</button>
+                <button data-range="yearly" class="h-10 min-w-[88px] rounded-md px-4 text-sm font-semibold text-slate-700">Yearly</button>
+              </div>
+            </div>
+            <div class="mt-6 h-[280px]">
+              <canvas id="equity-chart"></canvas>
+            </div>
+          </article>
+
+          <article class="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4" id="asset-panel">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">Asset Allocation Status</p>
+                <p class="text-sm text-slate-500">Portfolio health by performance.</p>
+              </div>
+              <a href="#" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View all</a>
+            </div>
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="rounded-lg bg-green-50 py-3">
+                <p class="text-xl font-bold text-slate-900" id="performing-count">0</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-green-600">Performing</p>
+              </div>
+              <div class="rounded-lg bg-rose-50 py-3">
+                <p class="text-xl font-bold text-slate-900" id="declining-count">0</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">Declining</p>
+              </div>
+              <div class="rounded-lg bg-yellow-50 py-3">
+                <p class="text-xl font-bold text-slate-900" id="idle-count">0</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Idle Capital</p>
+              </div>
+            </div>
+            <div class="space-y-4" id="asset-list"></div>
+          </article>
         </section>
 
-        <section id="watchlist-section" class="card col-span-12 border border-slate-200 shadow-none hidden overflow-hidden">
-          <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
+        <section class="bg-white rounded-xl shadow-sm p-5">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--olive-700)]">Watchlist</p>
-              <h3 class="text-lg font-semibold text-slate-900">Strategies that we think would best suit you</h3>
-            </div>
-            <div class="flex items-center gap-2">
-              <button id="watch-prev" type="button" class="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Previous watchlist item">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <button id="watch-next" type="button" class="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Next watchlist item">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-              <a href="/demo/strategies.html"
-                class="hidden sm:inline-flex h-9 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View OpenStrategies</a>
-            </div>
-          </div>
-          <div class="px-5 pb-5 relative">
-            <div class="relative">
-              <div id="watch-fade-left" class="watch-fade watch-fade-left hidden"></div>
-              <div id="watch-fade-right" class="watch-fade watch-fade-right hidden"></div>
-              <div id="watchlist-recos" class="watch-strip no-scrollbar"></div>
-            </div>
-            <p id="watchlist-empty" class="hidden text-sm text-slate-500">Pick strategies during onboarding to see them here.</p>
-            <div class="mt-4 sm:hidden">
-              <a href="/demo/strategies.html" class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--olive)] bg-[var(--olive)] px-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[var(--olive-700)]">View OpenStrategies</a>
-            </div>
-          </div>
-        </section>
-
-        <section class="card col-span-12 border border-slate-200 shadow-none allocation-card">
-          <div class="flex flex-col gap-1 border-b border-white/30 px-5 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/80">Allocations</p>
-              <h3 class="text-lg font-semibold text-white">My demo allocations</h3>
-              <p class="text-sm text-white/80">Strategy snapshots tied to this demo profile.</p>
+              <p class="text-lg font-semibold text-slate-900">Transactions List</p>
+              <p class="text-sm text-slate-500">Recent portfolio movements and status.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button data-alloc-filter="active" class="btn h-9 text-xs bg-white/20 text-white border-white/40 hover:bg-white/30">
-                View active only
-              </button>
-              <button data-alloc-filter="all" class="btn h-9 text-xs bg-white/10 text-white border-white/30 hover:bg-white/20">
-                View all allocations
-              </button>
+              <input id="transaction-search" type="search" placeholder="Search transactions" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 shadow-sm focus:border-slate-400 focus:outline-none md:w-64" />
+              <button id="date-filter" class="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">All dates</button>
+              <button id="export-csv" class="h-11 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">Export CSV</button>
             </div>
           </div>
 
-          <div class="overflow-x-auto">
-            <table id="allocations-table" class="min-w-full divide-y divide-white/20 text-sm">
-              <thead class="bg-white/10 text-left text-[13px] font-semibold text-white/90">
-                <tr>
-                  <th class="px-5 py-3">Strategy</th>
-                  <th class="px-5 py-3">Amount</th>
-                  <th class="px-5 py-3">Currency</th>
-                  <th class="px-5 py-3">Start date</th>
-                  <th class="px-5 py-3">Status</th>
-                  <th class="px-5 py-3">Latest value</th>
-                  <th class="px-5 py-3">Return</th>
-                  <th class="px-5 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody id="allocation-rows" class="divide-y divide-white/10 bg-white/5"></tbody>
-            </table>
-            <p id="allocation-loading" class="px-5 py-4 text-sm text-white/80">Loading your allocations…</p>
-            <p id="allocation-empty" class="hidden px-5 py-4 text-sm text-white/80">No demo allocations yet. Allocate a strategy to see it here.</p>
-          </div>
-        </section>
-
-        <section id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 min-w-0">
-          <div class="px-5 pt-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div class="text-[12px] text-slate-500 font-semibold tracking-wide">PAPER PORTFOLIO <span class="mx-1">•</span> <span id="pf-updated">—</span></div>
-                <h3 class="mt-2 font-normal text-slate-800 flex items-center gap-3">Equity Curve — <span id="pf-name" class="font-semibold">—</span></h3>
-                <div class="mt-1 text-sm text-slate-500" id="pf-sub">Your allocation performance over time.</div>
-              </div>
-              <a href="/demo/strategies.html" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--olive)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--olive-700)]">
-                View OpenStrategies
-              </a>
-            </div>
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-              <button data-range="1M" class="tab text-[13px]">1M</button>
-              <button data-range="3M" class="tab text-[13px]">3M</button>
-              <button data-range="6M" class="tab tab-active text-[13px]">6M</button>
-              <button data-range="YTD" class="tab text-[13px]">YTD</button>
-              <button data-range="1Y" class="tab text-[13px]">1Y</button>
-              <button data-range="3Y" class="tab text-[13px]">3Y</button>
-              <button data-range="ALL" class="tab text-[13px]">All</button>
-
-              <button id="pf-refresh" class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center" title="Refresh">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
-            </div>
-          </div>
-          <div class="px-5 pt-4">
-            <div class="flex items-baseline gap-3">
-              <div class="text-2xl font-bold" id="pf-value">—</div>
-              <div class="text-lg font-normal hidden" id="pf-change" data-sign="-">—</div>
-            </div>
-          </div>
-          <div class="px-2 pb-4 pt-2">
-            <div class="relative h-[260px]">
-              <div id="pf-empty" class="absolute inset-0 hidden grid place-items-center text-center text-sm text-slate-500 px-4">
-                <p class="max-w-[360px]">Data will show after 24 hours of allocation activity.</p>
-              </div>
-              <canvas id="pf-chart" class="max-w-full"></canvas>
-            </div>
-          </div>
-        </section>
-
-        <section id="strategy-panels" class="col-span-12 grid grid-cols-12 gap-6 hidden">
-          <div class="col-span-12 card border border-slate-200 shadow-none">
-            <div class="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Daily change</p>
-                <h3 class="text-lg font-semibold text-slate-900">Strategy movers</h3>
-                <p class="text-sm text-slate-600">Holdings from the selected allocation.</p>
-              </div>
-              <span id="top-gainers-updated" class="text-xs text-slate-500 hidden"></span>
-            </div>
-            <div id="strategy-empty" class="px-5 pb-4 text-sm text-slate-500">Select an allocation to view its holdings and performance.</div>
-            <div class="px-5 pb-5">
-              <div id="top-gainers-empty" class="text-sm text-slate-500 text-center py-6">No daily change data yet.</div>
-              <div id="top-gainers-marquee" class="top-gainers-marquee hidden">
-                <div id="top-gainers-track" class="top-gainers-track"></div>
-              </div>
+          <div class="mt-4 hidden md:block">
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+              <table class="min-w-full divide-y divide-slate-200 text-sm" aria-label="Transactions table">
+                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th class="px-4 py-3">Transaction ID</th>
+                    <th class="px-4 py-3">Asset</th>
+                    <th class="px-4 py-3">Type</th>
+                    <th class="px-4 py-3">Amount</th>
+                    <th class="px-4 py-3">Date</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-rows" class="divide-y divide-slate-100 bg-white"></tbody>
+              </table>
             </div>
           </div>
 
-          <div class="col-span-12 card border border-slate-200 shadow-none">
-            <div class="px-5 pt-5 pb-3 flex items-center justify-between">
-              <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Performance summary</p>
-                <h3 class="text-lg font-semibold text-slate-900" id="ps-title">Strategy stats</h3>
-                <p class="text-sm text-slate-600">Key metrics for the selected allocation's strategy.</p>
-                <p class="text-xs text-slate-500 mt-1">Based on all time strategy performance.</p>
-              </div>
-            </div>
-            <div class="px-5 pb-5">
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div class="ps-tile">
-                  <div class="ps-label">Best Day</div>
-                  <div id="ps-best" class="ps-value">—</div>
-                </div>
-                <div class="ps-tile">
-                  <div class="ps-label">Worst Day</div>
-                  <div id="ps-worst" class="ps-value">—</div>
-                </div>
-                <div class="ps-tile">
-                  <div class="ps-label">Avg Daily Return</div>
-                  <div id="ps-avg" class="ps-value">—</div>
-                </div>
-                <div class="ps-tile">
-                  <div class="ps-label">Positive Days</div>
-                  <div id="ps-pos" class="ps-value">—</div>
-                </div>
-                <div class="ps-tile">
-                  <div class="ps-label">Trading Days</div>
-                  <div id="ps-days" class="ps-value">—</div>
-                </div>
-                <div class="ps-tile">
-                  <div class="ps-label">YTD</div>
-                  <div id="ps-ytd" class="ps-value">—</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-span-12 card border border-slate-200 shadow-none">
-            <div class="px-5 pt-5 pb-3 flex items-center justify-between">
-              <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive)]">Portfolio holdings</p>
-                <h3 class="text-lg font-semibold text-slate-900">Top holdings</h3>
-              </div>
-            </div>
-            <div id="ph-top10" class="px-5 pb-5 space-y-3"></div>
-          </div>
-        </section>
-
-        <section id="status" class="col-span-12 hidden rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 shadow-sm">
-          <p id="status-text"></p>
+          <div class="mt-4 space-y-3 md:hidden" id="transaction-cards" aria-label="Transactions list"></div>
         </section>
       </div>
     </main>
   </div>
 
-  <div
-    id="liquidate-overlay"
-    class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 px-4"
-  >
-    <div id="liquidate-modal" class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-      <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+  <div id="transaction-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 px-4">
+    <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--olive-700)]">Confirm liquidation</p>
-          <h3 id="liquidate-title" class="text-lg font-semibold text-slate-900">Liquidate allocation</h3>
-          <p id="liquidate-copy" class="text-sm text-slate-600 mt-1"></p>
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Transaction Details</p>
+          <h3 id="modal-title" class="text-lg font-semibold text-slate-900"></h3>
         </div>
-        <button id="liquidate-close" type="button" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button id="close-modal" class="text-slate-400 hover:text-slate-600" aria-label="Close modal">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div class="px-5 py-4 space-y-3">
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Payout amount</p>
-          <p id="liquidate-amount" class="mt-1 text-2xl font-bold text-slate-900">—</p>
-        </div>
-        <p class="text-sm text-slate-500">Liquidation will close the allocation and return the latest value to your demo balance.</p>
-      </div>
-      <div class="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3">
-        <button id="liquidate-cancel" type="button" class="btn bg-white text-slate-700">Cancel</button>
-        <button id="liquidate-confirm" type="button" class="btn bg-[var(--olive)] text-white border-[var(--olive)] hover:bg-[var(--olive-700)]">Confirm liquidation</button>
+      <div id="modal-body" class="space-y-3 px-5 py-4 text-sm text-slate-700"></div>
+      <div class="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4">
+        <button id="modal-close-btn" class="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
+        <button class="h-11 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800">View in ledger</button>
       </div>
     </div>
   </div>
 
-  <div id="profile-menu" class="fixed inset-0 z-[120] hidden">
-    <div id="profile-overlay" class="absolute inset-0 bg-black/40"></div>
-    <div class="absolute right-4 top-20 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
-      <div class="px-4 py-3 border-b border-slate-200">
-        <div class="text-sm font-semibold text-slate-900">Account</div>
-        <div id="profile-email" class="text-xs text-slate-500 truncate">—</div>
-      </div>
-      <div class="p-2">
-        <a id="profile-settings" href="/demo/settings.html#basic" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50">
-          <i class="fa-regular fa-user text-slate-500 w-4"></i>
-          <span>Profile settings</span>
-        </a>
-        <button id="profile-logout" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-rose-700">
-          <i class="fa-solid fa-right-from-bracket w-4"></i>
-          <span>Sign out</span>
-        </button>
-      </div>
-    </div>
-  </div>
+  <script>
+    const statsData = [
+      { title: 'Total Accounts', value: '1,929', changePercent: 2.9, changeDirection: 'up', subtitle: 'Growth in total users' },
+      { title: 'Total Transactions', value: '179', changePercent: -1.1, changeDirection: 'down', subtitle: 'Number of trades this period' },
+      { title: 'Total Revenue', value: '$7,209.29', changePercent: 2.3, changeDirection: 'up', subtitle: 'Net revenue' },
+      { title: 'Active Investments', value: '234', changePercent: 6.4, changeDirection: 'up', subtitle: 'Live portfolios following strategies' },
+    ];
 
-  <div id="funds-modal" class="fixed inset-0 z-[140] hidden">
-    <div id="funds-overlay" class="absolute inset-0 bg-black/40"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <div class="flex items-start justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--olive)]">Add funds</p>
-            <h3 class="text-lg font-semibold text-slate-900">Top up a demo account</h3>
-          </div>
-          <button id="funds-close" type="button" class="text-slate-500 hover:text-slate-800" aria-label="Close">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-        <div class="px-5 py-4 space-y-4">
-          <label class="block text-sm font-medium text-slate-700">
-            Choose account
-            <select id="funds-account" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]">
-              <option value="">Loading…</option>
-            </select>
-          </label>
-          <label class="block text-sm font-medium text-slate-700">
-            Amount (USD)
-            <input id="funds-amount" type="number" inputmode="decimal" min="10" max="100000" step="1" placeholder="100" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--olive)]" />
-            <p class="mt-1 text-xs text-slate-500">Minimum $10 — Maximum $100,000.</p>
-          </label>
-        </div>
-        <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-5 py-3">
-          <p class="text-xs text-slate-500">Funds apply to your selected demo account.</p>
-          <div class="flex items-center gap-3">
-            <button id="funds-cancel" type="button" class="btn bg-white text-slate-700">Cancel</button>
-            <button id="funds-submit" type="button" class="btn bg-[var(--olive)] text-white border-[var(--olive)] hover:bg-[var(--olive-700)]">Confirm</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+    const equitySeries = {
+      monthly: [
+        { date: '2024-01-01', equity: 9200, benchmark: 9100 },
+        { date: '2024-02-01', equity: 9600, benchmark: 9400 },
+        { date: '2024-03-01', equity: 10150, benchmark: 9900 },
+        { date: '2024-04-01', equity: 10780, benchmark: 10300 },
+        { date: '2024-05-01', equity: 11240, benchmark: 10780 },
+        { date: '2024-06-01', equity: 11810, benchmark: 11140 },
+        { date: '2024-07-01', equity: 12360, benchmark: 11500 },
+        { date: '2024-08-01', equity: 12840, benchmark: 11860 },
+        { date: '2024-09-01', equity: 13320, benchmark: 12210 },
+        { date: '2024-10-01', equity: 13780, benchmark: 12500 },
+        { date: '2024-11-01', equity: 14240, benchmark: 12860 },
+        { date: '2024-12-01', equity: 14860, benchmark: 13220 },
+      ],
+      yearly: [
+        { date: '2021', equity: 6200, benchmark: 6400 },
+        { date: '2022', equity: 8200, benchmark: 7900 },
+        { date: '2023', equity: 10900, benchmark: 9800 },
+        { date: '2024', equity: 14860, benchmark: 13220 },
+      ],
+    };
 
-  <script nonce="ALGOHIVE">
-    (function () {
-      const layout = document.getElementById('layout');
-      const aside = document.getElementById('ah-sidebar');
-      const btn = document.getElementById('ah-collapse');
-      const saved = localStorage.getItem('ah_collapsed') === 'true';
+    const assetSummary = {
+      performing: 72,
+      declining: 24,
+      idle: 16,
+      assets: [
+        { symbol: 'DASH', name: 'Dash', type: 'Cryptocurrency', status: 'Performing' },
+        { symbol: 'ETH', name: 'Ethereum', type: 'Cryptocurrency', status: 'Performing' },
+        { symbol: 'BTC', name: 'Bitcoin', type: 'Cryptocurrency', status: 'Declining' },
+        { symbol: 'USDC', name: 'USDC', type: 'Stablecoin', status: 'Idle' },
+      ],
+    };
 
-      if (saved) {
-        aside.setAttribute('data-collapsed', 'true');
-        layout.classList.add('is-collapsed');
-        aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
-      }
+    const transactions = [
+      { id: '#TX29814', asset: 'Dash', type: 'Cryptocurrency', amount: 250.0, date: '2024-01-24', status: 'Performing', notes: 'Live trade' },
+      { id: '#TX58982', asset: 'Ethereum', type: 'Cryptocurrency', amount: 74.29, date: '2024-01-26', status: 'Performing', notes: 'Live trade' },
+      { id: '#TX52607', asset: 'Bitcoin', type: 'Cryptocurrency', amount: 82.14, date: '2024-01-08', status: 'Declining', notes: 'Price drawdown' },
+      { id: '#TX95867', asset: 'USDC', type: 'Stablecoin', amount: 1200.0, date: '2024-01-18', status: 'Idle', notes: 'Idle capital' },
+      { id: '#TX63411', asset: 'AAPL', type: 'Equity', amount: 410.75, date: '2024-01-20', status: 'Performing', notes: 'Earnings momentum' },
+      { id: '#TX72188', asset: 'GLD', type: 'ETF', amount: 160.5, date: '2024-01-12', status: 'Performing', notes: 'Rebalance' },
+      { id: '#TX81132', asset: 'TSLA', type: 'Equity', amount: 300.25, date: '2024-01-02', status: 'Declining', notes: 'Volatility hedge' },
+      { id: '#TX90221', asset: 'QQQ', type: 'ETF', amount: 285.9, date: '2024-01-29', status: 'Performing', notes: 'Momentum add' },
+      { id: '#TX13215', asset: 'ADA', type: 'Cryptocurrency', amount: 92.5, date: '2024-01-17', status: 'Idle', notes: 'Waiting signal' },
+      { id: '#TX82144', asset: 'SOL', type: 'Cryptocurrency', amount: 210.1, date: '2024-01-05', status: 'Performing', notes: 'Trend follow' },
+      { id: '#TX44119', asset: 'SPY', type: 'ETF', amount: 510.0, date: '2023-12-28', status: 'Performing', notes: 'Year-end allocation' },
+    ];
 
-      btn?.addEventListener('click', () => {
-        const isCollapsed = aside.getAttribute('data-collapsed') === 'true';
-        if (!isCollapsed) aside.querySelectorAll('details[open]').forEach(d => d.removeAttribute('open'));
-        aside.setAttribute('data-collapsed', String(!isCollapsed));
-        layout.classList.toggle('is-collapsed', !isCollapsed);
-        localStorage.setItem('ah_collapsed', String(!isCollapsed));
-        layout.offsetHeight;
-        window.dispatchEvent(new Event('resize'));
-      });
-    })();
-  </script>
+    const pillStyles = {
+      Performing: 'bg-green-100 text-green-700',
+      Declining: 'bg-red-100 text-red-700',
+      Idle: 'bg-yellow-100 text-yellow-700',
+      'Idle Capital': 'bg-yellow-100 text-yellow-700',
+    };
 
-  <script nonce="ALGOHIVE">
-    (function () {
-      const btn = document.getElementById('ah-mobile-menu-btn');
-      const overlay = document.getElementById('ah-overlay');
-      const sidebar = document.getElementById('ah-sidebar');
-
-      function openMenu() {
-        sidebar.classList.add('is-open');
-        overlay.classList.remove('hidden');
-      }
-      function closeMenu() {
-        sidebar.classList.remove('is-open');
-        overlay.classList.add('hidden');
-      }
-
-      btn?.addEventListener('click', openMenu);
-      overlay?.addEventListener('click', closeMenu);
-
-      sidebar?.querySelectorAll('nav a, nav details a').forEach(link => {
-        link.addEventListener('click', closeMenu);
-      });
-    })();
-  </script>
-
-  <script type="module" nonce="ALGOHIVE">
-    import { supabase } from "/js/supabase.js";
-    const welcomeName = document.getElementById("welcome-name");
-    const welcomeSub = document.getElementById("welcome-sub");
-    const statusBox = document.getElementById("status");
-    const statusText = document.getElementById("status-text");
-    const pfName = document.getElementById("pf-name");
-    const pfValue = document.getElementById("pf-value");
-    const pfChange = document.getElementById("pf-change");
-    const pfUpdated = document.getElementById("pf-updated");
-    const pfSub = document.getElementById("pf-sub");
-    const pfChartCanvas = document.getElementById("pf-chart");
-    const pfEmpty = document.getElementById("pf-empty");
-    const pfEmptyDefault = pfEmpty?.textContent?.trim() || "Data will show after 24 hours of allocation activity.";
-    const pfTabs = Array.from(document.querySelectorAll("[data-range]"));
-    const pfRefresh = document.getElementById("pf-refresh");
-    const fundsBalance = document.getElementById("funds-balance");
-    const fundsAllocated = document.getElementById("funds-allocated");
-    const avgAllocReturn = document.getElementById("avg-alloc-return");
-    const fundsOpen = document.getElementById("funds-open");
-    const fundsModal = document.getElementById("funds-modal");
-    const fundsOverlay = document.getElementById("funds-overlay");
-    const fundsClose = document.getElementById("funds-close");
-    const fundsAccount = document.getElementById("funds-account");
-    const fundsAmount = document.getElementById("funds-amount");
-    const fundsCancel = document.getElementById("funds-cancel");
-    const fundsSubmit = document.getElementById("funds-submit");
-    const watchToggle = document.getElementById("watchlist-toggle");
-    const watchSection = document.getElementById("watchlist-section");
-    const watchRecos = document.getElementById("watchlist-recos");
-    const watchEmpty = document.getElementById("watchlist-empty");
-    const watchPrev = document.getElementById("watch-prev");
-    const watchNext = document.getElementById("watch-next");
-    const watchFadeLeft = document.getElementById("watch-fade-left");
-    const watchFadeRight = document.getElementById("watch-fade-right");
-    const allocationRows = document.getElementById("allocation-rows");
-    const allocationEmpty = document.getElementById("allocation-empty");
-    const allocationLoading = document.getElementById("allocation-loading");
-    const allocationsTable = document.getElementById("allocations-table");
-    const allocationFilters = Array.from(document.querySelectorAll("[data-alloc-filter]"));
-    const strategyPanels = document.getElementById("strategy-panels");
-    const strategyEmpty = document.getElementById("strategy-empty");
-    const topGainersWrap = document.getElementById("top-gainers-marquee");
-    const topGainersTrack = document.getElementById("top-gainers-track");
-    const topGainersEmpty = document.getElementById("top-gainers-empty");
-    const topGainersUpdated = document.getElementById("top-gainers-updated");
-    const perfSummaryTitle = document.getElementById("ps-title");
-    const holdingsTop10 = document.getElementById("ph-top10");
-    const liquidateOverlay = document.getElementById("liquidate-overlay");
-    const liquidateTitle = document.getElementById("liquidate-title");
-    const liquidateCopy = document.getElementById("liquidate-copy");
-    const liquidateAmount = document.getElementById("liquidate-amount");
-    const liquidateCancel = document.getElementById("liquidate-cancel");
-    const liquidateConfirm = document.getElementById("liquidate-confirm");
-    const liquidateClose = document.getElementById("liquidate-close");
-    const profileBtn = document.getElementById("profile-btn");
-    const profileMenu = document.getElementById("profile-menu");
-    const profileEmail = document.getElementById("profile-email");
-    const profileName = document.getElementById("profile-name");
-    const profileAvatar = document.getElementById("profile-avatar");
-    const profileLogout = document.getElementById("profile-logout");
     let chartInstance = null;
-    let latestProfile = null;
-    let latestAccount = null;
-    let currentUser = null;
-    let displayName = "—";
-    let firstName = "";
-    let allocationsCache = [];
-    let activeAllocationId = null;
-    let allocationFilter = "active";
-    let activeCurrency = "USD";
-    let watchlistVisible = false;
-    let watchlistHasItems = false;
-    const strategyMetricsCache = new Map();
-    let pendingLiquidationTrigger = null;
-    let formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
+    let currentRange = 'monthly';
+    let currentDateFilter = 'all';
 
-    function setCurrency(ccy = "USD") {
-      activeCurrency = (ccy || "USD").toUpperCase();
-      formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: activeCurrency, maximumFractionDigits: 2 });
-    }
+    const statsContainer = document.getElementById('stats-cards');
+    const assetList = document.getElementById('asset-list');
+    const performingCount = document.getElementById('performing-count');
+    const decliningCount = document.getElementById('declining-count');
+    const idleCount = document.getElementById('idle-count');
+    const transactionRows = document.getElementById('transaction-rows');
+    const transactionCards = document.getElementById('transaction-cards');
+    const searchInput = document.getElementById('transaction-search');
+    const dateFilter = document.getElementById('date-filter');
+    const exportBtn = document.getElementById('export-csv');
+    const modal = document.getElementById('transaction-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalCloseBtns = [document.getElementById('close-modal'), document.getElementById('modal-close-btn')];
 
-    syncWatchlistVisibility();
-    syncAllocationFilterUi();
-
-    function setAvatar(src) {
-      if (!profileAvatar) return;
-      if (src) {
-        profileAvatar.src = src;
-        return;
-      }
-
-      const initial = (displayName.match(/[A-Za-z]/)?.[0] || "?").toUpperCase();
-      const svg = encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'>
-           <rect width='100%' height='100%' rx='12' ry='12' fill='#0f172a'/>
-           <text x='50%' y='54%' text-anchor='middle' dominant-baseline='middle'
-                 font-family='Inter, Arial, sans-serif' font-size='32' fill='#fff'>${initial}</text>
-         </svg>`
-      );
-      profileAvatar.src = `data:image/svg+xml;utf8,${svg}`;
-    }
-
-    function syncProfileChrome(user) {
-      if (profileName) profileName.textContent = displayName;
-      if (profileEmail) profileEmail.textContent = user?.email || displayName;
-      const avatarUrl = latestProfile?.avatar_url || user?.user_metadata?.avatar_url;
-      setAvatar(avatarUrl);
-    }
-
-    function setStatus(message, tone = "info") {
-      if (!statusBox || !statusText) return;
-      statusText.textContent = message;
-      statusBox.className = `col-span-12 rounded-2xl px-5 py-4 text-sm shadow-sm ${tone === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-amber-200 bg-amber-50 text-amber-800"}`;
-      statusBox.classList.remove("hidden");
-    }
-
-    function clearStatus() {
-      if (statusBox) statusBox.classList.add("hidden");
-      if (statusText) statusText.textContent = "";
-    }
-
-    function pushToast(message, tone = "warn") {
-      const stackId = "toast-stack";
-      let stack = document.getElementById(stackId);
-      if (!stack) {
-        stack = document.createElement("div");
-        stack.id = stackId;
-        stack.className = "toast-stack";
-        document.body.appendChild(stack);
-      }
-
-      const toast = document.createElement("div");
-      toast.className = "toast-card";
-      toast.dataset.tone = tone;
-
-      const icon = document.createElement("span");
-      icon.className = "toast-icon";
-      icon.setAttribute("aria-hidden", "true");
-      icon.innerHTML = tone === "ok"
-        ? '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 6L8.5 14L4 9.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        : '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.5 6.5L6.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M6.5 6.5L13.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
-
-      const content = document.createElement("div");
-      content.className = "toast-content";
-      const messageEl = document.createElement("p");
-      messageEl.className = "toast-message";
-      messageEl.textContent = message;
-      content.appendChild(messageEl);
-
-      const close = document.createElement("button");
-      close.type = "button";
-      close.className = "toast-dismiss";
-      close.setAttribute("aria-label", "Dismiss notification");
-      close.innerHTML = '<svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.75 7.25L7.25 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7.25 7.25L12.75 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-
-      toast.append(icon, content, close);
-      stack.prepend(toast);
-
-      let isLeaving = false;
-      const removeToast = () => {
-        if (isLeaving) return;
-        isLeaving = true;
-        toast.classList.add("toast-card--leaving");
-        toast.addEventListener(
-          "animationend",
-          () => {
-            toast.remove();
-            if (!stack.hasChildNodes()) stack.remove();
-          },
-          { once: true }
-        );
-      };
-
-      const timeout = setTimeout(removeToast, 4800);
-      close.addEventListener("click", () => {
-        clearTimeout(timeout);
-        removeToast();
-      });
-    }
-
-    function hideToast() {
-      const stack = document.getElementById("toast-stack");
-      if (stack) stack.remove();
-    }
-
-    function formatMoney(value, currency = activeCurrency) {
-      const num = typeof value === "number" ? value : Number(value);
-      const fmt = currency === activeCurrency
-        ? formatter
-        : new Intl.NumberFormat("en-US", { style: "currency", currency: currency || activeCurrency, maximumFractionDigits: 2 });
-      return Number.isFinite(num) ? fmt.format(num) : "—";
-    }
-
-    function formatMoneyDelta(value, currency = activeCurrency) {
-      const num = typeof value === "number" ? value : Number(value);
-      if (!Number.isFinite(num)) return "—";
-      const sign = num >= 0 ? "+" : "-";
-      return `${sign}${formatMoney(Math.abs(num), currency)}`;
-    }
-
-    function formatReturnPct(value) {
-      const pct = typeof value === "number" ? value : Number(value);
-      if (!Number.isFinite(pct)) return "—";
-      const sign = pct >= 0 ? "+" : "";
-      return `${sign}${pct.toFixed(2)}%`;
-    }
-
-    function escapeHtml(input = "") {
-      return String(input || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function curveFromPct(points = [], start = 100) {
-      const out = [];
-      let level = Number(start) || 100;
-      for (const p of points || []) {
-        const rDec = Number(p?.pct);
-        if (Number.isFinite(rDec)) level *= 1 + rDec;
-        out.push(Number(level.toFixed(2)));
-      }
-      return out;
-    }
-
-    function parseSeriesInput(raw) {
-      if (Array.isArray(raw)) return raw;
-      if (typeof raw === "string") {
-        try {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) return parsed;
-          if (parsed && typeof parsed === "object") {
-            const fromNested = ["series", "points", "data", "values"].map((k) => parsed[k]).find(Array.isArray);
-            if (fromNested) return fromNested;
-          }
-        } catch (err) {
-          console.warn("could not parse series", err);
-        }
-      }
-      if (raw && typeof raw === "object") {
-        const fromNested = ["series", "points", "data", "values"].map((k) => raw[k]).find(Array.isArray);
-        if (fromNested) return fromNested;
-      }
-      return [];
-    }
-
-    function normalizePctSeries(series = []) {
-      const pctSeries = [];
-      let prevEquity = null;
-
-      for (const point of series || []) {
-        const pct = Number(point?.pct);
-        if (Number.isFinite(pct)) {
-          pctSeries.push({ pct });
-          continue;
-        }
-
-        const equity = Number(point?.equity ?? point?.nav ?? point?.value ?? point?.price ?? point?.close);
-        if (Number.isFinite(equity)) {
-          if (prevEquity === null) {
-            pctSeries.push({ pct: 0 });
-            prevEquity = equity;
-            continue;
-          }
-
-          if (prevEquity !== 0) {
-            pctSeries.push({ pct: (equity - prevEquity) / prevEquity });
-          }
-          prevEquity = equity;
-        }
-      }
-
-      return pctSeries;
-    }
-
-    function normalizeValueSeries(series = []) {
-      const values = [];
-      for (const point of series || []) {
-        const val = Number(
-          point?.value ??
-          point?.balance ??
-          point?.equity ??
-          point?.nav ??
-          point?.price ??
-          point?.close ??
-          point?.pct
-        );
-        if (Number.isFinite(val)) values.push(val);
-      }
-      return values;
-    }
-
-    function computePerfFromSeries(series = []) {
-      const pctSeries = normalizePctSeries(series);
-      let level = 1;
-      let peak = 1;
-      let maxDrawdown = 0;
-
-      for (const point of pctSeries) {
-        const pct = Number(point?.pct);
-        if (!Number.isFinite(pct)) continue;
-        level *= 1 + pct;
-        if (level > peak) peak = level;
-        const dd = peak > 0 ? (peak - level) / peak : 0;
-        if (dd > maxDrawdown) maxDrawdown = dd;
-      }
-
-      const totalReturn = (level - 1) * 100;
-      const drawdownPct = maxDrawdown * 100;
-
-      return { pctSeries, returnPct: totalReturn, drawdownPct };
-    }
-
-    function derivePerformance(metrics = {}) {
-      const perf = metrics?.perf_summary || {};
-      const seriesYtd = parseSeriesInput(metrics?.series_ytd);
-      const seriesAll = parseSeriesInput(metrics?.series_all);
-      const series = seriesYtd.length ? seriesYtd : seriesAll;
-      const seriesPerf = computePerfFromSeries(series);
-
-      const returnPct = Number.isFinite(seriesPerf.returnPct)
-        ? seriesPerf.returnPct
-        : Number(perf.ytd ?? perf.return_ytd ?? perf.total_return ?? perf.return ?? perf.cagr_ytd ?? perf.cagr_all ?? perf.cagr_1y);
-      const drawdownPct = Number.isFinite(seriesPerf.drawdownPct)
-        ? seriesPerf.drawdownPct
-        : Number(perf.max_drawdown_ytd ?? perf.max_drawdown ?? perf.max_dd ?? perf.drawdown ?? perf.dd);
-
-      const chartSeries = seriesPerf.pctSeries?.length ? seriesPerf.pctSeries : normalizePctSeries(series);
-      return { series: chartSeries, returnPct, drawdownPct };
-    }
-
-    function setStrategyPanelsVisible(show = false) {
-      strategyPanels?.classList.toggle("hidden", !show);
-    }
-
-    function resetStrategyPanels(message = "Select an allocation to view its holdings and performance.") {
-      if (topGainersTrack) topGainersTrack.innerHTML = "";
-      topGainersWrap?.classList.add("hidden");
-      topGainersEmpty?.classList.remove("hidden");
-      if (topGainersUpdated) {
-        topGainersUpdated.textContent = "";
-        topGainersUpdated.classList.add("hidden");
-      }
-      if (holdingsTop10) holdingsTop10.innerHTML = "<div class=\"text-sm text-slate-500\">No holdings data available.</div>";
-      fillPerfSummary(null);
-      if (strategyEmpty) {
-        strategyEmpty.textContent = message;
-        strategyEmpty.classList.remove("hidden");
-      }
-      setStrategyPanelsVisible(false);
-    }
-
-    function renderTopGainersMarquee(metrics = {}, holdingsSrc = []) {
-      if (!topGainersWrap || !topGainersTrack || !topGainersEmpty) return;
-
-      const holdings = Array.isArray(holdingsSrc)
-        ? holdingsSrc
-        : Array.isArray(metrics?.portfolio_holdings)
-          ? metrics.portfolio_holdings
-          : [];
-
-      const currency = (metrics?.currency || activeCurrency || "USD").toUpperCase();
-
-      const entries = holdings
-        .map((h) => {
-          const change = Number(h?.daily_change_pct);
-          if (!Number.isFinite(change)) return null;
-
-          const symbol = (h?.symbol || h?.name || "—").toString().trim() || "—";
-          const name = (h?.company_name || h?.name || h?.symbol || "Unknown").toString().trim() || "Unknown";
-          const valueNum = Number(h?.value);
-          const priceNum = Number(h?.price);
-          const weightNum = Number(h?.weight_pct);
-
-          let valueLabel = "—";
-          if (Number.isFinite(valueNum) && valueNum !== 0) {
-            valueLabel = formatMoney(valueNum, currency);
-          } else if (Number.isFinite(priceNum) && priceNum !== 0) {
-            valueLabel = formatMoney(priceNum, currency);
-          } else if (Number.isFinite(weightNum) && weightNum > 0) {
-            valueLabel = `${weightNum.toFixed(2)}% weight`;
-          }
-
-          const changeLabel = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
-          const initials = symbol.slice(0, 2).toUpperCase();
-
-          return {
-            symbol,
-            name,
-            valueLabel,
-            change,
-            changeLabel,
-            logo: h?.logo_url || h?.logo || null,
-            initials,
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.change - a.change);
-
-      const holdingsAsOf = metrics?.portfolio_holdings_updated_at
-        || metrics?.portfolio_holdings_asof
-        || metrics?.asof_date
-        || metrics?.updated_at
-        || null;
-
-      if (topGainersUpdated) {
-        if (holdingsAsOf) {
-          const parsed = new Date(holdingsAsOf);
-          if (!Number.isNaN(parsed.getTime())) {
-            topGainersUpdated.textContent = `Updated ${parsed.toLocaleString()}`;
-          } else {
-            topGainersUpdated.textContent = `Updated ${holdingsAsOf}`;
-          }
-          topGainersUpdated.classList.remove("hidden");
-        } else {
-          topGainersUpdated.textContent = "";
-          topGainersUpdated.classList.add("hidden");
-        }
-      }
-
-      if (!entries.length) {
-        topGainersTrack.innerHTML = "";
-        topGainersWrap.classList.add("hidden");
-        topGainersEmpty.classList.remove("hidden");
-        topGainersTrack.classList.remove("is-looping");
-        topGainersTrack.style.removeProperty("--tg-duration");
-        return;
-      }
-
-      const cardMarkup = entries
+    function renderStats() {
+      if (!statsContainer) return;
+      statsContainer.innerHTML = statsData
         .map((item) => {
-          const safeSymbol = escapeHtml(item.symbol);
-          const safeName = escapeHtml(item.name);
-          const safeValue = escapeHtml(item.valueLabel);
-          const safeChange = escapeHtml(item.changeLabel);
-          const logoHtml = item.logo
-            ? `<img src="${escapeHtml(item.logo)}" alt="${safeSymbol} logo" class="tg-logo-img">`
-            : `<div class="tg-logo-fallback">${escapeHtml(item.initials)}</div>`;
-          const changeIcon = item.change >= 0 ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
-          const changeClass = item.change >= 0 ? "is-up" : "is-down";
+          const positive = item.changeDirection === 'up';
+          const pillClass = positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+          const arrow = positive ? '↑' : '↓';
           return `
-            <div class="tg-card">
-              <div class="tg-card-header">
-                ${logoHtml}
-                <div class="tg-card-meta">
-                  <div class="tg-symbol">${safeSymbol}</div>
-                  <div class="tg-name" title="${safeName}">${safeName}</div>
-                </div>
+            <article class="bg-white rounded-xl shadow-sm p-5 space-y-3">
+              <p class="text-sm font-semibold text-slate-500">${item.title}</p>
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-[28px] md:text-[32px] font-bold text-slate-900">${item.value}</p>
+                <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${pillClass}">${arrow} ${item.changePercent}%</span>
               </div>
-              <div class="tg-value">${safeValue}</div>
-              <div class="tg-change ${changeClass}"><i class="fa-solid ${changeIcon}"></i>${safeChange}</div>
-            </div>`;
+              <p class="text-sm text-slate-500">${item.subtitle}</p>
+            </article>`;
         })
-        .join("");
-
-      const shouldLoop = entries.length > 3;
-      if (shouldLoop) {
-        const duration = Math.max(18, entries.length * 4);
-        topGainersTrack.innerHTML = cardMarkup + cardMarkup;
-        topGainersTrack.classList.add("is-looping");
-        topGainersTrack.style.setProperty("--tg-duration", `${duration}s`);
-      } else {
-        topGainersTrack.innerHTML = cardMarkup;
-        topGainersTrack.classList.remove("is-looping");
-        topGainersTrack.style.removeProperty("--tg-duration");
-      }
-
-      topGainersEmpty.classList.add("hidden");
-      topGainersWrap.classList.remove("hidden");
+        .join('');
     }
 
-    function renderPortfolioHoldingsFromMetrics(metrics = {}) {
-      const rawHoldings = Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [];
-      renderTopGainersMarquee(metrics, rawHoldings);
-
-      if (!holdingsTop10) return;
-
-      const items = rawHoldings
-        .map((h) => ({
-          symbol: (h.symbol || h.name || "—").toString().trim(),
-          name: (h.company_name || h.name || h.symbol || "Unknown").toString().trim(),
-          weight: Number(h.weight_pct) || 0,
-          logo: h.logo_url || h.logo || null,
-        }))
-        .filter((x) => x.weight > 0)
-        .sort((a, b) => b.weight - a.weight)
-        .slice(0, 10);
-
-      if (!items.length) {
-        holdingsTop10.innerHTML = '<div class="text-sm text-slate-500 text-center py-4">No holdings data available.</div>';
-        return;
-      }
-
-      holdingsTop10.innerHTML = items
-        .map((h) => {
-          const initials = h.symbol.slice(0, 2).toUpperCase();
-          const logoEl = h.logo
-            ? `<img src="${escapeHtml(h.logo)}" alt="${escapeHtml(h.symbol)} logo" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200">`
-            : `<div class="ph-logo-fallback">${escapeHtml(initials)}</div>`;
-
-          return `
-            <div class="ph-item">
-              <div>${logoEl}</div>
-              <div class="ph-symbol">${escapeHtml(h.symbol)}</div>
-              <div class="ph-name" title="${escapeHtml(h.name)}">${escapeHtml(h.name)}</div>
-              <div class="ph-weight">${h.weight.toFixed(2)}%</div>
-            </div>`;
-        })
-        .join("");
-    }
-
-    function fillPerfSummary(ps) {
-      const pct = (v) => (v == null || Number.isNaN(v)) ? "—" : `${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}%`;
-      const set = (id, value) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
-      };
-
-      if (!ps) {
-        ["ps-best", "ps-worst", "ps-avg", "ps-pos", "ps-days", "ps-ytd"].forEach((id) => set(id, "—"));
-        return;
-      }
-
-      set("ps-best", pct(ps?.best_day_pct));
-      set("ps-worst", pct(ps?.worst_day_pct));
-      set("ps-avg", pct(ps?.avg_daily_return_pct));
-      set("ps-pos", ps?.positive_days_pct == null ? "—" : `${Number(ps.positive_days_pct).toFixed(0)}%`);
-      set("ps-days", ps?.total_days ?? 0);
-      set("ps-ytd", pct(ps?.ytd_return_pct));
-    }
-
-    function pickSeriesForRange(metrics = {}, rangeKey = "ALL") {
-      const keyMap = {
-        "1M": "series_1m",
-        "3M": "series_3m",
-        "6M": "series_6m",
-        "YTD": "series_ytd",
-        "1Y": "series_1y",
-        "3Y": "series_3y",
-        ALL: "series_all",
-      };
-
-      const primaryKey = keyMap[rangeKey] || "series_all";
-      const primary = parseSeriesInput(metrics?.[primaryKey]);
-      if (primary.length) return primary;
-
-      const fallbacks = ["series_ytd", "series_all"];
-      for (const key of fallbacks) {
-        const candidate = parseSeriesInput(metrics?.[key]);
-        if (candidate.length) return candidate;
-      }
-      return [];
-    }
-
-    function toggleEquityAvailability(hasData = true, { message = null } = {}) {
-      const showChart = hasData;
-      pfChartCanvas?.classList.toggle("hidden", !showChart);
-      pfEmpty?.classList.toggle("hidden", showChart);
-      if (!showChart && pfEmpty) {
-        const msgNode = pfEmpty.querySelector("p") || pfEmpty;
-        msgNode.textContent = message || pfEmptyDefault;
-      }
-      if (showChart && pfEmpty) {
-        const msgNode = pfEmpty.querySelector("p") || pfEmpty;
-        msgNode.textContent = pfEmptyDefault;
-      }
-    }
-
-    function drawCardChart(canvasId, seriesData) {
-      const ctx = document.getElementById(canvasId)?.getContext("2d");
-      if (!ctx || typeof Chart === "undefined") return;
-
-      if (Chart.getChart(canvasId)) {
-        Chart.getChart(canvasId).destroy();
-      }
-
-      const pctSeries = normalizePctSeries(seriesData);
-      const curve = curveFromPct(pctSeries, 100);
-      const labels = (seriesData || []).map((x) => x.label || x.date || x.period || "");
-
-      const gradient = ctx.createLinearGradient(0, 0, 0, 120);
-      gradient.addColorStop(0, "rgba(87, 97, 56, 0.35)");
-      gradient.addColorStop(1, "rgba(87, 97, 56, 0.05)");
-
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              data: curve,
-              tension: 0.35,
-              borderWidth: 2,
-              borderColor: "#7e8d52",
-              backgroundColor: gradient,
-              fill: true,
-              pointRadius: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: { x: { display: false }, y: { display: false } },
-        },
-      });
-    }
-
-    function updateWatchlistScroller() {
-      if (!watchRecos) return;
-      const { scrollLeft, scrollWidth, clientWidth } = watchRecos;
-      const canScroll = scrollWidth > clientWidth + 8;
-      const atStart = scrollLeft <= 4;
-      const atEnd = scrollLeft + clientWidth >= scrollWidth - 4;
-
-      watchPrev?.classList.toggle("hidden", !canScroll || atStart);
-      watchNext?.classList.toggle("hidden", !canScroll || atEnd);
-      watchFadeLeft?.classList.toggle("hidden", !canScroll || atStart);
-      watchFadeRight?.classList.toggle("hidden", !canScroll || atEnd);
-    }
-
-    function renderWatchlistCards(items = []) {
-      if (!watchRecos || !watchEmpty) return;
-      watchRecos.innerHTML = "";
-
-      const hasItems = Array.isArray(items) && items.length > 0;
-      watchlistHasItems = hasItems;
-      watchEmpty.classList.toggle("hidden", hasItems);
-      syncWatchlistVisibility();
-
-      if (!hasItems) {
-        updateWatchlistScroller();
-        return;
-      }
-
-      const buildCard = (s) => {
-        const metrics = s.metrics || (Array.isArray(s.strategy_metrics) ? s.strategy_metrics[0] : null);
-        const perfData = s.performance || derivePerformance(metrics || {});
-        const returnVal = Number(perfData?.returnPct);
-        const rawSeries = parseSeriesInput(metrics?.series_ytd).length
-          ? parseSeriesInput(metrics?.series_ytd)
-          : parseSeriesInput(metrics?.series_all);
-        let series = rawSeries.length ? rawSeries : Array.isArray(perfData?.series) ? perfData.series : [];
-        if (!series.length && Number.isFinite(returnVal)) {
-          series = [
-            { pct: 0 },
-            { pct: (returnVal || 0) / 100 },
-          ];
-        }
-        const drawdownVal = Number(perfData?.drawdownPct);
-        const chartId = `watch-curve-${s.id}`;
-        const cardRisk = s.risk_level || "—";
-        const riskChip = cardRisk.toLowerCase().includes("high") ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700";
-        const perfTone = Number.isFinite(returnVal)
-          ? returnVal >= 0
-            ? "text-emerald-600"
-            : "text-rose-600"
-          : "text-slate-800";
-        const drawdownText = Number.isFinite(drawdownVal) ? `${Math.abs(drawdownVal).toFixed(1)}%` : "—";
-
-        const card = document.createElement("article");
-        card.className =
-          "min-w-[240px] max-w-[260px] flex-shrink-0 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-md shadow-slate-200/60 transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer";
-        card.dataset.strategyId = s.id || s.code || "";
-        card.innerHTML = `
-            <div class="flex items-start justify-between gap-3">
-              <div class="space-y-1">
-                <h5 class="text-base font-semibold text-slate-900">${s.name || "Strategy"}</h5>
-                <p class="text-xs text-slate-500">${s.currency || "USD"}${s.style ? ` · ${s.style}` : ""}</p>
-              </div>
-              <span class="chip ${riskChip} text-xs">${cardRisk}</span>
-            </div>
-            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div class="rounded-xl bg-slate-50 p-3">
-                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Return (YTD)</p>
-                <p class="text-lg font-semibold ${perfTone}">${Number.isFinite(returnVal) ? `${returnVal >= 0 ? "+" : ""}${returnVal.toFixed(1)}%` : "—"}</p>
-              </div>
-              <div class="rounded-xl bg-slate-50 p-3">
-                <p class="text-[11px] uppercase tracking-[0.28em] text-slate-500">Drawdown (YTD)</p>
-                <p class="text-lg font-semibold text-slate-800">${drawdownText}</p>
-              </div>
-            </div>
-            <div class="mt-4 h-32 w-full rounded-xl bg-slate-50 p-2">
-              ${series.length
-                ? `<canvas id="${chartId}" class="h-full w-full"></canvas>`
-                : '<div class="flex h-full items-center justify-center text-xs text-slate-500">No data for your allocation just yet</div>'}
-            </div>
-          `;
-        return [card, chartId, series];
-      };
-
-      items.forEach((s) => {
-        const [card, chartId, series] = buildCard(s);
-        watchRecos.appendChild(card);
-        card.addEventListener("click", () => {
-          const target = card.dataset.strategyId || s.code || s.id;
-          if (target) window.location.href = `/demo/strategy.html?strategy=${encodeURIComponent(target)}`;
-        });
-        if (series.length) {
-          requestAnimationFrame(() => drawCardChart(chartId, series));
-        }
+    function buildChart(rangeKey = 'monthly') {
+      const ctx = document.getElementById('equity-chart')?.getContext('2d');
+      if (!ctx) return;
+      const data = equitySeries[rangeKey] || [];
+      const labels = data.map((item) => {
+        const date = new Date(item.date);
+        return rangeKey === 'monthly' ? date.toLocaleString('default', { month: 'short' }) : item.date;
       });
 
-      watchRecos.scrollLeft = 0;
-      updateWatchlistScroller();
-    }
-
-    function syncWatchlistVisibility() {
-      if (!watchSection) return;
-      watchSection.classList.toggle("hidden", !watchlistVisible);
-      if (watchToggle) {
-        watchToggle.textContent = watchlistVisible ? "Hide my watchlist" : "Show my watchlist";
-        watchToggle.classList.toggle("opacity-60", !watchlistHasItems);
-      }
-    }
-
-    function normalizeStrategyIds(raw = []) {
-      if (!Array.isArray(raw)) return [];
-      return Array.from(
-        new Set(
-          raw
-            .map((item) => {
-              if (typeof item === "string") return item;
-              if (item && typeof item === "object") return item.id || item.strategy_id || item.code || item.slug;
-              return null;
-            })
-            .filter(Boolean)
-        )
-      );
-    }
-
-    async function fetchWatchlistStrategies(ids = []) {
-      const targetIds = normalizeStrategyIds(ids);
-      if (!targetIds.length) return [];
-
-      const columns =
-        "id,name,code,currency,risk_level,style,strategy_metrics(strategy_id,perf_summary,series_1d,series_1m,series_3m,series_6m,series_ytd,series_1y,series_3y,series_all)";
-
-      try {
-        const results = [];
-        const { data: byId, error } = await supabase.from("strategies").select(columns).in("id", targetIds);
-        if (error) throw error;
-        if (Array.isArray(byId)) results.push(...byId);
-
-        const found = new Set(results.map((row) => row.id));
-        const missing = targetIds.filter((id) => !found.has(id));
-
-        if (missing.length) {
-          const { data: byCode, error: codeErr } = await supabase
-            .from("strategies")
-            .select(columns)
-            .in("code", missing);
-          if (codeErr) throw codeErr;
-          if (Array.isArray(byCode)) {
-            byCode.forEach((row) => {
-              if (!found.has(row.id)) results.push(row);
-            });
-          }
-        }
-
-        const idsForMetrics = results.map((s) => s.id).filter(Boolean);
-        const metricsById = Object.fromEntries(
-          (results || [])
-            .map((row) => {
-              const inline = Array.isArray(row.strategy_metrics) ? row.strategy_metrics[0] : null;
-              return inline ? [inline.strategy_id, inline] : null;
-            })
-            .filter(Boolean)
-        );
-
-        const missingMetrics = idsForMetrics.filter((id) => !metricsById[id]);
-        if (missingMetrics.length) {
-          const { data: metrics, error: metricErr } = await supabase
-            .from("strategy_metrics")
-            .select("strategy_id, perf_summary, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all")
-            .in("strategy_id", missingMetrics);
-          if (metricErr) {
-            console.warn("Could not load watchlist metrics", metricErr);
-          } else {
-            Object.assign(metricsById, Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m])));
-          }
-        }
-
-        const merged = (results || []).map((s) => ({
-          ...s,
-          metrics: metricsById[s.id] || null,
-          performance: derivePerformance(metricsById[s.id] || {}),
-        }));
-
-        const order = new Map(targetIds.map((id, idx) => [id, idx]));
-        return merged.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-      } catch (err) {
-        console.warn("watchlist strategies fetch failed", err);
-        return [];
-      }
-    }
-
-    async function fetchSubscribedStrategies(ids = []) {
-      const targetIds = normalizeStrategyIds(ids);
-      if (!targetIds.length) return [];
-
-      try {
-        const results = [];
-        const { data: byId, error } = await supabase.from("strategies").select("id,name,code,currency,style,risk_level").in("id", targetIds);
-
-        if (error) throw error;
-        if (Array.isArray(byId)) results.push(...byId);
-
-        const found = new Set(results.map((row) => row.id));
-        const missing = targetIds.filter((id) => !found.has(id));
-
-        if (missing.length) {
-          const { data: byCode, error: codeErr } = await supabase
-            .from("strategies")
-            .select("id,name,code,currency,style,risk_level")
-            .in("code", missing);
-          if (codeErr) throw codeErr;
-          if (Array.isArray(byCode)) {
-            byCode.forEach((row) => {
-              if (!found.has(row.id)) results.push(row);
-            });
-          }
-        }
-
-        const idsForMetrics = results.map((s) => s.id).filter(Boolean);
-        let metricsById = {};
-
-        if (idsForMetrics.length) {
-          const { data: metrics, error: metricErr } = await supabase
-            .from("strategy_metrics")
-            .select("strategy_id, perf_summary, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all")
-            .in("strategy_id", idsForMetrics);
-          if (metricErr) {
-            console.warn("subscribed strategy metrics fetch failed", metricErr);
-          } else {
-            metricsById = Object.fromEntries((metrics || []).map((m) => [m.strategy_id, m]));
-          }
-        }
-
-        return (results || []).map((s) => ({
-          ...s,
-          metrics: metricsById[s.id] || null,
-          performance: derivePerformance(metricsById[s.id] || {}),
-        }));
-      } catch (err) {
-        console.warn("strategies fetch failed", err);
-        return [];
-      }
-    }
-
-    function getRangeLength(rangeKey = "ALL") {
-      const lengthMap = { "1M": 20, "3M": 40, "6M": 60, "YTD": 80, "1Y": 100, "3Y": 140, ALL: 160 };
-      return lengthMap[rangeKey] || 60;
-    }
-
-    function buildEquitySeries(profile = {}, account = {}, rangeKey = "ALL") {
-      const equityRaw = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0);
-      const pnlRaw = Number(account?.pnl ?? 0);
-      const equity = Number.isFinite(equityRaw) ? equityRaw : 0;
-      const pnl = Number.isFinite(pnlRaw) ? pnlRaw : 0;
-
-      if (!Number.isFinite(equity) || equity === 0) {
-        return Array(7).fill(0);
-      }
-
-      const len = getRangeLength(rangeKey);
-
-      if (pnl === 0) {
-        return Array(len).fill(equity);
-      }
-
-      const start = equity - pnl;
-      return Array.from({ length: len }, (_, idx) => start + (pnl * idx) / (len - 1));
-    }
-
-    function buildFlatAllocationSeries(profile = {}, account = {}, rangeKey = "ALL") {
-      const base = Number(account?.equity ?? account?.balance ?? profile?.balance ?? 0) || 0;
-      const len = getRangeLength(rangeKey);
-      return Array(len).fill(base);
-    }
-
-    window.pfSeekPlugin =
-      window.pfSeekPlugin ||
-      {
-        id: "pfSeek",
-        afterDraw(chart) {
-          const { ctx, chartArea, tooltip } = chart;
-          if (!tooltip || !tooltip._active || !tooltip._active.length) return;
-
-          const activePoint = tooltip._active[0];
-          const x = activePoint.element.x;
-          const { top, bottom } = chartArea;
-
-          if (x < chartArea.left || x > chartArea.right) return;
-
-          ctx.save();
-          ctx.setLineDash([4, 4]);
-          ctx.strokeStyle = "#000";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(x, top);
-          ctx.lineTo(x, bottom);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          const triSize = 5;
-          ctx.fillStyle = "#000";
-          ctx.beginPath();
-          ctx.moveTo(x, top - triSize);
-          ctx.lineTo(x - triSize, top);
-          ctx.lineTo(x + triSize, top);
-          ctx.closePath();
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(x, bottom + triSize);
-          ctx.lineTo(x - triSize, bottom);
-          ctx.lineTo(x + triSize, bottom);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-        },
-      };
-
-    function toDateSafe(value) {
-      if (!value) return null;
-      const d = value instanceof Date ? value : new Date(value);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-
-    function formatChartDate(date) {
-      return date?.toLocaleDateString(undefined, { month: "short", day: "numeric" }) || "";
-    }
-
-    function buildDefaultLabels(length, fromDate = new Date()) {
-      const today = toDateSafe(fromDate) || new Date();
-      return Array.from({ length: Math.max(1, length) }, (_, idx, arr) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - (arr.length - 1 - idx));
-        return formatChartDate(d);
-      });
-    }
-
-    function buildSeriesLabels(rawSeries = [], allocation = {}, length = 0) {
-      const parsedDates = [];
-
-      for (const point of rawSeries || []) {
-        if (!point || typeof point !== "object") continue;
-        const candidate =
-          point.date ??
-          point.ts ??
-          point.timestamp ??
-          point.label ??
-          point.time ??
-          point.t;
-        const d = toDateSafe(candidate);
-        if (d) parsedDates.push(d);
-      }
-
-      const targetLength = length || parsedDates.length;
-      if (!targetLength) return [];
-
-      if (parsedDates.length) {
-        const start = parsedDates[0];
-        const dates = Array.from({ length: targetLength }, (_, idx) => parsedDates[idx] || new Date(start));
-        dates.forEach((d, idx) => {
-          if (!parsedDates[idx]) d.setDate(start.getDate() + idx);
-        });
-        return dates.map(formatChartDate);
-      }
-
-      const startDate = toDateSafe(allocation?.start_date);
-      if (startDate) {
-        return Array.from({ length: targetLength }, (_, idx) => {
-          const d = new Date(startDate);
-          d.setDate(startDate.getDate() + idx);
-          return formatChartDate(d);
-        });
-      }
-
-      return buildDefaultLabels(targetLength);
-    }
-
-    function renderChart(series = [], labels = [], account = {}, profile = {}, rangeKey = "ALL") {
-      if (!pfChartCanvas || typeof Chart === "undefined") return;
-
-      const data = Array.isArray(series) && series.length ? series : Array(7).fill(0);
-      const ctx = pfChartCanvas.getContext("2d");
-      const chartLabels = Array.isArray(labels) && labels.length === data.length ? labels : buildDefaultLabels(data.length);
-
-      const gradient = ctx.createLinearGradient(0, 0, 0, pfChartCanvas.height || 260);
-      gradient.addColorStop(0, "rgba(85,107,47,0.35)");
-      gradient.addColorStop(1, "rgba(85,107,47,0.06)");
+      const equityDataPoints = data.map((item) => item.equity);
+      const benchmarkDataPoints = data.map((item) => item.benchmark);
 
       if (chartInstance) chartInstance.destroy();
 
       chartInstance = new Chart(ctx, {
-        type: "line",
+        type: 'line',
         data: {
-          labels: chartLabels,
+          labels,
           datasets: [
             {
-              data,
-              borderColor: "#7e8d52",
-              backgroundColor: gradient,
-              fill: true,
-              tension: 0.32,
+              label: 'Equity',
+              data: equityDataPoints,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.12)',
+              tension: 0.35,
               pointRadius: 0,
-              pointHitRadius: 18,
-              borderWidth: 3,
+              borderWidth: 2.5,
+              fill: true,
+            },
+            {
+              label: 'Benchmark',
+              data: benchmarkDataPoints,
+              borderColor: '#cbd5e1',
+              borderDash: [6, 6],
+              tension: 0.35,
+              pointRadius: 0,
+              borderWidth: 2,
+              fill: false,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
           plugins: {
-            legend: { display: false },
+            legend: { position: 'top', labels: { usePointStyle: true } },
             tooltip: {
-              backgroundColor: "#0f172a",
-              titleColor: "#e2e8f0",
-              bodyColor: "#e2e8f0",
               callbacks: {
-                label: (ctx) => formatMoney(ctx.parsed.y),
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}`,
               },
             },
           },
           scales: {
-            x: {
-              grid: { display: false },
-              ticks: { color: "#475569", maxTicksLimit: 6 },
-            },
-            y: {
-              grid: { display: false },
-              ticks: {
-                color: "#475569",
-                maxTicksLimit: 3,
-                callback: (value) => formatMoney(value),
-              },
-            },
+            x: { grid: { display: false } },
+            y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { callback: (val) => `$${val}` } },
           },
         },
-        plugins: [window.pfSeekPlugin],
-      });
-
-      const numericData = data.filter((n) => Number.isFinite(n));
-      const latest = numericData.length ? numericData[numericData.length - 1] : (account?.equity ?? account?.balance ?? profile?.balance ?? 0);
-      const start = numericData.length ? numericData[0] : latest;
-      const prev = numericData.length > 1 ? numericData[numericData.length - 2] : start;
-      const delta = Number.isFinite(latest) && Number.isFinite(start) ? latest - start : null;
-
-      if (pfValue) {
-        pfValue.textContent = formatMoney(latest);
-      }
-      if (pfChange) {
-        pfChange.textContent = formatMoneyDelta(delta ?? 0);
-        pfChange.className = delta == null ? "hidden" : "text-sm text-slate-600";
-      }
-
-      if (pfUpdated) {
-        const ts = account?.updated_at ? new Date(account.updated_at).toLocaleString() : new Date().toLocaleString();
-        pfUpdated.textContent = account?.updated_at ? `Updated ${ts}` : `Today • ${ts}`;
-      }
-    }
-
-    async function guard() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        location.replace(`/auth.html?redirect=${encodeURIComponent("/demo/dashboard.html")}`);
-        return null;
-      }
-      const metaType = session.user?.user_metadata?.account_type;
-      if (metaType !== "paper") {
-        location.replace("/demo/dashboard.html");
-        return null;
-      }
-      return session.user;
-    }
-
-    async function fetchDemoProfile(userId = "") {
-      try {
-        let query = supabase.from("demo_profiles").select("*");
-        if (userId) query = query.eq("id", userId);
-        const { data, error } = await query.maybeSingle();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn("demo_profiles fetch failed; falling back to defaults", error);
-        return null;
-      }
-    }
-
-    async function fetchDemoAccount(userId = "") {
-      try {
-        let query = supabase.from("demo_accounts").select("*");
-        if (userId) query = query.eq("id", userId);
-        const { data, error } = await query.maybeSingle();
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn("demo_accounts fetch failed; using defaults", error);
-        return null;
-      }
-    }
-
-    async function fetchDemoAllocations(profileId = "") {
-      if (!profileId) return [];
-      try {
-        const { data, error } = await supabase
-          .from("demo_allocations")
-          .select("id, strategy_id, amount_invested, base_currency, start_date, status, latest_value, latest_return_pct, series_1d, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, series_all, asset_allocation, portfolio_holdings, strategies(name, code)")
-          .eq("demo_profile_id", profileId)
-          .order("start_date", { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-      } catch (error) {
-        console.warn("demo_allocations fetch failed", error);
-        setStatus("Unable to load your allocations right now.", "warning");
-        return [];
-      }
-    }
-
-    async function fetchStrategyMetrics(strategyId = "") {
-      if (!strategyId) return null;
-      if (strategyMetricsCache.has(strategyId)) return strategyMetricsCache.get(strategyId);
-      try {
-        const { data, error } = await supabase
-          .from("strategy_metrics")
-          .select("strategy_id, perf_summary, portfolio_holdings")
-          .eq("strategy_id", strategyId)
-          .maybeSingle();
-
-        if (error) throw error;
-        if (data) {
-          strategyMetricsCache.set(strategyId, data);
-          return data;
-        }
-      } catch (err) {
-        console.warn("strategy_metrics fetch failed", err);
-      }
-      return null;
-    }
-
-    function getGreeting() {
-      const hour = new Date().getHours();
-      if (hour < 12) return "Good morning";
-      if (hour < 17) return "Good afternoon";
-      return "Good evening";
-    }
-
-    function formatDateLabel(dateLike) {
-      if (!dateLike) return "";
-      const date = new Date(dateLike);
-      if (Number.isNaN(date.valueOf())) return "";
-      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-    }
-
-    function renderProfile(profile = {}, fallbackEmail = "") {
-      const fullName =
-        [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || profile?.full_name || fallbackEmail || "Demo User";
-      const greeting = getGreeting();
-
-      displayName = fullName || fallbackEmail || "Demo User";
-      firstName = (profile?.first_name || fullName || "").split(" ")[0] || "there";
-
-      if (welcomeName) welcomeName.textContent = `${greeting}, ${firstName}`;
-      updateWelcomeSummary();
-      if (pfName) pfName.textContent = "Strategy";
-      if (pfSub) pfSub.textContent = "Select a strategy to view its equity curve.";
-
-      syncProfileChrome(currentUser);
-    }
-
-    function renderAccount(account = {}, userId = "") {
-      renderFundsCard(account, latestProfile);
-      populateFundsAccounts(account, userId);
-      renderAllocationSummary(account, allocationsCache);
-    }
-
-    function showAllocationsLoading() {
-      allocationLoading?.classList.remove("hidden");
-      allocationsTable?.classList.add("hidden");
-      allocationEmpty?.classList.add("hidden");
-    }
-
-    function syncAllocationFilterUi() {
-      allocationFilters.forEach((btn) => {
-        const isActive = btn.dataset.allocFilter === allocationFilter;
-        btn.classList.toggle("bg-white", isActive);
-        btn.classList.toggle("text-[var(--olive-700)]", isActive);
-        btn.classList.toggle("border-white", isActive);
-        btn.classList.toggle("shadow", isActive);
-        btn.classList.toggle("bg-white/20", !isActive);
-        btn.classList.toggle("text-white", !isActive);
-        btn.classList.toggle("border-white/40", !isActive);
       });
     }
 
-    function setAllocationFilter(filter = "active") {
-      allocationFilter = filter === "all" ? "all" : "active";
-      syncAllocationFilterUi();
-      renderAllocationsTable(allocationsCache);
-      refreshChart();
-      loadStrategyContext(getActiveAllocation());
-    }
-
-    function renderAllocationsTable(rows = []) {
-      if (!allocationRows) return;
-
-      allocationsCache = rows || [];
-      if (!activeAllocationId && allocationsCache.length) {
-        const preferred = allocationsCache.find((row) => (row?.status || "").toLowerCase() === "active") || allocationsCache[0];
-        activeAllocationId = preferred?.id || null;
-      }
-
-      allocationRows.innerHTML = "";
-      allocationLoading?.classList.add("hidden");
-
-      const filtered = allocationFilter === "active"
-        ? allocationsCache.filter((row) => (row?.status || "").toLowerCase() === "active")
-        : allocationsCache;
-
-      updateWelcomeSummary(allocationsCache);
-
-      if (filtered.length && (!activeAllocationId || !filtered.some((row) => row?.id === activeAllocationId))) {
-        activeAllocationId = filtered[0]?.id || activeAllocationId;
-      }
-
-      const hasRows = Array.isArray(filtered) && filtered.length > 0;
-      allocationsTable?.classList.toggle("hidden", !hasRows);
-      if (allocationEmpty) {
-        allocationEmpty.textContent = allocationFilter === "active"
-          ? "No active allocations yet. Switch to view all to see past activity."
-          : "No demo allocations yet. Allocate a strategy to see it here.";
-        allocationEmpty.classList.toggle("hidden", hasRows);
-      }
-
-      renderAllocationSummary(latestAccount, allocationsCache);
-
-      if (!hasRows) {
-        resetStrategyPanels("No allocations to visualize yet.");
-        return;
-      }
-
-      filtered.forEach((row) => {
-        const tr = document.createElement("tr");
-        tr.className = "hover:bg-slate-50/50";
-        tr.dataset.allocationId = row?.id || "";
-
-        const strategyLabel = row?.strategies?.name || row?.strategies?.code || row?.strategy_id || "Strategy";
-        const startDate = row?.start_date ? new Date(row.start_date).toLocaleDateString() : "—";
-        const status = (row?.status || "").toString().toLowerCase();
-        const statusTone = status === "active"
-          ? "border border-emerald-200/70 bg-emerald-500/20 text-emerald-50"
-          : "border border-white/20 bg-white/10 text-white";
-        const returnPct = typeof row?.latest_return_pct === "number" ? row.latest_return_pct : Number(row?.latest_return_pct);
-        const returnTone = Number.isFinite(returnPct) ? (returnPct >= 0 ? "text-emerald-200" : "text-rose-200") : "text-white";
-        const isCurrent = activeAllocationId && row?.id === activeAllocationId;
-        const currentChip = isCurrent
-          ? '<span class="chip ml-2 border border-emerald-300/60 bg-emerald-500/30 text-white text-[11px]">Current</span>'
-          : "";
-
-        tr.innerHTML = `
-          <td class="px-5 py-3 font-semibold text-white flex items-center">${strategyLabel}${currentChip}</td>
-          <td class="px-5 py-3 text-white">${formatMoney(row?.amount_invested, row?.base_currency)}</td>
-          <td class="px-5 py-3 uppercase text-white/80">${(row?.base_currency || activeCurrency || "USD").toString().toUpperCase()}</td>
-          <td class="px-5 py-3 text-white/80">${startDate}</td>
-          <td class="px-5 py-3"><span class="chip text-xs ${statusTone}">${status || "—"}</span></td>
-          <td class="px-5 py-3 text-white">${formatMoney(row?.latest_value ?? row?.amount_invested, row?.base_currency)}</td>
-          <td class="px-5 py-3 font-semibold ${returnTone}">${formatReturnPct(returnPct)}</td>
-          <td class="px-5 py-3 text-right">
-            <div class="flex items-center justify-end gap-2">
-              <button type="button" class="btn h-9 text-[13px] border-white/40 bg-white/20 text-white hover:bg-white/30" data-visualize-id="${row?.id}" data-strategy="${strategyLabel}">
-                ${isCurrent ? "Viewing" : "Visualize"}
-              </button>
-              <button type="button" class="btn h-9 text-[13px] border-white/30 bg-white/10 text-white hover:bg-white/20" data-liquidate-id="${row?.id}" data-strategy="${strategyLabel}">
-                Liquidate
-              </button>
-            </div>
-          </td>
-        `;
-
-        allocationRows.appendChild(tr);
+    function toggleRange(range) {
+      currentRange = range;
+      const buttons = document.querySelectorAll('#equity-toggle button');
+      buttons.forEach((btn) => {
+        const isActive = btn.dataset.range === range;
+        btn.classList.toggle('bg-blue-600', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('shadow-sm', isActive);
       });
-
-      renderAllocationSummary(latestAccount, allocationsCache);
-      loadStrategyContext(getActiveAllocation());
+      buildChart(range);
     }
 
-    async function liquidateAllocation(allocationId = "", button = null) {
-      if (!allocationId) return;
-      const allocation = allocationsCache.find((row) => row?.id === allocationId);
-      if (!allocation) {
-        pushToast("We couldn't find that allocation.", "warn");
-        return;
-      }
+    function renderAssets() {
+      performingCount.textContent = assetSummary.performing;
+      decliningCount.textContent = assetSummary.declining;
+      idleCount.textContent = assetSummary.idle;
 
-      const status = (allocation?.status || "").toLowerCase();
-      if (status !== "active") {
-        pushToast("This allocation is already closed.", "warn");
-        return;
-      }
-
-      const label = allocation?.strategies?.name || allocation?.strategies?.code || "this allocation";
-      const defaultText = button?.textContent;
-      const endDate = new Date();
-      const endDateStr = endDate.toISOString().slice(0, 10);
-      const payout = Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
-
-      if (button) {
-        button.disabled = true;
-        button.textContent = "Liquidating…";
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("demo_allocations")
-          .update({ status: "exited", end_date: endDateStr })
-          .eq("id", allocationId)
-          .select(
-            "id, strategy_id, amount_invested, base_currency, start_date, status, end_date, latest_value, latest_return_pct, strategies(name, code)"
-          )
-          .maybeSingle();
-
-        if (error) throw error;
-
-        const updated = data || { ...allocation, status: "exited", end_date: endDateStr, latest_value: payout };
-        allocationsCache = allocationsCache.map((row) => (row?.id === allocationId ? { ...row, ...updated } : row));
-
-        const baseBalance = Number(latestAccount?.balance ?? latestAccount?.equity ?? latestProfile?.balance ?? 0) || 0;
-        const baseEquity = Number(latestAccount?.equity ?? baseBalance) || 0;
-        const nowIso = new Date().toISOString();
-        latestAccount = { ...latestAccount, balance: baseBalance + payout, equity: baseEquity + payout, updated_at: nowIso };
-        latestProfile = { ...(latestProfile || {}), balance: latestAccount.balance };
-
-        if (currentUser?.id) {
-          try {
-            const { data: persisted, error: persistErr } = await supabase
-              .from("demo_profiles")
-              .update({ balance: latestAccount.balance })
-              .eq("id", currentUser.id)
-              .select()
-              .maybeSingle();
-
-            if (persistErr) throw persistErr;
-            if (persisted) latestProfile = { ...(latestProfile || {}), ...persisted };
-          } catch (persistError) {
-            console.warn("Failed to persist balance after liquidation", persistError);
-          }
-        }
-
-        renderAllocationsTable(allocationsCache);
-        renderAccount(latestAccount, currentUser?.id || latestAccount?.id);
-        refreshChart(latestProfile, latestAccount);
-        pushToast(`Liquidated ${label} and returned ${formatMoney(payout)} to balance.`, "ok");
-      } catch (err) {
-        console.error("Liquidation failed", err);
-        pushToast("Liquidation failed. Please try again.", "error");
-      } finally {
-        if (button) {
-          button.disabled = false;
-          if (defaultText) button.textContent = defaultText;
-        }
-      }
-
-      const activeLabel = activeAllocation?.strategies?.name || activeAllocation?.strategies?.code || "My allocation";
-      if (pfSub) pfSub.textContent = activeLabel ? `Viewing ${activeLabel} allocation on your equity curve.` : "Your allocation performance over time.";
-      if (pfName) pfName.textContent = activeLabel || "My allocation";
+      assetList.innerHTML = assetSummary.assets.slice(0, 3)
+        .map((asset) => {
+          const pill = pillStyles[asset.status] || 'bg-slate-100 text-slate-700';
+          return `
+            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-full bg-slate-100 text-slate-700 grid place-items-center text-sm font-semibold">${asset.symbol.slice(0, 3)}</div>
+                <div>
+                  <p class="font-semibold text-slate-900">${asset.name || asset.symbol}</p>
+                  <p class="text-xs text-slate-500">${asset.type}</p>
+                </div>
+              </div>
+              <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${pill}">${asset.status}</span>
+            </div>`;
+        })
+        .join('');
     }
 
-    function getActiveAllocation() {
-      if (!Array.isArray(allocationsCache) || !allocationsCache.length) return null;
-      const byId = allocationsCache.find((row) => row?.id === activeAllocationId);
-      const activeRow = allocationsCache.find((row) => (row?.status || "").toLowerCase() === "active");
-      if (allocationFilter === "active") return (byId && (byId.status || "").toLowerCase() === "active") ? byId : activeRow || null;
-      return byId || activeRow || allocationsCache[0];
+    function formatAmount(value) {
+      return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
     }
 
-    function allocationSeriesForRange(allocation = {}, rangeKey = "ALL", rawSeries = null) {
-      if (!allocation) return [];
-      const valueSeries = normalizeValueSeries(rawSeries || pickSeriesForRange(allocation, rangeKey));
-      const base = Number(allocation?.amount_invested ?? allocation?.latest_value ?? 0);
-      if (valueSeries.length) return valueSeries;
-
-      const len = getRangeLength(rangeKey);
-      const latestVal = Number(allocation?.latest_value);
-      if (Number.isFinite(base) && Number.isFinite(latestVal) && len >= 2) {
-        const start = base || latestVal;
-        const step = (latestVal - start) / Math.max(1, len - 1);
-        return Array.from({ length: len }, (_, idx) => Number((start + step * idx).toFixed(2)));
-      }
-
-      return Array(len).fill(base || 0);
+    function matchSearch(tx, term) {
+      const haystack = `${tx.id} ${tx.asset} ${tx.type} ${tx.status} ${tx.notes}`.toLowerCase();
+      return haystack.includes(term.toLowerCase());
     }
 
-    function setActiveAllocation(allocationId = null, { notify = false } = {}) {
-      if (allocationId) activeAllocationId = allocationId;
-      renderAllocationsTable(allocationsCache);
-      refreshChart();
-      loadStrategyContext(getActiveAllocation());
-      if (notify) {
-        const active = getActiveAllocation();
-        const label = active?.strategies?.name || active?.strategies?.code || "this allocation";
-        pushToast(`Visualizing ${label} on the equity curve.`, "ok");
-      }
+    function withinDate(tx) {
+      if (currentDateFilter === 'all') return true;
+      const txDate = new Date(tx.date);
+      const cutoff = new Date();
+      if (currentDateFilter === '30') cutoff.setDate(cutoff.getDate() - 30);
+      if (currentDateFilter === '90') cutoff.setDate(cutoff.getDate() - 90);
+      return txDate >= cutoff;
     }
 
-    function updatePerformanceCopy(activeAllocation = null) {
-      if (!activeAllocation) {
-        if (pfSub) pfSub.textContent = "Visualize an allocation to see its equity curve.";
-        if (pfName) pfName.textContent = "My allocation";
-        return;
-      }
-
-      const label = activeAllocation?.strategies?.name || activeAllocation?.strategies?.code || "My allocation";
-      if (pfSub) pfSub.textContent = label ? `Viewing ${label} allocation on your equity curve.` : "Your allocation performance over time.";
-      if (pfName) pfName.textContent = label || "My allocation";
+    function filteredTransactions() {
+      const term = searchInput.value.trim();
+      return transactions.filter((tx) => (!term || matchSearch(tx, term)) && withinDate(tx));
     }
 
-    function getAllocatedValue(account = {}, profile = {}) {
-      const raw = account?.allocated ?? account?.allocated_balance ?? account?.allocated_total ?? profile?.allocated ?? 0;
-      const num = Number(raw);
-      return Number.isFinite(num) ? num : 0;
+    function renderTable() {
+      const rows = filteredTransactions();
+      transactionRows.innerHTML = rows
+        .map((tx) => {
+          const pill = pillStyles[tx.status] || 'bg-slate-100 text-slate-700';
+          return `
+            <tr class="hover:bg-slate-50 cursor-pointer" data-id="${tx.id}">
+              <td class="px-4 py-3 font-semibold text-slate-900">${tx.id}</td>
+              <td class="px-4 py-3 text-slate-700">${tx.asset}</td>
+              <td class="px-4 py-3 text-slate-700">${tx.type}</td>
+              <td class="px-4 py-3 text-slate-700">${formatAmount(tx.amount)}</td>
+              <td class="px-4 py-3 text-slate-700">${tx.date.replace(/-/g, '/')}</td>
+              <td class="px-4 py-3"><span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pill}">${tx.status}</span></td>
+              <td class="px-4 py-3 text-slate-500">${tx.notes}</td>
+            </tr>`;
+        })
+        .join('');
+
+      transactionCards.innerHTML = rows
+        .map((tx) => {
+          const pill = pillStyles[tx.status] || 'bg-slate-100 text-slate-700';
+          return `
+            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm space-y-2" data-id="${tx.id}">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <p class="text-base font-semibold text-slate-900">${tx.asset}</p>
+                  <p class="text-xs text-slate-500">${formatAmount(tx.amount)}</p>
+                </div>
+                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pill}">${tx.status}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs text-slate-500">
+                <span>${tx.id}</span>
+                <span>${tx.date.replace(/-/g, '/')}</span>
+              </div>
+              <p class="text-sm text-slate-600">${tx.notes}</p>
+            </div>`;
+        })
+        .join('');
     }
 
-    function renderFundsCard(account = {}, profile = {}) {
-      if (fundsBalance) fundsBalance.textContent = formatMoney(account?.balance ?? account?.equity ?? profile?.balance ?? "—");
-      if (fundsAllocated) fundsAllocated.textContent = formatMoney(getAllocatedValue(account, profile));
+    function showModal(txId) {
+      const tx = transactions.find((item) => item.id === txId);
+      if (!tx) return;
+      modalTitle.textContent = tx.asset;
+      modalBody.innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+          <div><p class="text-xs text-slate-500">Transaction ID</p><p class="font-semibold text-slate-900">${tx.id}</p></div>
+          <div><p class="text-xs text-slate-500">Type</p><p class="font-semibold text-slate-900">${tx.type}</p></div>
+          <div><p class="text-xs text-slate-500">Amount</p><p class="font-semibold text-slate-900">${formatAmount(tx.amount)}</p></div>
+          <div><p class="text-xs text-slate-500">Date</p><p class="font-semibold text-slate-900">${tx.date.replace(/-/g, '/')}</p></div>
+          <div><p class="text-xs text-slate-500">Status</p><p class="font-semibold text-slate-900">${tx.status}</p></div>
+          <div><p class="text-xs text-slate-500">Notes</p><p class="font-semibold text-slate-900">${tx.notes}</p></div>
+        </div>`;
+      modal.classList.remove('hidden');
     }
 
-    function renderAllocationSummary(account = {}, allocations = allocationsCache || []) {
-      if (fundsBalance) fundsBalance.textContent = formatMoney(account?.balance ?? account?.equity ?? latestProfile?.balance ?? 0);
-
-      const activeAllocs = (allocations || []).filter((row) => (row?.status || "").toLowerCase() === "active");
-      const totalAllocated = activeAllocs.reduce((sum, row) => sum + (Number(row?.amount_invested) || 0), 0);
-      const allocCurrency = activeAllocs?.[0]?.base_currency || allocations?.[0]?.base_currency || activeCurrency;
-      if (fundsAllocated) fundsAllocated.textContent = formatMoney(totalAllocated, allocCurrency);
-
-      const returns = (activeAllocs || []).map((row) => Number(row?.latest_return_pct)).filter((num) => Number.isFinite(num));
-      const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
-      if (avgAllocReturn) avgAllocReturn.textContent = avg === null ? "—" : formatReturnPct(avg);
-    }
-
-    function updateWelcomeSummary(allocations = allocationsCache || []) {
-      const greeting = getGreeting();
-      const name = firstName || displayName || "there";
-      if (welcomeName) welcomeName.textContent = `${greeting}, ${name}`;
-
-      if (!welcomeSub) return;
-      if (!Array.isArray(allocations) || allocations.length === 0) {
-        welcomeSub.textContent = "Your paper portfolio snapshot is below.";
-        return;
-      }
-
-      const activeAllocs = allocations.filter((row) => (row?.status || "").toLowerCase() === "active");
-      if (activeAllocs.length === 0) {
-        welcomeSub.textContent = "Your paper portfolio snapshot is below.";
-        return;
-      }
-
-      const totalLatest = activeAllocs.reduce((sum, row) => {
-        const value = Number(row?.latest_value);
-        return sum + (Number.isFinite(value) ? value : 0);
-      }, 0);
-      const totalAllocated = activeAllocs.reduce((sum, row) => sum + (Number(row?.amount_invested) || 0), 0);
-      const delta = totalLatest - totalAllocated;
-
-      const currency = activeAllocs.find((row) => row?.base_currency)?.base_currency || activeCurrency || "USD";
-      const earliest = activeAllocs.reduce((min, row) => {
-        const start = row?.start_date ? new Date(row.start_date) : null;
-        if (!start || Number.isNaN(start.valueOf())) return min;
-        return !min || start < min ? start : min;
-      }, null);
-
-      const dateLabel = formatDateLabel(earliest);
-      const sinceLabel = dateLabel ? `since ${dateLabel}` : "since you started";
-      const trendClass = delta >= 0 ? "text-emerald-600" : "text-rose-600";
-      const deltaLabel = formatMoneyDelta(delta, currency);
-      welcomeSub.innerHTML = `Your AlgoHive strategies have returned <span class="font-semibold ${trendClass}">${deltaLabel}</span> ${sinceLabel}.`;
-    }
-
-    async function loadStrategyContext(allocation = null) {
-      if (!allocation) {
-        resetStrategyPanels();
-        return;
-      }
-
-      setStrategyPanelsVisible(true);
-      if (strategyEmpty) strategyEmpty.classList.add("hidden");
-
-      const label = allocation?.strategies?.name || allocation?.strategies?.code || "Strategy";
-      if (perfSummaryTitle) perfSummaryTitle.textContent = `${label} performance`;
-
-      let metrics = strategyMetricsCache.get(allocation?.strategy_id) || null;
-      if (!metrics) {
-        metrics = await fetchStrategyMetrics(allocation?.strategy_id);
-      }
-
-      const merged = { ...allocation, ...(metrics || {}) };
-      merged.portfolio_holdings = Array.isArray(metrics?.portfolio_holdings) && metrics.portfolio_holdings.length
-        ? metrics.portfolio_holdings
-        : Array.isArray(allocation?.portfolio_holdings)
-          ? allocation.portfolio_holdings
-          : [];
-      
-      renderTopGainersMarquee(merged, merged.portfolio_holdings);
-      renderPortfolioHoldingsFromMetrics(merged);
-      const perfSummary = metrics?.perf_summary || allocation?.perf_summary || null;
-      fillPerfSummary(perfSummary);
-    }
-
-    function populateFundsAccounts(account = {}, userId = "") {
-      if (!fundsAccount) return;
-      fundsAccount.innerHTML = "";
-
-      const opt = document.createElement("option");
-      const accountLabel = account?.name || "Demo account";
-      opt.value = account?.id || userId || "demo-account";
-      opt.textContent = account?.id ? `${accountLabel} (${account.id})` : accountLabel;
-      fundsAccount.appendChild(opt);
-    }
-
-    function openFundsModal() {
-      if (!fundsModal) return;
-      fundsModal.classList.remove("hidden");
-      if (fundsAmount) {
-        fundsAmount.value = "";
-        fundsAmount.focus();
-      }
-    }
-
-    function closeFundsModal() {
-      fundsModal?.classList.add("hidden");
-    }
-
-    function closeLiquidateModal() {
-      if (!liquidateOverlay) return;
-      liquidateOverlay.classList.add("hidden");
-      if (liquidateConfirm) liquidateConfirm.dataset.allocationId = "";
-      pendingLiquidationTrigger = null;
-    }
-
-    function openLiquidateModal(allocationId = "", trigger = null) {
-      if (!allocationId || !liquidateOverlay) return;
-      const allocation = allocationsCache.find((row) => row?.id === allocationId);
-      if (!allocation) return;
-
-      const label = allocation?.strategies?.name || allocation?.strategies?.code || "this allocation";
-      const payout = Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
-      const currency = allocation?.base_currency || activeCurrency || "USD";
-
-      if (liquidateTitle) liquidateTitle.textContent = `Liquidate ${label}`;
-      if (liquidateCopy) {
-        liquidateCopy.textContent = `You're about to liquidate ${formatMoney(payout, currency)} from ${label} and return it to your demo balance.`;
-      }
-      if (liquidateAmount) liquidateAmount.textContent = formatMoney(payout, currency);
-
-      if (liquidateConfirm) {
-        liquidateConfirm.dataset.allocationId = allocationId;
-      }
-
-      pendingLiquidationTrigger = trigger;
-
-      liquidateOverlay.classList.remove("hidden");
-    }
-
-    async function submitFundsRequest() {
-      if (!fundsAccount || !fundsAmount) return;
-      const accountId = fundsAccount.value;
-      if (!accountId) {
-        pushToast("Please choose an account to fund.", "warn");
-        return;
-      }
-
-      const amount = Number(fundsAmount.value);
-      if (!Number.isFinite(amount) || amount < 10 || amount > 100000) {
-        pushToast("Enter an amount between $10 and $100,000.", "warn");
-        return;
-      }
-
-      const label = fundsAccount.selectedOptions?.[0]?.textContent?.trim() || "selected account";
-      const baseBalance = Number(latestAccount?.balance ?? latestAccount?.equity ?? latestProfile?.balance ?? 0);
-      const baseEquity = Number(latestAccount?.equity ?? baseBalance);
-      const nowIso = new Date().toISOString();
-
-      latestAccount = {
-        ...latestAccount,
-        id: latestAccount?.id || accountId,
-        balance: (Number.isFinite(baseBalance) ? baseBalance : 0) + amount,
-        equity: (Number.isFinite(baseEquity) ? baseEquity : 0) + amount,
-        updated_at: nowIso,
-      };
-
-      latestProfile = { ...(latestProfile || {}), balance: latestAccount.balance };
-
-      try {
-        const userId = currentUser?.id || accountId;
-        const { data, error } = await supabase
-          .from("demo_profiles")
-          .update({ balance: latestAccount.balance })
-          .eq("id", userId)
-          .select()
-          .maybeSingle();
-
-        if (error) throw error;
-        if (data) {
-          latestProfile = { ...(latestProfile || {}), ...data };
-        }
-      } catch (error) {
-        console.warn("Failed to persist demo balance", error);
-        pushToast("Funds added locally; sync failed. Try again soon.", "warn");
-      }
-
-      renderAccount(latestAccount, currentUser?.id || accountId);
-      refreshChart(latestProfile, latestAccount);
-
-      pushToast(`Added ${formatMoney(amount)} to ${label}.`, "ok");
-      closeFundsModal();
-    }
-
-    async function hydrateWatchlist(profile = {}, user = {}) {
-      const ids = normalizeStrategyIds(profile?.watch_list || user?.user_metadata?.watch_list || []);
-      if (!ids.length) {
-        renderWatchlistCards([]);
-        return [];
-      }
-
-      const strategies = await fetchWatchlistStrategies(ids);
-      renderWatchlistCards(strategies);
-      return strategies;
-    }
-
-    async function hydrateAllocations(profileId = "") {
-      showAllocationsLoading();
-      const allocations = await fetchDemoAllocations(profileId);
-      renderAllocationsTable(allocations);
-      return allocations;
-    }
-
-    function refreshChart(profile = latestProfile || {}, account = latestAccount || {}) {
-      const range = getActiveRange();
-      const activeAllocation = getActiveAllocation();
-      const rawSeries = pickSeriesForRange(activeAllocation, range);
-      const rawSeriesValues = normalizeValueSeries(rawSeries);
-      const hasOnlyOnePoint = rawSeriesValues.length === 1;
-      const series = allocationSeriesForRange(activeAllocation, range, rawSeries);
-      const labels = buildSeriesLabels(rawSeries, activeAllocation, series.length);
-      const hasData = Array.isArray(series) && series.some((v) => Number.isFinite(v) && v !== 0);
-      toggleEquityAvailability(hasData && !hasOnlyOnePoint, { message: hasOnlyOnePoint ? "Not Enough Data" : null });
-      updatePerformanceCopy(activeAllocation);
-      renderChart(series, labels, account, profile, range);
-    }
-
-    function setActiveRange(rangeKey) {
-      pfTabs.forEach((btn) => {
-        const isActive = btn.dataset.range === rangeKey;
-        btn.classList.toggle("tab-active", isActive);
+    function wireTableClicks() {
+      transactionRows.addEventListener('click', (event) => {
+        const row = event.target.closest('tr');
+        if (row?.dataset.id) showModal(row.dataset.id);
+      });
+      transactionCards.addEventListener('click', (event) => {
+        const card = event.target.closest('[data-id]');
+        if (card?.dataset.id) showModal(card.dataset.id);
       });
     }
 
-    function getActiveRange() {
-      const active = pfTabs.find((btn) => btn.classList.contains("tab-active"));
-      return active?.dataset?.range || "ALL";
-    }
-
-    function wireProfileMenu() {
-      const overlay = document.getElementById("profile-overlay");
-      profileBtn?.addEventListener("click", () => {
-        profileMenu?.classList.toggle("hidden");
+    function wireModal() {
+      modalCloseBtns.forEach((btn) => btn?.addEventListener('click', () => modal.classList.add('hidden')));
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) modal.classList.add('hidden');
       });
-      overlay?.addEventListener("click", () => profileMenu?.classList.add("hidden"));
-      profileMenu?.addEventListener("click", (e) => {
-        if (e.target === profileMenu) profileMenu.classList.add("hidden");
-      });
-      profileLogout?.addEventListener("click", async () => {
-        await supabase.auth.signOut();
-        location.replace("/auth.html");
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') modal.classList.add('hidden');
       });
     }
 
-    pfTabs.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        setActiveRange(btn.dataset.range);
-        refreshChart();
+    function wireSearch() {
+      searchInput.addEventListener('input', renderTable);
+    }
+
+    function wireDateFilter() {
+      const options = ['all', '30', '90'];
+      dateFilter.addEventListener('click', () => {
+        const nextIndex = (options.indexOf(currentDateFilter) + 1) % options.length;
+        currentDateFilter = options[nextIndex];
+        const label = currentDateFilter === 'all' ? 'All dates' : `Last ${currentDateFilter} days`;
+        dateFilter.textContent = label;
+        renderTable();
       });
-    });
+    }
 
-    pfRefresh?.addEventListener("click", () => refreshChart());
+    function wireExport() {
+      exportBtn.addEventListener('click', () => {
+        const rows = filteredTransactions();
+        const header = ['Transaction ID', 'Asset', 'Type', 'Amount', 'Date', 'Status', 'Notes'];
+        const csv = [header.join(',')].concat(
+          rows.map((tx) => [tx.id, tx.asset, tx.type, tx.amount, tx.date, tx.status, tx.notes].map((v) => `"${v}"`).join(','))
+        );
+        const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'transactions.csv';
+        link.click();
+      });
+    }
 
-    fundsOpen?.addEventListener("click", openFundsModal);
-    fundsClose?.addEventListener("click", closeFundsModal);
-    fundsOverlay?.addEventListener("click", closeFundsModal);
-    fundsCancel?.addEventListener("click", closeFundsModal);
-    fundsSubmit?.addEventListener("click", submitFundsRequest);
+    function wireRangeButtons() {
+      document.querySelectorAll('#equity-toggle button').forEach((btn) => {
+        btn.addEventListener('click', () => toggleRange(btn.dataset.range));
+      });
+    }
 
-    liquidateCancel?.addEventListener("click", closeLiquidateModal);
-    liquidateClose?.addEventListener("click", closeLiquidateModal);
-    liquidateOverlay?.addEventListener("click", (event) => {
-      if (event.target === liquidateOverlay) closeLiquidateModal();
-    });
-    liquidateConfirm?.addEventListener("click", async () => {
-      const allocationId = liquidateConfirm.dataset.allocationId;
-      const trigger = pendingLiquidationTrigger;
-      closeLiquidateModal();
-      await liquidateAllocation(allocationId, trigger);
-    });
+    function wireSidebar() {
+      const sidebar = document.getElementById('ah-sidebar');
+      const overlay = document.getElementById('ah-overlay');
+      const mobileBtn = document.getElementById('ah-mobile-menu-btn');
+      const collapseBtn = document.getElementById('ah-collapse');
 
-    watchToggle?.addEventListener("click", () => {
-      watchlistVisible = !watchlistVisible;
-      syncWatchlistVisibility();
-      updateWatchlistScroller();
-    });
+      mobileBtn?.addEventListener('click', () => {
+        sidebar?.classList.add('is-open');
+        overlay?.classList.remove('hidden');
+      });
 
-    watchPrev?.addEventListener("click", () => {
-      if (!watchRecos) return;
-      watchRecos.scrollBy({ left: -watchRecos.clientWidth * 0.85, behavior: "smooth" });
-    });
+      overlay?.addEventListener('click', () => {
+        sidebar?.classList.remove('is-open');
+        overlay?.classList.add('hidden');
+      });
 
-    watchNext?.addEventListener("click", () => {
-      if (!watchRecos) return;
-      watchRecos.scrollBy({ left: watchRecos.clientWidth * 0.85, behavior: "smooth" });
-    });
+      collapseBtn?.addEventListener('click', () => {
+        const layout = document.getElementById('layout');
+        const isCollapsed = sidebar?.dataset.collapsed === 'true';
+        const next = !isCollapsed;
+        sidebar.dataset.collapsed = String(next);
+        layout?.classList.toggle('is-collapsed', next);
+      });
+    }
 
-    watchRecos?.addEventListener("scroll", () => updateWatchlistScroller());
-    window.addEventListener("resize", () => updateWatchlistScroller());
+    function init() {
+      renderStats();
+      toggleRange(currentRange);
+      renderAssets();
+      renderTable();
+      wireTableClicks();
+      wireModal();
+      wireSearch();
+      wireDateFilter();
+      wireExport();
+      wireRangeButtons();
+      wireSidebar();
+    }
 
-    allocationFilters.forEach((btn) => {
-      btn.addEventListener("click", () => setAllocationFilter(btn.dataset.allocFilter || "active"));
-    });
-
-    allocationsTable?.addEventListener("click", (event) => {
-      const target = event.target.closest("[data-liquidate-id],[data-visualize-id]");
-      if (!target) return;
-      const label = target.dataset.strategy || "this allocation";
-
-      if (target.dataset.visualizeId) {
-        setActiveAllocation(target.dataset.visualizeId, { notify: true });
-        return;
-      }
-
-      if (target.dataset.liquidateId) {
-        openLiquidateModal(target.dataset.liquidateId, target);
-      }
-    });
-
-    allocationRows?.addEventListener("click", (event) => {
-      const actionBtn = event.target.closest("button");
-      if (actionBtn) return;
-      const row = event.target.closest("tr[data-allocation-id]");
-      if (!row?.dataset?.allocationId) return;
-      setActiveAllocation(row.dataset.allocationId, { notify: true });
-    });
-
-    (async function init() {
-      try {
-        const user = await guard();
-        if (!user) return;
-        currentUser = user;
-        clearStatus();
-        setActiveRange("6M");
-        wireProfileMenu();
-        displayName = user.email || "Demo User";
-        syncProfileChrome(currentUser);
-
-        const [profile, account] = await Promise.all([
-          fetchDemoProfile(user.id),
-          fetchDemoAccount(user.id),
-        ]);
-
-        if (!profile) {
-          setStatus("Could not load demo profile. Showing placeholder data.", "warning");
-        }
-
-        latestProfile = profile || { balance: 0, strategies: [], risk_appetite: "—", full_name: displayName };
-        latestAccount = account || { equity: latestProfile.balance ?? 0, pnl: 0, trades: 0 };
-
-        setCurrency(latestAccount?.currency || latestProfile?.base_currency || "USD");
-
-        renderProfile(latestProfile, user.email || "");
-        renderAccount(latestAccount, user.id);
-        const allocations = await hydrateAllocations(user.id);
-        updateWelcomeSummary(allocations);
-        await hydrateWatchlist(latestProfile, currentUser);
-        refreshChart(latestProfile, latestAccount);
-      } catch (error) {
-        console.error(error);
-        setStatus("We hit a snag loading your demo dashboard. Please try again.", "error");
-      }
-    })();
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 
