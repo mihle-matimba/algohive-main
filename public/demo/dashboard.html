@@ -872,47 +872,96 @@
 
         <section id="stats-cards" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"></section>
 
-        <section class="grid gap-6 lg:grid-cols-3" id="performance-grid">
-          <article class="bg-white rounded-xl shadow-sm p-6 lg:col-span-2">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section class="grid gap-6 lg:grid-cols-12" id="performance-grid">
+          <article id="portfolio-card" class="card border border-slate-200 shadow-none col-span-12 lg:col-span-8 min-w-0">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
               <div>
-                <p class="text-sm font-semibold text-slate-900">Portfolio Growth &amp; Equity Curve</p>
-                <p class="text-sm text-slate-500">Compare AlgoHive performance against the benchmark.</p>
+                <h3 class="font-normal text-slate-800">Your portfolio</h3>
+                <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
               </div>
-              <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" id="equity-toggle" role="group" aria-label="Equity range">
-                <button data-range="monthly" class="h-10 min-w-[88px] rounded-md px-4 text-sm font-semibold text-slate-700">Monthly</button>
-                <button data-range="yearly" class="h-10 min-w-[88px] rounded-md px-4 text-sm font-semibold text-slate-700">Yearly</button>
+              <div class="flex items-center gap-2">
+                <button data-range="1D" class="tab tab-active text-[13px]">1D</button>
+                <button data-range="1M" class="tab text-[13px]">1M</button>
+                <button data-range="1Y" class="tab text-[13px]">1Y</button>
+                <button data-range="ALL" class="tab text-[13px]">All</button>
+                <button id="pf-refresh"
+                  class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
+                  title="Refresh">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
               </div>
             </div>
-            <div class="mt-6 h-[280px]">
-              <canvas id="equity-chart"></canvas>
+            <div class="px-5 pt-4">
+              <div class="flex items-baseline gap-3">
+                <div class="text-2xl font-bold" id="pf-value">—</div>
+                <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+              </div>
+            </div>
+            <div class="px-2 pb-4 pt-2">
+              <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
+              <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
+                <span>10 AM</span><span>11 AM</span><span>2 PM</span><span>4 PM</span>
+              </div>
             </div>
           </article>
 
-          <article class="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4" id="asset-panel">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="text-sm font-semibold text-slate-900">Asset Allocation Status</p>
-                <p class="text-sm text-slate-500">Portfolio health by performance.</p>
+          <aside class="col-span-12 lg:col-span-4 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
+            <div class="card p-5 border border-slate-200">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-medium text-slate-900">6 months earnings</h3>
+                <a href="#" class="text-sm text-olive-600 hover:underline">View all</a>
               </div>
-              <a href="#" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View all</a>
-            </div>
-            <div class="grid grid-cols-3 gap-3 text-center">
-              <div class="rounded-lg bg-green-50 py-3">
-                <p class="text-xl font-bold text-slate-900" id="performing-count">0</p>
-                <p class="text-xs font-semibold uppercase tracking-wide text-green-600">Performing</p>
-              </div>
-              <div class="rounded-lg bg-rose-50 py-3">
-                <p class="text-xl font-bold text-slate-900" id="declining-count">0</p>
-                <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">Declining</p>
-              </div>
-              <div class="rounded-lg bg-yellow-50 py-3">
-                <p class="text-xl font-bold text-slate-900" id="idle-count">0</p>
-                <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Idle Capital</p>
+              <div class="h-[180px]">
+                <canvas id="six-months-earnings" class="max-w-full"></canvas>
               </div>
             </div>
-            <div class="space-y-4" id="asset-list"></div>
-          </article>
+
+            <article class="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4" id="asset-panel">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">Asset Allocation Status</p>
+                  <p class="text-sm text-slate-500">Portfolio health by performance.</p>
+                </div>
+                <a href="#" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View all</a>
+              </div>
+              <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="rounded-lg bg-green-50 py-3">
+                  <p class="text-xl font-bold text-slate-900" id="performing-count">0</p>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-green-600">Performing</p>
+                </div>
+                <div class="rounded-lg bg-rose-50 py-3">
+                  <p class="text-xl font-bold text-slate-900" id="declining-count">0</p>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">Declining</p>
+                </div>
+                <div class="rounded-lg bg-yellow-50 py-3">
+                  <p class="text-xl font-bold text-slate-900" id="idle-count">0</p>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Idle Capital</p>
+                </div>
+              </div>
+              <div class="space-y-4" id="asset-list"></div>
+            </article>
+          </aside>
+        </section>
+
+        <section class="col-span-12 lg:col-span-9 min-w-0">
+          <div class="card p-6 rounded-2xl border border-slate-200">
+            <div class="flex items-center justify-between mb-5">
+              <h3 class="text-lg font-medium text-slate-900">Current holdings</h3>
+              <div class="flex gap-2">
+                <button id="hold-prev"
+                  class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50"
+                  aria-label="Previous">
+                  <i class="fa-solid fa-chevron-left text-slate-500"></i>
+                </button>
+                <button id="hold-next"
+                  class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50"
+                  aria-label="Next">
+                  <i class="fa-solid fa-chevron-right text-slate-500"></i>
+                </button>
+              </div>
+            </div>
+            <div id="hold-track" class="flex gap-4 overflow-x-auto no-scrollbar snap-x"></div>
+          </div>
         </section>
 
         <section class="bg-white rounded-xl shadow-sm p-5">
@@ -1011,6 +1060,15 @@
     const dashboardTitle = document.getElementById('dashboard-title');
     const profileNameEl = document.getElementById('profile-name');
     const profileAvatarEl = document.getElementById('profile-avatar');
+    const pfValue = document.getElementById('pf-value');
+    const pfChange = document.getElementById('pf-change');
+    const pfUpdated = document.getElementById('pf-updated');
+    const pfTabs = Array.from(document.querySelectorAll('#portfolio-card .tab'));
+    const pfRefresh = document.getElementById('pf-refresh');
+    const holdTrack = document.getElementById('hold-track');
+    const holdPrev = document.getElementById('hold-prev');
+    const holdNext = document.getElementById('hold-next');
+    const earningsCanvas = document.getElementById('six-months-earnings');
     const fallbackFirstName = 'Trader';
 
     const getGreeting = () => {
@@ -1041,27 +1099,27 @@
       { title: 'Active Investments', value: '234', changePercent: 6.4, changeDirection: 'up', subtitle: 'Live portfolios following strategies' },
     ];
 
-    const equitySeries = {
-      monthly: [
-        { date: '2024-01-01', equity: 9200, benchmark: 9100 },
-        { date: '2024-02-01', equity: 9600, benchmark: 9400 },
-        { date: '2024-03-01', equity: 10150, benchmark: 9900 },
-        { date: '2024-04-01', equity: 10780, benchmark: 10300 },
-        { date: '2024-05-01', equity: 11240, benchmark: 10780 },
-        { date: '2024-06-01', equity: 11810, benchmark: 11140 },
-        { date: '2024-07-01', equity: 12360, benchmark: 11500 },
-        { date: '2024-08-01', equity: 12840, benchmark: 11860 },
-        { date: '2024-09-01', equity: 13320, benchmark: 12210 },
-        { date: '2024-10-01', equity: 13780, benchmark: 12500 },
-        { date: '2024-11-01', equity: 14240, benchmark: 12860 },
-        { date: '2024-12-01', equity: 14860, benchmark: 13220 },
-      ],
-      yearly: [
-        { date: '2021', equity: 6200, benchmark: 6400 },
-        { date: '2022', equity: 8200, benchmark: 7900 },
-        { date: '2023', equity: 10900, benchmark: 9800 },
-        { date: '2024', equity: 14860, benchmark: 13220 },
-      ],
+    const equityRanges = {
+      '1D': {
+        labels: ['10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'],
+        data: [14650, 14690, 14710, 14780, 14810, 14840, 14860],
+        updated: () => new Date(),
+      },
+      '1M': {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        data: [13650, 14020, 14310, 14860],
+        updated: () => new Date(),
+      },
+      '1Y': {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        data: [9200, 9600, 10150, 10780, 11240, 11810, 12360, 12840, 13320, 13780, 14240, 14860],
+        updated: () => new Date('2024-12-31'),
+      },
+      ALL: {
+        labels: ['2021', '2022', '2023', '2024'],
+        data: [6200, 8200, 10900, 14860],
+        updated: () => new Date('2024-12-31'),
+      },
     };
 
     const assetSummary = {
@@ -1218,8 +1276,7 @@
     }
 
     let chartInstance = null;
-    let currentRange = 'monthly';
-    let currentDateFilter = 'all';
+    let currentRange = '1D';
 
     function formatCurrency(value = 0, currency = 'USD') {
       try {
@@ -1375,17 +1432,47 @@
       attachAddFundsHandler();
     }
 
-    function buildChart(rangeKey = 'monthly') {
-      const ctx = document.getElementById('equity-chart')?.getContext('2d');
-      if (!ctx) return;
-      const data = equitySeries[rangeKey] || [];
-      const labels = data.map((item) => {
-        const date = new Date(item.date);
-        return rangeKey === 'monthly' ? date.toLocaleString('default', { month: 'short' }) : item.date;
+    function setActiveRange(range = '1D') {
+      currentRange = range;
+      pfTabs.forEach((btn) => {
+        const isActive = btn.dataset.range === range;
+        btn.classList.toggle('tab-active', isActive);
       });
+    }
 
-      const equityDataPoints = data.map((item) => item.equity);
-      const benchmarkDataPoints = data.map((item) => item.benchmark);
+    function renderEquityChart(rangeKey = '1D') {
+      const cfg = equityRanges[rangeKey] || equityRanges['1D'];
+      if (!cfg) return;
+      setActiveRange(rangeKey);
+
+      const labels = cfg.labels || [];
+      const points = cfg.data || [];
+      const first = points[0] || 0;
+      const last = points[points.length - 1] || 0;
+      const changePct = first ? ((last - first) / first) * 100 : 0;
+
+      if (pfValue) pfValue.textContent = formatCurrency(last, baseCurrency);
+      if (pfChange) {
+        pfChange.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
+        pfChange.classList.toggle('text-green-600', changePct >= 0);
+        pfChange.classList.toggle('text-rose-600', changePct < 0);
+      }
+      if (pfUpdated) {
+        const ts = cfg.updated ? cfg.updated() : new Date();
+        pfUpdated.textContent = new Date(ts).toLocaleString('en-ZA', {
+          month: 'long',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+
+      const ctxEl = document.getElementById('pf-chart');
+      if (!ctxEl) return;
+      const ctx = ctxEl.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+      gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
 
       if (chartInstance) chartInstance.destroy();
 
@@ -1395,56 +1482,23 @@
           labels,
           datasets: [
             {
-              label: 'Equity',
-              data: equityDataPoints,
-              borderColor: '#2563eb',
-              backgroundColor: 'rgba(37, 99, 235, 0.12)',
+              data: points,
               tension: 0.35,
-              pointRadius: 0,
-              borderWidth: 2.5,
-              fill: true,
-            },
-            {
-              label: 'Benchmark',
-              data: benchmarkDataPoints,
-              borderColor: '#cbd5e1',
-              borderDash: [6, 6],
-              tension: 0.35,
-              pointRadius: 0,
               borderWidth: 2,
-              fill: false,
+              borderColor: '#556B2F',
+              backgroundColor: gradient,
+              fill: true,
+              pointRadius: 0,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'top', labels: { usePointStyle: true } },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}`,
-              },
-            },
-          },
-          scales: {
-            x: { grid: { display: false } },
-            y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { callback: (val) => `$${val}` } },
-          },
+          plugins: { legend: { display: false }, tooltip: { enabled: true, displayColors: false } },
+          scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } } },
         },
       });
-    }
-
-    function toggleRange(range) {
-      currentRange = range;
-      const buttons = document.querySelectorAll('#equity-toggle button');
-      buttons.forEach((btn) => {
-        const isActive = btn.dataset.range === range;
-        btn.classList.toggle('bg-blue-600', isActive);
-        btn.classList.toggle('text-white', isActive);
-        btn.classList.toggle('shadow-sm', isActive);
-      });
-      buildChart(range);
     }
 
     function renderAssets() {
@@ -1468,6 +1522,50 @@
             </div>`;
         })
         .join('');
+    }
+
+    function renderHoldingsCarousel(data = [], currency = baseCurrency) {
+      if (!holdTrack) return;
+      const rows = Array.isArray(data) ? data.slice(0, 8) : [];
+      if (!rows.length) {
+        holdTrack.innerHTML = '<div class="text-sm text-slate-500">No holdings yet.</div>';
+        return;
+      }
+
+      const logo = (ticker = '', bg = '#e2e8f0') =>
+        `<div class="h-11 w-11 rounded-xl grid place-items-center text-slate-800 font-semibold" style="background:${bg}">${ticker.slice(0, 3)}</div>`;
+
+      const chip = (pct = 0) => {
+        const tone = pct >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700';
+        const label = `${pct >= 0 ? '+' : ''}${Number(pct || 0).toFixed(2)}%`;
+        return `<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${tone}">${label}</span>`;
+      };
+
+      holdTrack.innerHTML = rows
+        .map((h, idx) => {
+          const bg = idx % 2 === 0 ? '#eef2ff' : '#e2f3ec';
+          const price = formatMoney(h.value || 0, currency);
+          return `
+            <article class="min-w-[280px] max-w-[280px] snap-start bg-white border border-slate-200 rounded-2xl p-5 flex justify-between items-center">
+              <div class="flex items-center gap-3">
+                ${logo(h.symbol || h.ticker, bg)}
+                <div>
+                  <div class="text-sm font-normal text-slate-900">${h.symbol || h.ticker || 'Asset'}</div>
+                  <div class="text-xs text-slate-500">${h.name || 'Holding'}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-lg font-normal text-slate-900">${price}</div>
+                <div class="mt-2">${chip(h.changePct ?? 0)}</div>
+              </div>
+            </article>
+          `;
+        })
+        .join('');
+
+      const CARD_W = 284;
+      if (holdPrev) holdPrev.onclick = () => holdTrack.scrollBy({ left: -CARD_W, behavior: 'smooth' });
+      if (holdNext) holdNext.onclick = () => holdTrack.scrollBy({ left: CARD_W, behavior: 'smooth' });
     }
 
     function summarizeMix(asset) {
@@ -1536,25 +1634,77 @@
     async function loadTopHoldings() {
       try {
         const allocations = await fetchDemoAllocations(currentUserId || '');
-        if (!allocations.length) {
-          renderHoldingsView(fallbackHoldings, baseCurrency);
-          return;
+        let holdingsSet = fallbackHoldings;
+
+        if (allocations.length) {
+          const strategyIds = allocations.map((row) => row?.strategy_id).filter(Boolean);
+          const metricsMap = await fetchStrategyMetrics(strategyIds);
+          const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
+          baseCurrency = currency || baseCurrency;
+          holdingsSet = holdings.length ? holdings : fallbackHoldings;
         }
 
-        const strategyIds = allocations.map((row) => row?.strategy_id).filter(Boolean);
-        const metricsMap = await fetchStrategyMetrics(strategyIds);
-        const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
-        renderHoldingsView(holdings.length ? holdings : fallbackHoldings, currency || baseCurrency);
+        renderHoldingsView(holdingsSet, baseCurrency);
+        renderHoldingsCarousel(holdingsSet, baseCurrency);
       } catch (error) {
         console.warn('Top holdings load failed; showing fallback', error);
         renderHoldingsView(fallbackHoldings, baseCurrency);
+        renderHoldingsCarousel(fallbackHoldings, baseCurrency);
       }
     }
 
-    function wireRangeButtons() {
-      document.querySelectorAll('#equity-toggle button').forEach((btn) => {
-        btn.addEventListener('click', () => toggleRange(btn.dataset.range));
+    function initEarningsChart() {
+      if (!earningsCanvas) return;
+      const ctx = earningsCanvas.getContext('2d');
+      const allMonths = [
+        { m: 'Jul', v: 480 },
+        { m: 'Aug', v: 440 },
+        { m: 'Sep', v: 590 },
+        { m: 'Oct', v: 530 },
+        { m: 'Nov', v: 610 },
+        { m: 'Dec', v: 700 },
+      ];
+      const labels = allMonths.map((x) => x.m);
+      const data = allMonths.map((x) => x.v);
+      const OLIVE = '#556B2F';
+      const MUTED = 'rgba(2,6,23,.08)';
+      const MUTED_BORDER = 'rgba(2,6,23,.18)';
+      const fmtUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              data,
+              backgroundColor: data.map((_, i) => (i === data.length - 1 ? OLIVE : MUTED)),
+              borderColor: data.map((_, i) => (i === data.length - 1 ? OLIVE : MUTED_BORDER)),
+              borderWidth: 1,
+              borderRadius: 6,
+              barThickness: 16,
+              hoverBackgroundColor: data.map((_, i) => (i === data.length - 1 ? OLIVE : MUTED)),
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { displayColors: false, callbacks: { label: (c) => fmtUSD.format(c.raw) } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '400' }, maxRotation: 0, minRotation: 0, autoSkip: false } },
+            y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 11, weight: '400' }, maxTicksLimit: 6, callback: (v) => fmtUSD.format(v) } },
+          },
+        },
       });
+    }
+
+    function wirePortfolioCard() {
+      pfTabs.forEach((btn) => {
+        btn.addEventListener('click', () => renderEquityChart(btn.dataset.range || '1D'));
+      });
+
+      pfRefresh?.addEventListener('click', () => renderEquityChart(currentRange));
     }
 
     function populateFundsAccount() {
@@ -1664,10 +1814,11 @@
     async function init() {
       await profileReady;
       renderStats();
-      toggleRange(currentRange);
+      renderEquityChart(currentRange);
+      initEarningsChart();
       renderAssets();
       await loadTopHoldings();
-      wireRangeButtons();
+      wirePortfolioCard();
       wireFundsModal();
       wireSidebar();
       hideSkeleton();
