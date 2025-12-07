@@ -23,9 +23,9 @@
       --line: #e2e8f0
     }
 
-    html,
-    body {
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      html,
+      body {
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--ink)
     }
@@ -973,43 +973,12 @@
       }
     };
 
-    async function hydrateProfileFromLive() {
-      try {
-        const { data: userWrap } = await supabase.auth.getUser();
-        const user = userWrap?.user;
-        if (!user) {
-          setGreetingName();
-          setProfileName('Demo User');
-          return;
-        }
+    let baseCurrency = 'USD';
+    let profileBalance = 0;
+    let currentUserId = null;
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        const firstName = profile?.first_name || user.user_metadata?.first_name || fallbackFirstName;
-        const lastName = profile?.last_name || user.user_metadata?.last_name || '';
-        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-
-        setGreetingName(firstName);
-        setProfileName(fullName || firstName);
-
-        const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
-        if (avatarUrl && profileAvatarEl) profileAvatarEl.src = avatarUrl;
-      } catch (error) {
-        console.warn('Profile hydration failed; using defaults', error);
-      }
-    }
-
-    setGreetingName();
-    hydrateProfileFromLive();
-  </script>
-
-    <script nonce="ALGOHIVE">
     const statsData = [
-      { title: 'Total Accounts', value: '1,929', changePercent: 2.9, changeDirection: 'up', subtitle: 'Growth in total users' },
+      { title: 'Total Balance', value: '$0.00', changePercent: 0, changeDirection: 'up', subtitle: 'Funds available in demo wallet' },
       { title: 'Total Transactions', value: '179', changePercent: -1.1, changeDirection: 'down', subtitle: 'Number of trades this period' },
       { title: 'Total Revenue', value: '$7,209.29', changePercent: 2.3, changeDirection: 'up', subtitle: 'Net revenue' },
       { title: 'Active Investments', value: '234', changePercent: 6.4, changeDirection: 'up', subtitle: 'Live portfolios following strategies' },
@@ -1075,6 +1044,84 @@
     let currentRange = 'monthly';
     let currentDateFilter = 'all';
 
+    function formatCurrency(value = 0, currency = 'USD') {
+      try {
+        return value.toLocaleString('en-US', {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      } catch (error) {
+        return `$${Number(value || 0).toFixed(2)}`;
+      }
+    }
+
+    function setBalanceCard(value = 0, currency = baseCurrency) {
+      profileBalance = Number(value) || 0;
+      baseCurrency = currency || 'USD';
+      statsData[0].value = formatCurrency(profileBalance, baseCurrency);
+      renderStats();
+    }
+
+    async function hydrateBalanceFromDemo(userId = '') {
+      if (!userId) {
+        setBalanceCard(profileBalance, baseCurrency);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('demo_profiles')
+          .select('balance, base_currency')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (error) throw error;
+        setBalanceCard(data?.balance ?? 0, data?.base_currency || 'USD');
+      } catch (error) {
+        console.warn('demo_profiles balance fetch failed; using fallback balance', error);
+        setBalanceCard(profileBalance, baseCurrency);
+      }
+    }
+
+    async function hydrateProfileFromLive() {
+      try {
+        const { data: userWrap } = await supabase.auth.getUser();
+        const user = userWrap?.user;
+        if (!user) {
+          setGreetingName();
+          setProfileName('Demo User');
+          hydrateBalanceFromDemo();
+          return;
+        }
+
+        currentUserId = user.id;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const firstName = profile?.first_name || user.user_metadata?.first_name || fallbackFirstName;
+        const lastName = profile?.last_name || user.user_metadata?.last_name || '';
+        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
+        setGreetingName(firstName);
+        setProfileName(fullName || firstName);
+
+        const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
+        if (avatarUrl && profileAvatarEl) profileAvatarEl.src = avatarUrl;
+
+        hydrateBalanceFromDemo(user.id);
+      } catch (error) {
+        console.warn('Profile hydration failed; using defaults', error);
+      }
+    }
+
+    setGreetingName();
+    hydrateProfileFromLive();
+
     const statsContainer = document.getElementById('stats-cards');
     const assetList = document.getElementById('asset-list');
     const performingCount = document.getElementById('performing-count');
@@ -1098,17 +1145,26 @@
           const positive = item.changeDirection === 'up';
           const pillClass = positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
           const arrow = positive ? '↑' : '↓';
+          const isBalanceCard = item.title === 'Total Balance';
+          const addFundsCta = isBalanceCard
+              ? `<div class="pt-2"><button data-add-funds class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1">
+                  <i class="fa-solid fa-plus text-xs"></i><span>Add funds</span>
+                </button></div>`
+              : '';
           return `
-            <article class="bg-white rounded-xl shadow-sm p-5 space-y-3">
+            <article class="bg-white rounded-xl shadow-md p-5 space-y-3 transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
               <p class="text-sm font-semibold text-slate-500">${item.title}</p>
               <div class="flex items-center justify-between gap-3">
                 <p class="text-[28px] md:text-[32px] font-bold text-slate-900">${item.value}</p>
                 <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${pillClass}">${arrow} ${item.changePercent}%</span>
               </div>
               <p class="text-sm text-slate-500">${item.subtitle}</p>
+              ${addFundsCta}
             </article>`;
         })
         .join('');
+
+      attachAddFundsHandler();
     }
 
     function buildChart(rangeKey = 'monthly') {
@@ -1339,6 +1395,44 @@
     function wireRangeButtons() {
       document.querySelectorAll('#equity-toggle button').forEach((btn) => {
         btn.addEventListener('click', () => toggleRange(btn.dataset.range));
+      });
+    }
+
+    function attachAddFundsHandler() {
+      const addFundsBtn = document.querySelector('[data-add-funds]');
+      if (!addFundsBtn) return;
+
+      addFundsBtn.addEventListener('click', async () => {
+        if (!currentUserId) {
+          alert('Please sign in to add funds.');
+          return;
+        }
+
+        const input = prompt('Enter the amount to add to your demo balance:');
+        if (!input) return;
+
+        const amount = Number.parseFloat(input);
+        if (Number.isNaN(amount) || amount <= 0) {
+          alert('Please enter a valid amount greater than 0.');
+          return;
+        }
+
+        const nextBalance = profileBalance + amount;
+        try {
+          const { data, error } = await supabase
+            .from('demo_profiles')
+            .update({ balance: nextBalance })
+            .eq('id', currentUserId)
+            .select('balance, base_currency')
+            .maybeSingle();
+
+          if (error) throw error;
+          setBalanceCard(data?.balance ?? nextBalance, data?.base_currency || baseCurrency);
+          alert('Funds added successfully.');
+        } catch (error) {
+          console.warn('Add funds failed', error);
+          alert('Unable to add funds right now. Please try again later.');
+        }
       });
     }
 
