@@ -906,13 +906,49 @@
           </article>
 
           <aside class="col-span-12 lg:col-span-4 grid gap-6 lg:sticky lg:top-4 self-start min-w-0">
-            <div class="card p-5 border border-slate-200">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-base font-medium text-slate-900">6 months earnings</h3>
-                <a href="#" class="text-sm text-olive-600 hover:underline">View all</a>
+            <div class="card p-5 border border-slate-200" id="strategy-card">
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Strategy spotlight</p>
+                  <h3 id="strategy-name" class="text-base font-semibold text-slate-900">—</h3>
+                  <p id="strategy-code" class="text-xs text-slate-500">Loading your strategies…</p>
+                </div>
+                <div class="flex gap-2">
+                  <button id="strategy-prev" class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Previous strategy">
+                    <i class="fa-solid fa-chevron-left text-slate-500"></i>
+                  </button>
+                  <button id="strategy-next" class="h-9 w-9 rounded-lg border border-slate-200 grid place-items-center hover:bg-slate-50" aria-label="Next strategy">
+                    <i class="fa-solid fa-chevron-right text-slate-500"></i>
+                  </button>
+                </div>
               </div>
-              <div class="h-[180px]">
-                <canvas id="six-months-earnings" class="max-w-full"></canvas>
+
+              <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                    <p class="text-xs text-slate-500 font-medium">Allocations</p>
+                    <p id="strategy-allocations" class="text-lg font-semibold text-slate-900">—</p>
+                  </div>
+                  <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                    <p class="text-xs text-slate-500 font-medium">Allocated</p>
+                    <p id="strategy-allocated" class="text-lg font-semibold text-slate-900">—</p>
+                  </div>
+                  <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                    <p class="text-xs text-slate-500 font-medium">% Return</p>
+                    <p id="strategy-return" class="text-lg font-semibold text-emerald-700">—</p>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div id="strategy-asset-logo" class="h-10 w-10 rounded-full bg-slate-100 grid place-items-center text-sm font-semibold text-slate-700">—</div>
+                    <div class="min-w-0">
+                      <p id="strategy-asset-symbol" class="text-sm font-semibold text-slate-900 truncate">—</p>
+                      <p class="text-xs text-slate-500">Top performing asset</p>
+                    </div>
+                  </div>
+                  <span id="strategy-asset-change" class="text-sm font-semibold text-emerald-600">—</span>
+                </div>
               </div>
             </div>
           </aside>
@@ -1043,7 +1079,16 @@
     const holdTrack = document.getElementById('hold-track');
     const holdPrev = document.getElementById('hold-prev');
     const holdNext = document.getElementById('hold-next');
-    const earningsCanvas = document.getElementById('six-months-earnings');
+    const strategyNameEl = document.getElementById('strategy-name');
+    const strategyCodeEl = document.getElementById('strategy-code');
+    const strategyAllocationsEl = document.getElementById('strategy-allocations');
+    const strategyAllocatedEl = document.getElementById('strategy-allocated');
+    const strategyReturnEl = document.getElementById('strategy-return');
+    const strategyAssetLogoEl = document.getElementById('strategy-asset-logo');
+    const strategyAssetSymbolEl = document.getElementById('strategy-asset-symbol');
+    const strategyAssetChangeEl = document.getElementById('strategy-asset-change');
+    const strategyPrev = document.getElementById('strategy-prev');
+    const strategyNext = document.getElementById('strategy-next');
     const fallbackFirstName = 'Trader';
 
     const getGreeting = () => {
@@ -1066,6 +1111,8 @@
     let baseCurrency = 'USD';
     let profileBalance = 0;
     let currentUserId = null;
+    let cachedAllocations = [];
+    let cachedMetricsMap = new Map();
 
     const statsData = [
       { title: 'Total Balance', value: '$0.00', changePercent: 0, changeDirection: 'up', subtitle: 'Funds available in demo wallet' },
@@ -1105,7 +1152,32 @@
       { symbol: 'SPY', name: 'SPDR S&P 500', weightPct: 15.3, value: 11240, changePct: 1.1, breakdown: [{ strategyName: 'Index Core', weightPct: 8.1, value: 5960 }] },
     ];
 
+    const fallbackStrategies = [
+      {
+        id: 'demo-strat-1',
+        name: 'Momentum BTC',
+        code: 'MOM-BTC',
+        allocationsCount: 3,
+        allocated: 12000,
+        latestValue: 13250,
+        currency: 'USD',
+        topAsset: { symbol: 'BTC', logo: null, changePct: 2.4 },
+      },
+      {
+        id: 'demo-strat-2',
+        name: 'Tech Momentum',
+        code: 'TECH-MOM',
+        allocationsCount: 2,
+        allocated: 9800,
+        latestValue: 10340,
+        currency: 'USD',
+        topAsset: { symbol: 'QQQ', logo: null, changePct: 1.2 },
+      },
+    ];
+
     const strategyMetricsCache = new Map();
+    let strategySpotlights = [];
+    let strategyIndex = 0;
 
     function normalizeWeight(weight = 0) {
       const value = Number(weight);
@@ -1563,11 +1635,14 @@
     async function loadTopHoldings() {
       try {
         const allocations = await fetchDemoAllocations(currentUserId || '');
+        cachedAllocations = allocations;
         let holdingsSet = fallbackHoldings;
+        let metricsMap = new Map();
 
         if (allocations.length) {
           const strategyIds = allocations.map((row) => row?.strategy_id).filter(Boolean);
-          const metricsMap = await fetchStrategyMetrics(strategyIds);
+          metricsMap = await fetchStrategyMetrics(strategyIds);
+          cachedMetricsMap = metricsMap;
           const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
           baseCurrency = currency || baseCurrency;
           holdingsSet = holdings.length ? holdings : fallbackHoldings;
@@ -1575,56 +1650,141 @@
 
         renderHoldingsView(holdingsSet, baseCurrency);
         renderHoldingsCarousel(holdingsSet, baseCurrency);
+        const strategyData = buildStrategySpotlights(allocations, metricsMap);
+        strategySpotlights = strategyData.length ? strategyData : [];
+        renderStrategySpotlight(strategyIndex);
       } catch (error) {
         console.warn('Top holdings load failed; showing fallback', error);
         renderHoldingsView(fallbackHoldings, baseCurrency);
         renderHoldingsCarousel(fallbackHoldings, baseCurrency);
+        strategySpotlights = [];
+        renderStrategySpotlight(strategyIndex);
       }
     }
 
-    function initEarningsChart() {
-      if (!earningsCanvas) return;
-      const ctx = earningsCanvas.getContext('2d');
-      const allMonths = [
-        { m: 'Jul', v: 480 },
-        { m: 'Aug', v: 440 },
-        { m: 'Sep', v: 590 },
-        { m: 'Oct', v: 530 },
-        { m: 'Nov', v: 610 },
-        { m: 'Dec', v: 700 },
-      ];
-      const labels = allMonths.map((x) => x.m);
-      const data = allMonths.map((x) => x.v);
-      const OLIVE = '#556B2F';
-      const MUTED = 'rgba(2,6,23,.08)';
-      const MUTED_BORDER = 'rgba(2,6,23,.18)';
-      const fmtUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    function computeReturnPct(allocated = 0, latestValue = 0) {
+      const alloc = Number(allocated) || 0;
+      const latest = Number(latestValue) || 0;
+      if (!alloc || alloc <= 0) return 0;
+      return (latest / alloc) * 100;
+    }
 
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [
-            {
-              data,
-              backgroundColor: data.map((_, i) => (i === data.length - 1 ? OLIVE : MUTED)),
-              borderColor: data.map((_, i) => (i === data.length - 1 ? OLIVE : MUTED_BORDER)),
-              borderWidth: 1,
-              borderRadius: 6,
-              barThickness: 16,
-              hoverBackgroundColor: data.map((_, i) => (i === data.length - 1 ? OLIVE : MUTED)),
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { displayColors: false, callbacks: { label: (c) => fmtUSD.format(c.raw) } } },
-          scales: {
-            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '400' }, maxRotation: 0, minRotation: 0, autoSkip: false } },
-            y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 11, weight: '400' }, maxTicksLimit: 6, callback: (v) => fmtUSD.format(v) } },
-          },
-        },
+    function deriveTopAsset(holdings = []) {
+      if (!Array.isArray(holdings) || !holdings.length) return null;
+      let winner = null;
+      holdings.forEach((holding) => {
+        const symbol = (holding?.symbol || holding?.name || '').toString().trim();
+        if (!symbol) return;
+        const change = Number(holding?.change_pct ?? holding?.daily_change_pct);
+        const weight = normalizeWeight(holding?.weight_pct ?? holding?.weight) * 100;
+        const score = Number.isFinite(change) ? change : weight;
+        if (winner == null || score > winner.score) {
+          winner = {
+            symbol,
+            logo: holding?.logo_url || holding?.logo || null,
+            changePct: Number.isFinite(change) ? change : null,
+            score,
+          };
+        }
+      });
+      return winner;
+    }
+
+    function buildStrategySpotlights(allocations = [], metricsMap = new Map()) {
+      const grouped = new Map();
+
+      allocations.forEach((allocation) => {
+        const strategyId = allocation?.strategy_id;
+        if (!strategyId) return;
+
+        const group = grouped.get(strategyId) || {
+          id: strategyId,
+          name: allocation?.strategies?.name || allocation?.strategies?.code || `Strategy ${strategyId}`,
+          code: allocation?.strategies?.code || '',
+          allocationsCount: 0,
+          allocated: 0,
+          latestValue: 0,
+          currency: allocation?.base_currency || baseCurrency,
+          topAsset: null,
+        };
+
+        group.allocationsCount += 1;
+        group.allocated += Number(allocation?.amount_invested ?? 0) || 0;
+        group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
+        group.currency = allocation?.base_currency || group.currency;
+
+        const metrics = metricsMap.get(strategyId);
+        if (metrics?.portfolio_holdings) {
+          const top = deriveTopAsset(metrics.portfolio_holdings);
+          if (top) group.topAsset = top;
+        }
+
+        grouped.set(strategyId, group);
+      });
+
+      return Array.from(grouped.values()).map((item) => ({
+        ...item,
+        returnPct: computeReturnPct(item.allocated, item.latestValue),
+        topAsset: item.topAsset || { symbol: '—', logo: null, changePct: null },
+      }));
+    }
+
+    function renderTopAsset(asset = { symbol: '—', logo: null, changePct: null }) {
+      if (strategyAssetLogoEl) {
+        strategyAssetLogoEl.style.backgroundImage = asset.logo ? `url('${asset.logo}')` : 'none';
+        strategyAssetLogoEl.style.backgroundSize = 'cover';
+        strategyAssetLogoEl.style.backgroundPosition = 'center';
+        strategyAssetLogoEl.textContent = asset.logo ? '' : (asset.symbol || '—').slice(0, 3).toUpperCase();
+      }
+      if (strategyAssetSymbolEl) strategyAssetSymbolEl.textContent = asset.symbol || '—';
+
+      if (strategyAssetChangeEl) {
+        if (asset.changePct == null || Number.isNaN(asset.changePct)) {
+          strategyAssetChangeEl.textContent = '—';
+          strategyAssetChangeEl.classList.remove('text-emerald-600', 'text-rose-600');
+        } else {
+          const positive = Number(asset.changePct) >= 0;
+          strategyAssetChangeEl.textContent = `${positive ? '+' : ''}${Number(asset.changePct).toFixed(2)}%`;
+          strategyAssetChangeEl.classList.toggle('text-emerald-600', positive);
+          strategyAssetChangeEl.classList.toggle('text-rose-600', !positive);
+        }
+      }
+    }
+
+    function renderStrategySpotlight(index = 0) {
+      const list = (strategySpotlights.length ? strategySpotlights : fallbackStrategies).map((item) => ({
+        ...item,
+        returnPct: item.returnPct != null ? item.returnPct : computeReturnPct(item.allocated, item.latestValue),
+        topAsset: item.topAsset || { symbol: '—', logo: null, changePct: null },
+      }));
+
+      if (!list.length) return;
+
+      const len = list.length;
+      const safeIndex = ((index % len) + len) % len;
+      strategyIndex = safeIndex;
+      const current = list[safeIndex];
+
+      if (strategyNameEl) strategyNameEl.textContent = current?.name || 'Strategy';
+      if (strategyCodeEl) strategyCodeEl.textContent = current?.code ? `Code: ${current.code}` : 'demo_allocation';
+      if (strategyAllocationsEl) strategyAllocationsEl.textContent = `${current?.allocationsCount || 0}`;
+      if (strategyAllocatedEl) strategyAllocatedEl.textContent = formatCurrency(current?.allocated || 0, current?.currency || baseCurrency);
+      if (strategyReturnEl) strategyReturnEl.textContent = `${Number(current?.returnPct || 0).toFixed(2)}%`;
+
+      renderTopAsset(current?.topAsset);
+    }
+
+    function wireStrategyNav() {
+      strategyPrev?.addEventListener('click', () => {
+        const len = (strategySpotlights.length ? strategySpotlights : fallbackStrategies).length;
+        if (!len) return;
+        renderStrategySpotlight(strategyIndex - 1);
+      });
+
+      strategyNext?.addEventListener('click', () => {
+        const len = (strategySpotlights.length ? strategySpotlights : fallbackStrategies).length;
+        if (!len) return;
+        renderStrategySpotlight(strategyIndex + 1);
       });
     }
 
@@ -1744,9 +1904,9 @@
       await profileReady;
       renderStats();
       renderEquityChart(currentRange);
-      initEarningsChart();
       await loadTopHoldings();
       wirePortfolioCard();
+      wireStrategyNav();
       wireFundsModal();
       wireSidebar();
       hideSkeleton();
