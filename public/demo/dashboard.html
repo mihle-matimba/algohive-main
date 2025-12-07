@@ -855,6 +855,7 @@
     const dashboardTitle = document.getElementById('dashboard-title');
     const profileNameEl = document.getElementById('profile-name');
     const profileAvatarEl = document.getElementById('profile-avatar');
+    const fallbackFirstName = 'Trader';
 
     const getGreeting = () => {
       const hour = new Date().getHours();
@@ -863,11 +864,25 @@
       return 'Good Evening';
     };
 
+    const setGreetingName = (firstName = fallbackFirstName) => {
+      if (dashboardTitle) dashboardTitle.textContent = `${getGreeting()} ${firstName}`;
+    };
+
+    const setProfileName = (fullName) => {
+      if (profileNameEl && fullName) {
+        profileNameEl.textContent = fullName;
+      }
+    };
+
     async function hydrateProfileFromLive() {
       try {
         const { data: userWrap } = await supabase.auth.getUser();
         const user = userWrap?.user;
-        if (!user) return;
+        if (!user) {
+          setGreetingName();
+          setProfileName('Demo User');
+          return;
+        }
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -875,12 +890,12 @@
           .eq('id', user.id)
           .maybeSingle();
 
-        const firstName = profile?.first_name || user.user_metadata?.first_name || 'User';
+        const firstName = profile?.first_name || user.user_metadata?.first_name || fallbackFirstName;
         const lastName = profile?.last_name || user.user_metadata?.last_name || '';
         const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
 
-        if (dashboardTitle) dashboardTitle.textContent = `${getGreeting()} ${firstName}`;
-        if (profileNameEl) profileNameEl.textContent = fullName || firstName;
+        setGreetingName(firstName);
+        setProfileName(fullName || firstName);
 
         const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
         if (avatarUrl && profileAvatarEl) profileAvatarEl.src = avatarUrl;
@@ -889,6 +904,7 @@
       }
     }
 
+    setGreetingName();
     hydrateProfileFromLive();
   </script>
 
