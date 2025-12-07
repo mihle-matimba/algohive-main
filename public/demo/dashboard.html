@@ -948,6 +948,43 @@
     </div>
   </div>
 
+  <div id="funds-modal" class="fixed inset-0 z-50 hidden">
+    <div id="funds-overlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Add funds</p>
+            <h3 class="text-lg font-semibold text-slate-900">Top up a demo account</h3>
+          </div>
+          <button id="funds-close" type="button" class="text-slate-500 hover:text-slate-800" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="px-5 py-4 space-y-4">
+          <label class="block text-sm font-medium text-slate-700">
+            Choose account
+            <select id="funds-account" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+              <option value="">Loading…</option>
+            </select>
+          </label>
+          <label class="block text-sm font-medium text-slate-700">
+            Amount (USD)
+            <input id="funds-amount" type="number" inputmode="decimal" min="1" max="100000" step="1" placeholder="500" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[15px] font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+            <p class="mt-1 text-xs text-slate-500">Minimum $1 — Maximum $100,000.</p>
+          </label>
+        </div>
+        <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-5 py-3">
+          <p class="text-xs text-slate-500">Funds apply to your selected demo account.</p>
+          <div class="flex items-center gap-3">
+            <button id="funds-cancel" type="button" class="btn bg-white text-slate-700">Cancel</button>
+            <button id="funds-submit" type="button" class="btn bg-slate-900 text-white border-slate-900 hover:bg-slate-800">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
     <script type="module" nonce="ALGOHIVE">
     import { supabase } from '/js/supabase.js';
 
@@ -1137,6 +1174,13 @@
     const modalBody = document.getElementById('modal-body');
     const modalCloseBtns = [document.getElementById('close-modal'), document.getElementById('modal-close-btn')];
     const skeletonLayer = document.getElementById('dashboard-skeleton');
+    const fundsModal = document.getElementById('funds-modal');
+    const fundsOverlay = document.getElementById('funds-overlay');
+    const fundsClose = document.getElementById('funds-close');
+    const fundsAccount = document.getElementById('funds-account');
+    const fundsAmount = document.getElementById('funds-amount');
+    const fundsCancel = document.getElementById('funds-cancel');
+    const fundsSubmit = document.getElementById('funds-submit');
 
     function renderStats() {
       if (!statsContainer) return;
@@ -1147,7 +1191,7 @@
           const arrow = positive ? '↑' : '↓';
           const isBalanceCard = item.title === 'Total Balance';
           const addFundsCta = isBalanceCard
-              ? `<div class="pt-2"><button data-add-funds class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1">
+              ? `<div class="pt-2"><button data-add-funds class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1">
                   <i class="fa-solid fa-plus text-xs"></i><span>Add funds</span>
                 </button></div>`
               : '';
@@ -1398,26 +1442,43 @@
       });
     }
 
-    function attachAddFundsHandler() {
-      const addFundsBtn = document.querySelector('[data-add-funds]');
-      if (!addFundsBtn) return;
+    function populateFundsAccount() {
+      if (!fundsAccount) return;
+      const label = profileNameEl?.textContent?.trim() || 'Demo account';
+      const optionValue = currentUserId || 'demo-account';
+      fundsAccount.innerHTML = '';
+      const opt = document.createElement('option');
+      opt.value = optionValue;
+      opt.textContent = optionValue === 'demo-account' ? `${label} (local)` : label;
+      fundsAccount.appendChild(opt);
+    }
 
-      addFundsBtn.addEventListener('click', async () => {
-        if (!currentUserId) {
-          alert('Please sign in to add funds.');
-          return;
-        }
+    function openFundsModal() {
+      populateFundsAccount();
+      fundsModal?.classList.remove('hidden');
+      if (fundsAmount) {
+        fundsAmount.value = '';
+        fundsAmount.focus();
+      }
+    }
 
-        const input = prompt('Enter the amount to add to your demo balance:');
-        if (!input) return;
+    function closeFundsModal() {
+      fundsModal?.classList.add('hidden');
+    }
 
-        const amount = Number.parseFloat(input);
-        if (Number.isNaN(amount) || amount <= 0) {
-          alert('Please enter a valid amount greater than 0.');
-          return;
-        }
+    async function submitFunds() {
+      if (!fundsAccount || !fundsAmount) return;
 
-        const nextBalance = profileBalance + amount;
+      const amount = Number.parseFloat(fundsAmount.value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        alert('Enter a valid amount above 0.');
+        return;
+      }
+
+      const nextBalance = profileBalance + amount;
+      setBalanceCard(nextBalance, baseCurrency);
+
+      if (currentUserId) {
         try {
           const { data, error } = await supabase
             .from('demo_profiles')
@@ -1433,7 +1494,24 @@
           console.warn('Add funds failed', error);
           alert('Unable to add funds right now. Please try again later.');
         }
-      });
+      } else {
+        console.warn('Add funds attempted without a signed-in user.');
+      }
+
+      closeFundsModal();
+    }
+
+    function attachAddFundsHandler() {
+      const addFundsBtn = document.querySelector('[data-add-funds]');
+      if (!addFundsBtn) return;
+      addFundsBtn.addEventListener('click', openFundsModal);
+    }
+
+    function wireFundsModal() {
+      fundsClose?.addEventListener('click', closeFundsModal);
+      fundsOverlay?.addEventListener('click', closeFundsModal);
+      fundsCancel?.addEventListener('click', closeFundsModal);
+      fundsSubmit?.addEventListener('click', submitFunds);
     }
 
     function hideSkeleton() {
@@ -1478,6 +1556,7 @@
       wireDateFilter();
       wireExport();
       wireRangeButtons();
+      wireFundsModal();
       wireSidebar();
       hideSkeleton();
     }
