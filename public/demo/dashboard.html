@@ -1251,7 +1251,7 @@
       let selectedStrategyId = null;
       let selectedAllocationId = 'portfolio';
 
-      const normalizeReturnPct = (allocation = {}) => {
+      const computeAllocationReturn = (allocation = {}) => {
         const explicit = Number(allocation?.latest_return_pct);
         if (Number.isFinite(explicit)) return explicit;
         return computeReturnPct(allocation?.amount_invested, allocation?.latest_value);
@@ -1599,7 +1599,7 @@
           currencyForValue = targetAllocation?.currency || strategy.currency || baseCurrency;
 
           if (targetAllocation) {
-            changePct = normalizeReturnPct(targetAllocation);
+            changePct = computeAllocationReturn(targetAllocation);
             displayValue = Number(targetAllocation.latest_value ?? payload.data[payload.data.length - 1] ?? 0) || 0;
             label = targetAllocation.label || `${formatStartDateLabel(targetAllocation.start_date)} allocation`;
           } else {
@@ -2145,11 +2145,16 @@
           allocated: 0,
           latestValue: 0,
           allocations: [],
+          weightedReturn: 0,
         };
 
         group.allocated += Number(allocation?.amount_invested ?? 0) || 0;
         group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
         group.currency = allocation?.base_currency || group.currency;
+        const allocReturn = computeAllocationReturn(allocation);
+        if (Number.isFinite(allocReturn)) {
+          group.weightedReturn += (Number(allocation?.amount_invested) || 0) * allocReturn;
+        }
         group.allocations.push({ ...allocation, label: name || `Allocation ${idx + 1}` });
 
         grouped.set(strategyId, group);
@@ -2192,7 +2197,7 @@
               seriesByRange: allocationSeriesByRange,
               currency: alloc.base_currency || group.currency,
               logo: alloc.logo || null,
-              returnPct: normalizeReturnPct(alloc),
+              returnPct: computeAllocationReturn(alloc),
             };
           });
 
@@ -2203,6 +2208,10 @@
           seriesByRange[rangeKey] = merged.length ? merged : fallbackScaled;
         });
 
+          const aggregatedReturn = group.allocated
+            ? group.weightedReturn / group.allocated
+            : computeReturnPct(group.allocated, group.latestValue);
+
           map.set(id, {
             id,
             name: group.name,
@@ -2210,7 +2219,9 @@
             currency: group.currency,
             allocated: group.allocated,
             latestValue: group.latestValue,
-            returnPct: computeReturnPct(group.allocated, group.latestValue),
+            returnPct: Number.isFinite(aggregatedReturn)
+              ? aggregatedReturn
+              : computeReturnPct(group.allocated, group.latestValue),
             seriesByRange,
             allocations: allocationsSeries,
           });
@@ -2256,12 +2267,17 @@
           latestValue: 0,
           currency: allocation?.base_currency || baseCurrency,
           topAsset: null,
+          weightedReturn: 0,
         };
 
         group.allocationsCount += 1;
         group.allocated += Number(allocation?.amount_invested ?? 0) || 0;
         group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
         group.currency = allocation?.base_currency || group.currency;
+        const allocReturn = computeAllocationReturn(allocation);
+        if (Number.isFinite(allocReturn)) {
+          group.weightedReturn += (Number(allocation?.amount_invested) || 0) * allocReturn;
+        }
 
         const holdings = Array.isArray(allocation?.portfolio_holdings) ? allocation.portfolio_holdings : [];
         if (holdings.length) {
@@ -2274,7 +2290,9 @@
 
       return Array.from(grouped.values()).map((item) => ({
         ...item,
-        returnPct: computeReturnPct(item.allocated, item.latestValue),
+        returnPct: item.allocated && Number.isFinite(item.weightedReturn / item.allocated)
+          ? item.weightedReturn / item.allocated
+          : computeReturnPct(item.allocated, item.latestValue),
         topAsset: item.topAsset || { symbol: '—', logo: null, changePct: null },
       }));
     }
