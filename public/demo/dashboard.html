@@ -884,11 +884,13 @@
                 <h3 class="font-normal text-slate-800">Your portfolio</h3>
                 <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
               </div>
-              <div class="flex items-center gap-2">
-                <button data-range="1D" class="tab tab-active text-[13px]">1D</button>
-                <button data-range="1M" class="tab text-[13px]">1M</button>
+              <div class="flex items-center gap-2 flex-wrap justify-end">
+                <button data-range="1M" class="tab tab-active text-[13px]">1M</button>
+                <button data-range="3M" class="tab text-[13px]">3M</button>
+                <button data-range="6M" class="tab text-[13px]">6M</button>
+                <button data-range="YTD" class="tab text-[13px]">YTD</button>
                 <button data-range="1Y" class="tab text-[13px]">1Y</button>
-                <button data-range="ALL" class="tab text-[13px]">All</button>
+                <button data-range="3Y" class="tab text-[13px]">3Y</button>
                 <button id="pf-refresh"
                   class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
                   title="Refresh">
@@ -897,23 +899,18 @@
               </div>
             </div>
             <div class="px-5 pt-2 flex flex-wrap gap-3 items-center text-sm text-slate-600">Strategy performance</div>
-            <div class="px-5 pb-4 flex flex-wrap items-center gap-3">
-              <div class="flex items-baseline gap-3">
-                <div class="text-2xl font-bold" id="pf-value">—</div>
-                <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
-              </div>
+              <div class="px-5 pb-4 flex flex-wrap items-center gap-3">
+                <div class="flex items-baseline gap-3">
+                  <div class="text-2xl font-bold" id="pf-value">—</div>
+                  <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+                </div>
               <div class="ml-auto inline-flex items-center gap-2 text-sm text-slate-600">
                 <label for="pf-allocation" class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">View</label>
                 <select id="pf-allocation" class="h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"></select>
-                <label for="pf-seek" class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Seek</label>
-                <input id="pf-seek" type="range" min="0" value="0" step="1" class="w-28 accent-olive-700" />
               </div>
             </div>
             <div class="px-2 pb-4 pt-2">
               <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
-              <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
-                <span>10 AM</span><span>11 AM</span><span>2 PM</span><span>4 PM</span>
-              </div>
             </div>
           </article>
 
@@ -1135,7 +1132,6 @@
     const pfUpdated = document.getElementById('pf-updated');
     const pfTabs = Array.from(document.querySelectorAll('#portfolio-card .tab'));
     const pfAllocationSelect = document.getElementById('pf-allocation');
-    const pfSeek = document.getElementById('pf-seek');
     const pfChart = document.getElementById('pf-chart');
     const pfRefresh = document.getElementById('pf-refresh');
     const holdTrack = document.getElementById('hold-track');
@@ -1193,24 +1189,34 @@
     ];
 
     const equityRanges = {
-      '1D': {
-        labels: ['10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'],
-        data: [14650, 14690, 14710, 14780, 14810, 14840, 14860],
-        updated: () => new Date(),
-      },
       '1M': {
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        labels: ['2024-06-01', '2024-06-08', '2024-06-15', '2024-06-22'],
         data: [13650, 14020, 14310, 14860],
         updated: () => new Date(),
       },
+      '3M': {
+        labels: ['2024-04-01', '2024-05-01', '2024-06-01', '2024-07-01'],
+        data: [12900, 13650, 14220, 14860],
+        updated: () => new Date(),
+      },
+      '6M': {
+        labels: ['2024-02-01', '2024-04-01', '2024-06-01', '2024-08-01'],
+        data: [12100, 13220, 14220, 14860],
+        updated: () => new Date(),
+      },
+      YTD: {
+        labels: ['2024-01-02', '2024-03-01', '2024-05-01', '2024-07-01'],
+        data: [11800, 12940, 13910, 14860],
+        updated: () => new Date(),
+      },
       '1Y': {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        data: [9200, 9600, 10150, 10780, 11240, 11810, 12360, 12840, 13320, 13780, 14240, 14860],
+        labels: ['2023-09-01', '2023-12-01', '2024-03-01', '2024-06-01'],
+        data: [10300, 11810, 13220, 14860],
         updated: () => new Date('2024-12-31'),
       },
-      ALL: {
-        labels: ['2021', '2022', '2023', '2024'],
-        data: [6200, 8200, 10900, 14860],
+      '3Y': {
+        labels: ['2022-07-01', '2023-01-01', '2023-07-01', '2024-01-01'],
+        data: [7800, 9200, 11350, 14860],
         updated: () => new Date('2024-12-31'),
       },
     };
@@ -1295,7 +1301,7 @@
           .from('demo_allocations')
           .select(
             `id, strategy_id, amount_invested, latest_value, latest_return_pct, base_currency, status,
-            portfolio_holdings, series_1d, series_1m, series_1y, series_all, start_date, end_date,
+            portfolio_holdings, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, start_date, end_date,
             strategies(name, code)`
           )
           .eq('demo_profile_id', profileId);
@@ -1372,28 +1378,15 @@
     }
 
     let chartInstance = null;
-    let currentRange = '1Y';
+    let currentRange = '1M';
 
-    function applySeekPosition(index = null) {
+    function applySeekPosition(index = null, { skipTooltip = false } = {}) {
       const payload = Array.isArray(currentPayload?.data) ? currentPayload : { labels: [], data: [] };
-      if (payload.data.length === 0) {
-        if (pfSeek) {
-          pfSeek.value = 0;
-          pfSeek.max = 0;
-          pfSeek.disabled = true;
-        }
-        return;
-      }
+      if (payload.data.length === 0) return;
 
       const maxIndex = payload.data.length - 1;
-      const desired = index ?? pfSeek?.value ?? maxIndex;
+      const desired = index ?? maxIndex;
       const safeIndex = Math.min(Math.max(Number(desired) || 0, 0), maxIndex);
-
-      if (pfSeek) {
-        pfSeek.max = maxIndex;
-        pfSeek.value = safeIndex;
-        pfSeek.disabled = maxIndex <= 0;
-      }
 
       const value = Number(payload.data[safeIndex] ?? payload.data[maxIndex] ?? 0);
       const label = payload.labels[safeIndex] ?? payload.labels[maxIndex];
@@ -1403,11 +1396,11 @@
       if (pfUpdated) {
         const parsed = label && !Number.isNaN(Date.parse(label)) ? new Date(label) : null;
         pfUpdated.textContent = parsed
-          ? parsed.toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-          : label || new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+          ? parsed.toLocaleString('en-ZA', { month: 'long', day: '2-digit', year: 'numeric' })
+          : label || new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', year: 'numeric' });
       }
 
-      if (chartInstance?.tooltip?.setActiveElements) {
+      if (!skipTooltip && chartInstance?.tooltip?.setActiveElements) {
         chartInstance.setActiveElements([{ datasetIndex: 0, index: safeIndex }]);
         chartInstance.tooltip.setActiveElements([{ datasetIndex: 0, index: safeIndex }], { x: 0, y: 0 });
         chartInstance.update();
@@ -1599,7 +1592,7 @@
       renderStats();
     }
 
-    function setActiveRange(range = '1D') {
+    function setActiveRange(range = '1M') {
       currentRange = range;
       pfTabs.forEach((btn) => {
         const isActive = btn.dataset.range === range;
@@ -1607,7 +1600,7 @@
       });
     }
 
-      function renderEquityChart(range = '1Y') {
+      function renderEquityChart(range = '1M') {
         if (!pfChart) return;
         const rangeKey = range.toUpperCase();
         currentRange = range;
@@ -1638,7 +1631,6 @@
 
           const sourceSeries = targetAllocation?.seriesByRange?.[rangeKey] || strategy.seriesByRange?.[rangeKey] || [];
           const seriesPayload = buildRangePayload(sourceSeries, rangeKey);
-          const lastPoint = Array.isArray(sourceSeries) ? sourceSeries[sourceSeries.length - 1] : null;
 
           if (seriesPayload.labels.length && seriesPayload.data.length) payload = seriesPayload;
           currencyForValue = targetAllocation?.currency || strategy.currency || baseCurrency;
@@ -1684,17 +1676,33 @@
             backgroundColor: gradient,
             fill: true,
             pointRadius: 0,
+            pointHoverRadius: 4,
           },
         ] },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           plugins: { legend: { display: false }, tooltip: { enabled: true, displayColors: false } },
-          scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } } },
+          onHover: (_evt, elements) => {
+            if (elements?.length) {
+              applySeekPosition(elements[0].index, { skipTooltip: true });
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', maxTicksLimit: 5, autoSkip: true, maxRotation: 0 },
+            },
+            y: {
+              grid: { color: 'rgba(148, 163, 184, 0.3)' },
+              ticks: { color: '#94a3b8', maxTicksLimit: 5 },
+            },
+          },
         },
       });
 
-      applySeekPosition(payload.data.length ? payload.data.length - 1 : 0);
+      applySeekPosition(payload.data.length ? payload.data.length - 1 : 0, { skipTooltip: true });
     }
     const buildLogo = (symbol = '', logoUrl = null, size = 'h-11 w-11', bgTone = 'bg-slate-100') => {
       const clean = (symbol || '—').toString();
@@ -2091,10 +2099,9 @@
       if (value == null) return '';
       const asDate = new Date(value);
       if (!Number.isNaN(asDate.getTime())) {
-        const opts =
-          rangeKey === '1D'
-            ? { hour: '2-digit', minute: '2-digit' }
-            : { month: 'short', day: '2-digit', year: rangeKey === 'ALL' ? 'numeric' : undefined };
+        const opts = ['1M', '3M', '6M', 'YTD'].includes(rangeKey)
+          ? { month: 'short', day: '2-digit' }
+          : { month: 'short', year: 'numeric' };
         return asDate.toLocaleDateString('en-US', opts);
       }
       return value.toString();
@@ -2133,10 +2140,12 @@
 
     function buildAllocationSeriesByRange(allocation = {}, fallbackBase = []) {
       const ranges = {
-        '1D': normalizeSeriesPoints(allocation?.series_1d),
         '1M': normalizeSeriesPoints(allocation?.series_1m),
+        '3M': normalizeSeriesPoints(allocation?.series_3m),
+        '6M': normalizeSeriesPoints(allocation?.series_6m),
+        YTD: normalizeSeriesPoints(allocation?.series_ytd),
         '1Y': normalizeSeriesPoints(allocation?.series_1y),
-        ALL: normalizeSeriesPoints(allocation?.series_all),
+        '3Y': normalizeSeriesPoints(allocation?.series_3y),
       };
 
       const targetValue = allocation?.latest_value ?? allocation?.amount_invested ?? 0;
@@ -2221,7 +2230,7 @@
       grouped.forEach((group, id) => {
         const baseFallback = generateSeries(group.latestValue || group.allocated || 10000).map((value, idx) => ({ date: idx, value }));
 
-        const aggregatedSeriesByRange = { '1D': [], '1M': [], '1Y': [], ALL: [] };
+        const aggregatedSeriesByRange = { '1M': [], '3M': [], '6M': [], YTD: [], '1Y': [], '3Y': [] };
 
           const allocationsSeries = group.allocations.map((alloc, idx) => {
             const allocLabel = alloc.label || `${formatStartDateLabel(alloc.start_date)} allocation`;
@@ -2442,15 +2451,13 @@
 
     function wirePortfolioCard() {
       pfTabs.forEach((btn) => {
-        btn.addEventListener('click', () => renderEquityChart(btn.dataset.range || '1D'));
+        btn.addEventListener('click', () => renderEquityChart(btn.dataset.range || '1M'));
       });
 
       pfAllocationSelect?.addEventListener('change', (event) => {
         selectedAllocationId = event.target.value || null;
         renderEquityChart(currentRange);
       });
-
-      pfSeek?.addEventListener('input', () => applySeekPosition());
 
       pfRefresh?.addEventListener('click', () => renderEquityChart(currentRange));
     }
