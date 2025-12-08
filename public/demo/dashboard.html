@@ -1180,7 +1180,6 @@
     let profileBalance = 0;
     let currentUserId = null;
     let cachedAllocations = [];
-    let cachedMetricsMap = new Map();
     let positionsCache = [];
     let ordersCache = [...fallbackOrders];
     let selectedOrders = new Set();
@@ -1246,7 +1245,6 @@
       },
     ];
 
-    const strategyMetricsCache = new Map();
     let strategySpotlights = [];
     let strategyIndex = 0;
     let strategySeriesMap = new Map();
@@ -1277,7 +1275,11 @@
       try {
         const { data, error } = await supabase
           .from('demo_allocations')
-          .select('id, strategy_id, amount_invested, latest_value, base_currency, status, strategies(name, code)')
+          .select(
+            `id, strategy_id, amount_invested, latest_value, latest_return_pct, base_currency, status,
+            portfolio_holdings, series_1d, series_1m, series_1y, series_all, start_date, end_date,
+            strategies(name, code)`
+          )
           .eq('demo_profile_id', profileId);
 
         if (error) throw error;
@@ -1288,32 +1290,7 @@
       }
     }
 
-    async function fetchStrategyMetrics(strategyIds = []) {
-      const ids = Array.from(new Set(strategyIds.filter(Boolean)));
-      const results = new Map();
-      const uncached = ids.filter((id) => !strategyMetricsCache.has(id));
-
-      if (uncached.length) {
-        try {
-          const { data, error } = await supabase
-            .from('strategy_metrics')
-            .select('strategy_id, portfolio_holdings, series_1d, series_1m, series_1y, series_all')
-            .in('strategy_id', uncached);
-
-          if (error) throw error;
-          (data || []).forEach((row) => strategyMetricsCache.set(row.strategy_id, row));
-        } catch (error) {
-          console.warn('strategy_metrics fetch failed', error);
-        }
-      }
-
-      ids.forEach((id) => {
-        if (strategyMetricsCache.has(id)) results.set(id, strategyMetricsCache.get(id));
-      });
-      return results;
-    }
-
-    function aggregateHoldings(allocations = [], metricsMap = new Map()) {
+    function aggregateHoldings(allocations = []) {
       const activeAllocs = allocations.filter((row) => (row?.status || '').toLowerCase() === 'active');
       const rows = activeAllocs.length ? activeAllocs : allocations;
       const holdingsMap = new Map();
@@ -1328,9 +1305,8 @@
         currency = allocation?.base_currency || currency;
         totalAmount += amount;
 
-        const metrics = metricsMap.get(allocation?.strategy_id) || {};
         const strategyName = allocation?.strategies?.name || allocation?.strategies?.code || `Strategy ${allocation?.strategy_id || ''}`;
-        const holdings = Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [];
+        const holdings = Array.isArray(allocation?.portfolio_holdings) ? allocation.portfolio_holdings : [];
 
         holdings.forEach((holding) => {
           const weight = normalizeWeight(holding?.weight_pct ?? holding?.weight);
@@ -1841,12 +1817,12 @@
 
       if (strategyId && hasAllocations) {
         const scoped = allocations.filter((row) => String(row?.strategy_id) === String(strategyId));
-        const { holdings, currency } = aggregateHoldings(scoped, cachedMetricsMap);
+        const { holdings, currency } = aggregateHoldings(scoped);
         if (holdings.length) return { holdings, currency: currency || baseCurrency };
       }
 
       if (hasAllocations) {
-        const { holdings, currency } = aggregateHoldings(allocations, cachedMetricsMap);
+        const { holdings, currency } = aggregateHoldings(allocations);
         if (holdings.length) return { holdings, currency: currency || baseCurrency };
       }
 
@@ -1948,13 +1924,9 @@
         const allocations = await fetchDemoAllocations(currentUserId || '');
         cachedAllocations = allocations;
         let holdingsSet = fallbackHoldings;
-        let metricsMap = new Map();
 
         if (allocations.length) {
-          const strategyIds = allocations.map((row) => row?.strategy_id).filter(Boolean);
-          metricsMap = await fetchStrategyMetrics(strategyIds);
-          cachedMetricsMap = metricsMap;
-          const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
+          const { holdings, currency } = aggregateHoldings(allocations);
           baseCurrency = currency || baseCurrency;
           holdingsSet = holdings.length ? holdings : fallbackHoldings;
           updateStatsFromAllocations(allocations, baseCurrency);
@@ -1966,9 +1938,9 @@
           }));
           updateStatsFromAllocations(fallbackRows, baseCurrency);
         }
-        const strategyData = buildStrategySpotlights(allocations, metricsMap);
+        const strategyData = buildStrategySpotlights(allocations);
         strategySpotlights = strategyData.length ? strategyData : [];
-        strategySeriesMap = buildStrategySeries(allocations, metricsMap);
+        strategySeriesMap = buildStrategySeries(allocations);
         if (!selectedStrategyId || !strategySeriesMap.has(selectedStrategyId)) {
           selectedStrategyId = strategySeriesMap.keys().next().value || null;
         }
@@ -1986,7 +1958,7 @@
         }));
         updateStatsFromAllocations(fallbackRows, baseCurrency);
         strategySpotlights = [];
-        strategySeriesMap = buildStrategySeries([], new Map());
+          strategySeriesMap = buildStrategySeries([]);
         selectedStrategyId = strategySeriesMap.keys().next().value || null;
         renderStrategySpotlight(strategyIndex);
 
@@ -2064,6 +2036,47 @@
       return arr.map((pt) => ({ ...pt, value: Number((pt.value * factor).toFixed(2)) }));
     }
 
+    function combineSeriesByDate(seriesSets = [], fallback = []) {
+      const allSeries = Array.isArray(seriesSets) ? seriesSets.flatMap((set) => (Array.isArray(set) ? set : [])) : [];
+      const dateMap = new Map();
+
+      allSeries.forEach((pt) => {
+        const value = Number(pt?.value ?? 0);
+        if (!Number.isFinite(value)) return;
+        const rawDate = pt?.date ?? pt?.label ?? pt?.x ?? '';
+        const parsed = rawDate && !Number.isNaN(Date.parse(rawDate)) ? new Date(rawDate) : null;
+        const key = parsed ? parsed.toISOString().slice(0, 10) : String(rawDate || '');
+        if (!key) return;
+        dateMap.set(key, (dateMap.get(key) || 0) + value);
+      });
+
+      if (!dateMap.size) return fallback;
+
+      const combined = Array.from(dateMap.entries()).map(([date, value]) => ({ date, value }));
+      const sortable = combined.every((pt) => pt.date && !Number.isNaN(Date.parse(pt.date)));
+      if (sortable) combined.sort((a, b) => new Date(a.date) - new Date(b.date));
+      return combined;
+    }
+
+    function buildAllocationSeriesByRange(allocation = {}, fallbackBase = []) {
+      const ranges = {
+        '1D': normalizeSeriesPoints(allocation?.series_1d),
+        '1M': normalizeSeriesPoints(allocation?.series_1m),
+        '1Y': normalizeSeriesPoints(allocation?.series_1y),
+        ALL: normalizeSeriesPoints(allocation?.series_all),
+      };
+
+      const targetValue = allocation?.latest_value ?? allocation?.amount_invested ?? 0;
+
+      Object.keys(ranges).forEach((rangeKey) => {
+        if (!ranges[rangeKey].length) {
+          ranges[rangeKey] = scaleSeriesPoints(fallbackBase, targetValue);
+        }
+      });
+
+      return ranges;
+    }
+
     function buildRangePayload(series = [], rangeKey = '1Y') {
       const points = normalizeSeriesPoints(series);
       if (!points.length) return { labels: [], data: [] };
@@ -2082,7 +2095,7 @@
       return [...Array(baseLength - trimmed.length).fill(padValue), ...trimmed];
     }
 
-    function buildStrategySeries(allocations = [], metricsMap = new Map()) {
+    function buildStrategySeries(allocations = []) {
       const grouped = new Map();
 
       allocations.forEach((allocation, idx) => {
@@ -2128,32 +2141,14 @@
 
       const map = new Map();
       grouped.forEach((group, id) => {
-        const metrics = metricsMap.get(id) || {};
         const baseFallback = generateSeries(group.latestValue || group.allocated || 10000).map((value, idx) => ({ date: idx, value }));
 
-        const seriesByRange = {
-          '1D': normalizeSeriesPoints(metrics.series_1d),
-          '1M': normalizeSeriesPoints(metrics.series_1m),
-          '1Y': normalizeSeriesPoints(metrics.series_1y),
-          ALL: normalizeSeriesPoints(metrics.series_all),
-        };
-
-        Object.keys(seriesByRange).forEach((key) => {
-          if (!seriesByRange[key].length) {
-            seriesByRange[key] = baseFallback;
-          }
-        });
+        const aggregatedSeriesByRange = { '1D': [], '1M': [], '1Y': [], ALL: [] };
 
         const allocationsSeries = group.allocations.map((alloc, idx) => {
-          const allocationSeriesByRange = {};
-          Object.entries(seriesByRange).forEach(([rangeKey, points]) => {
-            allocationSeriesByRange[rangeKey] = scaleSeriesPoints(
-              points,
-              alloc.latest_value ??
-                alloc.amount_invested ??
-                group.allocated / Math.max(group.allocations.length, 1) ??
-                0,
-            );
+          const allocationSeriesByRange = buildAllocationSeriesByRange(alloc, baseFallback);
+          Object.entries(allocationSeriesByRange).forEach(([rangeKey, points]) => {
+            aggregatedSeriesByRange[rangeKey].push(points);
           });
 
           return {
@@ -2162,8 +2157,15 @@
             label: alloc.label || alloc.strategies?.name || alloc.strategies?.code || `Allocation ${idx + 1}`,
             seriesByRange: allocationSeriesByRange,
             currency: alloc.base_currency || group.currency,
-            logo: metricsMap.get(alloc.strategy_id)?.portfolio_holdings?.[0]?.logo || alloc.logo || null,
+            logo: alloc.logo || null,
           };
+        });
+
+        const seriesByRange = {};
+        Object.keys(aggregatedSeriesByRange).forEach((rangeKey) => {
+          const fallbackScaled = scaleSeriesPoints(baseFallback, group.latestValue || group.allocated || 0);
+          const merged = combineSeriesByDate(aggregatedSeriesByRange[rangeKey], fallbackScaled);
+          seriesByRange[rangeKey] = merged.length ? merged : fallbackScaled;
         });
 
         map.set(id, { id, name: group.name, code: group.code, currency: group.currency, seriesByRange, allocations: allocationsSeries });
@@ -2193,7 +2195,7 @@
       return winner;
     }
 
-    function buildStrategySpotlights(allocations = [], metricsMap = new Map()) {
+    function buildStrategySpotlights(allocations = []) {
       const grouped = new Map();
 
       allocations.forEach((allocation) => {
@@ -2216,9 +2218,9 @@
         group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
         group.currency = allocation?.base_currency || group.currency;
 
-        const metrics = metricsMap.get(strategyId);
-        if (metrics?.portfolio_holdings) {
-          const top = deriveTopAsset(metrics.portfolio_holdings);
+        const holdings = Array.isArray(allocation?.portfolio_holdings) ? allocation.portfolio_holdings : [];
+        if (holdings.length) {
+          const top = deriveTopAsset(holdings);
           if (top) group.topAsset = top;
         }
 
