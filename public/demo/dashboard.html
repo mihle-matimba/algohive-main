@@ -1001,12 +1001,6 @@
                 <option value="crypto">Crypto</option>
                 <option value="etf">ETFs</option>
               </select>
-              <label class="ml-2 text-sm text-slate-500">Side</label>
-              <select id="position-side" class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <option value="all">All</option>
-                <option value="buy">Buy</option>
-                <option value="sell">Sell</option>
-              </select>
             </div>
 
             <div class="mt-4 overflow-x-auto">
@@ -1469,7 +1463,6 @@
     const holdingsCards = document.getElementById('holdings-cards');
     const positionsBody = document.getElementById('positions-body');
     const positionAssetClass = document.getElementById('position-asset-class');
-    const positionSide = document.getElementById('position-side');
     const ordersBody = document.getElementById('orders-body');
     const ordersSearch = document.getElementById('orders-search');
     const cancelSelected = document.getElementById('cancel-selected');
@@ -1778,14 +1771,12 @@
         .map((asset) => {
           const value = Number(asset.value || 0) || 0;
           const pl = (Number(asset.changePct ?? 0) / 100) * value;
-          const side = pl >= 0 ? 'buy' : 'sell';
           const assetClass = ['BTC', 'ETH', 'SOL'].includes((asset.symbol || '').toUpperCase()) ? 'crypto' : 'stocks';
           return {
             symbol: asset.symbol,
             name: asset.name || asset.symbol,
             value,
             pl,
-            side,
             class: assetClass,
             logo: asset.logo || null,
           };
@@ -1797,13 +1788,11 @@
       if (!positionsBody) return;
       positionsBody.innerHTML = '';
       const classFilter = (positionAssetClass?.value || 'all').toLowerCase();
-      const sideFilter = (positionSide?.value || 'all').toLowerCase();
       positionsCache = Array.isArray(data) ? data : [];
 
       const filtered = positionsCache.filter((row) => {
         const classOk = classFilter === 'all' || row.class === classFilter;
-        const sideOk = sideFilter === 'all' || row.side === sideFilter;
-        return classOk && sideOk;
+        return classOk;
       });
 
       if (!filtered.length) {
@@ -2457,7 +2446,6 @@
 
     function wireTableControls() {
       positionAssetClass?.addEventListener('change', () => renderTopPositions(positionsCache, baseCurrency));
-      positionSide?.addEventListener('change', () => renderTopPositions(positionsCache, baseCurrency));
       ordersSearch?.addEventListener('input', () => renderOrdersTable(ordersCache));
       chkAll?.addEventListener('change', () => {
         const shouldCheck = chkAll.checked;
