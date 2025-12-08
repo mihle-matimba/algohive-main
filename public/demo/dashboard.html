@@ -884,11 +884,13 @@
                 <h3 class="font-normal text-slate-800">Your portfolio</h3>
                 <div class="mt-1 text-sm text-slate-500" id="pf-updated">—</div>
               </div>
-              <div class="flex items-center gap-2">
-                <button data-range="1D" class="tab tab-active text-[13px]">1D</button>
-                <button data-range="1M" class="tab text-[13px]">1M</button>
+              <div class="flex items-center gap-2 flex-wrap justify-end">
+                <button data-range="1M" class="tab tab-active text-[13px]">1M</button>
+                <button data-range="3M" class="tab text-[13px]">3M</button>
+                <button data-range="6M" class="tab text-[13px]">6M</button>
+                <button data-range="YTD" class="tab text-[13px]">YTD</button>
                 <button data-range="1Y" class="tab text-[13px]">1Y</button>
-                <button data-range="ALL" class="tab text-[13px]">All</button>
+                <button data-range="3Y" class="tab text-[13px]">3Y</button>
                 <button id="pf-refresh"
                   class="ml-2 h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-50 grid place-items-center"
                   title="Refresh">
@@ -897,17 +899,18 @@
               </div>
             </div>
             <div class="px-5 pt-2 flex flex-wrap gap-3 items-center text-sm text-slate-600">Strategy performance</div>
-            <div class="px-5 pb-4">
-              <div class="flex items-baseline gap-3">
-                <div class="text-2xl font-bold" id="pf-value">—</div>
-                <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+              <div class="px-5 pb-4 flex flex-wrap items-center gap-3">
+                <div class="flex items-baseline gap-3">
+                  <div class="text-2xl font-bold" id="pf-value">—</div>
+                  <div class="text-lg font-normal" id="pf-change" data-sign="-">—</div>
+                </div>
+              <div class="ml-auto inline-flex items-center gap-2 text-sm text-slate-600">
+                <label for="pf-allocation" class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">View</label>
+                <select id="pf-allocation" class="h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"></select>
               </div>
             </div>
             <div class="px-2 pb-4 pt-2">
               <div class="h-[260px]"><canvas id="pf-chart" class="max-w-full"></canvas></div>
-              <div class="px-3 mt-1 text-[12px] text-slate-400 flex justify-between select-none">
-                <span>10 AM</span><span>11 AM</span><span>2 PM</span><span>4 PM</span>
-              </div>
             </div>
           </article>
 
@@ -994,12 +997,6 @@
                 <option value="stocks">Stocks</option>
                 <option value="crypto">Crypto</option>
                 <option value="etf">ETFs</option>
-              </select>
-              <label class="ml-2 text-sm text-slate-500">Side</label>
-              <select id="position-side" class="h-9 rounded-lg border border-slate-200 px-3 text-sm">
-                <option value="all">All</option>
-                <option value="buy">Buy</option>
-                <option value="sell">Sell</option>
               </select>
             </div>
 
@@ -1134,6 +1131,8 @@
     const pfChange = document.getElementById('pf-change');
     const pfUpdated = document.getElementById('pf-updated');
     const pfTabs = Array.from(document.querySelectorAll('#portfolio-card .tab'));
+    const pfAllocationSelect = document.getElementById('pf-allocation');
+    const pfChart = document.getElementById('pf-chart');
     const pfRefresh = document.getElementById('pf-refresh');
     const holdTrack = document.getElementById('hold-track');
     const holdPrev = document.getElementById('hold-prev');
@@ -1178,7 +1177,6 @@
     let profileBalance = 0;
     let currentUserId = null;
     let cachedAllocations = [];
-    let cachedMetricsMap = new Map();
     let positionsCache = [];
     let ordersCache = [...fallbackOrders];
     let selectedOrders = new Set();
@@ -1191,24 +1189,34 @@
     ];
 
     const equityRanges = {
-      '1D': {
-        labels: ['10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM'],
-        data: [14650, 14690, 14710, 14780, 14810, 14840, 14860],
-        updated: () => new Date(),
-      },
       '1M': {
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        labels: ['2024-06-01', '2024-06-08', '2024-06-15', '2024-06-22'],
         data: [13650, 14020, 14310, 14860],
         updated: () => new Date(),
       },
+      '3M': {
+        labels: ['2024-04-01', '2024-05-01', '2024-06-01', '2024-07-01'],
+        data: [12900, 13650, 14220, 14860],
+        updated: () => new Date(),
+      },
+      '6M': {
+        labels: ['2024-02-01', '2024-04-01', '2024-06-01', '2024-08-01'],
+        data: [12100, 13220, 14220, 14860],
+        updated: () => new Date(),
+      },
+      YTD: {
+        labels: ['2024-01-02', '2024-03-01', '2024-05-01', '2024-07-01'],
+        data: [11800, 12940, 13910, 14860],
+        updated: () => new Date(),
+      },
       '1Y': {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        data: [9200, 9600, 10150, 10780, 11240, 11810, 12360, 12840, 13320, 13780, 14240, 14860],
+        labels: ['2023-09-01', '2023-12-01', '2024-03-01', '2024-06-01'],
+        data: [10300, 11810, 13220, 14860],
         updated: () => new Date('2024-12-31'),
       },
-      ALL: {
-        labels: ['2021', '2022', '2023', '2024'],
-        data: [6200, 8200, 10900, 14860],
+      '3Y': {
+        labels: ['2022-07-01', '2023-01-01', '2023-07-01', '2024-01-01'],
+        data: [7800, 9200, 11350, 14860],
         updated: () => new Date('2024-12-31'),
       },
     };
@@ -1244,11 +1252,28 @@
       },
     ];
 
-    const strategyMetricsCache = new Map();
-    let strategySpotlights = [];
-    let strategyIndex = 0;
-    let strategySeriesMap = new Map();
-    let selectedStrategyId = null;
+      let strategySpotlights = [];
+      let strategyIndex = 0;
+      let strategySeriesMap = new Map();
+      let selectedStrategyId = null;
+      let selectedAllocationId = null;
+      let currentPayload = { labels: [], data: [] };
+      let currentValueCurrency = baseCurrency;
+
+      const computeAllocationReturn = (allocation = {}) => {
+        const explicit = Number(allocation?.latest_return_pct);
+        if (Number.isFinite(explicit)) return explicit * 100;
+        return computeReturnPct(allocation?.amount_invested, allocation?.latest_value);
+      };
+
+      const formatStartDateLabel = (value) => {
+        if (!value) return 'Allocation';
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        }
+        return String(value);
+      };
 
     function normalizeWeight(weight = 0) {
       const value = Number(weight);
@@ -1274,7 +1299,11 @@
       try {
         const { data, error } = await supabase
           .from('demo_allocations')
-          .select('id, strategy_id, amount_invested, latest_value, base_currency, status, strategies(name, code)')
+          .select(
+            `id, strategy_id, amount_invested, latest_value, latest_return_pct, base_currency, status,
+            portfolio_holdings, series_1m, series_3m, series_6m, series_ytd, series_1y, series_3y, start_date, end_date,
+            strategies(name, code)`
+          )
           .eq('demo_profile_id', profileId);
 
         if (error) throw error;
@@ -1285,32 +1314,7 @@
       }
     }
 
-    async function fetchStrategyMetrics(strategyIds = []) {
-      const ids = Array.from(new Set(strategyIds.filter(Boolean)));
-      const results = new Map();
-      const uncached = ids.filter((id) => !strategyMetricsCache.has(id));
-
-      if (uncached.length) {
-        try {
-          const { data, error } = await supabase
-            .from('strategy_metrics')
-            .select('strategy_id, portfolio_holdings')
-            .in('strategy_id', uncached);
-
-          if (error) throw error;
-          (data || []).forEach((row) => strategyMetricsCache.set(row.strategy_id, row));
-        } catch (error) {
-          console.warn('strategy_metrics fetch failed', error);
-        }
-      }
-
-      ids.forEach((id) => {
-        if (strategyMetricsCache.has(id)) results.set(id, strategyMetricsCache.get(id));
-      });
-      return results;
-    }
-
-    function aggregateHoldings(allocations = [], metricsMap = new Map()) {
+    function aggregateHoldings(allocations = []) {
       const activeAllocs = allocations.filter((row) => (row?.status || '').toLowerCase() === 'active');
       const rows = activeAllocs.length ? activeAllocs : allocations;
       const holdingsMap = new Map();
@@ -1325,9 +1329,8 @@
         currency = allocation?.base_currency || currency;
         totalAmount += amount;
 
-        const metrics = metricsMap.get(allocation?.strategy_id) || {};
         const strategyName = allocation?.strategies?.name || allocation?.strategies?.code || `Strategy ${allocation?.strategy_id || ''}`;
-        const holdings = Array.isArray(metrics?.portfolio_holdings) ? metrics.portfolio_holdings : [];
+        const holdings = Array.isArray(allocation?.portfolio_holdings) ? allocation.portfolio_holdings : [];
 
         holdings.forEach((holding) => {
           const weight = normalizeWeight(holding?.weight_pct ?? holding?.weight);
@@ -1375,7 +1378,34 @@
     }
 
     let chartInstance = null;
-    let currentRange = '1Y';
+    let currentRange = '1M';
+
+    function applySeekPosition(index = null, { skipTooltip = false } = {}) {
+      const payload = Array.isArray(currentPayload?.data) ? currentPayload : { labels: [], data: [] };
+      if (payload.data.length === 0) return;
+
+      const maxIndex = payload.data.length - 1;
+      const desired = index ?? maxIndex;
+      const safeIndex = Math.min(Math.max(Number(desired) || 0, 0), maxIndex);
+
+      const value = Number(payload.data[safeIndex] ?? payload.data[maxIndex] ?? 0);
+      const label = payload.labels[safeIndex] ?? payload.labels[maxIndex];
+
+      if (pfValue) pfValue.textContent = formatCurrency(value, currentValueCurrency || baseCurrency);
+
+      if (pfUpdated) {
+        const parsed = label && !Number.isNaN(Date.parse(label)) ? new Date(label) : null;
+        pfUpdated.textContent = parsed
+          ? parsed.toLocaleString('en-ZA', { month: 'long', day: '2-digit', year: 'numeric' })
+          : label || new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', year: 'numeric' });
+      }
+
+      if (!skipTooltip && chartInstance?.tooltip?.setActiveElements) {
+        chartInstance.setActiveElements([{ datasetIndex: 0, index: safeIndex }]);
+        chartInstance.tooltip.setActiveElements([{ datasetIndex: 0, index: safeIndex }], { x: 0, y: 0 });
+        chartInstance.update();
+      }
+    }
 
     function formatCurrency(value = 0, currency = 'USD') {
       try {
@@ -1460,7 +1490,6 @@
     const holdingsCards = document.getElementById('holdings-cards');
     const positionsBody = document.getElementById('positions-body');
     const positionAssetClass = document.getElementById('position-asset-class');
-    const positionSide = document.getElementById('position-side');
     const ordersBody = document.getElementById('orders-body');
     const ordersSearch = document.getElementById('orders-search');
     const cancelSelected = document.getElementById('cancel-selected');
@@ -1563,7 +1592,7 @@
       renderStats();
     }
 
-    function setActiveRange(range = '1D') {
+    function setActiveRange(range = '1M') {
       currentRange = range;
       pfTabs.forEach((btn) => {
         const isActive = btn.dataset.range === range;
@@ -1571,74 +1600,110 @@
       });
     }
 
-    function renderEquityChart(rangeKey = '1Y') {
-      setActiveRange(rangeKey);
-      const ctxEl = document.getElementById('pf-chart');
-      if (!ctxEl) return;
+      function renderEquityChart(range = '1M') {
+        if (!pfChart) return;
+        const rangeKey = range.toUpperCase();
+        currentRange = range;
 
-      const ctx = ctxEl.getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-      gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
-      gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
+        pfTabs.forEach((btn) => btn.classList.toggle('tab-active', btn.dataset.range === rangeKey));
 
-      const firstStrategy = strategySeriesMap.get(selectedStrategyId) || strategySeriesMap.values().next().value || null;
-      const fallbackCfg = equityRanges[rangeKey] || equityRanges['1Y'];
-      let labels = fallbackCfg.labels || [];
-      let baseData = fallbackCfg.data || [];
-      let datasets = [];
-      let currencyForValue = baseCurrency;
+        const ctx = pfChart.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+        gradient.addColorStop(0, 'rgba(85,107,47,0.35)');
+        gradient.addColorStop(1, 'rgba(85,107,47,0.06)');
 
-      if (firstStrategy) {
-        const basePayload = buildRangePayload(firstStrategy.series, rangeKey);
-        labels = basePayload.labels;
-        baseData = basePayload.data;
-        currencyForValue = firstStrategy.currency || baseCurrency;
+        const strategy = strategySeriesMap.get(selectedStrategyId) || strategySeriesMap.values().next().value || null;
+        const fallbackCfg = equityRanges[rangeKey] || equityRanges['1Y'];
+        let payload = { labels: fallbackCfg.labels || [], data: fallbackCfg.data || [] };
+        let currencyForValue = baseCurrency;
+        let label = 'Demo allocation';
+        let changePct = 0;
 
-        datasets.push({
-          label: `${firstStrategy.name} (My allocation)`,
-          data: baseData,
-          tension: 0.35,
-          borderWidth: 2,
-          borderColor: '#556B2F',
-          backgroundColor: gradient,
-          fill: true,
-          pointRadius: 0,
-        });
-      }
+        if (strategy) {
+          const allocations = strategy.allocations || [];
+          const matched = allocations.find((item) => String(item.id) === String(selectedAllocationId));
+          const targetAllocation = matched || allocations[0] || null;
 
-      const first = baseData[0] || 0;
-      const last = baseData[baseData.length - 1] || 0;
-      const changePct = first ? ((last - first) / first) * 100 : 0;
+          if (targetAllocation && !matched) {
+            selectedAllocationId = targetAllocation.id || targetAllocation.label || null;
+            if (pfAllocationSelect) pfAllocationSelect.value = selectedAllocationId || '';
+          }
 
-      if (pfValue) pfValue.textContent = formatCurrency(last, currencyForValue);
-      if (pfChange) {
-        pfChange.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
-        pfChange.classList.toggle('text-green-600', changePct >= 0);
-        pfChange.classList.toggle('text-rose-600', changePct < 0);
-      }
-      if (pfUpdated) {
-        pfUpdated.textContent = new Date().toLocaleString('en-ZA', {
-          month: 'long',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      }
+          const sourceSeries = targetAllocation?.seriesByRange?.[rangeKey] || strategy.seriesByRange?.[rangeKey] || [];
+          const seriesPayload = buildRangePayload(sourceSeries, rangeKey);
 
-      if (chartInstance) chartInstance.destroy();
+          if (seriesPayload.labels.length && seriesPayload.data.length) payload = seriesPayload;
+          currencyForValue = targetAllocation?.currency || strategy.currency || baseCurrency;
+
+          if (targetAllocation) {
+            changePct = computeAllocationReturn(targetAllocation);
+            label = targetAllocation.label || `${formatStartDateLabel(targetAllocation.start_date)} allocation`;
+          } else {
+            changePct = Number.isFinite(strategy.returnPct)
+              ? strategy.returnPct
+              : computeReturnPct(strategy.allocated, strategy.latestValue);
+            label = strategy.name || 'Strategy allocation';
+          }
+
+        }
+
+        if (!Number.isFinite(changePct)) {
+          const first = payload.data[0] || 0;
+          const last = payload.data[payload.data.length - 1] || 0;
+          changePct = first ? ((last - first) / first) * 100 : 0;
+        }
+
+        if (pfChange) {
+          pfChange.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
+          pfChange.classList.toggle('text-green-600', changePct >= 0);
+          pfChange.classList.toggle('text-rose-600', changePct < 0);
+        }
+
+        currentPayload = payload;
+        currentValueCurrency = currencyForValue;
+
+        if (chartInstance) chartInstance.destroy();
 
       chartInstance = new Chart(ctx, {
         type: 'line',
-        data: { labels, datasets },
+        data: { labels: payload.labels, datasets: [
+          {
+            label,
+            data: payload.data,
+            tension: 0.35,
+            borderWidth: 2,
+            borderColor: '#556B2F',
+            backgroundColor: gradient,
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+        ] },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: true }, tooltip: { enabled: true, displayColors: true } },
-          scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } } },
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false }, tooltip: { enabled: true, displayColors: false } },
+          onHover: (_evt, elements) => {
+            if (elements?.length) {
+              applySeekPosition(elements[0].index, { skipTooltip: true });
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', maxTicksLimit: 5, autoSkip: true, maxRotation: 0 },
+            },
+            y: {
+              grid: { color: 'rgba(148, 163, 184, 0.3)' },
+              ticks: { color: '#94a3b8', maxTicksLimit: 5 },
+            },
+          },
         },
       });
-    }
 
+      applySeekPosition(payload.data.length ? payload.data.length - 1 : 0, { skipTooltip: true });
+    }
     const buildLogo = (symbol = '', logoUrl = null, size = 'h-11 w-11', bgTone = 'bg-slate-100') => {
       const clean = (symbol || '—').toString();
       if (logoUrl) {
@@ -1763,14 +1828,12 @@
         .map((asset) => {
           const value = Number(asset.value || 0) || 0;
           const pl = (Number(asset.changePct ?? 0) / 100) * value;
-          const side = pl >= 0 ? 'buy' : 'sell';
           const assetClass = ['BTC', 'ETH', 'SOL'].includes((asset.symbol || '').toUpperCase()) ? 'crypto' : 'stocks';
           return {
             symbol: asset.symbol,
             name: asset.name || asset.symbol,
             value,
             pl,
-            side,
             class: assetClass,
             logo: asset.logo || null,
           };
@@ -1782,13 +1845,11 @@
       if (!positionsBody) return;
       positionsBody.innerHTML = '';
       const classFilter = (positionAssetClass?.value || 'all').toLowerCase();
-      const sideFilter = (positionSide?.value || 'all').toLowerCase();
       positionsCache = Array.isArray(data) ? data : [];
 
       const filtered = positionsCache.filter((row) => {
         const classOk = classFilter === 'all' || row.class === classFilter;
-        const sideOk = sideFilter === 'all' || row.side === sideFilter;
-        return classOk && sideOk;
+        return classOk;
       });
 
       if (!filtered.length) {
@@ -1817,6 +1878,46 @@
         `;
         positionsBody.appendChild(tr);
       });
+    }
+
+    function filterFallbackHoldings(strategyId = null) {
+      if (!strategyId) return fallbackHoldings;
+      const strat = fallbackStrategies.find((row) => String(row.id) === String(strategyId));
+      if (!strat) return fallbackHoldings;
+      const matches = fallbackHoldings.filter((holding) =>
+        (holding.breakdown || []).some(
+          (item) => (item.strategyName || '').toLowerCase() === (strat.name || '').toLowerCase()
+        )
+      );
+      return matches.length ? matches : fallbackHoldings;
+    }
+
+    function getStrategyHoldings(strategyId = null) {
+      const allocations = Array.isArray(cachedAllocations) ? cachedAllocations : [];
+      const hasAllocations = allocations.length > 0;
+
+      if (strategyId && hasAllocations) {
+        const scoped = allocations.filter((row) => String(row?.strategy_id) === String(strategyId));
+        const { holdings, currency } = aggregateHoldings(scoped);
+        if (holdings.length) return { holdings, currency: currency || baseCurrency };
+      }
+
+      if (hasAllocations) {
+        const { holdings, currency } = aggregateHoldings(allocations);
+        if (holdings.length) return { holdings, currency: currency || baseCurrency };
+      }
+
+      return { holdings: filterFallbackHoldings(strategyId), currency: baseCurrency };
+    }
+
+    function renderHoldingsForSelected() {
+      const { holdings: scopedHoldings, currency } = getStrategyHoldings(selectedStrategyId);
+      const currencyToUse = currency || baseCurrency;
+
+      renderHoldingsView(scopedHoldings, currencyToUse);
+      renderHoldingsCarousel(scopedHoldings, currencyToUse);
+      positionsCache = buildPositionsFromHoldings(scopedHoldings);
+      renderTopPositions(positionsCache, currencyToUse);
     }
 
     function buildOrdersFromHoldings(data = []) {
@@ -1904,49 +2005,33 @@
         const allocations = await fetchDemoAllocations(currentUserId || '');
         cachedAllocations = allocations;
         let holdingsSet = fallbackHoldings;
-        let metricsMap = new Map();
 
         if (allocations.length) {
-          const strategyIds = allocations.map((row) => row?.strategy_id).filter(Boolean);
-          metricsMap = await fetchStrategyMetrics(strategyIds);
-          cachedMetricsMap = metricsMap;
-          const { holdings, currency } = aggregateHoldings(allocations, metricsMap);
+          const { holdings, currency } = aggregateHoldings(allocations);
           baseCurrency = currency || baseCurrency;
           holdingsSet = holdings.length ? holdings : fallbackHoldings;
           updateStatsFromAllocations(allocations, baseCurrency);
         } else {
           const fallbackRows = fallbackStrategies.map((item) => ({
             amount_invested: item.allocated || 0,
-              latest_value: (item.latestValue ?? item.allocated) || 0,
+            latest_value: (item.latestValue ?? item.allocated) || 0,
             base_currency: item.currency || baseCurrency,
           }));
           updateStatsFromAllocations(fallbackRows, baseCurrency);
         }
-
-        positionsCache = buildPositionsFromHoldings(holdingsSet);
-        renderTopPositions(positionsCache, baseCurrency);
-        ordersCache = buildOrdersFromHoldings(holdingsSet);
-        renderOrdersTable(ordersCache);
-
-        renderHoldingsView(holdingsSet, baseCurrency);
-        renderHoldingsCarousel(holdingsSet, baseCurrency);
-        const strategyData = buildStrategySpotlights(allocations, metricsMap);
+        const strategyData = buildStrategySpotlights(allocations);
         strategySpotlights = strategyData.length ? strategyData : [];
-        renderStrategySpotlight(strategyIndex);
-
-        strategySeriesMap = buildStrategySeries(allocations, metricsMap);
+        strategySeriesMap = buildStrategySeries(allocations);
         if (!selectedStrategyId || !strategySeriesMap.has(selectedStrategyId)) {
           selectedStrategyId = strategySeriesMap.keys().next().value || null;
         }
-        renderEquityChart(currentRange);
+        renderStrategySpotlight(strategyIndex);
+
+        const scoped = getStrategyHoldings(selectedStrategyId);
+        ordersCache = buildOrdersFromHoldings(scoped.holdings.length ? scoped.holdings : holdingsSet);
+        renderOrdersTable(ordersCache);
       } catch (error) {
         console.warn('Top holdings load failed; showing fallback', error);
-        positionsCache = buildPositionsFromHoldings(fallbackHoldings);
-        renderTopPositions(positionsCache, baseCurrency);
-        ordersCache = buildOrdersFromHoldings(fallbackHoldings);
-        renderOrdersTable(ordersCache);
-        renderHoldingsView(fallbackHoldings, baseCurrency);
-        renderHoldingsCarousel(fallbackHoldings, baseCurrency);
         const fallbackRows = fallbackStrategies.map((item) => ({
           amount_invested: item.allocated || 0,
           latest_value: (item.latestValue ?? item.allocated) || 0,
@@ -1954,10 +2039,13 @@
         }));
         updateStatsFromAllocations(fallbackRows, baseCurrency);
         strategySpotlights = [];
-        renderStrategySpotlight(strategyIndex);
-        strategySeriesMap = buildStrategySeries([], new Map());
+          strategySeriesMap = buildStrategySeries([]);
         selectedStrategyId = strategySeriesMap.keys().next().value || null;
-        renderEquityChart(currentRange);
+        renderStrategySpotlight(strategyIndex);
+
+        const scoped = getStrategyHoldings(selectedStrategyId);
+        ordersCache = buildOrdersFromHoldings(scoped.holdings);
+        renderOrdersTable(ordersCache);
       }
     }
 
@@ -1980,33 +2068,104 @@
       return series;
     }
 
-    function buildRangePayload(series = [], rangeKey = '1Y') {
+    function normalizeSeriesPoints(series = []) {
       const arr = Array.isArray(series) ? series : [];
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const take = (n) => (n > 0 ? arr.slice(-n) : []);
-      if (!arr.length) {
-        return { labels: months.slice(0, 7), data: [14650, 14690, 14710, 14780, 14810, 14840, 14860] };
+      const points = arr
+        .map((item, idx) => {
+          if (Number.isFinite(item)) {
+            return { date: idx, value: Number(item) };
+          }
+          if (item && typeof item === 'object') {
+            const value = Number(item.value ?? item.equity ?? item.amount ?? item.val ?? item.y);
+            if (!Number.isFinite(value)) return null;
+            const date = item.date || item.ts || item.label || item.time || item.x || item.asof || idx;
+            return { date, value };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      if (!points.length) return [];
+
+      const sortable = points.every((pt) => pt.date && !Number.isNaN(Date.parse(pt.date)));
+      if (sortable) {
+        return [...points].sort((a, b) => new Date(a.date) - new Date(b.date));
       }
 
-      switch (rangeKey) {
-        case '1D': {
-          const slice = take(7);
-          const labels = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM'].slice(-slice.length);
-          return { labels, data: slice };
-        }
-        case '1M': {
-          const slice = take(4);
-          return { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'].slice(-slice.length), data: slice };
-        }
-        case 'ALL': {
-          const labels = Array.from({ length: arr.length }, (_, i) => `M${i + 1}`);
-          return { labels, data: arr };
-        }
-        default: {
-          const slice = take(12);
-          return { labels: months.slice(0, slice.length), data: slice };
-        }
+      return points;
+    }
+
+    function formatSeriesLabel(value, rangeKey = '1Y') {
+      if (value == null) return '';
+      const asDate = new Date(value);
+      if (!Number.isNaN(asDate.getTime())) {
+        const opts = ['1M', '3M', '6M', 'YTD'].includes(rangeKey)
+          ? { month: 'short', day: '2-digit' }
+          : { month: 'short', year: 'numeric' };
+        return asDate.toLocaleDateString('en-US', opts);
       }
+      return value.toString();
+    }
+
+    function scaleSeriesPoints(points = [], targetEndValue = 0) {
+      const arr = Array.isArray(points) ? points : [];
+      if (!arr.length || !targetEndValue) return arr;
+      const base = arr[arr.length - 1]?.value;
+      if (!Number.isFinite(base) || base === 0) return arr;
+      const factor = Number(targetEndValue) / base;
+      return arr.map((pt) => ({ ...pt, value: Number((pt.value * factor).toFixed(2)) }));
+    }
+
+    function combineSeriesByDate(seriesSets = [], fallback = []) {
+      const allSeries = Array.isArray(seriesSets) ? seriesSets.flatMap((set) => (Array.isArray(set) ? set : [])) : [];
+      const dateMap = new Map();
+
+      allSeries.forEach((pt) => {
+        const value = Number(pt?.value ?? 0);
+        if (!Number.isFinite(value)) return;
+        const rawDate = pt?.date ?? pt?.label ?? pt?.x ?? '';
+        const parsed = rawDate && !Number.isNaN(Date.parse(rawDate)) ? new Date(rawDate) : null;
+        const key = parsed ? parsed.toISOString().slice(0, 10) : String(rawDate || '');
+        if (!key) return;
+        dateMap.set(key, (dateMap.get(key) || 0) + value);
+      });
+
+      if (!dateMap.size) return fallback;
+
+      const combined = Array.from(dateMap.entries()).map(([date, value]) => ({ date, value }));
+      const sortable = combined.every((pt) => pt.date && !Number.isNaN(Date.parse(pt.date)));
+      if (sortable) combined.sort((a, b) => new Date(a.date) - new Date(b.date));
+      return combined;
+    }
+
+    function buildAllocationSeriesByRange(allocation = {}, fallbackBase = []) {
+      const ranges = {
+        '1M': normalizeSeriesPoints(allocation?.series_1m),
+        '3M': normalizeSeriesPoints(allocation?.series_3m),
+        '6M': normalizeSeriesPoints(allocation?.series_6m),
+        YTD: normalizeSeriesPoints(allocation?.series_ytd),
+        '1Y': normalizeSeriesPoints(allocation?.series_1y),
+        '3Y': normalizeSeriesPoints(allocation?.series_3y),
+      };
+
+      const targetValue = allocation?.latest_value ?? allocation?.amount_invested ?? 0;
+
+      Object.keys(ranges).forEach((rangeKey) => {
+        if (!ranges[rangeKey].length) {
+          ranges[rangeKey] = scaleSeriesPoints(fallbackBase, targetValue);
+        }
+      });
+
+      return ranges;
+    }
+
+    function buildRangePayload(series = [], rangeKey = '1Y') {
+      const points = normalizeSeriesPoints(series);
+      if (!points.length) return { labels: [], data: [] };
+
+      const labels = points.map((pt, idx) => formatSeriesLabel(pt.date ?? idx, rangeKey) || `Point ${idx + 1}`);
+      const data = points.map((pt) => Number(pt.value || 0));
+      return { labels, data };
     }
 
     function alignData(baseLength = 0, values = []) {
@@ -2018,7 +2177,7 @@
       return [...Array(baseLength - trimmed.length).fill(padValue), ...trimmed];
     }
 
-    function buildStrategySeries(allocations = [], metricsMap = new Map()) {
+    function buildStrategySeries(allocations = []) {
       const grouped = new Map();
 
       allocations.forEach((allocation, idx) => {
@@ -2035,11 +2194,16 @@
           allocated: 0,
           latestValue: 0,
           allocations: [],
+          weightedReturn: 0,
         };
 
         group.allocated += Number(allocation?.amount_invested ?? 0) || 0;
         group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
         group.currency = allocation?.base_currency || group.currency;
+        const allocReturn = computeAllocationReturn(allocation);
+        if (Number.isFinite(allocReturn)) {
+          group.weightedReturn += (Number(allocation?.amount_invested) || 0) * allocReturn;
+        }
         group.allocations.push({ ...allocation, label: name || `Allocation ${idx + 1}` });
 
         grouped.set(strategyId, group);
@@ -2064,18 +2228,53 @@
 
       const map = new Map();
       grouped.forEach((group, id) => {
-        const series = generateSeries(group.latestValue || group.allocated || 10000);
-        const baselineSeries = series.map((val, i) => Number((val * (1 + 0.002 * Math.sin(i / 1.5))).toFixed(2)));
-        const allocationsSeries = group.allocations.map((alloc, idx) => ({
-          id: alloc.id || `${id}-alloc-${idx}`,
-          label: alloc.label || alloc.strategies?.name || alloc.strategies?.code || `Allocation ${idx + 1}`,
-          series: generateSeries(alloc.latest_value || alloc.amount_invested || group.allocated / Math.max(group.allocations.length, 1) || 1000),
-          currency: alloc.base_currency || group.currency,
-          logo: metricsMap.get(alloc.strategy_id)?.portfolio_holdings?.[0]?.logo || null,
-        }));
+        const baseFallback = generateSeries(group.latestValue || group.allocated || 10000).map((value, idx) => ({ date: idx, value }));
 
-        map.set(id, { id, name: group.name, code: group.code, currency: group.currency, series, baselineSeries, allocations: allocationsSeries });
-      });
+        const aggregatedSeriesByRange = { '1M': [], '3M': [], '6M': [], YTD: [], '1Y': [], '3Y': [] };
+
+          const allocationsSeries = group.allocations.map((alloc, idx) => {
+            const allocLabel = alloc.label || `${formatStartDateLabel(alloc.start_date)} allocation`;
+            const allocationSeriesByRange = buildAllocationSeriesByRange(alloc, baseFallback);
+            Object.entries(allocationSeriesByRange).forEach(([rangeKey, points]) => {
+              aggregatedSeriesByRange[rangeKey].push(points);
+            });
+
+            return {
+              ...alloc,
+              id: alloc.id || `${id}-alloc-${idx}`,
+              label: allocLabel,
+              seriesByRange: allocationSeriesByRange,
+              currency: alloc.base_currency || group.currency,
+              logo: alloc.logo || null,
+              returnPct: computeAllocationReturn(alloc),
+            };
+          });
+
+        const seriesByRange = {};
+        Object.keys(aggregatedSeriesByRange).forEach((rangeKey) => {
+          const fallbackScaled = scaleSeriesPoints(baseFallback, group.latestValue || group.allocated || 0);
+          const merged = combineSeriesByDate(aggregatedSeriesByRange[rangeKey], fallbackScaled);
+          seriesByRange[rangeKey] = merged.length ? merged : fallbackScaled;
+        });
+
+          const aggregatedReturn = group.allocated
+            ? group.weightedReturn / group.allocated
+            : computeReturnPct(group.allocated, group.latestValue);
+
+          map.set(id, {
+            id,
+            name: group.name,
+            code: group.code,
+            currency: group.currency,
+            allocated: group.allocated,
+            latestValue: group.latestValue,
+            returnPct: Number.isFinite(aggregatedReturn)
+              ? aggregatedReturn
+              : computeReturnPct(group.allocated, group.latestValue),
+            seriesByRange,
+            allocations: allocationsSeries,
+          });
+        });
 
       return map;
     }
@@ -2101,7 +2300,7 @@
       return winner;
     }
 
-    function buildStrategySpotlights(allocations = [], metricsMap = new Map()) {
+    function buildStrategySpotlights(allocations = []) {
       const grouped = new Map();
 
       allocations.forEach((allocation) => {
@@ -2117,16 +2316,21 @@
           latestValue: 0,
           currency: allocation?.base_currency || baseCurrency,
           topAsset: null,
+          weightedReturn: 0,
         };
 
         group.allocationsCount += 1;
         group.allocated += Number(allocation?.amount_invested ?? 0) || 0;
         group.latestValue += Number(allocation?.latest_value ?? allocation?.amount_invested ?? 0) || 0;
         group.currency = allocation?.base_currency || group.currency;
+        const allocReturn = computeAllocationReturn(allocation);
+        if (Number.isFinite(allocReturn)) {
+          group.weightedReturn += (Number(allocation?.amount_invested) || 0) * allocReturn;
+        }
 
-        const metrics = metricsMap.get(strategyId);
-        if (metrics?.portfolio_holdings) {
-          const top = deriveTopAsset(metrics.portfolio_holdings);
+        const holdings = Array.isArray(allocation?.portfolio_holdings) ? allocation.portfolio_holdings : [];
+        if (holdings.length) {
+          const top = deriveTopAsset(holdings);
           if (top) group.topAsset = top;
         }
 
@@ -2135,7 +2339,9 @@
 
       return Array.from(grouped.values()).map((item) => ({
         ...item,
-        returnPct: computeReturnPct(item.allocated, item.latestValue),
+        returnPct: item.allocated && Number.isFinite(item.weightedReturn / item.allocated)
+          ? item.weightedReturn / item.allocated
+          : computeReturnPct(item.allocated, item.latestValue),
         topAsset: item.topAsset || { symbol: '—', logo: null, changePct: null },
       }));
     }
@@ -2162,6 +2368,38 @@
       }
     }
 
+    function renderAllocationOptions(strategy) {
+      if (!pfAllocationSelect) return;
+      const allocations = strategy?.allocations || [];
+      const previous = pfAllocationSelect.value || selectedAllocationId;
+      pfAllocationSelect.innerHTML = '';
+
+      if (!allocations.length) {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'No allocations';
+        pfAllocationSelect.appendChild(placeholder);
+        pfAllocationSelect.value = '';
+        selectedAllocationId = null;
+        pfAllocationSelect.disabled = true;
+        return;
+      }
+
+      allocations.forEach((alloc) => {
+        const opt = document.createElement('option');
+        opt.value = alloc.id || alloc.label;
+        const allocLabel = `${formatStartDateLabel(alloc.start_date)} allocation`;
+        opt.textContent = allocLabel;
+        pfAllocationSelect.appendChild(opt);
+      });
+
+      const nextMatch = allocations.find((alloc) => String(alloc.id) === String(previous)) || allocations[0];
+      const next = nextMatch?.id || nextMatch?.label || '';
+      pfAllocationSelect.value = next;
+      selectedAllocationId = next || null;
+      pfAllocationSelect.disabled = allocations.length === 0;
+    }
+
     function renderStrategySpotlight(index = 0) {
       const list = (strategySpotlights.length ? strategySpotlights : fallbackStrategies).map((item) => ({
         ...item,
@@ -2180,14 +2418,21 @@
       if (strategyCodeEl) strategyCodeEl.textContent = current?.code ? `Code: ${current.code}` : 'demo_allocation';
       if (strategyAllocationsEl) strategyAllocationsEl.textContent = `${current?.allocationsCount || 0}`;
       if (strategyAllocatedEl) strategyAllocatedEl.textContent = formatCurrency(current?.allocated || 0, current?.currency || baseCurrency);
-      if (strategyReturnEl) strategyReturnEl.textContent = `${Number(current?.returnPct || 0).toFixed(2)}%`;
+      if (strategyReturnEl) {
+        const ret = Number(current?.returnPct || 0);
+        strategyReturnEl.textContent = `${ret.toFixed(2)}%`;
+        strategyReturnEl.classList.toggle('text-emerald-700', ret >= 0);
+        strategyReturnEl.classList.toggle('text-rose-700', ret < 0);
+      }
 
       if (current?.id) {
         selectedStrategyId = current.id;
+        renderAllocationOptions(strategySeriesMap.get(current.id));
         renderEquityChart(currentRange);
       }
 
       renderTopAsset(current?.topAsset);
+      renderHoldingsForSelected();
     }
 
     function wireStrategyNav() {
@@ -2206,7 +2451,12 @@
 
     function wirePortfolioCard() {
       pfTabs.forEach((btn) => {
-        btn.addEventListener('click', () => renderEquityChart(btn.dataset.range || '1D'));
+        btn.addEventListener('click', () => renderEquityChart(btn.dataset.range || '1M'));
+      });
+
+      pfAllocationSelect?.addEventListener('change', (event) => {
+        selectedAllocationId = event.target.value || null;
+        renderEquityChart(currentRange);
       });
 
       pfRefresh?.addEventListener('click', () => renderEquityChart(currentRange));
@@ -2318,7 +2568,6 @@
 
     function wireTableControls() {
       positionAssetClass?.addEventListener('change', () => renderTopPositions(positionsCache, baseCurrency));
-      positionSide?.addEventListener('change', () => renderTopPositions(positionsCache, baseCurrency));
       ordersSearch?.addEventListener('input', () => renderOrdersTable(ordersCache));
       chkAll?.addEventListener('change', () => {
         const shouldCheck = chkAll.checked;
