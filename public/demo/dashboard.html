@@ -904,9 +904,9 @@
               </div>
               <div class="ml-auto inline-flex items-center gap-2 text-sm text-slate-600">
                 <label for="pf-allocation" class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">View</label>
-                <select id="pf-allocation" class="h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-200">
-                  <option value="portfolio">Portfolio total</option>
-                </select>
+                <select id="pf-allocation" class="h-9 rounded-lg border border-slate-200 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"></select>
+                <label for="pf-seek" class="text-xs uppercase tracking-[0.08em] text-slate-500 font-semibold">Seek</label>
+                <input id="pf-seek" type="range" min="0" value="0" step="1" class="w-28 accent-olive-700" />
               </div>
             </div>
             <div class="px-2 pb-4 pt-2">
@@ -1135,6 +1135,7 @@
     const pfUpdated = document.getElementById('pf-updated');
     const pfTabs = Array.from(document.querySelectorAll('#portfolio-card .tab'));
     const pfAllocationSelect = document.getElementById('pf-allocation');
+    const pfSeek = document.getElementById('pf-seek');
     const pfChart = document.getElementById('pf-chart');
     const pfRefresh = document.getElementById('pf-refresh');
     const holdTrack = document.getElementById('hold-track');
@@ -1249,7 +1250,9 @@
       let strategyIndex = 0;
       let strategySeriesMap = new Map();
       let selectedStrategyId = null;
-      let selectedAllocationId = 'portfolio';
+      let selectedAllocationId = null;
+      let currentPayload = { labels: [], data: [] };
+      let currentValueCurrency = baseCurrency;
 
       const computeAllocationReturn = (allocation = {}) => {
         const explicit = Number(allocation?.latest_return_pct);
@@ -1370,6 +1373,46 @@
 
     let chartInstance = null;
     let currentRange = '1Y';
+
+    function applySeekPosition(index = null) {
+      const payload = Array.isArray(currentPayload?.data) ? currentPayload : { labels: [], data: [] };
+      if (payload.data.length === 0) {
+        if (pfSeek) {
+          pfSeek.value = 0;
+          pfSeek.max = 0;
+          pfSeek.disabled = true;
+        }
+        return;
+      }
+
+      const maxIndex = payload.data.length - 1;
+      const desired = index ?? pfSeek?.value ?? maxIndex;
+      const safeIndex = Math.min(Math.max(Number(desired) || 0, 0), maxIndex);
+
+      if (pfSeek) {
+        pfSeek.max = maxIndex;
+        pfSeek.value = safeIndex;
+        pfSeek.disabled = maxIndex <= 0;
+      }
+
+      const value = Number(payload.data[safeIndex] ?? payload.data[maxIndex] ?? 0);
+      const label = payload.labels[safeIndex] ?? payload.labels[maxIndex];
+
+      if (pfValue) pfValue.textContent = formatCurrency(value, currentValueCurrency || baseCurrency);
+
+      if (pfUpdated) {
+        const parsed = label && !Number.isNaN(Date.parse(label)) ? new Date(label) : null;
+        pfUpdated.textContent = parsed
+          ? parsed.toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+          : label || new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      }
+
+      if (chartInstance?.tooltip?.setActiveElements) {
+        chartInstance.setActiveElements([{ datasetIndex: 0, index: safeIndex }]);
+        chartInstance.tooltip.setActiveElements([{ datasetIndex: 0, index: safeIndex }], { x: 0, y: 0 });
+        chartInstance.update();
+      }
+    }
 
     function formatCurrency(value = 0, currency = 'USD') {
       try {
@@ -1582,14 +1625,16 @@
         let currencyForValue = baseCurrency;
         let label = 'Demo allocation';
         let changePct = 0;
-        let displayValue = payload.data[payload.data.length - 1] || 0;
-        let lastDateLabel = payload.labels[payload.labels.length - 1];
 
         if (strategy) {
-          const targetAllocation =
-            selectedAllocationId === 'portfolio'
-              ? null
-              : (strategy.allocations || []).find((item) => String(item.id) === String(selectedAllocationId));
+          const allocations = strategy.allocations || [];
+          const matched = allocations.find((item) => String(item.id) === String(selectedAllocationId));
+          const targetAllocation = matched || allocations[0] || null;
+
+          if (targetAllocation && !matched) {
+            selectedAllocationId = targetAllocation.id || targetAllocation.label || null;
+            if (pfAllocationSelect) pfAllocationSelect.value = selectedAllocationId || '';
+          }
 
           const sourceSeries = targetAllocation?.seriesByRange?.[rangeKey] || strategy.seriesByRange?.[rangeKey] || [];
           const seriesPayload = buildRangePayload(sourceSeries, rangeKey);
@@ -1600,17 +1645,14 @@
 
           if (targetAllocation) {
             changePct = computeAllocationReturn(targetAllocation);
-            displayValue = Number(targetAllocation.latest_value ?? payload.data[payload.data.length - 1] ?? 0) || 0;
             label = targetAllocation.label || `${formatStartDateLabel(targetAllocation.start_date)} allocation`;
           } else {
             changePct = Number.isFinite(strategy.returnPct)
               ? strategy.returnPct
               : computeReturnPct(strategy.allocated, strategy.latestValue);
-            displayValue = Number(strategy.latestValue ?? payload.data[payload.data.length - 1] ?? 0) || 0;
-            label = `${strategy.name || 'Strategy'} (Portfolio total)`;
+            label = strategy.name || 'Strategy allocation';
           }
 
-          lastDateLabel = lastPoint?.date || payload.labels[payload.labels.length - 1];
         }
 
         if (!Number.isFinite(changePct)) {
@@ -1619,18 +1661,14 @@
           changePct = first ? ((last - first) / first) * 100 : 0;
         }
 
-        if (pfValue) pfValue.textContent = formatCurrency(displayValue, currencyForValue);
         if (pfChange) {
           pfChange.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
           pfChange.classList.toggle('text-green-600', changePct >= 0);
           pfChange.classList.toggle('text-rose-600', changePct < 0);
         }
-        if (pfUpdated) {
-          const parsed = lastDateLabel ? new Date(lastDateLabel) : null;
-          pfUpdated.textContent = parsed && !Number.isNaN(parsed.getTime())
-            ? parsed.toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-            : lastDateLabel || new Date().toLocaleString('en-ZA', { month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        }
+
+        currentPayload = payload;
+        currentValueCurrency = currencyForValue;
 
         if (chartInstance) chartInstance.destroy();
 
@@ -1655,6 +1693,8 @@
           scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(148, 163, 184, 0.3)' }, ticks: { color: '#94a3b8', maxTicksLimit: 4 } } },
         },
       });
+
+      applySeekPosition(payload.data.length ? payload.data.length - 1 : 0);
     }
     const buildLogo = (symbol = '', logoUrl = null, size = 'h-11 w-11', bgTone = 'bg-slate-100') => {
       const clean = (symbol || '—').toString();
@@ -2322,25 +2362,32 @@
     function renderAllocationOptions(strategy) {
       if (!pfAllocationSelect) return;
       const allocations = strategy?.allocations || [];
-      const previous = pfAllocationSelect.value || 'portfolio';
+      const previous = pfAllocationSelect.value || selectedAllocationId;
       pfAllocationSelect.innerHTML = '';
 
-      const baseOption = document.createElement('option');
-      baseOption.value = 'portfolio';
-      baseOption.textContent = 'Portfolio total';
-      pfAllocationSelect.appendChild(baseOption);
+      if (!allocations.length) {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'No allocations';
+        pfAllocationSelect.appendChild(placeholder);
+        pfAllocationSelect.value = '';
+        selectedAllocationId = null;
+        pfAllocationSelect.disabled = true;
+        return;
+      }
 
-        allocations.forEach((alloc) => {
-          const opt = document.createElement('option');
-          opt.value = alloc.id || alloc.label;
-          const allocLabel = `${formatStartDateLabel(alloc.start_date)} allocation`;
-          opt.textContent = allocLabel;
-          pfAllocationSelect.appendChild(opt);
-        });
+      allocations.forEach((alloc) => {
+        const opt = document.createElement('option');
+        opt.value = alloc.id || alloc.label;
+        const allocLabel = `${formatStartDateLabel(alloc.start_date)} allocation`;
+        opt.textContent = allocLabel;
+        pfAllocationSelect.appendChild(opt);
+      });
 
-      const next = allocations.some((alloc) => String(alloc.id) === String(previous)) ? previous : 'portfolio';
+      const nextMatch = allocations.find((alloc) => String(alloc.id) === String(previous)) || allocations[0];
+      const next = nextMatch?.id || nextMatch?.label || '';
       pfAllocationSelect.value = next;
-      selectedAllocationId = next;
+      selectedAllocationId = next || null;
       pfAllocationSelect.disabled = allocations.length === 0;
     }
 
@@ -2399,9 +2446,11 @@
       });
 
       pfAllocationSelect?.addEventListener('change', (event) => {
-        selectedAllocationId = event.target.value || 'portfolio';
+        selectedAllocationId = event.target.value || null;
         renderEquityChart(currentRange);
       });
+
+      pfSeek?.addEventListener('input', () => applySeekPosition());
 
       pfRefresh?.addEventListener('click', () => renderEquityChart(currentRange));
     }
