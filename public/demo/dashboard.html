@@ -1819,6 +1819,46 @@
       });
     }
 
+    function filterFallbackHoldings(strategyId = null) {
+      if (!strategyId) return fallbackHoldings;
+      const strat = fallbackStrategies.find((row) => String(row.id) === String(strategyId));
+      if (!strat) return fallbackHoldings;
+      const matches = fallbackHoldings.filter((holding) =>
+        (holding.breakdown || []).some(
+          (item) => (item.strategyName || '').toLowerCase() === (strat.name || '').toLowerCase()
+        )
+      );
+      return matches.length ? matches : fallbackHoldings;
+    }
+
+    function getStrategyHoldings(strategyId = null) {
+      const allocations = Array.isArray(cachedAllocations) ? cachedAllocations : [];
+      const hasAllocations = allocations.length > 0;
+
+      if (strategyId && hasAllocations) {
+        const scoped = allocations.filter((row) => String(row?.strategy_id) === String(strategyId));
+        const { holdings, currency } = aggregateHoldings(scoped, cachedMetricsMap);
+        if (holdings.length) return { holdings, currency: currency || baseCurrency };
+      }
+
+      if (hasAllocations) {
+        const { holdings, currency } = aggregateHoldings(allocations, cachedMetricsMap);
+        if (holdings.length) return { holdings, currency: currency || baseCurrency };
+      }
+
+      return { holdings: filterFallbackHoldings(strategyId), currency: baseCurrency };
+    }
+
+    function renderHoldingsForSelected() {
+      const { holdings: scopedHoldings, currency } = getStrategyHoldings(selectedStrategyId);
+      const currencyToUse = currency || baseCurrency;
+
+      renderHoldingsView(scopedHoldings, currencyToUse);
+      renderHoldingsCarousel(scopedHoldings, currencyToUse);
+      positionsCache = buildPositionsFromHoldings(scopedHoldings);
+      renderTopPositions(positionsCache, currencyToUse);
+    }
+
     function buildOrdersFromHoldings(data = []) {
       const holdings = Array.isArray(data) ? data.slice(0, 4) : [];
       if (!holdings.length) return [...fallbackOrders];
@@ -1917,36 +1957,24 @@
         } else {
           const fallbackRows = fallbackStrategies.map((item) => ({
             amount_invested: item.allocated || 0,
-              latest_value: (item.latestValue ?? item.allocated) || 0,
+            latest_value: (item.latestValue ?? item.allocated) || 0,
             base_currency: item.currency || baseCurrency,
           }));
           updateStatsFromAllocations(fallbackRows, baseCurrency);
         }
-
-        positionsCache = buildPositionsFromHoldings(holdingsSet);
-        renderTopPositions(positionsCache, baseCurrency);
-        ordersCache = buildOrdersFromHoldings(holdingsSet);
-        renderOrdersTable(ordersCache);
-
-        renderHoldingsView(holdingsSet, baseCurrency);
-        renderHoldingsCarousel(holdingsSet, baseCurrency);
         const strategyData = buildStrategySpotlights(allocations, metricsMap);
         strategySpotlights = strategyData.length ? strategyData : [];
-        renderStrategySpotlight(strategyIndex);
-
         strategySeriesMap = buildStrategySeries(allocations, metricsMap);
         if (!selectedStrategyId || !strategySeriesMap.has(selectedStrategyId)) {
           selectedStrategyId = strategySeriesMap.keys().next().value || null;
         }
-        renderEquityChart(currentRange);
+        renderStrategySpotlight(strategyIndex);
+
+        const scoped = getStrategyHoldings(selectedStrategyId);
+        ordersCache = buildOrdersFromHoldings(scoped.holdings.length ? scoped.holdings : holdingsSet);
+        renderOrdersTable(ordersCache);
       } catch (error) {
         console.warn('Top holdings load failed; showing fallback', error);
-        positionsCache = buildPositionsFromHoldings(fallbackHoldings);
-        renderTopPositions(positionsCache, baseCurrency);
-        ordersCache = buildOrdersFromHoldings(fallbackHoldings);
-        renderOrdersTable(ordersCache);
-        renderHoldingsView(fallbackHoldings, baseCurrency);
-        renderHoldingsCarousel(fallbackHoldings, baseCurrency);
         const fallbackRows = fallbackStrategies.map((item) => ({
           amount_invested: item.allocated || 0,
           latest_value: (item.latestValue ?? item.allocated) || 0,
@@ -1954,10 +1982,13 @@
         }));
         updateStatsFromAllocations(fallbackRows, baseCurrency);
         strategySpotlights = [];
-        renderStrategySpotlight(strategyIndex);
         strategySeriesMap = buildStrategySeries([], new Map());
         selectedStrategyId = strategySeriesMap.keys().next().value || null;
-        renderEquityChart(currentRange);
+        renderStrategySpotlight(strategyIndex);
+
+        const scoped = getStrategyHoldings(selectedStrategyId);
+        ordersCache = buildOrdersFromHoldings(scoped.holdings);
+        renderOrdersTable(ordersCache);
       }
     }
 
@@ -2180,7 +2211,12 @@
       if (strategyCodeEl) strategyCodeEl.textContent = current?.code ? `Code: ${current.code}` : 'demo_allocation';
       if (strategyAllocationsEl) strategyAllocationsEl.textContent = `${current?.allocationsCount || 0}`;
       if (strategyAllocatedEl) strategyAllocatedEl.textContent = formatCurrency(current?.allocated || 0, current?.currency || baseCurrency);
-      if (strategyReturnEl) strategyReturnEl.textContent = `${Number(current?.returnPct || 0).toFixed(2)}%`;
+      if (strategyReturnEl) {
+        const ret = Number(current?.returnPct || 0);
+        strategyReturnEl.textContent = `${ret.toFixed(2)}%`;
+        strategyReturnEl.classList.toggle('text-emerald-700', ret >= 0);
+        strategyReturnEl.classList.toggle('text-rose-700', ret < 0);
+      }
 
       if (current?.id) {
         selectedStrategyId = current.id;
@@ -2188,6 +2224,7 @@
       }
 
       renderTopAsset(current?.topAsset);
+      renderHoldingsForSelected();
     }
 
     function wireStrategyNav() {
