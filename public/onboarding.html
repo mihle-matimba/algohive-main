@@ -2018,6 +2018,12 @@
                 badgeText: "Not started",
                 text: "Submit your disclosures to generate a brokerage profile.",
             },
+            checking: {
+                badgeClass:
+                    "inline-flex items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-blue-700",
+                badgeText: "Checking",
+                text: "Looking for an existing brokerage account…",
+            },
             submitting: {
                 badgeClass:
                     "inline-flex items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-amber-700",
@@ -3126,7 +3132,7 @@
             }
 
             if (nextValue === 6) {
-                primeBrokerageStep();
+                primeBrokerageStep({ silent: false });
             }
 
             syncStepIndicators();
@@ -3746,6 +3752,15 @@
             }
         }
 
+        function describeExistingBrokerageAccount() {
+            const parts = [];
+            if (alpacaAccountNumber) parts.push(`Account number: ${alpacaAccountNumber}`);
+            if (alpacaAccountId && !alpacaAccountNumber) parts.push(`Account ID: ${alpacaAccountId}`);
+            if (alpacaAccountStatus) parts.push(`Status: ${alpacaAccountStatus}`);
+            if (!parts.length) return "Brokerage account already exists.";
+            return `Brokerage account already exists (${parts.join(" • ")}).`;
+        }
+
         async function refreshBrokerageFromDb() {
             if (!supabaseUser) return null;
             const emailAddress = (supabaseUser?.email || profileRow?.email || "").trim();
@@ -3777,12 +3792,23 @@
             return data;
         }
 
-        async function primeBrokerageStep() {
+        async function primeBrokerageStep({ silent = true } = {}) {
             if (!supabaseUser) return null;
             if (brokeragePrimePromise) return brokeragePrimePromise;
             brokeragePrimePromise = (async () => {
                 try {
+                    updateAlpacaStatus("checking", { message: "Checking for an existing brokerage account…" });
                     await refreshBrokerageFromDb();
+                    if (alpacaAccountId) {
+                        updateAlpacaStatus("success", {
+                            message: describeExistingBrokerageAccount(),
+                            response: { id: alpacaAccountId, status: alpacaAccountStatus || "on file" },
+                        });
+                    } else if (!silent) {
+                        updateAlpacaStatus("idle", {
+                            message: "No brokerage account found yet. Create one to continue.",
+                        });
+                    }
                 } finally {
                     brokeragePrimePromise = null;
                 }
