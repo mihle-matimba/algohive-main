@@ -1134,6 +1134,28 @@
                                                 <span class="text-xs uppercase tracking-[0.35em] text-slate-400">Sandbox
                                                     submission</span>
                                             </div>
+                                            <div class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                                <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                                    <p class="text-sm font-semibold text-slate-800">Agreements</p>
+                                                    <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Review and
+                                                        check to continue</p>
+                                                </div>
+                                                <div class="space-y-2 text-sm text-slate-700">
+                                                    <template id="alpacaAgreementTemplate">
+                                                        <label class="flex items-start gap-3">
+                                                            <input type="checkbox" class="mt-[6px] h-4 w-4 rounded border-slate-300 text-[var(--olive)] shadow-sm focus:ring-[var(--olive)] focus:ring-offset-0"
+                                                                data-alpaca-agreement />
+                                                            <span class="leading-relaxed">
+                                                                I agree to the
+                                                                <a class="font-semibold text-[var(--olive)] underline decoration-[var(--olive)]/60 decoration-2 underline-offset-4"
+                                                                    href="#" target="_blank" rel="noreferrer noopener"
+                                                                    data-agreement-link></a>
+                                                            </span>
+                                                        </label>
+                                                    </template>
+                                                    <div id="alpacaAgreementsList" class="space-y-2"></div>
+                                                </div>
+                                            </div>
                                             <p id="alpacaAccountExisting" class="hidden text-sm text-slate-600">
                                                 Existing brokerage account number:
                                                 <span id="alpacaAccountIdValue" class="font-semibold text-slate-800"></span>
@@ -1978,6 +2000,8 @@
         const alpacaAchExisting = document.getElementById("alpacaAchExisting");
         const alpacaAchExistingValue = document.getElementById("alpacaAchExistingValue");
         const alpacaAchCreateButton = document.getElementById("alpacaAchCreate");
+        const alpacaAgreementsList = document.getElementById("alpacaAgreementsList");
+        const alpacaAgreementTemplate = document.getElementById("alpacaAgreementTemplate");
         const sumsubIframe = document.getElementById("sumsub-iframe");
         const kycContinueButton = document.querySelector('[data-panel="5"] [data-step-delta="1"][data-save-profile]');
         const samsubLinkMessageDefault = samsubLinkMessage?.textContent || "Verification links expire quickly, so complete the process in one sitting.";
@@ -1989,6 +2013,7 @@
                 syncRangeDisplayForInput(input);
             });
         });
+        renderAlpacaAgreements();
         const SAMSUB_WEBSDK_DEFAULT_TTL = 1400000000; // seconds
         const SAMSUB_WEBSDK_REFRESH_BUFFER_SECS = 120; // regenerate 2 minutes before expiry
         const SAMSUB_LEVEL_NAME = "test-level";
@@ -2009,7 +2034,41 @@
         const ALPACA_ACCOUNT_URL = "https://broker-api.sandbox.alpaca.markets/v1/accounts";
         const ALPACA_DEFAULT_AUTH_HEADER =
             "Basic Q0tITEVEMkhHTUE2TU4zNUQ2WjZRNUFPQzU6RzZyMW9WVXpOQWlkbXVyOERvZmNjRVhlaXloQWdyY2dVTmtWWDZqZEVGc1g=";
-        const ALPACA_REQUIRED_AGREEMENTS = ["account_agreement", "customer_agreement", "margin_agreement"];
+        const ALPACA_AGREEMENTS = [
+            {
+                key: "account_agreement",
+                label: "Alpaca Account Agreement",
+                href: "https://alpaca.markets/legal/account-agreement/",
+                required: true,
+            },
+            {
+                key: "customer_agreement",
+                label: "Alpaca Customer Agreement",
+                href: "https://alpaca.markets/legal/customer-agreement/",
+                required: true,
+            },
+            {
+                key: "margin_agreement",
+                label: "Alpaca Margin Agreement",
+                href: "https://alpaca.markets/legal/margin-agreement/",
+            },
+            {
+                key: "crypto_agreement",
+                label: "Alpaca Crypto Agreement",
+                href: "https://alpaca.markets/legal/crypto-agreement/",
+            },
+            {
+                key: "options_agreement",
+                label: "Alpaca Options Agreement",
+                href: "https://alpaca.markets/legal/options-agreement/",
+            },
+            {
+                key: "custodial_customer_agreement",
+                label: "Alpaca Custodial Customer Agreement",
+                href: "https://alpaca.markets/legal/custodial-customer-agreement/",
+            },
+        ];
+        const ALPACA_REQUIRED_AGREEMENTS = ALPACA_AGREEMENTS.filter(({ required }) => required).map(({ key }) => key);
         const CLIENT_IP_FALLBACK = "0.0.0.0";
         const ALPACA_STATUS_META = {
             idle: {
@@ -2043,6 +2102,28 @@
                 text: "We couldn’t create your brokerage account. Try again or contact AlgoHive support.",
             },
         };
+
+        function renderAlpacaAgreements() {
+            if (!alpacaAgreementsList || !alpacaAgreementTemplate) return;
+            alpacaAgreementsList.innerHTML = "";
+
+            ALPACA_AGREEMENTS.forEach(({ key, label, href, required }) => {
+                const clone = alpacaAgreementTemplate.content.cloneNode(true);
+                const checkbox = clone.querySelector("[data-alpaca-agreement]");
+                const link = clone.querySelector("[data-agreement-link]");
+                if (checkbox) {
+                    checkbox.dataset.alpacaAgreement = key;
+                    if (required) {
+                        checkbox.required = true;
+                    }
+                }
+                if (link) {
+                    link.textContent = label;
+                    link.href = href || "#";
+                }
+                alpacaAgreementsList.appendChild(clone);
+            });
+        }
         let alpacaAccountId = null;
         let alpacaAccountStatus = null;
         let alpacaAccountState = "idle";
@@ -3307,6 +3388,13 @@
                     objectivesGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
                     const firstCb = objectivesGroup?.querySelector('input[name="objectives"]');
                     firstCb?.focus();
+                } else if (firstKey === "alpaca_agreements") {
+                    alpacaAgreementsList?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    const firstCheckbox = alpacaAgreementsList?.querySelector('input[type="checkbox"]');
+                    firstCheckbox?.focus();
+                } else if (firstKey === "kyc_documents") {
+                    kycSelfieInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    kycSelfieInput?.focus();
                 } else if (firstKey === "plan") {
                     planGroup?.scrollIntoView({ behavior: "smooth", block: "center" });
                     const firstPlan = planRadios[0];
@@ -3495,6 +3583,45 @@
             return clientIpLookupPromise;
         }
 
+        function getSelectedAgreements({ clientIp } = {}) {
+            const templateCheckboxes = Array.from(document.querySelectorAll('[data-alpaca-agreement]'));
+            const normalizedIpAddress = (clientIp || clientIpAddress || "").trim() || CLIENT_IP_FALLBACK;
+            const signedAt = new Date().toISOString();
+
+            return templateCheckboxes
+                .filter((checkbox) => checkbox.checked && checkbox.dataset.alpacaAgreement)
+                .map((checkbox) => ({
+                    agreement: checkbox.dataset.alpacaAgreement,
+                    signed_at: signedAt,
+                    ip_address: normalizedIpAddress,
+                    revision: checkbox.dataset.agreementRevision || undefined,
+                }));
+        }
+
+        function buildAlpacaDocuments() {
+            const docs = [];
+            const docSources = [
+                { url: profileRow?.kyc_selfie_url, document_type: "identity_verification", document_sub_type: "selfie" },
+                {
+                    url: profileRow?.kyc_id_document_url,
+                    document_type: "identity_verification",
+                    document_sub_type: "government_id",
+                },
+                {
+                    url: profileRow?.kyc_proof_of_address_url,
+                    document_type: "address_verification",
+                    document_sub_type: "proof_of_address",
+                },
+            ];
+
+            docSources.forEach(({ url, ...rest }) => {
+                if (!url) return;
+                docs.push({ ...rest, download_url: url });
+            });
+
+            return docs;
+        }
+
         function buildAlpacaAccountPayload({ clientIp } = {}) {
             const taxIdTypeValue = document.getElementById("tax_id_type")?.value || null;
             const taxIdValue = getTrimmedValue("tax_id_number") || null;
@@ -3531,6 +3658,11 @@
                 liquid_net_worth_max: getNumericValue("liquid_net_worth_max"),
                 total_net_worth_min: getNumericValue("total_net_worth_min"),
                 total_net_worth_max: getNumericValue("total_net_worth_max"),
+                investment_experience: document.getElementById("experience_level")?.value || null,
+                risk_tolerance: document.getElementById("risk_tolerance")?.value || null,
+                investment_objective: Array.from(document.querySelectorAll('input[name="objectives"]:checked'))
+                    .map((cb) => cb.value)
+                    .join(", "),
             });
 
             const disclosures = {
@@ -3540,12 +3672,8 @@
                 immediate_family_exposed: !!document.getElementById("alpacaFamilyExposed")?.checked,
             };
 
-            const normalizedIpAddress = (clientIp || clientIpAddress || "").trim() || CLIENT_IP_FALLBACK;
-            const agreements = ALPACA_REQUIRED_AGREEMENTS.map((agreement) => ({
-                agreement,
-                signed_at: new Date().toISOString(),
-                ip_address: normalizedIpAddress,
-            }));
+            const agreements = getSelectedAgreements({ clientIp });
+            const documents = buildAlpacaDocuments();
 
             const payload = {
                 identity,
@@ -3559,6 +3687,9 @@
             }
             if (Object.keys(financialInformation).length) {
                 payload.financial_information = financialInformation;
+            }
+            if (documents.length) {
+                payload.documents = documents;
             }
 
             return payload;
@@ -3925,6 +4056,15 @@
             if (!previewPayload.contact?.state) missingFields.push("address_state");
             if (!previewPayload.contact?.postal_code) missingFields.push("address_postal_code");
             if (!previewPayload.financial_information?.funding_source) missingFields.push("source_of_funds");
+
+            const selectedAgreements = getSelectedAgreements();
+            const missingAgreements = ALPACA_REQUIRED_AGREEMENTS.filter(
+                (key) => !selectedAgreements.some((agreement) => agreement.agreement === key),
+            );
+            if (missingAgreements.length) missingFields.push("alpaca_agreements");
+
+            const requiredDocuments = buildAlpacaDocuments();
+            if (requiredDocuments.length < 3) missingFields.push("kyc_documents");
 
             if (missingFields.length) {
                 focusFirstMissing(missingFields);
