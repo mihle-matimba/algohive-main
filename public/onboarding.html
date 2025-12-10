@@ -2057,6 +2057,19 @@
             return alpacaAuthHeader;
         }
 
+        function getPreferredBrokerageEmail() {
+            const candidates = [
+                alpacaAccountProfile?.contact?.email_address,
+                supabaseUser?.email,
+                profileRow?.email,
+                profileRow?.email_address,
+            ];
+            for (const candidate of candidates) {
+                if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+            }
+            return "";
+        }
+
         function deriveBrokerageAccountId(payload) {
             const candidates = [payload?.id, payload?.account_id, payload?.accountId];
             for (const candidate of candidates) {
@@ -2100,7 +2113,8 @@
 
         async function fetchExistingBrokerageAccountFromApi(emailAddress) {
             if (!emailAddress) return null;
-            const searchUrl = `${ALPACA_ACCOUNT_URL}?query=${encodeURIComponent(emailAddress)}`;
+            const searchParams = new URLSearchParams({ query: emailAddress, entities: "contact,identity" });
+            const searchUrl = `${ALPACA_ACCOUNT_URL}?${searchParams.toString()}`;
             try {
                 const response = await fetch(searchUrl, {
                     method: "GET",
@@ -3495,7 +3509,7 @@
                 country_of_citizenship: sanitizeIsoValue(document.getElementById("nationality")?.value) || null,
             });
 
-            const emailAddress = (supabaseUser?.email || profileRow?.email || "").trim();
+            const emailAddress = getPreferredBrokerageEmail();
             const streetLines = [getTrimmedValue("address_line1"), getTrimmedValue("address_line2")].filter(Boolean);
             const contact = cleanObject({
                 email_address: emailAddress || null,
@@ -3763,9 +3777,11 @@
 
         async function refreshBrokerageFromDb() {
             if (!supabaseUser) return null;
-            const emailAddress = (supabaseUser?.email || profileRow?.email || "").trim();
+            const emailAddress = getPreferredBrokerageEmail();
             let query = supabase.from("profiles").select("*");
-            query = emailAddress ? query.eq("email", emailAddress) : query.eq("id", supabaseUser.id);
+            query = emailAddress
+                ? query.or(`email.eq.${emailAddress},email_address.eq.${emailAddress}`)
+                : query.eq("id", supabaseUser.id);
             const { data, error } = await query.maybeSingle();
             if (error && error.code !== "PGRST116") throw error;
             if (data) {
@@ -3797,7 +3813,12 @@
             if (brokeragePrimePromise) return brokeragePrimePromise;
             brokeragePrimePromise = (async () => {
                 try {
-                    updateAlpacaStatus("checking", { message: "Checking for an existing brokerage account…" });
+                    const emailAddress = getPreferredBrokerageEmail();
+                    updateAlpacaStatus("checking", {
+                        message: emailAddress
+                            ? `Checking for an existing brokerage account using ${emailAddress}…`
+                            : "Checking for an existing brokerage account…",
+                    });
                     await refreshBrokerageFromDb();
                     if (alpacaAccountId) {
                         updateAlpacaStatus("success", {
@@ -3806,7 +3827,9 @@
                         });
                     } else if (!silent) {
                         updateAlpacaStatus("idle", {
-                            message: "No brokerage account found yet. Create one to continue.",
+                            message: emailAddress
+                                ? `No brokerage account found for ${emailAddress}. Create one to continue.`
+                                : "No brokerage account found yet. Create one to continue.",
                         });
                     }
                 } finally {
@@ -3880,7 +3903,7 @@
                 return;
             }
 
-            const emailAddress = (supabaseUser?.email || profileRow?.email || "").trim();
+            const emailAddress = getPreferredBrokerageEmail();
             if (emailAddress) {
                 const existingAccount = await hydrateBrokerageFromApi(emailAddress, { silent: false });
                 if (existingAccount) return;
