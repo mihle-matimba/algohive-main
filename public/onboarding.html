@@ -3521,12 +3521,12 @@
             }, {});
         }
 
-        function collectProfilePayload() {
+        function collectProfilePayload({ agreementsClientIp } = {}) {
             if (!supabaseUser) throw new Error("Please sign in again.");
             const rawTaxIdType = document.getElementById("tax_id_type")?.value || "";
             const normalizedTaxIdType = rawTaxIdType ? rawTaxIdType : null;
             const taxIdNumberValue = document.getElementById("tax_id_number")?.value || "";
-            const agreements = getSelectedAgreements();
+            const agreements = getSelectedAgreements({ clientIp: agreementsClientIp });
             const agreementsValue = agreements.length ? agreements : null;
             const agreementsTimestamp = agreementsValue ? new Date().toISOString() : null;
             const agreementProfileFields = buildAgreementProfileFields(agreements);
@@ -4134,6 +4134,7 @@
             setBusy(button, true);
             updateAlpacaStatus("submitting", { message: "Submitting your brokerage application…" });
             try {
+                await saveProfileForBrokerage();
                 const clientIp = await resolveClientIpAddress();
                 const payload = buildAlpacaAccountPayload({ clientIp });
                 const response = await fetch(ALPACA_ACCOUNT_URL, {
@@ -4803,6 +4804,29 @@
             } finally {
                 setBusy(button, false);
             }
+        }
+
+        async function saveProfileForBrokerage() {
+            if (!supabaseUser) throw new Error("Please sign in again.");
+            const agreementsClientIp = await resolveClientIpAddress().catch(() => null);
+            let payload = collectProfilePayload({ agreementsClientIp });
+            payload = await uploadKycDocumentsIfNeeded(payload);
+
+            const { data: saved, error } = await supabase
+                .from("profiles")
+                .upsert(payload, { onConflict: "id" })
+                .select("*")
+                .single();
+
+            if (error) throw error;
+
+            profileRow = { ...profileRow, ...saved };
+            profileComplete = computeProfileComplete(saved);
+            if (typeof saved.kyc_status !== "undefined") {
+                kycDone = resolveKycBoolean(saved);
+            }
+            autoCompleteStepsFromProfile(profileRow);
+            return saved;
         }
 
         const AVATAR_BUCKET = "avatars";
