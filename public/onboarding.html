@@ -2693,6 +2693,7 @@
         const errorSteps = new Set();
         let currentStep = 1;
         const totalSteps = panels.length;
+        let brokeragePrimePromise = null;
         let supabaseUser = null;
         let supabaseSession = null;
         let profileRow = null;
@@ -3122,6 +3123,10 @@
             if (meta) {
                 if (stepLabel) stepLabel.textContent = meta.label;
                 if (stepTitle) stepTitle.textContent = meta.title;
+            }
+
+            if (nextValue === 6) {
+                primeBrokerageStep();
             }
 
             syncStepIndicators();
@@ -3770,6 +3775,19 @@
                 await hydrateBrokerageFromApi(emailAddress, { silent: true });
             }
             return data;
+        }
+
+        async function primeBrokerageStep() {
+            if (!supabaseUser) return null;
+            if (brokeragePrimePromise) return brokeragePrimePromise;
+            brokeragePrimePromise = (async () => {
+                try {
+                    await refreshBrokerageFromDb();
+                } finally {
+                    brokeragePrimePromise = null;
+                }
+            })();
+            return brokeragePrimePromise;
         }
 
         async function updateProfileBrokerage(partial, { silent = true } = {}) {
