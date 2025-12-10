@@ -2141,6 +2141,7 @@
         let alpacaAccountState = "idle";
         let alpacaAccountProfile = null;
         let alpacaAccountNumber = null;
+        let alpacaAccountPatchPromise = null;
         let alpacaAchRelationships = [];
         const alpacaAuthHeader = ALPACA_DEFAULT_AUTH_HEADER;
 
@@ -2251,6 +2252,48 @@
             }
         }
 
+        async function updateAlpacaAccountIfMissing(existingProfile) {
+            if (!alpacaAccountId) return null;
+            if (alpacaAccountPatchPromise) return alpacaAccountPatchPromise;
+
+            alpacaAccountPatchPromise = (async () => {
+                const clientIp = await resolveClientIpAddress().catch(() => null);
+                const patchPayload = buildAlpacaAccountUpdatePayload(existingProfile, { clientIp });
+                if (!patchPayload) {
+                    alpacaAccountPatchPromise = null;
+                    return null;
+                }
+
+                const url = `${ALPACA_ACCOUNT_URL}/${encodeURIComponent(alpacaAccountId)}`;
+                try {
+                    const response = await fetch(url, {
+                        method: "PATCH",
+                        headers: {
+                            accept: "application/json",
+                            "content-type": "application/json",
+                            authorization: getAlpacaAuthHeader(),
+                        },
+                        body: JSON.stringify(patchPayload),
+                    });
+                    const data = await response.json().catch(() => null);
+                    if (!response.ok) {
+                        console.warn("Could not update existing brokerage account.", data || response.status);
+                        return null;
+                    }
+                    alpacaAccountProfile = data || alpacaAccountProfile;
+                    renderAlpacaAccountSummary();
+                    return data;
+                } catch (error) {
+                    console.warn("Could not update brokerage account.", error);
+                    return null;
+                } finally {
+                    alpacaAccountPatchPromise = null;
+                }
+            })();
+
+            return alpacaAccountPatchPromise;
+        }
+
         async function refreshBrokerageSummary({ silent = true } = {}) {
             if (!alpacaAccountId) return null;
             const profile = await fetchBrokerageAccountProfile(alpacaAccountId);
@@ -2258,6 +2301,7 @@
                 alpacaAccountProfile = profile;
                 alpacaAccountNumber = deriveAccountNumber(profile) || alpacaAccountNumber || null;
                 renderBrokerageAccountSummary();
+                await updateAlpacaAccountIfMissing(profile);
                 await loadAchRelationships({ silent: true });
                 if (!silent) banner("Refreshed account summary.", "ok");
                 return profile;
@@ -3748,6 +3792,103 @@
             }
 
             return payload;
+        }
+
+        function isMissingValue(value) {
+            if (value === null || value === undefined) return true;
+            if (typeof value === "string") return !value.trim();
+            if (Array.isArray(value)) return value.length === 0;
+            return false;
+        }
+
+        function buildAlpacaAccountUpdatePayload(existingProfile, { clientIp } = {}) {
+            const current = existingProfile || alpacaAccountProfile || {};
+            const desired = buildAlpacaAccountPayload({ clientIp });
+            const patch = {};
+
+            const ensureSection = (section, keys) => {
+                const currentSection = current?.[section] || {};
+                const desiredSection = desired?.[section] || {};
+                const sectionPatch = {};
+
+                keys.forEach((key) => {
+                    const currentValue = currentSection?.[key];
+                    const desiredValue = desiredSection?.[key];
+                    if (isMissingValue(currentValue) && !isMissingValue(desiredValue)) {
+                        sectionPatch[key] = desiredValue;
+                    }
+                });
+
+                if (Object.keys(sectionPatch).length) {
+                    patch[section] = { ...currentSection, ...sectionPatch };
+                }
+            };
+
+            ensureSection("identity", [
+                "given_name",
+                "family_name",
+                "date_of_birth",
+                "tax_id",
+                "tax_id_type",
+                "country_of_birth",
+                "country_of_tax_residence",
+                "country_of_citizenship",
+            ]);
+
+            ensureSection("contact", [
+                "email_address",
+                "phone_number",
+                "city",
+                "state",
+                "postal_code",
+                "country",
+                "street_address",
+                "unit",
+            ]);
+
+            ensureSection("financial_information", [
+                "funding_source",
+                "annual_income_min",
+                "annual_income_max",
+                "liquid_net_worth_min",
+                "liquid_net_worth_max",
+                "total_net_worth_min",
+                "total_net_worth_max",
+                "investment_experience",
+                "risk_tolerance",
+                "investment_objective",
+            ]);
+
+            ensureSection("disclosures", [
+                "is_control_person",
+                "is_affiliated_exchange_or_finra",
+                "is_politically_exposed",
+                "immediate_family_exposed",
+            ]);
+
+            const desiredAgreements = Array.isArray(desired.agreements) ? desired.agreements : [];
+            const existingAgreements = Array.isArray(current.agreements) ? current.agreements : [];
+            const missingAgreements = desiredAgreements.filter(
+                ({ agreement }) => !existingAgreements.some((entry) => entry?.agreement === agreement),
+            );
+            if (missingAgreements.length) {
+                patch.agreements = missingAgreements;
+            }
+
+            const desiredDocuments = Array.isArray(desired.documents) ? desired.documents : [];
+            const existingDocuments = Array.isArray(current.documents) ? current.documents : [];
+            const missingDocuments = desiredDocuments.filter((doc) => {
+                return !existingDocuments.some(
+                    (existingDoc) =>
+                        existingDoc?.document_type === doc.document_type &&
+                        existingDoc?.document_sub_type === doc.document_sub_type,
+                );
+            });
+            if (missingDocuments.length) {
+                patch.documents = missingDocuments;
+            }
+
+            return Object.keys(patch).length ? patch : null;
         }
 
         function deriveAccountNumber(payload) {
