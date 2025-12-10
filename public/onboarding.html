@@ -2057,6 +2057,28 @@
                 href: "https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/documents/ALPACA+SECURITIES+LLC++OPTIONS+AGREEMENT.pdf",
             },
         ];
+        const ALPACA_AGREEMENT_COLUMNS = {
+            account_agreement: {
+                flag: "alpaca_account_agreement_signed",
+                signedAt: "alpaca_account_agreement_signed_at",
+                ip: "alpaca_account_agreement_ip",
+            },
+            customer_agreement: {
+                flag: "alpaca_customer_agreement_signed",
+                signedAt: "alpaca_customer_agreement_signed_at",
+                ip: "alpaca_customer_agreement_ip",
+            },
+            crypto_agreement: {
+                flag: "alpaca_crypto_agreement_signed",
+                signedAt: "alpaca_crypto_agreement_signed_at",
+                ip: "alpaca_crypto_agreement_ip",
+            },
+            options_agreement: {
+                flag: "alpaca_options_agreement_signed",
+                signedAt: "alpaca_options_agreement_signed_at",
+                ip: "alpaca_options_agreement_ip",
+            },
+        };
         const ALPACA_REQUIRED_AGREEMENTS = ALPACA_AGREEMENTS.filter(({ required }) => required).map(({ key }) => key);
         renderAlpacaAgreements();
         const CLIENT_IP_FALLBACK = "0.0.0.0";
@@ -3507,6 +3529,7 @@
             const agreements = getSelectedAgreements();
             const agreementsValue = agreements.length ? agreements : null;
             const agreementsTimestamp = agreementsValue ? new Date().toISOString() : null;
+            const agreementProfileFields = buildAgreementProfileFields(agreements);
             const payload = {
                 id: supabaseUser.id,
                 first_name: (document.getElementById("first_name")?.value || "").trim(),
@@ -3552,6 +3575,7 @@
                 kyc_id_document_url: profileRow?.kyc_id_document_url || null,
                 kyc_proof_of_address_url: profileRow?.kyc_proof_of_address_url || null,
                 updated_at: new Date().toISOString(),
+                ...agreementProfileFields,
             };
             return payload;
         }
@@ -3591,6 +3615,46 @@
                     ip_address: normalizedIpAddress,
                     revision: checkbox.dataset.agreementRevision || undefined,
                 }));
+        }
+
+        function buildAgreementProfileFields(selectedAgreements = []) {
+            const fields = {};
+
+            ALPACA_AGREEMENTS.forEach(({ key }) => {
+                const columnMap = ALPACA_AGREEMENT_COLUMNS[key];
+                if (!columnMap) return;
+                fields[columnMap.flag] = false;
+                fields[columnMap.signedAt] = null;
+                fields[columnMap.ip] = null;
+            });
+
+            selectedAgreements.forEach(({ agreement, signed_at: signedAt, ip_address: ipAddress }) => {
+                const columnMap = ALPACA_AGREEMENT_COLUMNS[agreement];
+                if (!columnMap) return;
+                fields[columnMap.flag] = true;
+                fields[columnMap.signedAt] = signedAt || new Date().toISOString();
+                fields[columnMap.ip] = (ipAddress || "").trim() || CLIENT_IP_FALLBACK;
+            });
+
+            return fields;
+        }
+
+        function deriveStoredAgreementKeys(row) {
+            const selected = new Set();
+
+            ALPACA_AGREEMENTS.forEach(({ key }) => {
+                const columnMap = ALPACA_AGREEMENT_COLUMNS[key];
+                if (columnMap && row?.[columnMap.flag]) selected.add(key);
+            });
+
+            if (!selected.size) {
+                const storedAgreements = Array.isArray(row?.alpaca_agreements) ? row.alpaca_agreements : [];
+                storedAgreements.forEach((entry) => {
+                    if (typeof entry?.agreement === "string") selected.add(entry.agreement);
+                });
+            }
+
+            return selected;
         }
 
         function buildAlpacaDocuments() {
@@ -5032,20 +5096,13 @@
                 const disclosuresAck = document.querySelector('input[name="disclosures"]');
                 if (disclosuresAck) disclosuresAck.checked = !!row?.suitability_accuracy_ack;
 
-                const storedAgreements = Array.isArray(row?.alpaca_agreements) ? row.alpaca_agreements : [];
-                if (storedAgreements.length) {
-                    const agreementKeys = new Set(
-                        storedAgreements
-                            .map((entry) => (typeof entry?.agreement === "string" ? entry.agreement : null))
-                            .filter(Boolean),
-                    );
-                    document.querySelectorAll('[data-alpaca-agreement]').forEach((checkbox) => {
-                        const key = checkbox?.dataset?.alpacaAgreement;
-                        if (key && agreementKeys.has(key)) {
-                            checkbox.checked = true;
-                        }
-                    });
-                }
+                const storedAgreements = deriveStoredAgreementKeys(row);
+                document.querySelectorAll('[data-alpaca-agreement]').forEach((checkbox) => {
+                    const key = checkbox?.dataset?.alpacaAgreement;
+                    if (key && storedAgreements.has(key)) {
+                        checkbox.checked = true;
+                    }
+                });
 
                 setAvatarSrc(row?.avatar_url || null);
                 setAvatarFilename(row?.avatar_url ? "Avatar on file" : "No file chosen");
