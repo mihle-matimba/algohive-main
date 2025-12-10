@@ -2694,6 +2694,7 @@
         let currentStep = 1;
         const totalSteps = panels.length;
         let supabaseUser = null;
+        let supabaseSession = null;
         let profileRow = null;
         let profileComplete = false;
         let selectedPlanKey = planRadios.find((radio) => radio.checked)?.value || null;
@@ -4576,20 +4577,27 @@
             if (!supabaseUser) throw new Error("Please sign in again.");
             if (!file) throw new Error("Pick a file to upload");
 
-            const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-            const path = `${supabaseUser.id}/kyc_${label}_${Date.now()}.${ext}`;
+            const { data: sessionData } = await supabase.auth.getSession();
+            const accessToken = sessionData?.session?.access_token || supabaseSession?.access_token || null;
+            if (!accessToken) throw new Error("Please sign in again.");
 
-            const { error: upErr } = await supabase.storage.from(KYC_BUCKET).upload(path, file, {
-                upsert: true,
-                cacheControl: "3600",
-                contentType: file.type || "application/octet-stream",
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("label", label);
+            formData.append("userId", supabaseUser.id);
+
+            const response = await fetch("/api/kyc/upload", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: formData,
             });
-            if (upErr) throw upErr;
 
-            const { data: pub } = supabase.storage.from(KYC_BUCKET).getPublicUrl(path);
-            const publicUrl = pub?.publicUrl;
-            if (!publicUrl) throw new Error("Could not get public URL for KYC document");
-            return publicUrl;
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok || !body?.success || !body?.publicUrl) {
+                throw new Error(body?.error?.message || "KYC upload failed. Please try again.");
+            }
+
+            return body.publicUrl;
         }
 
         async function uploadKycDocumentsIfNeeded(payload) {
@@ -4755,6 +4763,7 @@
                     return;
                 }
 
+                supabaseSession = session;
                 supabaseUser = user;
                 const row = await ensureProfile(user.id, user.email || null);
                 profileRow = row;
