@@ -3648,13 +3648,20 @@
             return clientIpLookupPromise;
         }
 
+        const ALPACA_DISABLED_AGREEMENTS = new Set(["options_agreement"]);
+
         function getSelectedAgreements({ clientIp } = {}) {
             const templateCheckboxes = Array.from(document.querySelectorAll('[data-alpaca-agreement]'));
             const normalizedIpAddress = (clientIp || clientIpAddress || "").trim() || CLIENT_IP_FALLBACK;
             const signedAt = new Date().toISOString();
 
             return templateCheckboxes
-                .filter((checkbox) => checkbox.checked && checkbox.dataset.alpacaAgreement)
+                .filter(
+                    (checkbox) =>
+                        checkbox.checked &&
+                        checkbox.dataset.alpacaAgreement &&
+                        !ALPACA_DISABLED_AGREEMENTS.has(checkbox.dataset.alpacaAgreement),
+                )
                 .map((checkbox) => ({
                     agreement: checkbox.dataset.alpacaAgreement,
                     signed_at: signedAt,
