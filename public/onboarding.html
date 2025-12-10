@@ -2334,12 +2334,22 @@
             }
         }
 
+        function getStoredKycUrl(key) {
+            return profileRow?.[key] || null;
+        }
+
         function areKycDocumentsSelected() {
-            return (
-                (kycSelfieInput?.files?.length || 0) > 0 &&
-                (kycIdDocumentInput?.files?.length || 0) > 0 &&
-                (kycProofAddressInput?.files?.length || 0) > 0
-            );
+            const requirements = [
+                { key: "kyc_selfie_url", input: kycSelfieInput },
+                { key: "kyc_id_document_url", input: kycIdDocumentInput },
+                { key: "kyc_proof_of_address_url", input: kycProofAddressInput },
+            ];
+
+            return requirements.every(({ key, input }) => {
+                const hasFileSelection = (input?.files?.length || 0) > 0;
+                const hasStored = !!getStoredKycUrl(key);
+                return hasFileSelection || hasStored;
+            });
         }
 
         function updateKycDocumentState() {
@@ -3315,13 +3325,16 @@
         }
 
         function resolveKycBoolean(row) {
+            const hasUploadedDocuments =
+                !!row?.kyc_selfie_url && !!row?.kyc_id_document_url && !!row?.kyc_proof_of_address_url;
             const status = row?.samsub_status ?? row?.kyc_status;
-            if (typeof status === "boolean") return status;
+            if (typeof status === "boolean") return status || hasUploadedDocuments;
             if (typeof status === "string") {
                 const normalized = status.toLowerCase();
-                return ["verified", "approved", "done", "passed", "kyc_done", "completed", "complete"].includes(normalized);
+                if (["verified", "approved", "done", "passed", "kyc_done", "completed", "complete"].includes(normalized))
+                    return true;
             }
-            return false;
+            return hasUploadedDocuments;
         }
 
         function setFieldValue(id, value) {
@@ -3426,6 +3439,9 @@
                 aml_acknowledged: !!document.querySelector('input[name="aml"]')?.checked,
                 suitability_risk_ack: !!document.querySelector('input[name="objectives_ack"]')?.checked,
                 suitability_accuracy_ack: !!document.querySelector('input[name="disclosures"]')?.checked,
+                kyc_selfie_url: profileRow?.kyc_selfie_url || null,
+                kyc_id_document_url: profileRow?.kyc_id_document_url || null,
+                kyc_proof_of_address_url: profileRow?.kyc_proof_of_address_url || null,
                 updated_at: new Date().toISOString(),
             };
             return payload;
@@ -4486,7 +4502,11 @@
             }
             setBusy(button, true);
             try {
-                const payload = collectProfilePayload();
+                let payload = collectProfilePayload();
+
+                if (currentStep === 5) {
+                    payload = await uploadKycDocumentsIfNeeded(payload);
+                }
                 const { data: saved, error } = await supabase
                     .from("profiles")
                     .upsert(payload, { onConflict: "id" })
@@ -4516,6 +4536,7 @@
         }
 
         const AVATAR_BUCKET = "avatars";
+        const KYC_BUCKET = "kyc";
 
         async function uploadAvatar(file) {
             if (!supabaseUser) throw new Error("Please sign in again.");
@@ -4549,6 +4570,50 @@
             avatarRemove?.classList.remove("hidden");
             setAvatarFilename(file.name);
             banner("Avatar updated successfully.", "ok");
+        }
+
+        async function uploadKycDocument(file, label) {
+            if (!supabaseUser) throw new Error("Please sign in again.");
+            if (!file) throw new Error("Pick a file to upload");
+
+            const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+            const path = `${supabaseUser.id}/kyc_${label}_${Date.now()}.${ext}`;
+
+            const { error: upErr } = await supabase.storage.from(KYC_BUCKET).upload(path, file, {
+                upsert: true,
+                cacheControl: "3600",
+                contentType: file.type || "application/octet-stream",
+            });
+            if (upErr) throw upErr;
+
+            const { data: pub } = supabase.storage.from(KYC_BUCKET).getPublicUrl(path);
+            const publicUrl = pub?.publicUrl;
+            if (!publicUrl) throw new Error("Could not get public URL for KYC document");
+            return publicUrl;
+        }
+
+        async function uploadKycDocumentsIfNeeded(payload) {
+            if (!kycSelfieInput && !kycIdDocumentInput && !kycProofAddressInput) return payload;
+            const uploads = [
+                { input: kycSelfieInput, key: "kyc_selfie_url", label: "selfie" },
+                { input: kycIdDocumentInput, key: "kyc_id_document_url", label: "id" },
+                { input: kycProofAddressInput, key: "kyc_proof_of_address_url", label: "proof" },
+            ].filter(({ input }) => (input?.files?.length || 0) > 0);
+
+            if (!uploads.length) return payload;
+
+            for (const { input, key, label } of uploads) {
+                const file = input?.files?.[0];
+                if (!file) continue;
+                const url = await uploadKycDocument(file, label);
+                payload[key] = url;
+            }
+
+            if (!payload.kyc_status) {
+                payload.kyc_status = "submitted";
+            }
+
+            return payload;
         }
 
         avatarFile?.addEventListener("change", async () => {
