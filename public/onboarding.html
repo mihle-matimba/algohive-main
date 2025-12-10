@@ -3504,6 +3504,9 @@
             const rawTaxIdType = document.getElementById("tax_id_type")?.value || "";
             const normalizedTaxIdType = rawTaxIdType ? rawTaxIdType : null;
             const taxIdNumberValue = document.getElementById("tax_id_number")?.value || "";
+            const agreements = getSelectedAgreements();
+            const agreementsValue = agreements.length ? agreements : null;
+            const agreementsTimestamp = agreementsValue ? new Date().toISOString() : null;
             const payload = {
                 id: supabaseUser.id,
                 first_name: (document.getElementById("first_name")?.value || "").trim(),
@@ -3543,6 +3546,8 @@
                 aml_acknowledged: !!document.querySelector('input[name="aml"]')?.checked,
                 suitability_risk_ack: !!document.querySelector('input[name="objectives_ack"]')?.checked,
                 suitability_accuracy_ack: !!document.querySelector('input[name="disclosures"]')?.checked,
+                alpaca_agreements: agreementsValue,
+                alpaca_agreements_updated_at: agreementsTimestamp,
                 kyc_selfie_url: profileRow?.kyc_selfie_url || null,
                 kyc_id_document_url: profileRow?.kyc_id_document_url || null,
                 kyc_proof_of_address_url: profileRow?.kyc_proof_of_address_url || null,
@@ -5026,6 +5031,21 @@
                 if (objectivesAck) objectivesAck.checked = !!row?.suitability_risk_ack;
                 const disclosuresAck = document.querySelector('input[name="disclosures"]');
                 if (disclosuresAck) disclosuresAck.checked = !!row?.suitability_accuracy_ack;
+
+                const storedAgreements = Array.isArray(row?.alpaca_agreements) ? row.alpaca_agreements : [];
+                if (storedAgreements.length) {
+                    const agreementKeys = new Set(
+                        storedAgreements
+                            .map((entry) => (typeof entry?.agreement === "string" ? entry.agreement : null))
+                            .filter(Boolean),
+                    );
+                    document.querySelectorAll('[data-alpaca-agreement]').forEach((checkbox) => {
+                        const key = checkbox?.dataset?.alpacaAgreement;
+                        if (key && agreementKeys.has(key)) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
 
                 setAvatarSrc(row?.avatar_url || null);
                 setAvatarFilename(row?.avatar_url ? "Avatar on file" : "No file chosen");
