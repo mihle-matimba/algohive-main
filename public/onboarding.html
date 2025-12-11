@@ -1552,7 +1552,7 @@
                                         reach your goals.</p>
                                     <p class="text-sm text-slate-500">Pick your next step below to dive into AlgoHive.</p>
                                     <div class="grid gap-4">
-                                        <a href="/public/home.html" class="product-card product-card--invest">
+                                        <a href="/home.html" class="product-card product-card--invest">
                                             <p class="product-card__eyebrow">Welcome</p>
                                             <p class="product-card__title">Start investing</p>
                                             <span class="product-card__cta">Explore strategies
@@ -2871,6 +2871,7 @@
         let checkoutRevealStarted = false;
         let checkoutRevealTimer = null;
         const paystackPlanKeys = [];
+        let hasCelebrated = false;
         const planLabels = { core: "Core", professional: "Professional", free: "Free" };
 
         const resolvePlanSelection = () => {
@@ -2970,12 +2971,15 @@
             const subtitle = document.getElementById("completionSubtitle");
             if (title) title.textContent = `Welcome to AlgoHive, ${firstName}!`;
             if (subtitle) subtitle.textContent = "You're all set. Explore strategies and start investing.";
-            await triggerConfetti();
-            banner(`Welcome to AlgoHive, ${firstName}! Start investing.`, "ok");
+            if (!hasCelebrated) {
+                await triggerConfetti();
+                banner(`Welcome to AlgoHive, ${firstName}! Start investing.`, "ok");
+            }
             if (onboardingComplete) {
                 onboardingComplete.classList.remove("hidden");
                 onboardingComplete.scrollIntoView({ behavior: "smooth", block: "start" });
             }
+            hasCelebrated = true;
         }
 
         const revealExplorePanel = (options = {}) => {
@@ -3068,6 +3072,7 @@
                 });
                 markPaymentAdvance(planKey, planSuccessMessage(planKey, { includeNext: true }));
                 banner(successBannerMessage(planKey), "ok");
+                await celebrateCompletion();
                 window.setTimeout(() => {
                     revealExplorePanel({ scroll: true });
                 }, 1200);
