@@ -2874,6 +2874,23 @@
         let hasCelebrated = false;
         const planLabels = { core: "Core", professional: "Professional", free: "Free" };
 
+        async function fetchExistingPlan(userId) {
+            try {
+                const { data, error } = await supabase
+                    .from("plans")
+                    .select("plan")
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+                return Array.isArray(data) && data[0]?.plan ? data[0].plan : null;
+            } catch (error) {
+                console.error("Error checking existing plan", error);
+                return null;
+            }
+        }
+
         const resolvePlanSelection = () => {
             if (planSkipped) return "free";
             return selectedPlanKey || null;
@@ -5300,6 +5317,13 @@
 
                 supabaseSession = session;
                 supabaseUser = user;
+
+                const existingPlan = await fetchExistingPlan(user.id);
+                if (existingPlan) {
+                    location.replace("/home.html");
+                    return;
+                }
+
                 const row = await ensureProfile(user.id, user.email || null);
                 profileRow = row;
                 hydrateBrokerageFromRow(row);
