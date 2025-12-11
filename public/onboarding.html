@@ -5318,15 +5318,16 @@
                 supabaseSession = session;
                 supabaseUser = user;
 
-                const existingPlan = await fetchExistingPlan(user.id);
-                if (existingPlan) {
-                    location.replace("/home.html");
-                    return;
-                }
-
                 const row = await ensureProfile(user.id, user.email || null);
                 profileRow = row;
                 hydrateBrokerageFromRow(row);
+                const profileComplete = computeProfileComplete(row || {});
+                const kycDone = resolveKycBoolean(row || {});
+                const existingPlan = await fetchExistingPlan(user.id);
+                if (existingPlan && profileComplete && kycDone) {
+                    location.replace("/home.html");
+                    return;
+                }
                 const brokerageRow = await fetchBrokerageAccountRow();
                 if (
                     brokerageRow?.alpaca_account_id &&
