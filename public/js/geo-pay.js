@@ -29,26 +29,50 @@
   }
 
   function wireCardStack() {
+    const stack = document.querySelector('[data-card-stack]');
+    const cards = stack ? Array.from(stack.querySelectorAll('[data-card]')) : [];
     const sheet = document.getElementById('bank-sheet');
-    const triggers = Array.from(document.querySelectorAll('[data-bank-trigger]'));
-    if (!sheet || !triggers.length) return;
-
-    const overlay = sheet.querySelector('[data-bank-overlay]');
-    const closeButtons = Array.from(sheet.querySelectorAll('[data-bank-close]'));
+    const overlay = sheet?.querySelector('[data-bank-overlay]');
+    const closeButtons = sheet ? Array.from(sheet.querySelectorAll('[data-bank-close]')) : [];
     let hideTimeout;
 
+    if (!stack || !cards.length) return;
+
+    let activeCard = cards.find((card) => card.dataset.cardActive === 'true') || cards[0];
+
+    const setActiveCard = (nextCard) => {
+      if (!nextCard || nextCard === activeCard) return;
+      activeCard = nextCard;
+
+      cards.forEach((card) => {
+        const isActive = card === activeCard;
+        card.classList.toggle('stack-front', isActive);
+        card.classList.toggle('stack-back', !isActive);
+        card.dataset.cardActive = String(isActive);
+        card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    };
+
     const openSheet = () => {
+      if (!sheet) return;
       window.clearTimeout(hideTimeout);
       sheet.classList.remove('hidden');
       requestAnimationFrame(() => sheet.classList.add('is-open'));
     };
 
     const closeSheet = () => {
+      if (!sheet) return;
       sheet.classList.remove('is-open');
       hideTimeout = window.setTimeout(() => sheet.classList.add('hidden'), 220);
     };
 
-    triggers.forEach((trigger) => trigger.addEventListener('click', openSheet));
+    cards.forEach((card) => {
+      card.addEventListener('click', () => {
+        setActiveCard(card);
+        openSheet();
+      });
+    });
+
     overlay?.addEventListener('click', closeSheet);
     closeButtons.forEach((btn) => btn.addEventListener('click', closeSheet));
 
