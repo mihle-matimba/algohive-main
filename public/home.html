@@ -1080,13 +1080,24 @@
   }
 
   function resolveKycBoolean(row) {
-    const v = row?.kyc_status;
-    if (typeof v === "boolean") return v;
-    if (typeof v === "string")
-      return ["verified", "approved", "done", "passed", "kyc_done"].includes(
-        v.toLowerCase()
-      );
-    return false;
+    const hasUploadedDocuments =
+      !!row?.kyc_selfie_url && !!row?.kyc_id_document_url && !!row?.kyc_proof_of_address_url;
+    const status = row?.samsub_status ?? row?.kyc_status;
+    if (typeof status === "boolean") return status || hasUploadedDocuments;
+    if (typeof status === "string") {
+      const normalized = status.toLowerCase();
+      if ([
+        "verified",
+        "approved",
+        "done",
+        "passed",
+        "kyc_done",
+        "completed",
+        "complete",
+      ].includes(normalized))
+        return true;
+    }
+    return hasUploadedDocuments;
   }
 
   function gateBannerMessage(profileComplete, kycDone) {
