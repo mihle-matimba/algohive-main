@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AlgoHive — Sign in</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -246,7 +247,10 @@
   <script type="text/babel" nonce="ALGOHIVE">
     const { useEffect, useRef, useState } = React;
 
-    const sphereImages = [
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2IiwiY3JvbGUiOiJhbm9uIiwiaWF0IjoxNzU4MTEyNTQ1LCJleHAiOjIwNzM2ODg1NDV9Lmd1WWx4YVY1UndUbFRWRm9IaEVSMEtXRUlHUGF5OHN2THN4TXd5UlV5TS";
+
+    const defaultSphereImages = [
       { id: "apple", src: "https://logo.clearbit.com/apple.com" },
       { id: "microsoft", src: "https://logo.clearbit.com/microsoft.com" },
       { id: "google", src: "https://logo.clearbit.com/google.com" },
@@ -276,6 +280,28 @@
       { id: "bidvest", src: "https://logo.clearbit.com/bidvest.com" },
       { id: "mastercard", src: "https://logo.clearbit.com/mastercard.com" },
     ];
+
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function fetchTradingLogos() {
+      if (!supabase) return defaultSphereImages;
+
+      const { data, error } = await supabase
+        .from('trading_universe')
+        .select('id, symbol, logo')
+        .not('logo', 'is', null)
+        .neq('logo', '')
+        .limit(120);
+
+      if (error || !data?.length) return defaultSphereImages;
+
+      return data
+        .map((row) => ({
+          id: (row.symbol || `logo-${row.id}`).toLowerCase(),
+          src: row.logo,
+        }))
+        .filter((row) => typeof row.src === 'string' && row.src.trim().startsWith('http'));
+    }
 
     const Sphere = ({ images, size = 720 }) => {
       const [rot, setRot] = useState({ x: 15, y: 0 });
@@ -419,9 +445,48 @@
       );
     };
 
+    const getSphereSize = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) return 720;
+      if (width >= 1280) return 620;
+      if (width >= 1024) return 540;
+      return 420;
+    };
+
+    const SphereWrapper = () => {
+      const [size, setSize] = useState(getSphereSize());
+      const [images, setImages] = useState(defaultSphereImages);
+
+      useEffect(() => {
+        const handleResize = () => setSize(getSphereSize());
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
+      useEffect(() => {
+        let isMounted = true;
+
+        fetchTradingLogos()
+          .then((logos) => {
+            if (isMounted && logos?.length) {
+              setImages(logos);
+            }
+          })
+          .catch(() => {
+            /* keep defaultSphereImages on failure */
+          });
+
+        return () => {
+          isMounted = false;
+        };
+      }, []);
+
+      return <Sphere images={images} size={size} />;
+    };
+
     const root = document.getElementById("authSphereRoot");
     if (root) {
-      ReactDOM.createRoot(root).render(<Sphere images={sphereImages} size={720} />);
+      ReactDOM.createRoot(root).render(<SphereWrapper />);
     }
   </script>
 
