@@ -69,7 +69,6 @@
     cards.forEach((card) => {
       card.addEventListener('click', () => {
         setActiveCard(card);
-        openSheet();
       });
     });
 
