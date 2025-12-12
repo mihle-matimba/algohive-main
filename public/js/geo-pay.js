@@ -34,11 +34,24 @@
     const sheet = document.getElementById('bank-sheet');
     const overlay = sheet?.querySelector('[data-bank-overlay]');
     const closeButtons = sheet ? Array.from(sheet.querySelectorAll('[data-bank-close]')) : [];
+    const statementsSheet = document.getElementById('statements-sheet');
+    const statementsOverlay = statementsSheet?.querySelector('[data-statements-overlay]');
+    const statementsClose = statementsSheet ? Array.from(statementsSheet.querySelectorAll('[data-statements-close]')) : [];
+    const statementsTrigger = document.querySelector('[data-statements-trigger]');
+    const statementTitle = statementsSheet?.querySelector('[data-statement-title]');
     let hideTimeout;
+    let statementsHideTimeout;
 
     if (!stack || !cards.length) return;
 
     let activeCard = cards.find((card) => card.dataset.cardActive === 'true') || cards[0];
+
+    const updateStatementTitle = () => {
+      if (!statementTitle || !activeCard) return;
+      const name = activeCard.dataset.cardName || 'Account';
+      const mask = activeCard.dataset.cardMask ? `• ${activeCard.dataset.cardMask}` : '';
+      statementTitle.textContent = mask ? `${name} ${mask}` : name;
+    };
 
     const setActiveCard = (nextCard) => {
       if (!nextCard || nextCard === activeCard) return;
@@ -51,7 +64,11 @@
         card.dataset.cardActive = String(isActive);
         card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
+
+      updateStatementTitle();
     };
+
+    updateStatementTitle();
 
     const openSheet = () => {
       if (!sheet) return;
@@ -66,18 +83,38 @@
       hideTimeout = window.setTimeout(() => sheet.classList.add('hidden'), 220);
     };
 
+    const openStatementsSheet = () => {
+      if (!statementsSheet) return;
+      window.clearTimeout(statementsHideTimeout);
+      updateStatementTitle();
+      statementsSheet.classList.remove('hidden');
+      requestAnimationFrame(() => statementsSheet.classList.add('is-open'));
+    };
+
+    const closeStatementsSheet = () => {
+      if (!statementsSheet) return;
+      statementsSheet.classList.remove('is-open');
+      statementsHideTimeout = window.setTimeout(() => statementsSheet.classList.add('hidden'), 220);
+    };
+
     cards.forEach((card) => {
       card.addEventListener('click', () => {
         setActiveCard(card);
       });
     });
 
+    statementsTrigger?.addEventListener('click', openStatementsSheet);
+
     overlay?.addEventListener('click', closeSheet);
     closeButtons.forEach((btn) => btn.addEventListener('click', closeSheet));
+
+    statementsOverlay?.addEventListener('click', closeStatementsSheet);
+    statementsClose.forEach((btn) => btn.addEventListener('click', closeStatementsSheet));
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         closeSheet();
+        closeStatementsSheet();
       }
     });
   }

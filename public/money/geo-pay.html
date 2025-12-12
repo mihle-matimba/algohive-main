@@ -335,24 +335,28 @@
       box-shadow: 0 0 0 6px rgba(126, 74, 197, 0.18);
     }
 
-    #bank-sheet {
+    #bank-sheet,
+    #statements-sheet {
       opacity: 0;
       pointer-events: none;
       transition: opacity .25s ease;
     }
 
-    #bank-sheet.is-open {
+    #bank-sheet.is-open,
+    #statements-sheet.is-open {
       opacity: 1;
       pointer-events: auto;
     }
 
-    .bank-sheet-panel {
+    .bank-sheet-panel,
+    .statements-sheet-panel {
       transition: transform .25s ease, opacity .25s ease;
       transform: translateY(28px);
       opacity: 0;
     }
 
-    #bank-sheet.is-open .bank-sheet-panel {
+    #bank-sheet.is-open .bank-sheet-panel,
+    #statements-sheet.is-open .statements-sheet-panel {
       transform: translateY(0);
       opacity: 1;
     }
@@ -508,7 +512,7 @@
           <div class="grid lg:grid-cols-[1.2fr_1fr] gap-6 items-start">
               <div class="space-y-5">
                 <div class="relative" data-card-stack>
-                  <button type="button" class="card-stack-layer stack-back metal-card rounded-[24px] shadow-xl p-6 md:p-7 text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-bank-trigger data-card="bank" data-card-active="false" aria-pressed="false">
+                  <button type="button" class="card-stack-layer stack-back metal-card rounded-[24px] shadow-xl p-6 md:p-7 text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-bank-trigger data-card="bank" data-card-active="false" data-card-name="AlgoMoney Bank" data-card-mask="**** 5482" aria-pressed="false">
                     <div class="flex items-start justify-between mb-8">
                       <div class="flex flex-col gap-4">
                         <span class="text-base font-semibold tracking-[0.14em] text-white/90">**** 5482</span>
@@ -532,7 +536,7 @@
                     </div>
                   </button>
 
-                  <button type="button" class="card-stack-layer stack-front credit-card rounded-[24px] shadow-xl p-6 md:p-7 text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-bank-trigger data-card="credit" data-card-active="true" aria-pressed="true">
+                  <button type="button" class="card-stack-layer stack-front credit-card rounded-[24px] shadow-xl p-6 md:p-7 text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-bank-trigger data-card="credit" data-card-active="true" data-card-name="AlgoMoney Credit" data-card-mask="**** 4168" aria-pressed="true">
                     <div class="flex items-start justify-between mb-8 text-white">
                       <span class="text-base font-semibold tracking-[0.14em] text-white/90">**** 4168</span>
                       <div class="h-9 w-9 rounded-full bg-white/90 text-slate-900 grid place-items-center text-[13px] font-black">VISA</div>
@@ -553,11 +557,18 @@
 
               <p class="text-sm font-semibold text-slate-200/90 md:text-slate-300">Tap either card to view linked banks.</p>
 
+              <div class="flex items-center justify-between flex-wrap gap-3">
+                <button type="button" data-statements-trigger class="inline-flex items-center gap-2 text-sm font-semibold text-white/90 px-3 py-2 rounded-xl border border-white/20 bg-white/5 shadow-sm">
+                  <span>View Account Statements</span>
+                  <i class="fa-solid fa-chevron-down text-xs"></i>
+                </button>
+              </div>
+
               <div class="grid grid-cols-2 gap-3">
-                <button class="h-12 rounded-2xl text-sm font-semibold text-white shadow-lg border border-white/15 backdrop-blur-md"
-                  style="background: linear-gradient(140deg, #0b0620 0%, #1a0c36 28%, #2d135b 62%, #1e0a3a 82%, #0d0727 100%);">Pay</button>
-                <button class="h-12 rounded-2xl text-sm font-semibold text-white shadow-lg border border-white/15 backdrop-blur-md"
-                  style="background: linear-gradient(140deg, #0b0620 0%, #1a0c36 28%, #2d135b 62%, #1e0a3a 82%, #0d0727 100%);">Receive</button>
+                <button class="h-12 rounded-2xl text-sm font-semibold text-white shadow-xl border border-white/20 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  style="background: linear-gradient(150deg, #3c1a70 0%, #6426b0 42%, #8a3eda 100%);">Pay</button>
+                <button class="h-12 rounded-2xl text-sm font-semibold text-white/90 border border-white/30 bg-white/10 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-white/30"
+                  style="background: linear-gradient(150deg, rgba(108,55,176,0.32) 0%, rgba(54,20,96,0.32) 100%);">Receive</button>
               </div>
             </div>
 
@@ -654,6 +665,67 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="statements-sheet" class="fixed inset-0 z-[70] hidden">
+    <div data-statements-overlay class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+
+    <div class="absolute inset-x-0 bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[520px]">
+      <div class="statements-sheet-panel mx-4 md:mx-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Account Statements</p>
+            <p class="text-base font-bold text-slate-900" data-statement-title>AlgoMoney Bank • **** 5482</p>
+          </div>
+          <button class="h-10 w-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50" data-statements-close aria-label="Close statements">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">March 2025 Statement</p>
+              <p class="text-xs text-slate-500">PDF • 1.2 MB</p>
+            </div>
+            <div class="flex items-center gap-3 text-slate-500">
+              <span class="text-xs font-semibold">Download</span>
+              <i class="fa-solid fa-download"></i>
+            </div>
+          </button>
+
+          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">February 2025 Statement</p>
+              <p class="text-xs text-slate-500">PDF • 1.1 MB</p>
+            </div>
+            <div class="flex items-center gap-3 text-slate-500">
+              <span class="text-xs font-semibold">Download</span>
+              <i class="fa-solid fa-download"></i>
+            </div>
+          </button>
+
+          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">January 2025 Statement</p>
+              <p class="text-xs text-slate-500">PDF • 1.0 MB</p>
+            </div>
+            <div class="flex items-center gap-3 text-slate-500">
+              <span class="text-xs font-semibold">Download</span>
+              <i class="fa-solid fa-download"></i>
+            </div>
+          </button>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold text-slate-900">Need another format?</p>
+            <p class="text-xs text-slate-500">CSV exports and summaries are coming soon.</p>
+          </div>
+          <button class="h-10 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold" data-statements-close>Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="bank-sheet" class="fixed inset-0 z-[70] hidden">
