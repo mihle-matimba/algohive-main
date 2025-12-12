@@ -280,11 +280,74 @@
       border: 1px solid #e8eaf3;
       background: #f7f8fd;
     }
+
+    .mobile-island-bar {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 60;
+      padding: 0 12px;
+      width: min(540px, 100vw);
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .mobile-island {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 42%),
+        radial-gradient(circle at 78% 6%, rgba(255, 214, 255, 0.26), transparent 40%),
+        linear-gradient(135deg, #1d0b33, #2b0f52 45%, #3a146d 75%, #241046);
+      color: #f8f7ff;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 30px rgba(26, 6, 46, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .mobile-island:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 34px rgba(26, 6, 46, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .mobile-island .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #9f7aea, #c084fc);
+      box-shadow: 0 0 0 6px rgba(159, 122, 234, 0.18);
+    }
+
+    @media (min-width: 768px) {
+      .mobile-island-bar {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <div class="mobile-island-bar md:hidden">
+      <button data-mobile-island="menu" class="mobile-island">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="text-sm font-semibold">Open mobile menu</span>
+        <i class="fa-solid fa-bars text-xs"></i>
+      </button>
+      <button data-mobile-island="sidebar" class="mobile-island">
+        <i class="fa-solid fa-rectangle-list text-xs"></i>
+        <span class="text-sm font-semibold">Sidebar</span>
+        <span class="dot" aria-hidden="true"></span>
+      </button>
+    </div>
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
       <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
         <summary class="brand-toggle">
@@ -538,11 +601,15 @@
       const overlay = document.getElementById('ah-overlay');
       const mobileBtn = document.getElementById('ah-mobile-menu-btn');
       const collapseBtn = document.getElementById('ah-collapse');
+      const mobileIslands = document.querySelectorAll('[data-mobile-island]');
 
-      mobileBtn?.addEventListener('click', () => {
+      const openSidebar = () => {
         sidebar?.classList.add('is-open');
         overlay?.classList.remove('hidden');
-      });
+      };
+
+      mobileBtn?.addEventListener('click', openSidebar);
+      mobileIslands.forEach(btn => btn.addEventListener('click', openSidebar));
 
       overlay?.addEventListener('click', () => {
         sidebar?.classList.remove('is-open');
