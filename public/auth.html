@@ -282,6 +282,7 @@
     ];
 
     const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TRADING_LOGOS_KEY = "ah_trading_universe_logos";
 
     const normalizeLogos = (rows) => {
       const seen = new Set();
@@ -300,6 +301,17 @@
     };
 
     async function fetchTradingLogos() {
+      try {
+        const cached = sessionStorage.getItem(TRADING_LOGOS_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const cachedLogos = normalizeLogos(Array.isArray(parsed) ? parsed : []);
+          if (cachedLogos.length) return cachedLogos;
+        }
+      } catch (err) {
+        console.warn("Unable to read cached trading logos", err);
+      }
+
       if (!supabase) return defaultSphereImages;
 
       const { data, error } = await supabase
@@ -312,7 +324,15 @@
 
       if (error || !data?.length) return defaultSphereImages;
 
-      return normalizeLogos(data);
+      const logos = normalizeLogos(data);
+
+      try {
+        sessionStorage.setItem(TRADING_LOGOS_KEY, JSON.stringify(logos));
+      } catch (err) {
+        console.warn("Unable to cache trading logos", err);
+      }
+
+      return logos.length ? logos : defaultSphereImages;
     }
 
     const Sphere = ({ images, size = 720 }) => {
