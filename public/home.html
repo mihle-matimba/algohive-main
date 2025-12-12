@@ -1180,6 +1180,10 @@
   let holdings = []; // [{strategy_id, units, last_ts, currency, account_id}]
   const metaByStrategy = new Map(); // strategies meta
   const priceByStrategy = new Map(); // latest nav
+  let unitLedgerAvailable = true;
+  try {
+    unitLedgerAvailable = sessionStorage.getItem("ah_unit_ledger_offline") !== "1";
+  } catch {}
 
   // portfolio header + chart els
   let chart = null, elUpdated = null, elVal = null, elChg = null, refreshBtn = null;
@@ -1193,16 +1197,24 @@
   });
 
   // ---------------- header (name + avatar) ----------------
-  async function setHeaderNameAndAvatar(user) {
-    let profile = null;
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, first_name, last_name, avatar_url")
-        .eq("id", user.id)
-        .single();
-      if (!error) profile = data || null;
-    } catch {}
+  async function setHeaderNameAndAvatar(user, profileFromEnsure) {
+    let profile = profileFromEnsure || null;
+
+    // Avoid redundant profile fetches to prevent noisy 400s if certain columns
+    // aren't exposed in this environment. Reuse the ensureProfile payload when
+    // available and only issue a narrow query if nothing was returned.
+    if (!profile) {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, first_name, last_name, avatar_url")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!error) profile = data || null;
+      } catch (err) {
+        console.warn("profile fetch skipped", err?.message || err);
+      }
+    }
 
     const bestName =
       [
@@ -1278,12 +1290,23 @@
       return;
     }
 
-    const { data, error } = await supabase
+    if (!unitLedgerAvailable) {
+      holdings = [];
+      return;
+    }
+
+    const { data, error, status } = await supabase
       .from("unit_ledger")
       .select("strategy_id, units, ts, account_id")
       .eq("account_id", currentAccount.id);
 
     if (error) {
+      if (status === 404 || error?.code === "404") {
+        unitLedgerAvailable = false;
+        try {
+          sessionStorage.setItem("ah_unit_ledger_offline", "1");
+        } catch {}
+      }
       console.warn("unit_ledger lookup failed, assuming empty holdings", error?.message || error);
       holdings = [];
       return;
@@ -1537,7 +1560,7 @@
     }
     // === [END OF REDIRECT LOGIC] ===
 
-    await setHeaderNameAndAvatar(user);
+    await setHeaderNameAndAvatar(user, profileRow);
     wireProfileMenu();
 
     // === [NEW] SESSION TIMEOUT LOGIC (10 MINUTES WITH BLACK FADING DISPLAY) ===
@@ -1617,7 +1640,6 @@
     setupSessionTimeout();
     // === END SESSION TIMEOUT LOGIC ===
 
-    // see if they even have an ACTIVE account and any ledger rows
     try {
       await pickActiveAccount(user);
       if (!currentAccount) {
@@ -1627,27 +1649,6 @@
         return;
       }
 
-      const { data: rows, error: le } = await supabase
-        .from("unit_ledger")
-        .select("id")
-        .eq("account_id", currentAccount.id)
-        .limit(1);
-      if (le || !rows?.length) {
-        showEmptyStateAll();
-        setupChart();
-        renderFlatEquity(0, null);
-        return;
-      }
-    } catch {
-      showEmptyStateAll();
-      setupChart();
-      renderFlatEquity(0, null);
-      return;
-    }
-
-    // proceed normal flow
-    try {
-      await pickActiveAccount(user);
       await loadHoldingsFromUnitLedger();
 
       if (!holdings.length) {
