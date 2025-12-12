@@ -29,66 +29,34 @@
   }
 
   function wireCardStack() {
-    const stack = document.querySelector('[data-card-stack]');
-    if (!stack) return;
+    const sheet = document.getElementById('bank-sheet');
+    const triggers = Array.from(document.querySelectorAll('[data-bank-trigger]'));
+    if (!sheet || !triggers.length) return;
 
-    const slides = Array.from(stack.querySelectorAll('[data-card-slide]'));
-    const pips = Array.from(stack.querySelectorAll('.card-pips .pip'));
-    if (!slides.length) return;
+    const overlay = sheet.querySelector('[data-bank-overlay]');
+    const closeButtons = Array.from(sheet.querySelectorAll('[data-bank-close]'));
+    let hideTimeout;
 
-    let index = 0;
-    let startX = 0;
-    let dragging = false;
-
-    const setState = () => {
-      slides.forEach((slide, i) => {
-        const state = i === index ? 'active' : i < index ? 'left' : 'right';
-        slide.dataset.state = state;
-      });
-
-      pips.forEach((pip, i) => pip.classList.toggle('is-active', i === index));
+    const openSheet = () => {
+      window.clearTimeout(hideTimeout);
+      sheet.classList.remove('hidden');
+      requestAnimationFrame(() => sheet.classList.add('is-open'));
     };
 
-    const go = (delta) => {
-      index = (index + delta + slides.length) % slides.length;
-      setState();
+    const closeSheet = () => {
+      sheet.classList.remove('is-open');
+      hideTimeout = window.setTimeout(() => sheet.classList.add('hidden'), 220);
     };
 
-    stack.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) return;
-      startX = e.touches[0].clientX;
-      dragging = true;
-    });
+    triggers.forEach((trigger) => trigger.addEventListener('click', openSheet));
+    overlay?.addEventListener('click', closeSheet);
+    closeButtons.forEach((btn) => btn.addEventListener('click', closeSheet));
 
-    stack.addEventListener('touchend', (e) => {
-      if (!dragging || !e.changedTouches.length) return;
-      const delta = e.changedTouches[0].clientX - startX;
-      if (Math.abs(delta) > 40) {
-        go(delta < 0 ? 1 : -1);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeSheet();
       }
-      dragging = false;
     });
-
-    stack.addEventListener('mousedown', (e) => {
-      startX = e.clientX;
-      dragging = true;
-    });
-
-    stack.addEventListener('mouseup', (e) => {
-      if (!dragging) return;
-      const delta = e.clientX - startX;
-      if (Math.abs(delta) > 40) {
-        go(delta < 0 ? 1 : -1);
-      }
-      dragging = false;
-    });
-
-    pips.forEach((pip, i) => pip.addEventListener('click', () => {
-      index = i;
-      setState();
-    }));
-
-    setState();
   }
 
   if (document.readyState === 'loading') {

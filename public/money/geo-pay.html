@@ -204,57 +204,23 @@
     }
 
     [data-card-stack] {
-      min-height: 280px;
+      display: grid;
+      gap: 16px;
     }
 
     .card-slide {
-      position: absolute;
-      inset: 0;
-      transition: transform .4s ease, opacity .35s ease, filter .35s ease;
-      opacity: 0;
-      pointer-events: none;
-      filter: saturate(.86);
-    }
-
-    .card-slide[data-state="active"] {
+      position: relative;
+      transition: transform .3s ease, box-shadow .3s ease, filter .3s ease;
       opacity: 1;
       pointer-events: auto;
-      transform: translateX(0) scale(1);
       filter: saturate(1);
-      z-index: 3;
+      border: 1px solid rgba(255, 255, 255, 0.16);
     }
 
-    .card-slide[data-state="left"] {
-      opacity: .35;
-      transform: translateX(-26%) scale(.94);
-      z-index: 2;
-    }
-
-    .card-slide[data-state="right"] {
-      opacity: .35;
-      transform: translateX(26%) scale(.94);
-      z-index: 1;
-    }
-
-    .card-pips {
-      position: absolute;
-      bottom: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: inline-flex;
-      gap: 8px;
-    }
-
-    .card-pips .pip {
-      width: 36px;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(13, 7, 39, 0.2);
-    }
-
-    .card-pips .pip.is-active {
-      background: linear-gradient(135deg, #6b2db1, #9c5ce6);
-      box-shadow: 0 8px 22px rgba(107, 45, 177, 0.35);
+    .card-slide:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 22px 44px rgba(26, 10, 58, 0.42);
+      filter: saturate(1.05);
     }
 
 
@@ -337,6 +303,28 @@
       border-radius: 999px;
       background: linear-gradient(135deg, #6b2db1, #9c5ce6);
       box-shadow: 0 0 0 6px rgba(126, 74, 197, 0.18);
+    }
+
+    #bank-sheet {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    #bank-sheet.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bank-sheet-panel {
+      transition: transform .25s ease, opacity .25s ease;
+      transform: translateY(28px);
+      opacity: 0;
+    }
+
+    #bank-sheet.is-open .bank-sheet-panel {
+      transform: translateY(0);
+      opacity: 1;
     }
 
     @media (min-width: 768px) {
@@ -488,9 +476,9 @@
       <section class="px-4 md:px-10 pb-16">
         <div class="w-full space-y-8">
           <div class="grid lg:grid-cols-[1.2fr_1fr] gap-6 items-start">
-            <div class="space-y-6">
+            <div class="space-y-5">
               <div class="relative" data-card-stack>
-                <div class="card-slide metal-card text-white rounded-[28px] shadow-xl border border-indigo-900/30 p-6 md:p-8" data-card-slide>
+                <button type="button" class="card-slide metal-card text-white rounded-[28px] shadow-xl border border-indigo-900/30 p-6 md:p-8 w-full text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-card-slide data-bank-trigger>
                   <div class="relative flex items-center justify-between mb-12">
                     <div class="flex -space-x-4">
                       <span class="h-11 w-11 rounded-full bg-white/30 border border-white/40 backdrop-blur-sm inline-block"></span>
@@ -512,9 +500,9 @@
                     </div>
                     <div class="tracking-[0.22em]">•••• 9248</div>
                   </div>
-                </div>
+                </button>
 
-                <div class="card-slide metal-card text-white rounded-[28px] shadow-xl border border-indigo-900/30 p-6 md:p-8" data-card-slide>
+                <button type="button" class="card-slide metal-card text-white rounded-[28px] shadow-xl border border-indigo-900/30 p-6 md:p-8 w-full text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-card-slide data-bank-trigger>
                   <div class="relative flex items-center justify-between mb-10">
                     <div class="flex items-center gap-3">
                       <div class="h-11 w-11 rounded-full bg-white/25 border border-white/40 backdrop-blur-sm grid place-items-center">
@@ -553,13 +541,10 @@
                     </div>
                     <div class="tracking-[0.22em]">•••• 7741</div>
                   </div>
-                </div>
-
-                <div class="card-pips" aria-hidden="true">
-                  <span class="pip"></span>
-                  <span class="pip"></span>
-                </div>
+                </button>
               </div>
+
+              <p class="text-sm font-semibold text-slate-200/90 md:text-slate-300">Tap either card to view linked banks.</p>
 
               <div class="grid grid-cols-2 gap-3">
                 <button class="h-12 rounded-2xl text-sm font-semibold text-white shadow-lg border border-white/15 backdrop-blur-md"
@@ -662,6 +647,67 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="bank-sheet" class="fixed inset-0 z-[70] hidden">
+    <div data-bank-overlay class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+
+    <div class="absolute inset-x-0 bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[520px]">
+      <div class="bank-sheet-panel mx-4 md:mx-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Linked banks</p>
+            <p class="text-base font-bold text-slate-900">Choose where to move money</p>
+          </div>
+          <button class="h-10 w-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50" data-bank-close aria-label="Close bank list">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
+            <div class="flex items-center gap-3">
+              <span class="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-700 grid place-items-center font-bold">AM</span>
+              <div class="leading-tight">
+                <p class="font-semibold text-slate-900">AlgoMoney Virtual</p>
+                <p class="text-sm text-slate-500">Primary • •••• 9248</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
+          </button>
+
+          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
+            <div class="flex items-center gap-3">
+              <span class="h-10 w-10 rounded-xl bg-purple-50 text-purple-700 grid place-items-center font-bold">AB</span>
+              <div class="leading-tight">
+                <p class="font-semibold text-slate-900">AlgoBank Reserve</p>
+                <p class="text-sm text-slate-500">Credit • •••• 7741</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
+          </button>
+
+          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
+            <div class="flex items-center gap-3">
+              <span class="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 grid place-items-center font-bold">ZA</span>
+              <div class="leading-tight">
+                <p class="font-semibold text-slate-900">Zulu Africa Bank</p>
+                <p class="text-sm text-slate-500">Savings • •••• 1384</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
+          </button>
+        </div>
+
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <div class="leading-tight">
+            <p class="text-sm font-semibold text-slate-900">Add another bank</p>
+            <p class="text-xs text-slate-500">Link a new account to keep funds moving.</p>
+          </div>
+          <button class="pill h-11 px-4 rounded-full text-sm font-semibold">Link bank</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/js/geo-pay.js"></script>
