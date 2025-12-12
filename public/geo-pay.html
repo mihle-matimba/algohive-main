@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoHive — Geo Pay</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --page: #0b1220;
+      --bg: #ffffff;
+      --muted: #64748b;
+      --ink: #0f172a;
+      --olive: #556b2f;
+      --olive-700: #3f4f21;
+      --brand: #556b2f;
+      --line: #e5e7ef
+    }
+
+    html,
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    #layout {
+      --sb: 275px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh
+    }
+
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 350px;
+      max-width: 85vw;
+      position: fixed;
+      top: 0;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%)
+    }
+
+    #ah-sidebar.is-open {
+      transform: translateX(0)
+    }
+
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr
+      }
+
+      #layout.is-collapsed {
+        --sb: 64px
+      }
+
+      #ah-sidebar {
+        position: sticky;
+        top: 0;
+        width: var(--sb);
+        max-width: none;
+        height: 100vh;
+        transform: translateX(0);
+        z-index: auto
+      }
+    }
+
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron {
+      display: none
+    }
+
+    #ah-sidebar[data-collapsed="true"] #main-nav {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-menu {
+      display: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] details>.sub {
+      display: none !important
+    }
+
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details>summary {
+      justify-content: center;
+      gap: .25rem
+    }
+
+    #ah-sidebar[data-collapsed="true"] details>summary span {
+      gap: 0
+    }
+
+    #ah-sidebar .footer {
+      transition: all .2s ease
+    }
+
+    #ah-sidebar[data-collapsed="true"] .footer {
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px
+    }
+
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
+      transform: rotate(180deg)
+    }
+
+    #ah-collapse {
+      display: none
+    }
+
+    @media (min-width: 768px) {
+      #ah-collapse {
+        display: inline-flex
+      }
+    }
+
+    .brand-toggle {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .brand-marker {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+
+    .brand-menu {
+      padding: 10px 12px 14px;
+      border-top: 1px solid #e2e8f0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .brand-menu-header {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .brand-option {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      height: 40px;
+      padding: 0 .875rem;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="min-h-screen overflow-x-hidden bg-white">
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
+      <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
+        <summary class="brand-toggle">
+          <div class="brand-marker">
+            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Logo" class="w-7 h-7 object-contain" />
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-[15px] text-slate-900 label">AlgoHive</div>
+            <div class="text-[11px] text-slate-500 label">Markets</div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="brand-menu">
+          <div class="brand-menu-header">Switch workspace</div>
+          <a href="#" class="brand-option">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" />
+            <div class="min-w-0 font-semibold text-slate-900 label algomoney-word">AlgoMoney</div>
+          </a>
+        </div>
+      </details>
+
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Overview</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/demo/dashboard.html" title="Home">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Markets</p>
+        <details class="group mt-1">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center gap-3">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/market-analysis-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Invest</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/strategies.html" title="OpenStrategies">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">OpenStrategies</span>
+            </a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/corporate-stroke-rounded.svg" alt="" class="w-4 h-4" />
+              <span class="flex items-center gap-2">
+                <span class="label">Funds</span>
+                <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span>
+              </span>
+            </a>
+            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/markets.html" title="Markets">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/earth-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Markets</span>
+            </a>
+          </div>
+        </details>
+
+        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="/demo/news-insights.html" title="News &amp; Insights">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Account</p>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/holdings.html" title="Holdings">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Holdings</span>
+        </a>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/account-statements.html" title="Account Statements">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Account Statements</span>
+        </a>
+        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Rewards">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/gift-stroke-rounded.svg" alt="" class="w-4 h-4" />
+          <span class="flex items-center gap-2">
+            <span class="label">Rewards</span>
+            <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span>
+          </span>
+        </a>
+
+        <details class="group mt-4">
+          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
+            <span class="flex items-center">
+              <span class="label">Other</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
+          </summary>
+          <div class="ml-8 mt-1 flex flex-col sub">
+            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Help">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/help-circle-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Help</span>
+            </a>
+            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Legal">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/audit-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Legal</span>
+            </a>
+            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Learn">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pencil-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="flex items-center gap-2"><span class="label">Learn</span><span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span></span>
+            </a>
+          </div>
+        </details>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="/demo/settings.html" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="relative flex-1 min-w-0 bg-white">
+      <header class="flex items-center justify-between gap-3 px-4 md:px-8 py-4 border-b border-slate-200">
+        <div class="flex items-center gap-3">
+          <button id="ah-mobile-menu-btn" class="md:hidden inline-flex items-center justify-center h-11 w-11 rounded-xl border border-slate-200 text-slate-700">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div>
+            <p class="text-sm font-semibold text-slate-500">Payments</p>
+            <h1 class="text-2xl font-bold text-slate-900">Geo Pay</h1>
+          </div>
+        </div>
+        <div class="hidden md:flex items-center gap-3">
+          <button class="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-200 text-slate-800 font-semibold">
+            <i class="fa-solid fa-circle-info text-slate-400"></i>
+            Help
+          </button>
+          <button class="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-slate-900 text-white font-semibold shadow-sm">
+            <i class="fa-solid fa-user"></i>
+            Account
+          </button>
+        </div>
+      </header>
+
+      <section class="px-4 md:px-8 py-8 max-w-5xl">
+        <div class="grid gap-6">
+          <div class="p-6 rounded-2xl border border-slate-200 shadow-sm bg-white">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p class="text-sm font-semibold text-slate-500">Geo-aware payments</p>
+                <h2 class="text-xl font-bold text-slate-900 mt-1">Collect payments with the AlgoHive sidebar experience</h2>
+                <p class="text-slate-600 mt-2 max-w-3xl">Use the form below to kick off a Paystack checkout while keeping the navigation consistent with the demo dashboard.</p>
+              </div>
+              <a class="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200 text-slate-800 font-semibold" href="/demo/dashboard.html">
+                <i class="fa-solid fa-arrow-left"></i>
+                Back to demo
+              </a>
+            </div>
+          </div>
+
+          <div class="p-6 rounded-2xl border border-slate-200 shadow-sm bg-white">
+            <h3 class="text-lg font-semibold text-slate-900">Start a payment</h3>
+            <p class="text-slate-600 mt-1">Enter the customer details and amount to begin a Paystack checkout flow.</p>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+              <label class="grid gap-2">
+                <span class="text-sm font-semibold text-slate-700">Customer email</span>
+                <input id="email" type="email" class="h-11 px-3 rounded-lg border border-slate-200 focus:border-slate-400 outline-none" placeholder="customer@example.com" />
+              </label>
+              <label class="grid gap-2">
+                <span class="text-sm font-semibold text-slate-700">Amount (ZAR)</span>
+                <input id="amount" type="number" step="0.01" min="0" class="h-11 px-3 rounded-lg border border-slate-200 focus:border-slate-400 outline-none" placeholder="500" />
+              </label>
+              <label class="grid gap-2 md:col-span-2">
+                <span class="text-sm font-semibold text-slate-700">Reference (optional)</span>
+                <input id="ref" type="text" class="h-11 px-3 rounded-lg border border-slate-200 focus:border-slate-400 outline-none" placeholder="Internal note" />
+              </label>
+            </div>
+            <div class="mt-6 flex items-center gap-3 flex-wrap">
+              <button id="payBtn" class="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-slate-900 text-white font-semibold shadow-sm">Pay now</button>
+              <p class="text-sm text-slate-600">You will be redirected to Paystack to complete the transaction.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    function wireSidebar() {
+      const sidebar = document.getElementById('ah-sidebar');
+      const overlay = document.getElementById('ah-overlay');
+      const mobileBtn = document.getElementById('ah-mobile-menu-btn');
+      const collapseBtn = document.getElementById('ah-collapse');
+
+      mobileBtn?.addEventListener('click', () => {
+        sidebar?.classList.add('is-open');
+        overlay?.classList.remove('hidden');
+      });
+
+      overlay?.addEventListener('click', () => {
+        sidebar?.classList.remove('is-open');
+        overlay?.classList.add('hidden');
+      });
+
+      collapseBtn?.addEventListener('click', () => {
+        const layout = document.getElementById('layout');
+        const isCollapsed = sidebar?.dataset.collapsed === 'true';
+        const next = !isCollapsed;
+        sidebar.dataset.collapsed = String(next);
+        layout?.classList.toggle('is-collapsed', next);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', wireSidebar);
+  </script>
+  <script src="/pay.js"></script>
+</body>
+</html>
