@@ -6,6 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoHive – Dashboard (Dynamic)</title>
 
+  <script nonce="ALGOHIVE">
+    (function () {
+      const originalWarn = console.warn;
+      console.warn = function (...args) {
+        const msg = String(args?.[0] || "");
+        if (msg.includes("cdn.tailwindcss.com should not be used in production")) return;
+        return originalWarn.apply(console, args);
+      };
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
@@ -969,7 +979,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
 
-  <script>
+  <script nonce="ALGOHIVE">
     (function () {
       const btn = document.getElementById('ah-mobile-menu-btn');
       const overlay = document.getElementById('ah-overlay');
@@ -1273,7 +1283,11 @@
       .select("strategy_id, units, ts, account_id")
       .eq("account_id", currentAccount.id);
 
-    if (error) throw error;
+    if (error) {
+      console.warn("unit_ledger lookup failed, assuming empty holdings", error?.message || error);
+      holdings = [];
+      return;
+    }
 
     // reduce per strategy_id (client-side aggregate)
     const map = new Map();
@@ -1603,47 +1617,32 @@
     setupSessionTimeout();
     // === END SESSION TIMEOUT LOGIC ===
 
-    // quick existence test – uses your RPC: has_units(uid uuid) returns boolean
-    let hasAny = false;
+    // see if they even have an ACTIVE account and any ledger rows
     try {
-      const { data, error } = await supabase.rpc("has_units", { uid: user.id });
-      if (error) throw error;
-      hasAny = !!data;
-    } catch (err) {
-      // if rpc fails, we’ll fall back to checking account + ledger below
-      console.warn("has_units RPC failed, continuing:", err?.message || err);
-    }
-
-    if (hasAny === true) {
-      toggleEmptyOverlay(false);
-    } else {
-      // fallback check: see if they even have an ACTIVE account and any ledger rows
-      try {
-        await pickActiveAccount(user);
-        if (!currentAccount) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-
-        const { data: rows, error: le } = await supabase
-          .from("unit_ledger")
-          .select("id")
-          .eq("account_id", currentAccount.id)
-          .limit(1);
-        if (le || !rows?.length) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-      } catch {
+      await pickActiveAccount(user);
+      if (!currentAccount) {
         showEmptyStateAll();
         setupChart();
         renderFlatEquity(0, null);
         return;
       }
+
+      const { data: rows, error: le } = await supabase
+        .from("unit_ledger")
+        .select("id")
+        .eq("account_id", currentAccount.id)
+        .limit(1);
+      if (le || !rows?.length) {
+        showEmptyStateAll();
+        setupChart();
+        renderFlatEquity(0, null);
+        return;
+      }
+    } catch {
+      showEmptyStateAll();
+      setupChart();
+      renderFlatEquity(0, null);
+      return;
     }
 
     // proceed normal flow
