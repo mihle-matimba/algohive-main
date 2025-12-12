@@ -300,17 +300,28 @@
         });
     };
 
-    async function fetchTradingLogos() {
+    const fetchCachedLogos = () => {
       try {
         const cached = sessionStorage.getItem(TRADING_LOGOS_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          const cachedLogos = normalizeLogos(Array.isArray(parsed) ? parsed : []);
-          if (cachedLogos.length) return cachedLogos;
-        }
+        if (!cached) return null;
+
+        const parsed = JSON.parse(cached);
+        const cachedLogos = normalizeLogos(
+          parsed?.source === 'trading_universe' && Array.isArray(parsed.logos)
+            ? parsed.logos
+            : []
+        );
+
+        return cachedLogos.length ? cachedLogos : null;
       } catch (err) {
         console.warn("Unable to read cached trading logos", err);
+        return null;
       }
+    };
+
+    async function fetchTradingLogos() {
+      const cached = fetchCachedLogos();
+      if (cached) return cached;
 
       if (!supabase) return defaultSphereImages;
 
@@ -326,10 +337,15 @@
 
       const logos = normalizeLogos(data);
 
-      try {
-        sessionStorage.setItem(TRADING_LOGOS_KEY, JSON.stringify(logos));
-      } catch (err) {
-        console.warn("Unable to cache trading logos", err);
+      if (logos.length) {
+        try {
+          sessionStorage.setItem(
+            TRADING_LOGOS_KEY,
+            JSON.stringify({ source: 'trading_universe', logos })
+          );
+        } catch (err) {
+          console.warn("Unable to cache trading logos", err);
+        }
       }
 
       return logos.length ? logos : defaultSphereImages;
