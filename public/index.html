@@ -204,7 +204,10 @@
   <script type="text/babel" nonce="ALGOHIVE">
     const { useEffect, useRef, useState } = React;
 
-    const sphereImages = [
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
+
+    const defaultSphereImages = [
       { id: "apple", src: "https://logo.clearbit.com/apple.com" },
       { id: "microsoft", src: "https://logo.clearbit.com/microsoft.com" },
       { id: "google", src: "https://logo.clearbit.com/google.com" },
@@ -234,6 +237,76 @@
       { id: "bidvest", src: "https://logo.clearbit.com/bidvest.com" },
       { id: "mastercard", src: "https://logo.clearbit.com/mastercard.com" },
     ];
+
+    const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TRADING_LOGOS_KEY = "ah_trading_universe_logos";
+
+    const normalizeLogos = (rows) => {
+      const seen = new Set();
+
+      return rows
+        .map((row) => ({
+          id: (row.symbol || `logo-${row.id}`).toLowerCase(),
+          src: row.logo,
+        }))
+        .filter((row) => typeof row.src === 'string' && row.src.trim().startsWith('http'))
+        .filter(({ src }) => {
+          if (seen.has(src)) return false;
+          seen.add(src);
+          return true;
+        });
+    };
+
+    const fetchCachedLogos = () => {
+      try {
+        const cached = sessionStorage.getItem(TRADING_LOGOS_KEY);
+        if (!cached) return null;
+
+        const parsed = JSON.parse(cached);
+        const cachedLogos = normalizeLogos(
+          parsed?.source === 'trading_universe' && Array.isArray(parsed.logos)
+            ? parsed.logos
+            : []
+        );
+
+        return cachedLogos.length ? cachedLogos : null;
+      } catch (err) {
+        console.warn("Unable to read cached trading logos", err);
+        return null;
+      }
+    };
+
+    async function fetchTradingLogos() {
+      const cached = fetchCachedLogos();
+      if (cached) return cached;
+
+      if (!supabase) return defaultSphereImages;
+
+      const { data, error } = await supabase
+        .from('trading_universe')
+        .select('id, symbol, logo')
+        .not('logo', 'is', null)
+        .neq('logo', '')
+        .order('symbol', { ascending: true })
+        .limit(120);
+
+      if (error || !data?.length) return defaultSphereImages;
+
+      const logos = normalizeLogos(data);
+
+      if (logos.length) {
+        try {
+          sessionStorage.setItem(
+            TRADING_LOGOS_KEY,
+            JSON.stringify({ source: 'trading_universe', logos })
+          );
+        } catch (err) {
+          console.warn("Unable to cache trading logos", err);
+        }
+      }
+
+      return logos.length ? logos : defaultSphereImages;
+    }
 
     const Sphere = ({ images, size = 760 }) => {
       const [rot, setRot] = useState({ x: 15, y: 0 });
@@ -387,6 +460,7 @@
 
     const SphereWrapper = () => {
       const [size, setSize] = useState(getSphereSize());
+      const [images, setImages] = useState(defaultSphereImages);
 
       useEffect(() => {
         const handleResize = () => setSize(getSphereSize());
@@ -394,7 +468,25 @@
         return () => window.removeEventListener('resize', handleResize);
       }, []);
 
-      return <Sphere images={sphereImages} size={size} />;
+      useEffect(() => {
+        let isMounted = true;
+
+        fetchTradingLogos()
+          .then((logos) => {
+            if (isMounted && logos?.length) {
+              setImages(logos);
+            }
+          })
+          .catch(() => {
+            /* fallback stays as defaultSphereImages */
+          });
+
+        return () => {
+          isMounted = false;
+        };
+      }, []);
+
+      return <Sphere images={images} size={size} />;
     };
 
     const mountNode = document.getElementById('logoSphere');
