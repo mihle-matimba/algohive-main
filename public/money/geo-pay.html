@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoMoney — Geo Pay</title>
+
+  <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+4Jd5pkhE5cZbSO86p1kQFMhlZp80fB+dP5yO0mmo="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --brand-purple: #553bf7;
+      --brand-ink: #0f172a;
+      --brand-muted: #94a3b8;
+      --brand-olive: #7e8d52;
+    }
+
+    html, body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+    .money-glow {
+      position: absolute; inset: -30% -10% auto -10%;
+      height: 60%;
+      background: radial-gradient(circle at 30% 40%, rgba(85, 59, 247, 0.16), transparent 45%),
+                  radial-gradient(circle at 70% 60%, rgba(126, 141, 82, 0.18), transparent 40%);
+      filter: blur(32px);
+      pointer-events: none;
+    }
+
+    #geo-map { height: 420px; }
+
+    .leaflet-container { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .leaflet-control-container .leaflet-top.leaflet-left { top: 12px; left: 12px; }
+    .leaflet-control-container .leaflet-bottom.leaflet-left { bottom: 12px; left: 12px; }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <div id="layout">
+
+    <main class="money-app-container relative min-h-screen">
+      <button
+        id="ah-mobile-menu-btn"
+        class="md:hidden absolute top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-xl bg-white/90 backdrop-blur border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+        aria-label="Toggle navigation"
+      >
+        <i class="fa-solid fa-bars text-lg"></i>
+      </button>
+
+      <div class="relative bg-white h-full w-full">
+        <div class="money-glow"></div>
+
+        <header class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-6 pt-8 pb-4">
+          <div class="space-y-2">
+            <p class="text-xs uppercase tracking-[0.28em] text-slate-400 font-semibold">Geo Pay</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">Pay people by location</h1>
+            <p class="text-slate-500 max-w-2xl">
+              Drop a pin, confirm the details, and route funds instantly to the right place. Built for field teams
+              and cross-border operations.
+            </p>
+          </div>
+          <div class="flex items-center gap-3 self-start lg:self-auto">
+            <span class="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live geo rails
+            </span>
+            <button
+              id="use-location"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold shadow-sm hover:bg-slate-800 transition"
+            >
+              <i class="fa-solid fa-location-crosshairs"></i>
+              Use my location
+            </button>
+          </div>
+        </header>
+
+        <section class="px-6 pb-12">
+          <div class="grid lg:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <div>
+                  <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">Map</p>
+                  <h2 class="text-lg font-semibold text-slate-900">Drop or search a location</h2>
+                </div>
+                <div class="text-right">
+                  <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Route</p>
+                  <p id="route-status" class="text-sm font-semibold text-emerald-600">Ready</p>
+                </div>
+              </div>
+
+              <div class="relative">
+                <div id="geo-map" class="w-full"></div>
+                <div class="absolute left-4 bottom-4 right-4 bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-lg px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div class="flex items-center gap-3 text-sm text-slate-700">
+                    <span class="h-9 w-9 rounded-xl bg-slate-900 text-white grid place-items-center shadow-sm"><i class="fa-solid fa-crosshairs"></i></span>
+                    <div>
+                      <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold">Selected point</p>
+                      <p id="selected-coordinates" class="font-semibold text-slate-800">Tap anywhere on the map</p>
+                    </div>
+                  </div>
+                  <div class="flex gap-2 text-xs text-slate-500">
+                    <span class="px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">High fidelity</span>
+                    <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">Latency &lt; 350ms</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
+              <div class="flex items-center gap-3">
+                <div class="h-11 w-11 rounded-xl bg-purple-100 text-purple-700 grid place-items-center text-lg"><i class="fa-solid fa-globe"></i></div>
+                <div>
+                  <p class="text-xs uppercase tracking-[0.24em] text-slate-400 font-semibold">Geo pay</p>
+                  <h3 class="text-xl font-semibold text-slate-900">Send funds to a location</h3>
+                </div>
+              </div>
+
+              <form id="geo-pay-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label class="block">
+                    <span class="text-xs font-semibold text-slate-500">Recipient</span>
+                    <input type="text" name="recipient" required placeholder="Team member or vendor" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm focus:border-slate-400 focus:outline-none" />
+                  </label>
+                  <label class="block">
+                    <span class="text-xs font-semibold text-slate-500">Reference</span>
+                    <input type="text" name="reference" placeholder="Optional note" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm focus:border-slate-400 focus:outline-none" />
+                  </label>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                  <label class="col-span-2 block">
+                    <span class="text-xs font-semibold text-slate-500">Amount</span>
+                    <input type="number" name="amount" min="1" step="0.01" required placeholder="0.00" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-lg font-semibold text-slate-900 focus:border-slate-400 focus:outline-none" />
+                  </label>
+                  <label class="block">
+                    <span class="text-xs font-semibold text-slate-500">Currency</span>
+                    <select name="currency" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-900 bg-white focus:border-slate-400 focus:outline-none">
+                      <option>USD</option>
+                      <option>EUR</option>
+                      <option>GBP</option>
+                      <option>NGN</option>
+                      <option>GHS</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 text-sm text-slate-600 flex items-start gap-3">
+                  <span class="text-slate-400"><i class="fa-solid fa-info-circle"></i></span>
+                  <p>Tap the map to set a payout point. We’ll route funds through the nearest rail and surface the best FX if cross-border is needed.</p>
+                </div>
+
+                <button
+                  type="submit"
+                  class="w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-emerald-600 text-white py-3.5 font-semibold text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition"
+                >
+                  Send geo payment
+                </button>
+              </form>
+
+              <div class="border-t border-slate-100 pt-4">
+                <p class="text-xs uppercase tracking-[0.24em] text-slate-400 font-semibold mb-3">Recent drops</p>
+                <div class="space-y-3 text-sm text-slate-700">
+                  <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div class="flex items-center gap-3">
+                      <span class="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-200 to-purple-100 text-purple-700 grid place-items-center"><i class="fa-solid fa-warehouse"></i></span>
+                      <div>
+                        <p class="font-semibold text-slate-900">Warehouse top-up</p>
+                        <p class="text-xs text-slate-500">Lekki, NG · Settled</p>
+                      </div>
+                    </div>
+                    <p class="font-semibold text-slate-900">$12,500</p>
+                  </div>
+                  <div class="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                    <div class="flex items-center gap-3">
+                      <span class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-100 text-emerald-700 grid place-items-center"><i class="fa-solid fa-van-shuttle"></i></span>
+                      <div>
+                        <p class="font-semibold text-slate-900">Field ops per diem</p>
+                        <p class="text-xs text-slate-500">Kigali, RW · In flight</p>
+                      </div>
+                    </div>
+                    <p class="font-semibold text-slate-900">$3,800</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kGStg6kG1YhW4qkKf8HqkGmLwZjvYwQ+5VCOw=" crossorigin=""></script>
+  <script type="module" nonce="ALGOHIVE">
+    import { renderSidebar } from '../partials/layout.js';
+    import { renderMoneySidebar } from '../partials/money-layout.js';
+
+    renderSidebar('money');
+    renderMoneySidebar('geopay');
+
+    const map = L.map('geo-map', { zoomControl: false, worldCopyJump: true }).setView([20, 0], 2.5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    let marker = null;
+
+    const statusEl = document.getElementById('route-status');
+    const coordsEl = document.getElementById('selected-coordinates');
+    const form = document.getElementById('geo-pay-form');
+    const useLocationBtn = document.getElementById('use-location');
+
+    function setMarker(latlng, label = 'Selected point') {
+      if (marker) marker.remove();
+      marker = L.marker(latlng, { title: label }).addTo(map);
+      coordsEl.textContent = `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+      statusEl.textContent = 'Routing';
+      statusEl.className = 'text-sm font-semibold text-amber-600';
+      setTimeout(() => {
+        statusEl.textContent = 'Ready';
+        statusEl.className = 'text-sm font-semibold text-emerald-600';
+      }, 600);
+    }
+
+    map.on('click', (event) => {
+      setMarker(event.latlng, 'Manual pick');
+    });
+
+    useLocationBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        statusEl.textContent = 'Location unavailable';
+        statusEl.className = 'text-sm font-semibold text-rose-600';
+        return;
+      }
+
+      statusEl.textContent = 'Locating…';
+      statusEl.className = 'text-sm font-semibold text-slate-600';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const latlng = { lat: latitude, lng: longitude };
+          map.setView(latlng, 12, { animate: true });
+          setMarker(latlng, 'My location');
+        },
+        () => {
+          statusEl.textContent = 'Location blocked';
+          statusEl.className = 'text-sm font-semibold text-rose-600';
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      if (!marker) {
+        statusEl.textContent = 'Pick a location first';
+        statusEl.className = 'text-sm font-semibold text-rose-600';
+        return;
+      }
+
+      const payload = {
+        recipient: data.get('recipient'),
+        reference: data.get('reference'),
+        amount: Number(data.get('amount') || 0),
+        currency: data.get('currency'),
+        coordinates: marker.getLatLng()
+      };
+
+      statusEl.textContent = 'Sending…';
+      statusEl.className = 'text-sm font-semibold text-amber-600';
+
+      setTimeout(() => {
+        statusEl.textContent = 'Sent';
+        statusEl.className = 'text-sm font-semibold text-emerald-600';
+        coordsEl.textContent = `${payload.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${payload.currency} to ${payload.recipient}`;
+        form.reset();
+      }, 800);
+    });
+  </script>
+</body>
+</html>

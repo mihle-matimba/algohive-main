@@ -55,12 +55,18 @@ export function renderMoneySidebar(activeTab) {
           <div>
             <p class="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Overview</p>
             <div class="space-y-1">
-              <a href="/money/comingsoon.html" 
+              <a href="/money/comingsoon.html"
                  class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'dashboard' ? activeClass : 'text-slate-500 hover:bg-slate-50'}">
                 <i class="fa-solid fa-chart-simple w-5 text-center"></i>
                 <span>Dashboard</span>
               </a>
-              
+
+              <a href="/money/geo-pay.html"
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'geopay' ? activeClass : 'text-slate-500 hover:bg-slate-50'}">
+                <i class="fa-solid fa-location-dot w-5 text-center"></i>
+                <span>Geo Pay</span>
+              </a>
+
               <div class="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium ${lockedClass}">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-chart-pie w-5 text-center"></i>
