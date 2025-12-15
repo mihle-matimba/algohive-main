@@ -4,792 +4,224 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoMoney — Geo Pay</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --page: #0b1220;
-      --bg: #f4f5f9;
+      --bg: #f6f7fb;
+      --primary: #1a73e8;
+      --primary-dark: #0c5ac9;
+      --text: #0f172a;
       --muted: #6b7280;
-      --ink: #0f172a;
-      --olive: #556b2f;
-      --olive-700: #3f4f21;
-      --brand: #556b2f;
-      --line: #e5e7ef;
-      --primary: #582c89;
-      --primary-2: #7531a4;
-      --deep: #0b0b22;
-      --shadow: 0 14px 32px rgba(54, 38, 102, 0.18);
-      --card: #0d1125;
-      --muted-deep: #a0a4b8
     }
 
-    html,
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
-      color: var(--ink)
+      color: var(--text);
     }
 
-    #layout {
-      --sb: 275px;
-      display: grid;
-      grid-template-columns: 1fr;
-      min-height: 100vh
+    .card-gradient {
+      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)), linear-gradient(135deg, #1c6fe6 0%, #0f52c7 55%, #0a40a8 100%);
+      box-shadow: 0 20px 38px rgba(16, 65, 174, 0.3);
     }
 
-    #ah-sidebar {
-      transition: transform .3s ease, width .2s ease;
-      width: 350px;
-      max-width: 85vw;
-      position: fixed;
-      top: 0;
-      z-index: 50;
-      height: 100vh;
-      transform: translateX(-100%)
+    .action-btn {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-    #ah-sidebar.is-open {
-      transform: translateX(0)
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 22px rgba(59, 130, 246, 0.18);
     }
 
-    @media (min-width: 768px) {
-      #layout {
-        grid-template-columns: var(--sb) 1fr
-      }
-
-      #layout.is-collapsed {
-        --sb: 64px
-      }
-
-      #ah-sidebar {
-        position: sticky;
-        top: 0;
-        width: var(--sb);
-        max-width: none;
-        height: 100vh;
-        transform: translateX(0);
-        z-index: auto
-      }
-    }
-
-    #ah-sidebar[data-collapsed="true"] .label,
-    #ah-sidebar[data-collapsed="true"] .chevron {
-      display: none
-    }
-
-    #ah-sidebar[data-collapsed="true"] #main-nav {
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-menu {
-      display: none;
-    }
-
-    #ah-sidebar[data-collapsed="true"] details>.sub {
-      display: none !important
-    }
-
-    #ah-sidebar[data-collapsed="true"] nav a,
-    #ah-sidebar[data-collapsed="true"] details>summary {
-      justify-content: center;
-      gap: .25rem
-    }
-
-    #ah-sidebar[data-collapsed="true"] details>summary span {
-      gap: 0
-    }
-
-    #ah-sidebar .footer {
-      transition: all .2s ease
-    }
-
-    #ah-sidebar[data-collapsed="true"] .footer {
-      justify-content: center;
-      flex-direction: column;
-      gap: 12px
-    }
-
-    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
-      transform: rotate(180deg)
-    }
-
-    #ah-collapse {
-      display: none
-    }
-
-    @media (min-width: 768px) {
-      #ah-collapse {
-        display: inline-flex
-      }
-    }
-
-    .brand-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: .75rem;
-      padding: 12px 14px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    .brand-marker {
-      width: 46px;
-      height: 46px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      overflow: hidden;
-    }
-
-    .brand-menu {
-      padding: 10px 12px 14px;
-      border-top: 1px solid #e2e8f0;
-      display: grid;
-      gap: 10px;
-    }
-
-    .brand-menu-header {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .nav-icon {
       color: #94a3b8;
     }
 
-    .brand-option {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 10px;
-      align-items: center;
-      padding: 10px 12px;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      text-decoration: none;
-      color: inherit;
-      font-weight: 600;
-      background: #fff;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: .5rem;
-      height: 40px;
-      padding: 0 .875rem;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      font-weight: 600;
-    }
-
-    .glass-card {
-      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0)), #0f1330;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: var(--shadow);
-    }
-
-    .metal-card {
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(145deg, #1d0f38 0%, #2c1454 30%, #38186c 58%, #2b1258 82%, #1b0a3c 100%);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: 0 18px 34px rgba(22, 9, 46, 0.38), 0 6px 18px rgba(22, 6, 43, 0.36);
-      color: #f4f1ff;
-    }
-
-    .credit-card {
-      background: linear-gradient(150deg, #0c0618 0%, #1b0d30 42%, #0f071f 76%, #0a0416 100%);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      color: #f6f3ff;
-      box-shadow: 0 18px 34px rgba(22, 9, 46, 0.42), 0 8px 22px rgba(10, 4, 22, 0.38);
-    }
-
-    [data-card-stack] {
-      position: relative;
-      min-height: 340px;
-      display: grid;
-      place-items: center;
-      gap: 14px;
-    }
-
-    .card-stack-layer {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: clamp(260px, 85vw, 380px);
-      aspect-ratio: 1.586;
-      transition: transform .3s ease, box-shadow .3s ease, filter .3s ease;
-      filter: saturate(1);
-    }
-
-    .card-stack-layer:hover {
-      filter: saturate(1.05);
-    }
-
-    .stack-back {
-      top: 0;
-      z-index: 10;
-      transform: translate(-50%, 0) scale(.96);
-      box-shadow: 0 12px 26px rgba(12, 6, 26, 0.26);
-      opacity: .92;
-    }
-
-    .stack-front {
-      top: 34px;
-      z-index: 20;
-      transform: translate(-50%, 0) scale(1);
-      box-shadow: 0 18px 34px rgba(22, 9, 46, 0.38), 0 6px 18px rgba(22, 6, 43, 0.36);
-    }
-
-    .card-stack-layer[data-card-active="true"] {
-      outline: 2px solid rgba(255, 255, 255, 0.3);
-      outline-offset: -6px;
-    }
-
-
-    .gradient-border {
-      position: relative;
-      border-radius: 22px;
-      padding: 3px;
-      background: linear-gradient(120deg, rgba(121, 90, 213, 0.4), rgba(247, 141, 255, 0.6), rgba(121, 90, 213, 0.4));
-    }
-
-    .gradient-border > .inner-card {
-      border-radius: 18px;
-      background: linear-gradient(145deg, #0d102b, #0a0c1f);
-      color: #f8fbff;
-    }
-
-    .pill {
-      background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      color: #fff;
-      box-shadow: 0 10px 20px rgba(102, 51, 153, 0.28);
-    }
-
-    .pill-secondary {
-      background: #f6f2ff;
-      color: #4a227e;
-      border: 1px solid rgba(104, 57, 176, 0.2);
-    }
-
-    .section-card {
-      background: #fff;
-      border: 1px solid #e5e7ef;
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-    }
-
-    .loan-tag {
-      border: 1px solid #e8eaf3;
-      background: #f7f8fd;
-    }
-
-    .mobile-island-bar {
-      position: fixed;
-      left: 50%;
-      bottom: max(14px, env(safe-area-inset-bottom, 14px));
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      z-index: 60;
-      padding: 0 12px;
-      width: min(540px, 100vw);
-      justify-content: center;
-      pointer-events: none;
-    }
-
-    .mobile-island {
-      pointer-events: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 999px;
-      background:
-        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 42%),
-        radial-gradient(circle at 72% 10%, rgba(180, 124, 255, 0.26), transparent 42%),
-        linear-gradient(140deg, #0b0620 0%, #1a0c36 28%, #2d135b 62%, #1e0a3a 82%, #0d0727 100%);
-      color: #f8f7ff;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 12px 32px rgba(17, 6, 41, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(8px);
-      transition: transform .2s ease, box-shadow .2s ease;
-    }
-
-    .mobile-island:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 16px 34px rgba(26, 6, 46, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    }
-
-    .mobile-island .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #6b2db1, #9c5ce6);
-      box-shadow: 0 0 0 6px rgba(126, 74, 197, 0.18);
-    }
-
-    #bank-sheet,
-    #statements-sheet {
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .25s ease;
-    }
-
-    #bank-sheet.is-open,
-    #statements-sheet.is-open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .bank-sheet-panel,
-    .statements-sheet-panel {
-      transition: transform .25s ease, opacity .25s ease;
-      transform: translateY(28px);
-      opacity: 0;
-    }
-
-    #bank-sheet.is-open .bank-sheet-panel,
-    #statements-sheet.is-open .statements-sheet-panel {
-      transform: translateY(0);
-      opacity: 1;
-    }
-
-    @media (min-width: 768px) {
-      .mobile-island-bar {
-        display: none;
-      }
+    .nav-active {
+      color: var(--primary);
+      background: #e5f0ff;
     }
   </style>
 </head>
-<body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
-  <div id="layout">
-    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
-    <div class="mobile-island-bar md:hidden">
-      <button data-mobile-island="menu" class="mobile-island">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="text-sm font-semibold">Open mobile menu</span>
-        <i class="fa-solid fa-bars text-xs"></i>
-      </button>
-      <button data-mobile-island="sidebar" class="mobile-island">
-        <i class="fa-solid fa-rectangle-list text-xs"></i>
-        <span class="text-sm font-semibold">Sidebar</span>
-        <span class="dot" aria-hidden="true"></span>
-      </button>
-    </div>
-    <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 h-[100vh] bg-white flex flex-col overflow-hidden">
-      <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
-        <summary class="brand-toggle">
-          <div class="brand-marker">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" class="w-7 h-7 object-contain" />
-          </div>
-          <div class="min-w-0">
-            <div class="font-bold text-[15px] text-slate-900 label algomoney-word">AlgoMoney</div>
-            <div class="text-[11px] text-slate-500 label">Money</div>
-          </div>
-          <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
-        </summary>
-        <div class="brand-menu">
-          <div class="brand-menu-header">Switch workspace</div>
-          <a href="#" class="brand-option">
-            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Markets Logo" />
-            <div class="min-w-0 font-semibold text-slate-900 label">AlgoHive Markets</div>
-          </a>
+<body>
+  <div class="min-h-screen flex items-start justify-center px-4 py-6">
+    <div class="w-full max-w-md">
+      <header class="flex items-center justify-between py-2">
+        <div>
+          <p class="text-sm text-slate-500">Welcome Back 👋</p>
+          <p class="text-lg font-semibold">Ronaldinho Fazio</p>
         </div>
-      </details>
-
-      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
-        <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Overview</p>
-        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/demo/dashboard.html" title="Home">
-          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
-        </a>
-
-        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Markets</p>
-        <details class="group mt-1">
-          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center gap-3">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/market-analysis-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Invest</span>
-            </span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/strategies.html" title="OpenStrategies">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">OpenStrategies</span>
-            </a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="#" title="Funds">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/corporate-stroke-rounded.svg" alt="" class="w-4 h-4" />
-              <span class="flex items-center gap-2">
-                <span class="label">Funds</span>
-                <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span>
-              </span>
-            </a>
-            <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2" href="/demo/markets.html" title="Markets">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/earth-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Markets</span>
-            </a>
-          </div>
-        </details>
-
-        <a class="mt-1 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="/demo/news-insights.html" title="News &amp; Insights">
-          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/news-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">News &amp; Insights</span>
-        </a>
-
-        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Account</p>
-        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/holdings.html" title="Holdings">
-          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Holdings</span>
-        </a>
-        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="/demo/account-statements.html" title="Account Statements">
-          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Account Statements</span>
-        </a>
-        <a class="px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2 font-medium text-slate-900" href="#" title="Rewards">
-          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/gift-stroke-rounded.svg" alt="" class="w-4 h-4" />
-          <span class="flex items-center gap-2">
-            <span class="label">Rewards</span>
-            <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span>
-          </span>
-        </a>
-
-        <details class="group mt-4">
-          <summary class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer font-medium text-slate-900">
-            <span class="flex items-center">
-              <span class="label">Other</span>
-            </span>
-            <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform chevron"></i>
-          </summary>
-          <div class="ml-8 mt-1 flex flex-col sub">
-            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Help">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/help-circle-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Help</span>
-            </a>
-            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Legal">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/audit-01-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="label">Legal</span>
-            </a>
-            <a class="px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 font-medium text-slate-900" href="#" title="Learn">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pencil-stroke-rounded.svg" alt="" class="w-4 h-4" /><span class="flex items-center gap-2"><span class="label">Learn</span><span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 border border-slate-200 rounded-full px-2 py-[2px]">Coming Soon</span></span>
-            </a>
-          </div>
-        </details>
-      </nav>
-
-      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
-        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="/demo/settings.html" title="Settings">
-          <i class="fa-solid fa-gear"></i>
-        </a>
-        <button id="ah-collapse" class="btn btn-collapse h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" title="Collapse">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-      </div>
-    </aside>
-
-    <main class="relative flex-1 min-w-0 w-full">
-      <header class="flex items-center justify-between gap-3 px-4 md:px-10 py-4 md:py-6">
-        <div class="flex items-center gap-3">
-          <button id="ah-mobile-menu-btn" class="md:hidden inline-flex items-center justify-center h-11 w-11 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <div class="flex items-center gap-2">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney" class="h-9 w-9 rounded-full bg-white p-1 shadow" />
-            <span class="font-bold text-[17px] text-slate-900">ALGOMONEY</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="hidden md:flex flex-col text-right leading-tight">
-            <span class="text-xs font-semibold text-slate-500">Account</span>
-            <span class="text-sm font-bold text-slate-900">M Ndhlovu</span>
-          </div>
-          <div class="h-11 w-11 rounded-full bg-white border border-slate-200 grid place-items-center text-lg font-semibold text-slate-900 shadow-sm">
-            M
-          </div>
-        </div>
+        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80" alt="Profile" class="w-10 h-10 rounded-full object-cover shadow" />
       </header>
 
-      <section class="px-4 md:px-10 pb-16">
-        <div class="w-full space-y-8">
-          <div class="grid lg:grid-cols-[1.2fr_1fr] gap-6 items-start">
-              <div class="space-y-5">
-                <div class="relative" data-card-stack>
-                  <button type="button" class="card-stack-layer stack-back metal-card rounded-[24px] shadow-xl p-6 md:p-7 text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-bank-trigger data-card="bank" data-card-active="false" data-card-name="AlgoMoney Bank" data-card-mask="**** 5482" aria-pressed="false">
-                    <div class="flex items-start justify-between mb-8">
-                      <div class="flex flex-col gap-4">
-                        <span class="text-base font-semibold tracking-[0.14em] text-white/90">**** 5482</span>
-                      <span class="text-3xl md:text-4xl font-black text-white tracking-tight">$28,000</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="h-9 w-9 rounded-full bg-white/70 block"></span>
-                      <span class="h-9 w-9 rounded-full bg-white/50 block -ml-4 border border-white/50"></span>
-                    </div>
-                  </div>
-
-                    <div class="flex items-center justify-between text-sm font-semibold text-white/90">
-                      <div>
-                        <p class="uppercase tracking-[0.16em] text-white/70">Card Owner</p>
-                        <p class="text-lg font-bold text-white">Jordan Smith</p>
-                      </div>
-                      <div class="text-right">
-                        <p class="text-xs uppercase tracking-[0.14em] text-white/70">Valid Thru</p>
-                        <p class="text-base font-semibold text-white">04/24</p>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button type="button" class="card-stack-layer stack-front credit-card rounded-[24px] shadow-xl p-6 md:p-7 text-left appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-300" data-bank-trigger data-card="credit" data-card-active="true" data-card-name="AlgoMoney Credit" data-card-mask="**** 4168" aria-pressed="true">
-                    <div class="flex items-start justify-between mb-8 text-white">
-                      <span class="text-base font-semibold tracking-[0.14em] text-white/90">**** 4168</span>
-                      <div class="h-9 w-9 rounded-full bg-white/90 text-slate-900 grid place-items-center text-[13px] font-black">VISA</div>
-                  </div>
-
-                  <div class="flex items-center justify-between text-sm font-semibold text-white">
-                    <div>
-                      <p class="uppercase tracking-[0.16em] text-white/70">Card Owner</p>
-                      <p class="text-lg font-bold">Jordan Smith</p>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-xs uppercase tracking-[0.14em] text-white/70">Valid Thru</p>
-                      <p class="text-base font-semibold">04/24</p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              <p class="text-sm font-semibold text-slate-200/90 md:text-slate-300">Tap either card to view linked banks.</p>
-
-              <div class="flex items-center justify-between flex-wrap gap-3">
-                <button type="button" data-statements-trigger class="inline-flex items-center gap-2 text-sm font-semibold text-white/90 px-3 py-2 rounded-xl border border-white/20 bg-white/5 shadow-sm">
-                  <span>View Account Statements</span>
-                  <i class="fa-solid fa-chevron-down text-xs"></i>
-                </button>
-              </div>
-
-              <div class="grid grid-cols-2 gap-3">
-                <button class="h-12 rounded-2xl text-sm font-semibold text-white shadow-xl border border-white/20 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  style="background: linear-gradient(150deg, #3c1a70 0%, #6426b0 42%, #8a3eda 100%);">Pay</button>
-                <button class="h-12 rounded-2xl text-sm font-semibold text-white/90 border border-white/30 bg-white/10 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-white/30"
-                  style="background: linear-gradient(150deg, rgba(108,55,176,0.32) 0%, rgba(54,20,96,0.32) 100%);">Receive</button>
-              </div>
-            </div>
-
-            <div class="bg-white rounded-[24px] shadow-lg border border-slate-100 overflow-hidden">
-              <div class="px-6 pt-6 pb-4 md:px-7 md:pt-7">
-                <p class="text-[13px] font-semibold text-slate-500">Welcome To Credit</p>
-                <div class="gradient-border mt-3">
-                  <div class="inner-card px-4 py-4 md:px-6 md:py-5 flex flex-col gap-3">
-                    <div class="text-xs text-indigo-100 opacity-80">Credit Summary</div>
-                    <div class="text-[11px] text-slate-300 opacity-80">uuid: 2345--8968-6444-5940</div>
-                    <div class="flex items-center justify-between gap-4">
-                      <div class="grid gap-2">
-                        <div class="text-xs font-semibold text-indigo-100 opacity-80">Balance Due</div>
-                        <div class="text-2xl md:text-3xl font-extrabold tracking-tight">R 4 300</div>
-                        <div class="text-xs font-semibold text-indigo-100 opacity-80">Qualified Amount</div>
-                        <div class="text-xl font-semibold">R35 000</div>
-                      </div>
-                      <div class="text-right">
-                        <div class="text-xs font-semibold text-indigo-100 opacity-80">Engine Score</div>
-                        <div class="text-3xl md:text-4xl font-black text-emerald-400">82%</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="px-6 pb-6 md:px-7 md:pb-7">
-                <p class="text-sm font-semibold text-slate-700">Quick Actions</p>
-                <div class="mt-4 grid grid-cols-2 gap-3">
-                  <button class="pill h-12 rounded-2xl text-sm font-semibold">Apply Now</button>
-                  <button class="pill-secondary h-12 rounded-2xl text-sm font-semibold">Make Payment</button>
-                  <button class="h-12 rounded-2xl text-sm font-semibold border border-slate-200 bg-white text-slate-800">Card Details</button>
-                  <button class="h-12 rounded-2xl text-sm font-semibold border border-slate-200 bg-white text-slate-800">Loan History</button>
-                </div>
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="card-gradient text-white rounded-2xl p-5 m-3">
+          <div class="flex justify-between items-center">
+            <div class="text-sm font-medium opacity-80">Your Balance</div>
+            <div class="flex items-center gap-2 text-sm font-medium opacity-90">
+              <i class="fa-regular fa-copy"></i>
+              <i class="fa-regular fa-eye"></i>
+              <div class="w-10 h-10 rounded-full bg-white/15 grid place-items-center">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Visa.svg/1200px-Visa.svg.png" alt="Visa" class="h-5" />
               </div>
             </div>
           </div>
+          <div class="mt-2 text-[32px] font-semibold tracking-tight">$12,893.84</div>
+          <div class="mt-2 flex items-center gap-2 text-sm opacity-85">
+            <span class="h-7 px-3 rounded-full bg-white/15 inline-flex items-center">Credit Card</span>
+            <span>**** **** **** 2004</span>
+          </div>
+          <div class="mt-6 grid grid-cols-3 gap-3">
+            <button class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
+              Request
+            </button>
+            <button class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
+              Transfer
+            </button>
+            <button class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
+              Other
+            </button>
+          </div>
+        </div>
 
-          <div class="section-card rounded-[24px] p-6 md:p-7">
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="text-lg md:text-xl font-bold text-slate-900">Active loans</h2>
-              <a href="#" class="text-sm font-semibold text-[var(--primary)]">View all</a>
+        <div class="px-4 pb-3 flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 grid place-items-center text-lg">+</div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-slate-900">Upgrade to Plus+</p>
+            <p class="text-xs text-slate-500 leading-tight">Make unlimited transactions</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-6">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-base font-semibold">Latest People</p>
+          <a href="#" class="text-sm font-semibold text-sky-700">View all</a>
+        </div>
+        <div class="flex gap-4 overflow-x-auto pb-1">
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full border-4 border-blue-100 overflow-hidden shadow-sm">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" class="w-full h-full object-cover" alt="Add" />
             </div>
-            <div class="mt-4 space-y-4">
-              <article class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="text-xs uppercase tracking-[0.12em] text-slate-400 font-bold">Electric Bill</p>
-                    <p class="text-xs text-slate-500 mt-1">14 Oct 2025</p>
-                    <p class="text-xs text-slate-500">Next Payment</p>
-                  </div>
-                  <div class="text-right text-sm font-semibold text-slate-800">
-                    <p>Loan Amount</p>
-                    <p>R4000</p>
-                    <p class="mt-4">Balance Due</p>
-                    <p>R1200</p>
-                  </div>
-                </div>
-              </article>
+            <span class="text-xs font-semibold">Ad</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full border-4 border-blue-100 overflow-hidden shadow-sm">
+              <img src="https://randomuser.me/api/portraits/men/75.jpg" class="w-full h-full object-cover" alt="Adnan" />
+            </div>
+            <span class="text-xs font-semibold">Adnan</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full border-4 border-blue-100 overflow-hidden shadow-sm">
+              <img src="https://randomuser.me/api/portraits/women/68.jpg" class="w-full h-full object-cover" alt="Jaya" />
+            </div>
+            <span class="text-xs font-semibold">Jaya</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full border-4 border-blue-100 overflow-hidden shadow-sm">
+              <img src="https://randomuser.me/api/portraits/men/24.jpg" class="w-full h-full object-cover" alt="Enrico" />
+            </div>
+            <span class="text-xs font-semibold">Enrico</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full border-4 border-blue-100 overflow-hidden shadow-sm">
+              <img src="https://randomuser.me/api/portraits/men/90.jpg" class="w-full h-full object-cover" alt="Malik" />
+            </div>
+            <span class="text-xs font-semibold">Malik</span>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full border-4 border-blue-100 overflow-hidden shadow-sm">
+              <img src="https://randomuser.me/api/portraits/men/41.jpg" class="w-full h-full object-cover" alt="Adit" />
+            </div>
+            <span class="text-xs font-semibold">Adit</span>
+          </div>
+        </div>
+      </section>
 
-              <article class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="text-xs uppercase tracking-[0.12em] text-[#7fa24c] font-bold">Grocery</p>
-                    <p class="text-xs text-slate-500 mt-1">14 Oct 2025</p>
-                    <p class="text-xs text-slate-500">Next Payment</p>
-                  </div>
-                  <div class="text-right text-sm font-semibold text-slate-800">
-                    <p>Loan Amount</p>
-                    <p>R10000</p>
-                    <p class="mt-4">Balance Due</p>
-                    <p>R3800</p>
-                  </div>
-                </div>
-              </article>
+      <section class="mt-6 bg-white rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <p class="text-base font-semibold">Recent Transactions</p>
+          <a href="#" class="text-sm font-semibold text-sky-700">See all</a>
+        </div>
+        <div class="px-4 py-3 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" class="w-10" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold">Netflix Subscriptions</p>
+                <p class="text-xs text-slate-500">June 20, 2024 at 1:30 PM</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-semibold text-red-500">-$150.00</p>
+              <p class="text-[11px] text-slate-500">Entertainment</p>
+            </div>
+          </div>
 
-              <article class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="text-xs uppercase tracking-[0.12em] text-slate-700 font-bold">Grocery</p>
-                    <p class="text-xs text-slate-500 mt-1">14 Oct 2025</p>
-                    <p class="text-xs text-slate-500">Next Payment</p>
-                  </div>
-                  <div class="text-right text-sm font-semibold text-slate-800">
-                    <p>Loan Amount</p>
-                    <p>R3000</p>
-                    <p class="mt-4">Balance Due</p>
-                    <p>R1000</p>
-                  </div>
-                </div>
-              </article>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
+                <img src="https://seeklogo.com/images/U/uber-eats-logo-824071E01A-seeklogo.com.png" alt="Uber Eats" class="w-9" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold">Uber Eats</p>
+                <p class="text-xs text-slate-500">June 19, 2024 at 8:45 PM</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-semibold text-red-500">-$32.40</p>
+              <p class="text-[11px] text-slate-500">Food &amp; Drinks</p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Spotify_logo_without_text.svg/640px-Spotify_logo_without_text.svg.png" alt="Spotify" class="w-8" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold">Spotify</p>
+                <p class="text-xs text-slate-500">June 18, 2024 at 10:12 AM</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-semibold text-red-500">-$9.99</p>
+              <p class="text-[11px] text-slate-500">Entertainment</p>
             </div>
           </div>
         </div>
       </section>
-    </main>
-  </div>
-
-  <div id="statements-sheet" class="fixed inset-0 z-[70] hidden">
-    <div data-statements-overlay class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
-
-    <div class="absolute inset-x-0 bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[520px]">
-      <div class="statements-sheet-panel mx-4 md:mx-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Account Statements</p>
-            <p class="text-base font-bold text-slate-900" data-statement-title>AlgoMoney Bank • **** 5482</p>
-          </div>
-          <button class="h-10 w-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50" data-statements-close aria-label="Close statements">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="divide-y divide-slate-100">
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
-            <div>
-              <p class="text-sm font-semibold text-slate-900">March 2025 Statement</p>
-              <p class="text-xs text-slate-500">PDF • 1.2 MB</p>
-            </div>
-            <div class="flex items-center gap-3 text-slate-500">
-              <span class="text-xs font-semibold">Download</span>
-              <i class="fa-solid fa-download"></i>
-            </div>
-          </button>
-
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
-            <div>
-              <p class="text-sm font-semibold text-slate-900">February 2025 Statement</p>
-              <p class="text-xs text-slate-500">PDF • 1.1 MB</p>
-            </div>
-            <div class="flex items-center gap-3 text-slate-500">
-              <span class="text-xs font-semibold">Download</span>
-              <i class="fa-solid fa-download"></i>
-            </div>
-          </button>
-
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
-            <div>
-              <p class="text-sm font-semibold text-slate-900">January 2025 Statement</p>
-              <p class="text-xs text-slate-500">PDF • 1.0 MB</p>
-            </div>
-            <div class="flex items-center gap-3 text-slate-500">
-              <span class="text-xs font-semibold">Download</span>
-              <i class="fa-solid fa-download"></i>
-            </div>
-          </button>
-        </div>
-
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <div>
-            <p class="text-sm font-semibold text-slate-900">Need another format?</p>
-            <p class="text-xs text-slate-500">CSV exports and summaries are coming soon.</p>
-          </div>
-          <button class="h-10 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold" data-statements-close>Close</button>
-        </div>
-      </div>
     </div>
   </div>
 
-  <div id="bank-sheet" class="fixed inset-0 z-[70] hidden">
-    <div data-bank-overlay class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
-
-    <div class="absolute inset-x-0 bottom-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[520px]">
-      <div class="bank-sheet-panel mx-4 md:mx-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Linked banks</p>
-            <p class="text-base font-bold text-slate-900">Choose where to move money</p>
-          </div>
-          <button class="h-10 w-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50" data-bank-close aria-label="Close bank list">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="divide-y divide-slate-100">
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
-            <div class="flex items-center gap-3">
-              <span class="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-700 grid place-items-center font-bold">AM</span>
-              <div class="leading-tight">
-                <p class="font-semibold text-slate-900">AlgoMoney Virtual</p>
-                <p class="text-sm text-slate-500">Primary • •••• 9248</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
-          </button>
-
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
-            <div class="flex items-center gap-3">
-              <span class="h-10 w-10 rounded-xl bg-purple-50 text-purple-700 grid place-items-center font-bold">AB</span>
-              <div class="leading-tight">
-                <p class="font-semibold text-slate-900">AlgoBank Reserve</p>
-                <p class="text-sm text-slate-500">Credit • •••• 7741</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
-          </button>
-
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50">
-            <div class="flex items-center gap-3">
-              <span class="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 grid place-items-center font-bold">ZA</span>
-              <div class="leading-tight">
-                <p class="font-semibold text-slate-900">Zulu Africa Bank</p>
-                <p class="text-sm text-slate-500">Savings • •••• 1384</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-arrow-up-right-from-square text-slate-400"></i>
-          </button>
-        </div>
-
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <div class="leading-tight">
-            <p class="text-sm font-semibold text-slate-900">Add another bank</p>
-            <p class="text-xs text-slate-500">Link a new account to keep funds moving.</p>
-          </div>
-          <button class="pill h-11 px-4 rounded-full text-sm font-semibold">Link bank</button>
-        </div>
-      </div>
+  <nav class="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/90 backdrop-blur-sm">
+    <div class="max-w-md mx-auto grid grid-cols-4">
+      <button class="flex flex-col items-center gap-1 py-3 nav-active">
+        <i class="fa-solid fa-house text-lg"></i>
+        <span class="text-[11px] font-semibold">Home</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 py-3 nav-icon">
+        <i class="fa-regular fa-chart-bar text-lg"></i>
+        <span class="text-[11px] font-semibold">Statistics</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 py-3 nav-icon">
+        <i class="fa-regular fa-credit-card text-lg"></i>
+        <span class="text-[11px] font-semibold">Cards</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 py-3 nav-icon">
+        <i class="fa-regular fa-user text-lg"></i>
+        <span class="text-[11px] font-semibold">Account</span>
+      </button>
     </div>
-  </div>
-
-  <script src="/js/geo-pay.js"></script>
-  <script src="/pay.js"></script>
+  </nav>
 </body>
 </html>
