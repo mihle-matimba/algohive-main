@@ -328,39 +328,6 @@
     #pay-modal[data-state="open"] { opacity: 1; pointer-events: auto; }
     #pay-modal[data-state="open"] .tx-modal-panel { animation: modalIn 0.25s ease; }
 
-    .pay-pin {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      border: 2px solid white;
-      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.35);
-      transform: translate(-50%, -100%);
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .pay-pin::after {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(79,70,229,0.16) 0%, rgba(79,70,229,0) 70%);
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .pay-pin[data-active="true"] {
-      transform: translate(-50%, -100%) scale(1.1);
-      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.5);
-    }
-
-    .pay-pin[data-active="true"]::after { opacity: 1; }
-
-    .pay-beneficiary { transition: background-color 0.15s ease; }
-    .pay-beneficiary[data-active="true"] { background: #f8fafc; }
-
     @keyframes modalIn {
       from { transform: scale(0.94); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
@@ -795,37 +762,9 @@
 
       <div id="pay-choice-hint" class="text-sm text-slate-500">Pick an option to continue.</div>
 
-      <div id="pay-geo-pane" class="hidden space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <p class="text-lg font-bold text-slate-900">Send with Geo Pay</p>
-            <p class="text-sm text-slate-500">Choose a saved beneficiary or search by name, then tap the pin on the map.</p>
-          </div>
-          <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input id="pay-search" type="text" placeholder="Search beneficiaries" class="pl-9 pr-3 py-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 text-sm w-64" />
-          </div>
-        </div>
-
-        <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-4 items-start">
-          <div class="relative h-80 rounded-2xl border border-slate-200 overflow-hidden bg-[linear-gradient(135deg,#eef2ff,#f8fafc)]">
-            <div class="absolute inset-0 bg-[url('https://a.tile.openstreetmap.org/5/18/22.png')] bg-cover bg-center opacity-90"></div>
-            <div class="absolute inset-0" id="pay-map"></div>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-              <p class="font-semibold text-slate-900">Saved beneficiaries</p>
-              <span id="pay-count" class="text-xs font-semibold text-slate-500 bg-slate-100 rounded-full px-3 py-1">0 found</span>
-            </div>
-            <div id="pay-beneficiaries" class="divide-y divide-slate-100 max-h-80 overflow-y-auto"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="pay-etf-pane" class="hidden space-y-3">
-        <p class="text-lg font-bold text-slate-900">Send to ETF</p>
-        <p class="text-sm text-slate-600">ETF transfers are available. Pick your ETF basket after you continue.</p>
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">ETF selection is coming next. Close this modal and choose your basket in the ETF flow.</div>
+      <div id="pay-choice-detail" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1">
+        <p class="font-semibold text-slate-900">No option selected</p>
+        <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
       </div>
     </div>
   </div>
@@ -865,12 +804,7 @@
     const payTrigger = document.getElementById('pay-trigger');
     const payChoiceButtons = document.querySelectorAll('[data-pay-choice]');
     const payChoiceHint = document.getElementById('pay-choice-hint');
-    const payGeoPane = document.getElementById('pay-geo-pane');
-    const payEtfPane = document.getElementById('pay-etf-pane');
-    const payMap = document.getElementById('pay-map');
-    const payBeneficiaries = document.getElementById('pay-beneficiaries');
-    const paySearch = document.getElementById('pay-search');
-    const payCount = document.getElementById('pay-count');
+    const payChoiceDetail = document.getElementById('pay-choice-detail');
     let payCloseTimer = null;
 
     const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
@@ -973,92 +907,18 @@
       return `${d} • ${t}`;
     };
 
-    const geoBeneficiaries = [
-      { name: 'Neo Dlamini', nickname: 'Work travel', city: 'Sandton, Johannesburg', lat: -26.1076, lon: 28.0567, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80' },
-      { name: 'Amahle Naidoo', nickname: 'Mom', city: 'Umhlanga, Durban', lat: -29.7280, lon: 31.0670, avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80' },
-      { name: 'Sipho Mokoena', nickname: 'Business', city: 'Cape Town CBD', lat: -33.9180, lon: 18.4233, avatar: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=200&q=80' },
-      { name: 'Lerato Mthembu', nickname: 'Cousin', city: 'Gqeberha', lat: -33.9581, lon: 25.6022, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80' },
-      { name: 'Kabelo Masondo', nickname: 'Side hustle', city: 'Hatfield, Pretoria', lat: -25.7465, lon: 28.2293, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80' },
-      { name: 'Zinhle Khumalo', nickname: 'Designer', city: 'Stellenbosch', lat: -33.9346, lon: 18.8610, avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80' }
-    ];
+    const payChoiceCopy = {
+      geo: {
+        title: 'Geo Pay',
+        body: 'Send money based on where your people are. Choose a beneficiary after you continue.'
+      },
+      etf: {
+        title: 'ETF',
+        body: 'Send or schedule into your ETF baskets. Pick your basket after you continue.'
+      }
+    };
 
     let activePayMode = null;
-    let activeBeneficiary = null;
-
-    const computeBounds = (items) => items.reduce((acc, item) => ({
-      minLat: Math.min(acc.minLat, item.lat),
-      maxLat: Math.max(acc.maxLat, item.lat),
-      minLon: Math.min(acc.minLon, item.lon),
-      maxLon: Math.max(acc.maxLon, item.lon)
-    }), { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 });
-
-    const renderPins = (list) => {
-      if (!payMap) return;
-      payMap.innerHTML = '';
-      if (!list.length) return;
-
-      const bounds = computeBounds(list);
-      const latSpan = bounds.maxLat - bounds.minLat || 1;
-      const lonSpan = bounds.maxLon - bounds.minLon || 1;
-
-      list.forEach(item => {
-        const pin = document.createElement('button');
-        pin.className = 'pay-pin';
-        pin.title = `${item.name} — ${item.city}`;
-        pin.style.left = `${((item.lon - bounds.minLon) / lonSpan) * 100}%`;
-        pin.style.top = `${((bounds.maxLat - item.lat) / latSpan) * 100}%`;
-        pin.dataset.name = item.name;
-        pin.dataset.active = item.name === activeBeneficiary ? 'true' : 'false';
-        pin.addEventListener('click', () => setActiveBeneficiary(item.name));
-        payMap.appendChild(pin);
-      });
-    };
-
-    const renderBeneficiaries = (list) => {
-      if (!payBeneficiaries) return;
-      payBeneficiaries.innerHTML = '';
-      if (payCount) {
-        payCount.textContent = `${list.length} found`;
-      }
-
-      if (!list.length) {
-        payBeneficiaries.innerHTML = '<div class="px-4 py-6 text-sm text-slate-500">No beneficiaries match that search.</div>';
-        return;
-      }
-
-      list.forEach(item => {
-        const row = document.createElement('button');
-        row.type = 'button';
-        row.className = 'pay-beneficiary w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50';
-        row.dataset.name = item.name;
-        row.dataset.active = item.name === activeBeneficiary ? 'true' : 'false';
-        row.innerHTML = `
-          <img src="${item.avatar}" alt="${item.name}" class="w-10 h-10 rounded-full object-cover border border-slate-200" />
-          <div class="min-w-0">
-            <p class="font-semibold text-slate-900 truncate">${item.name}</p>
-            <p class="text-xs text-slate-500 truncate">${item.city}${item.nickname ? ' • ' + item.nickname : ''}</p>
-          </div>
-        `;
-        row.addEventListener('click', () => setActiveBeneficiary(item.name));
-        payBeneficiaries.appendChild(row);
-      });
-    };
-
-    const filterBeneficiaries = (term) => geoBeneficiaries.filter(item => {
-      if (!term) return true;
-      const t = term.toLowerCase();
-      return item.name.toLowerCase().includes(t)
-        || (item.nickname && item.nickname.toLowerCase().includes(t))
-        || (item.city && item.city.toLowerCase().includes(t));
-    });
-
-    const setActiveBeneficiary = (name) => {
-      activeBeneficiary = name;
-      const term = paySearch?.value || '';
-      const visible = filterBeneficiaries(term);
-      renderBeneficiaries(visible);
-      renderPins(visible);
-    };
 
     const setPayMode = (mode) => {
       activePayMode = mode;
@@ -1073,15 +933,19 @@
         payChoiceHint.textContent = mode ? '' : 'Pick an option to continue.';
       }
 
-      if (payGeoPane) payGeoPane.classList.toggle('hidden', mode !== 'geo');
-      if (payEtfPane) payEtfPane.classList.toggle('hidden', mode !== 'etf');
-
-      if (mode === 'geo') {
-        const term = paySearch?.value || '';
-        const visible = filterBeneficiaries(term);
-        activeBeneficiary = activeBeneficiary || visible[0]?.name || null;
-        renderBeneficiaries(visible);
-        renderPins(visible);
+      if (payChoiceDetail) {
+        if (!mode) {
+          payChoiceDetail.innerHTML = `
+            <p class="font-semibold text-slate-900">No option selected</p>
+            <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
+          `;
+        } else {
+          const copy = payChoiceCopy[mode];
+          payChoiceDetail.innerHTML = `
+            <p class="font-semibold text-slate-900">${copy.title}</p>
+            <p class="text-sm text-slate-600">${copy.body}</p>
+          `;
+        }
       }
     };
 
@@ -1245,8 +1109,12 @@
       }
       payModal.dataset.state = 'open';
       setPayMode(null);
-      if (paySearch) paySearch.value = '';
-      activeBeneficiary = null;
+      if (payChoiceDetail) {
+        payChoiceDetail.innerHTML = `
+          <p class="font-semibold text-slate-900">No option selected</p>
+          <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
+        `;
+      }
     };
 
     const closePayModal = () => {
@@ -1264,16 +1132,6 @@
 
     payChoiceButtons.forEach(btn => {
       btn.addEventListener('click', () => setPayMode(btn.dataset.payChoice));
-    });
-
-    paySearch?.addEventListener('input', (e) => {
-      const term = e.target.value || '';
-      if (activePayMode === 'geo') {
-        const visible = filterBeneficiaries(term);
-        activeBeneficiary = visible.find(item => item.name === activeBeneficiary)?.name || visible[0]?.name || null;
-        renderBeneficiaries(visible);
-        renderPins(visible);
-      }
     });
 
     toggleLoansBtn?.addEventListener('click', () => {
