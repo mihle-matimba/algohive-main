@@ -871,6 +871,7 @@
     const payBeneficiaries = document.getElementById('pay-beneficiaries');
     const paySearch = document.getElementById('pay-search');
     const payCount = document.getElementById('pay-count');
+    let payCloseTimer = null;
 
     const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
@@ -1238,6 +1239,10 @@
 
     const openPayModal = () => {
       if (!payModal) return;
+      if (payCloseTimer) {
+        clearTimeout(payCloseTimer);
+        payCloseTimer = null;
+      }
       payModal.dataset.state = 'open';
       setPayMode(null);
       if (paySearch) paySearch.value = '';
@@ -1247,7 +1252,10 @@
     const closePayModal = () => {
       if (!payModal) return;
       payModal.dataset.state = 'closing';
-      setTimeout(() => { payModal.dataset.state = 'closed'; }, 180);
+      payCloseTimer = setTimeout(() => {
+        payModal.dataset.state = 'closed';
+        payCloseTimer = null;
+      }, 180);
     };
 
     payTrigger?.addEventListener('click', openPayModal);
