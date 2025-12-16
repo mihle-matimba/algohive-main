@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoMoney — Pay</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --primary: #1a73e8;
+      --primary-dark: #0c5ac9;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --line: #e5e7ef;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Demo sidebar styling */
+    #layout {
+      --sb: 275px;
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+    }
+
+    #ah-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+    }
+
+    #ah-sidebar {
+      transition: transform .3s ease, width .2s ease;
+      width: 350px;
+      max-width: 85vw;
+      position: fixed;
+      top: 0;
+      z-index: 50;
+      height: 100vh;
+      transform: translateX(-100%);
+      background: #fff;
+    }
+
+    #ah-sidebar.is-open {
+      transform: translateX(0);
+    }
+
+    @media (min-width: 768px) {
+      #layout {
+        grid-template-columns: var(--sb) 1fr;
+      }
+
+      #ah-sidebar {
+        position: sticky;
+        top: 0;
+        width: var(--sb);
+        max-width: none;
+        height: 100vh;
+        transform: translateX(0);
+        z-index: auto;
+      }
+    }
+
+    #ah-sidebar[data-collapsed="true"] .label,
+    #ah-sidebar[data-collapsed="true"] .chevron {
+      display: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #main-nav {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #ah-sidebar[data-collapsed="true"] details > .sub {
+      display: none !important;
+    }
+
+    #ah-sidebar[data-collapsed="true"] nav a,
+    #ah-sidebar[data-collapsed="true"] details > summary {
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    #ah-sidebar[data-collapsed="true"] details > summary span {
+      gap: 0;
+    }
+
+    #ah-sidebar .footer {
+      transition: all 0.2s ease;
+    }
+
+    #ah-sidebar[data-collapsed="true"] .footer {
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #ah-sidebar[data-collapsed="true"] .btn-collapse :is(svg, i) {
+      transform: rotate(180deg);
+    }
+
+    #ah-collapse {
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      #ah-collapse {
+        display: inline-flex;
+      }
+    }
+
+    /* Brand switcher */
+    #ah-brand-switcher { position: relative; }
+    #ah-brand-switcher summary { list-style: none; }
+    #ah-brand-switcher summary::-webkit-details-marker { display: none; }
+
+    .brand-toggle {
+      margin: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #ah-brand-switcher[open] .brand-toggle {
+      border-color: #cbd5e1;
+      background: #fff;
+      box-shadow: 0 14px 36px -18px rgba(15, 23, 42, 0.55);
+    }
+
+    .brand-marker {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #111827;
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .brand-menu {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: calc(100% - 6px);
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 24px 48px -20px rgba(15, 23, 42, 0.5);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .brand-menu-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #475569;
+      padding: 4px 4px 2px;
+    }
+
+    .brand-option {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      transition: background-color 0.2s ease, color 0.2s ease, filter 0.2s ease;
+    }
+
+    .brand-option:hover { background: linear-gradient(135deg, #000000, #7c3aed); }
+    .brand-option:hover img { filter: brightness(0) invert(1); }
+    .brand-option:hover .algomoney-word { color: #fff; }
+
+    .brand-option img {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      object-fit: contain;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      padding: 6px;
+    }
+
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-toggle { justify-content: center; }
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-toggle .label,
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-toggle .fa-chevron-down { display: none; }
+    #ah-sidebar[data-collapsed="true"] #ah-brand-switcher .brand-marker { margin: 0; }
+
+    /* Page visuals */
+    .card-visual {
+      height: 240px;
+      background: url('https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Bank%20Cards/Bank%20Card%20purple.png') center /
+        cover no-repeat;
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.25);
+      border-radius: 18px;
+    }
+
+    .card-visual.light {
+      background: url('https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Bank%20Cards/Light%20Bank%20Card.png')
+        center / cover no-repeat;
+      box-shadow: 0 14px 28px rgba(124, 58, 237, 0.18);
+    }
+
+    .action-btn {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 10px 20px rgba(124, 58, 237, 0.18);
+    }
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(124, 58, 237, 0.28);
+    }
+    .nav-icon { color: #94a3b8; }
+    .nav-active { color: var(--primary); background: #e5f0ff; }
+    .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+
+    .visa-logo {
+      height: 26px;
+      mix-blend-mode: multiply;
+      filter: brightness(1.05);
+    }
+
+    .meter-card {
+      background: linear-gradient(160deg, #f7f8ff 0%, #eef2ff 30%, #f6f6ff 100%);
+    }
+    .meter-tabs button[data-active="true"] {
+      background: linear-gradient(120deg, #4c1d95, #6d28d9);
+      color: #fff;
+    }
+
+    #tx-modal {
+      transition: opacity 0.25s ease;
+    }
+    #tx-modal[data-state="closed"] { opacity: 0; pointer-events: none; }
+    #tx-modal[data-state="open"] { opacity: 1; pointer-events: auto; }
+    #tx-modal[data-state="closing"] { opacity: 0; pointer-events: none; }
+    .tx-modal-panel {
+      transform: scale(0.96);
+      opacity: 0;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    #tx-modal[data-state="open"] .tx-modal-panel {
+      transform: scale(1);
+      opacity: 1;
+      animation: modalIn 0.25s ease;
+    }
+    #tx-modal[data-state="closing"] .tx-modal-panel {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+
+    .tx-detail-label { color: #94a3b8; font-size: 13px; font-weight: 600; }
+    .tx-detail-value { color: #0f172a; font-size: 15px; font-weight: 700; }
+
+    .card-stack {
+      position: relative;
+      min-height: 270px;
+      cursor: pointer;
+      padding-inline: 8px;
+    }
+    .card-stack .card-visual {
+      transition: transform 0.28s ease, box-shadow 0.28s ease, top 0.28s ease;
+      position: absolute;
+      left: 50%;
+      width: calc(100% - 16px);
+      max-width: 430px;
+      transform: translateX(-50%);
+    }
+    .card-stack:not(.expanded) .card-visual:nth-child(1) { top: 0; z-index: 20; }
+    .card-stack:not(.expanded) .card-visual:nth-child(2) { top: 18px; z-index: 10; transform: translateX(-50%); }
+    .card-stack.expanded .card-visual { position: relative; top: 0; transform: none; left: 0; width: 100%; }
+    .card-stack.expanded .card-visual + .card-visual { margin-top: 16px; }
+
+    @media (min-width: 768px) {
+      .card-stack { padding-inline: 0; }
+      .card-stack .card-visual { width: 100%; max-width: none; }
+    }
+
+    .tx-map {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      background-size: cover;
+      background-position: center;
+      min-height: 160px;
+    }
+    .tx-map::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      transform: translate(-50%, -70%);
+      background: radial-gradient(circle at 30% 30%, #fdf4ff, #a855f7 60%, #7c3aed);
+      border: 2px solid white;
+      border-radius: 50% 50% 50% 0;
+      box-shadow: 0 8px 18px rgba(124,58,237,0.35);
+      rotate: -45deg;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(0.94); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+  </style>
+</head>
+<body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
+  <div id="layout">
+    <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+<aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 bg-white flex flex-col overflow-hidden">
+      <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
+        <summary class="brand-toggle">
+          <div class="brand-marker">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" class="w-7 h-7 object-contain" />
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-[15px] text-slate-900 label">AlgoMoney</div>
+            <div class="text-[11px] text-slate-500 label">Workspace</div>
+          </div>
+          <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="brand-menu">
+          <div class="brand-menu-header">Switch workspace</div>
+          <a href="#" class="brand-option">
+            <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Markets Logo" />
+            <div class="min-w-0 font-semibold text-slate-900 label algomoney-word">AlgoHive Markets</div>
+          </a>
+        </div>
+      </details>
+
+      <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+        <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Main</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/money/home.html" title="Home">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Accounts">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Accounts</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-100 font-semibold text-slate-900" href="#" title="Pay">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/money-send-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Pay</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Receive">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/money-receive-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Receive</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Pay</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Geo Pay">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/maps-circle-02-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Geo Pay</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Split Bill">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Split Bill</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Credit</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Personal Credit">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Personal Credit</span>
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Business Funding">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/corporate-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Business Funding</span>
+        </a>
+
+        <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Activity</p>
+        <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Transactions">
+          <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Transactions</span>
+        </a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+        <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="/demo/settings.html" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+      </div>
+    </aside>
+
+    <main class="relative flex-1 min-w-0 bg-[var(--bg)]">
+      <div class="max-w-7xl mx-auto px-3 md:px-5 pb-24 lg:pb-12 pt-6 lg:pt-8 space-y-6">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
+            <button id="ah-mobile-menu-btn" aria-label="Open menu" class="md:hidden btn h-11 w-11 p-0 rounded-xl border-0">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <div>
+              <p class="text-lg md:text-xl font-semibold text-slate-600">Pay</p>
+              <p class="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-[#2e1065] via-[#4c1d95] to-[#6d28d9] text-transparent bg-clip-text leading-tight">Choose how you want to send money</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button class="inline-flex items-center justify-center h-10 w-10 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50" aria-label="Notifications">
+              <i class="fa-regular fa-bell text-base"></i>
+            </button>
+            <button class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+              <span class="text-sm font-semibold text-slate-900 hidden sm:inline">Ronaldinho Fazio</span>
+              <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <section class="space-y-6">
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 lg:p-6 space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <p class="text-sm font-semibold text-slate-500">Send money</p>
+                <p class="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">Pick a path that fits</p>
+                <p class="text-sm text-slate-600">Choose Geo Pay or ETF and continue to the flow you need.</p>
+              </div>
+              <a href="home.html" class="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800">
+                <i class="fa-solid fa-arrow-left"></i>
+                Back to Money
+              </a>
+            </div>
+
+            <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-5 items-start">
+              <div class="grid sm:grid-cols-2 gap-3">
+                <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="geo">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 grid place-items-center">
+                      <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div>
+                      <p class="font-bold text-slate-900">Geo Pay</p>
+                      <p class="text-sm text-slate-500">Send based on where your people are</p>
+                    </div>
+                  </div>
+                </button>
+                <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="etf">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-sky-50 text-sky-700 grid place-items-center">
+                      <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div>
+                      <p class="font-bold text-slate-900">ETF</p>
+                      <p class="text-sm text-slate-500">Schedule or send into your ETF baskets</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <div class="space-y-3">
+                <div id="pay-choice-hint" class="text-sm text-slate-500">Pick an option to continue.</div>
+                <div id="pay-choice-detail" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1">
+                  <p class="font-semibold text-slate-900">No option selected</p>
+                  <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div class="p-4 rounded-xl border border-slate-200 bg-white">
+                    <p class="text-xs text-slate-500 uppercase font-semibold tracking-wide">Geo Pay perks</p>
+                    <ul class="mt-2 space-y-2 text-slate-700">
+                      <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i>Live location-based payouts</li>
+                      <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i>Use saved beneficiaries instantly</li>
+                      <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i>Track fees before you send</li>
+                    </ul>
+                  </div>
+                  <div class="p-4 rounded-xl border border-slate-200 bg-white">
+                    <p class="text-xs text-slate-500 uppercase font-semibold tracking-wide">ETF perks</p>
+                    <ul class="mt-2 space-y-2 text-slate-700">
+                      <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i>Contribute to baskets on schedule</li>
+                      <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i>Flexible one-off or recurring sends</li>
+                      <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i>See performance before committing</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+  </div>
+<nav class="lg:hidden fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/90 backdrop-blur-sm">
+    <div class="max-w-6xl mx-auto grid grid-cols-4">
+      <button class="flex flex-col items-center gap-1 py-3 nav-active">
+        <i class="fa-solid fa-house text-lg"></i>
+        <span class="text-[11px] font-semibold">Home</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 py-3 nav-icon">
+        <i class="fa-regular fa-chart-bar text-lg"></i>
+        <span class="text-[11px] font-semibold">Statistics</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 py-3 nav-icon">
+        <i class="fa-regular fa-credit-card text-lg"></i>
+        <span class="text-[11px] font-semibold">Cards</span>
+      </button>
+      <button class="flex flex-col items-center gap-1 py-3 nav-icon">
+        <i class="fa-regular fa-user text-lg"></i>
+        <span class="text-[11px] font-semibold">Account</span>
+      </button>
+    </div>
+  </nav>
+
+  <script nonce="ALGOHIVE">
+    const sidebar = document.getElementById('ah-sidebar');
+    const overlayEl = document.getElementById('ah-overlay');
+    const mobileBtn = document.getElementById('ah-mobile-menu-btn');
+    const payChoiceButtons = document.querySelectorAll('[data-pay-choice]');
+    const payChoiceHint = document.getElementById('pay-choice-hint');
+    const payChoiceDetail = document.getElementById('pay-choice-detail');
+
+    mobileBtn?.addEventListener('click', () => {
+      sidebar?.classList.add('is-open');
+      overlayEl?.classList.remove('hidden');
+    });
+
+    overlayEl?.addEventListener('click', () => {
+      sidebar?.classList.remove('is-open');
+      overlayEl?.classList.add('hidden');
+    });
+
+    const payChoiceCopy = {
+      geo: {
+        title: 'Geo Pay',
+        body: 'Send money based on where your people are. Choose a beneficiary after you continue.'
+      },
+      etf: {
+        title: 'ETF',
+        body: 'Send or schedule into your ETF baskets. Pick your basket after you continue.'
+      }
+    };
+
+    const setPayMode = (mode) => {
+      payChoiceButtons.forEach(btn => {
+        const active = btn.dataset.payChoice === mode;
+        btn.classList.toggle('ring-2', active);
+        btn.classList.toggle('ring-indigo-200', active);
+        btn.classList.toggle('border-indigo-400', active);
+      });
+
+      if (payChoiceHint) {
+        payChoiceHint.textContent = mode ? '' : 'Pick an option to continue.';
+      }
+
+      if (payChoiceDetail) {
+        if (!mode) {
+          payChoiceDetail.innerHTML = `
+            <p class="font-semibold text-slate-900">No option selected</p>
+            <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
+          `;
+        } else {
+          const copy = payChoiceCopy[mode];
+          payChoiceDetail.innerHTML = `
+            <p class="font-semibold text-slate-900">${copy.title}</p>
+            <p class="text-sm text-slate-600">${copy.body}</p>
+          `;
+        }
+      }
+    };
+
+    payChoiceButtons.forEach(btn => {
+      btn.addEventListener('click', () => setPayMode(btn.dataset.payChoice));
+    });
+
+    setPayMode('geo');
+  </script>
+</body>
+</html>

@@ -323,11 +323,6 @@
       rotate: -45deg;
     }
 
-    #pay-modal[data-state="closed"],
-    #pay-modal[data-state="closing"] { opacity: 0; pointer-events: none; }
-    #pay-modal[data-state="open"] { opacity: 1; pointer-events: auto; }
-    #pay-modal[data-state="open"] .tx-modal-panel { animation: modalIn 0.25s ease; }
-
     @keyframes modalIn {
       from { transform: scale(0.94); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
@@ -505,9 +500,9 @@
               </div>
 
               <div class="grid grid-cols-3 gap-3 max-w-lg mx-auto md:mx-0 md:ml-3 md:mr-auto">
-                <button id="pay-trigger" class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
+                <a href="pay.html" class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm grid place-items-center">
                   Pay
-                </button>
+                </a>
                 <button class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
                   Receive
                 </button>
@@ -722,53 +717,6 @@
     </div>
   </div>
 
-  <div id="pay-modal" data-state="closed" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none hidden">
-    <div id="pay-modal-overlay" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 w-[92%] max-w-3xl space-y-5 tx-modal-panel">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="text-sm font-semibold text-slate-500">Pay</p>
-          <p class="text-xl font-extrabold text-slate-900 leading-tight">Choose how you want to send money</p>
-        </div>
-        <button id="pay-modal-close" class="h-10 w-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="grid sm:grid-cols-2 gap-3">
-        <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="geo">
-          <div class="flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 grid place-items-center">
-              <i class="fa-solid fa-location-dot"></i>
-            </div>
-            <div>
-              <p class="font-bold text-slate-900">Geo Pay</p>
-              <p class="text-sm text-slate-500">Send based on where your people are</p>
-            </div>
-          </div>
-        </button>
-        <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="etf">
-          <div class="flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-sky-50 text-sky-700 grid place-items-center">
-              <i class="fa-solid fa-sack-dollar"></i>
-            </div>
-            <div>
-              <p class="font-bold text-slate-900">ETF</p>
-              <p class="text-sm text-slate-500">Schedule or send into your ETF baskets</p>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      <div id="pay-choice-hint" class="text-sm text-slate-500">Pick an option to continue.</div>
-
-      <div id="pay-choice-detail" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1">
-        <p class="font-semibold text-slate-900">No option selected</p>
-        <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
-      </div>
-    </div>
-  </div>
-
   <script nonce="ALGOHIVE">
     const sidebar = document.getElementById('ah-sidebar');
     const overlay = document.getElementById('ah-overlay');
@@ -798,15 +746,6 @@
     const txModalLocation = document.getElementById('tx-modal-location');
     const txModalMap = document.getElementById('tx-modal-map');
     const txTable = document.getElementById('tx-table');
-    const payModal = document.getElementById('pay-modal');
-    const payModalOverlay = document.getElementById('pay-modal-overlay');
-    const payModalClose = document.getElementById('pay-modal-close');
-    const payTrigger = document.getElementById('pay-trigger');
-    const payChoiceButtons = document.querySelectorAll('[data-pay-choice]');
-    const payChoiceHint = document.getElementById('pay-choice-hint');
-    const payChoiceDetail = document.getElementById('pay-choice-detail');
-    let payCloseTimer = null;
-
     const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
     const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -905,48 +844,6 @@
       const d = date.toLocaleDateString('en-ZA', { month: 'short', day: '2-digit', year: 'numeric' });
       const t = date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
       return `${d} • ${t}`;
-    };
-
-    const payChoiceCopy = {
-      geo: {
-        title: 'Geo Pay',
-        body: 'Send money based on where your people are. Choose a beneficiary after you continue.'
-      },
-      etf: {
-        title: 'ETF',
-        body: 'Send or schedule into your ETF baskets. Pick your basket after you continue.'
-      }
-    };
-
-    let activePayMode = null;
-
-    const setPayMode = (mode) => {
-      activePayMode = mode;
-      payChoiceButtons.forEach(btn => {
-        const active = btn.dataset.payChoice === mode;
-        btn.classList.toggle('ring-2', active);
-        btn.classList.toggle('ring-indigo-200', active);
-        btn.classList.toggle('border-indigo-400', active);
-      });
-
-      if (payChoiceHint) {
-        payChoiceHint.textContent = mode ? '' : 'Pick an option to continue.';
-      }
-
-      if (payChoiceDetail) {
-        if (!mode) {
-          payChoiceDetail.innerHTML = `
-            <p class="font-semibold text-slate-900">No option selected</p>
-            <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
-          `;
-        } else {
-          const copy = payChoiceCopy[mode];
-          payChoiceDetail.innerHTML = `
-            <p class="font-semibold text-slate-900">${copy.title}</p>
-            <p class="text-sm text-slate-600">${copy.body}</p>
-          `;
-        }
-      }
     };
 
     const buildTxRow = (tx) => {
@@ -1100,42 +997,6 @@
     };
     txModalOverlay?.addEventListener('click', closeTxModal);
     txModalClose?.addEventListener('click', closeTxModal);
-
-    const openPayModal = () => {
-      if (!payModal) return;
-      if (payCloseTimer) {
-        clearTimeout(payCloseTimer);
-        payCloseTimer = null;
-      }
-      payModal.classList.remove('hidden');
-      requestAnimationFrame(() => {
-        payModal.dataset.state = 'open';
-      });
-      setPayMode(null);
-      if (payChoiceDetail) {
-        payChoiceDetail.innerHTML = `
-          <p class="font-semibold text-slate-900">No option selected</p>
-          <p class="text-sm text-slate-600">Choose Geo Pay or ETF above to see the next steps.</p>
-        `;
-      }
-    };
-
-    const closePayModal = () => {
-      if (!payModal) return;
-      payModal.dataset.state = 'closing';
-      payCloseTimer = setTimeout(() => {
-        payModal.dataset.state = 'closed';
-        payModal.classList.add('hidden');
-        payCloseTimer = null;
-      }, 180);
-    };
-
-    payTrigger?.addEventListener('click', openPayModal);
-    payModalClose?.addEventListener('click', closePayModal);
-
-    payChoiceButtons.forEach(btn => {
-      btn.addEventListener('click', () => setPayMode(btn.dataset.payChoice));
-    });
 
     toggleLoansBtn?.addEventListener('click', () => {
       const isHidden = loansList?.classList.contains('hidden');
