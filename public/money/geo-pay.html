@@ -242,6 +242,23 @@
       filter: brightness(1.05);
     }
 
+    .card-stack {
+      position: relative;
+      min-height: 270px;
+      cursor: pointer;
+    }
+    .card-stack .card-visual {
+      transition: transform 0.28s ease, box-shadow 0.28s ease, top 0.28s ease;
+      position: absolute;
+      left: 50%;
+      width: 100%;
+      transform: translateX(-50%);
+    }
+    .card-stack:not(.expanded) .card-visual:nth-child(1) { top: 0; z-index: 20; }
+    .card-stack:not(.expanded) .card-visual:nth-child(2) { top: 18px; z-index: 10; transform: translateX(-50%) scale(0.97); }
+    .card-stack.expanded .card-visual { position: relative; top: 0; transform: none; left: 0; width: 100%; }
+    .card-stack.expanded .card-visual + .card-visual { margin-top: 16px; }
+
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
@@ -393,7 +410,7 @@
                 </button>
               </div>
 
-              <div class="relative max-w-lg mx-auto md:mx-0 md:ml-3 md:mr-auto space-y-5">
+              <div id="card-stack" class="card-stack max-w-lg mx-auto md:mx-0 md:ml-3 md:mr-auto">
                 <div class="card-visual light relative overflow-hidden">
                   <div class="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/20"></div>
                   <div class="relative h-full grid grid-rows-[auto_1fr_auto] text-white px-6 py-5">
@@ -721,6 +738,7 @@
     const mobileBtn = document.getElementById('ah-mobile-menu-btn');
     const collapseBtn = document.getElementById('ah-collapse');
     const layout = document.getElementById('layout');
+    const cardStack = document.getElementById('card-stack');
 
     mobileBtn?.addEventListener('click', () => {
       sidebar?.classList.add('is-open');
@@ -737,6 +755,10 @@
       const next = !isCollapsed;
       sidebar.dataset.collapsed = String(next);
       layout?.classList.toggle('is-collapsed', next);
+    });
+
+    cardStack?.addEventListener('click', () => {
+      cardStack.classList.toggle('expanded');
     });
   </script>
 </body>
