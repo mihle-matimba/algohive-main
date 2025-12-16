@@ -798,7 +798,20 @@
     const txTable = document.getElementById('tx-table');
     const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
-    const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase?.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        global: {
+          fetch: (url, options = {}) =>
+            fetch(url, {
+              mode: 'cors',
+              cache: 'no-store',
+              ...options,
+            }),
+        },
+      }
+    );
     const profileNameEls = document.querySelectorAll('[data-profile-name]');
     const profileAvatarEls = document.querySelectorAll('[data-profile-avatar]');
     const PROFILE_AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
