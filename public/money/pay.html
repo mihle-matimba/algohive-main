@@ -882,7 +882,10 @@
       try {
         const { data, error } = await supabaseClient
           .from('profiles')
-          .select('id,first_name,last_name,avatar_url,geo_lat,geo_lng,geopay_enabled');
+          .select('id,first_name,last_name,avatar_url,geo_lat,geo_lng,geopay_enabled')
+          .eq('geopay_enabled', true)
+          .not('geo_lat', 'is', null)
+          .not('geo_lng', 'is', null);
 
         if (error) throw error;
 
@@ -890,7 +893,7 @@
           .map(row => {
             const lat = toCoordNumber(row.geo_lat);
             const lng = toCoordNumber(row.geo_lng);
-            if (!row.geopay_enabled || lat === null || lng === null || row.id === currentUser?.id) return null;
+            if (lat === null || lng === null || row.id === currentUser?.id) return null;
             const nameParts = [row.first_name, row.last_name].filter(Boolean);
             const name = (nameParts.join(' ').trim()) || 'GeoPay user';
             const coordsObj = { latitude: lat, longitude: lng };
