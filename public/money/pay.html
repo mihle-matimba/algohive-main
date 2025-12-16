@@ -646,7 +646,6 @@
     let currentCoords = null;
     let nearbyMarkersLayer = null;
     let leafletMap = null;
-    const GEO_RADIUS_KM = 1;
 
     let activeAccount = null;
     let activePayMode = null;
@@ -793,20 +792,6 @@
       );
     });
 
-    const haversineDistanceKm = (a, b) => {
-      if (!a || !b) return Infinity;
-      const R = 6371;
-      const dLat = (b.latitude - a.latitude) * (Math.PI / 180);
-      const dLon = (b.longitude - a.longitude) * (Math.PI / 180);
-      const lat1 = a.latitude * (Math.PI / 180);
-      const lat2 = b.latitude * (Math.PI / 180);
-      const sinDLat = Math.sin(dLat / 2);
-      const sinDLon = Math.sin(dLon / 2);
-      const aVal = sinDLat * sinDLat + sinDLon * sinDLon * Math.cos(lat1) * Math.cos(lat2);
-      const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
-      return R * c;
-    };
-
     const toCoordNumber = (value) => {
       const parsed = typeof value === 'string' ? Number.parseFloat(value) : value;
       return Number.isFinite(parsed) ? parsed : null;
@@ -847,8 +832,6 @@
       };
 
       if (baseCoords) {
-        const boundary = L.circle([baseCoords.latitude, baseCoords.longitude], { radius: GEO_RADIUS_KM * 1000, color: '#4f46e5', weight: 1, fillOpacity: 0.06 });
-        boundary.addTo(nearbyMarkersLayer);
         addMarker(selfProfile, true);
       }
       (nearbyProfiles || []).forEach(profile => addMarker(profile, false));
@@ -878,7 +861,7 @@
     };
 
     const fetchNearbyProfiles = async (coords) => {
-      if (!coords || !supabaseClient) return [];
+      if (!supabaseClient) return [];
       try {
         const { data, error } = await supabaseClient
           .from('profiles')
@@ -897,11 +880,15 @@
             const nameParts = [row.first_name, row.last_name].filter(Boolean);
             const name = (nameParts.join(' ').trim()) || 'GeoPay user';
             const coordsObj = { latitude: lat, longitude: lng };
-            return { id: row.id, name, avatar: row.avatar_url, coords: coordsObj, distance: haversineDistanceKm(coords, coordsObj) };
+            const distance = coords ? Math.hypot(coords.latitude - lat, coords.longitude - lng) : Number.POSITIVE_INFINITY;
+            return { id: row.id, name, avatar: row.avatar_url, coords: coordsObj, distance };
           })
           .filter(Boolean)
-          .filter(row => row.distance <= GEO_RADIUS_KM)
-          .sort((a, b) => a.distance - b.distance);
+          .sort((a, b) => {
+            const aDist = Number.isFinite(a.distance) ? a.distance : Infinity;
+            const bDist = Number.isFinite(b.distance) ? b.distance : Infinity;
+            return aDist - bDist;
+          });
       } catch (err) {
         console.warn('Unable to fetch nearby GeoPay users', err);
         return [];
@@ -944,7 +931,7 @@
         await updateProfileGeoState(true, coords);
         const nearby = await fetchNearbyProfiles(coords);
         renderGeoPins({ name: 'You', avatar: profileAvatarEls?.[0]?.src, coords }, nearby);
-        const meta = nearby.length ? `${nearby.length} nearby within ${GEO_RADIUS_KM} km` : 'No nearby GeoPay users yet.';
+        const meta = nearby.length ? `${nearby.length} GeoPay users sharing now` : 'No GeoPay users visible yet.';
         updateGeoStatus('GeoPay is sharing your location.', meta);
       } else {
         currentCoords = null;
@@ -967,7 +954,7 @@
         onGeoPreferenceChanged(true);
         const nearby = await fetchNearbyProfiles(currentCoords);
         renderGeoPins({ name: 'You', avatar: profileRow?.avatar_url || PROFILE_AVATAR_FALLBACK, coords: currentCoords }, nearby);
-        updateGeoStatus('GeoPay is sharing your location.', nearby.length ? `${nearby.length} nearby within ${GEO_RADIUS_KM} km` : 'No nearby GeoPay users yet.');
+        updateGeoStatus('GeoPay is sharing your location.', nearby.length ? `${nearby.length} GeoPay users sharing now` : 'No GeoPay users visible yet.');
       } else {
         setGeoToggle(initialEnabled);
         if (initialEnabled) {
