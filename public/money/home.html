@@ -812,6 +812,10 @@
     let geoPayEnabled = true;
     let currentUser = null;
     let currentCoords = null;
+    const toCoordNumber = (value) => {
+      const parsed = typeof value === 'string' ? Number.parseFloat(value) : value;
+      return Number.isFinite(parsed) ? parsed : null;
+    };
 
     const setProfileName = (value) => {
       const resolved = (typeof value === 'string' && value.trim()) ? value.trim() : 'AlgoMoney Member';
@@ -899,9 +903,11 @@
       const storedRaw = localStorage.getItem(GEO_PREF_KEY);
       const storedEnabled = storedRaw !== 'false';
       const profileEnabled = profileRow?.geopay_enabled === true;
+      const lat = toCoordNumber(profileRow?.geo_lat);
+      const lng = toCoordNumber(profileRow?.geo_lng);
       const initialEnabled = profileEnabled || storedEnabled;
-      if (profileEnabled && typeof profileRow.geo_lat === 'number' && typeof profileRow.geo_lng === 'number') {
-        currentCoords = { latitude: profileRow.geo_lat, longitude: profileRow.geo_lng };
+      if (profileEnabled && lat !== null && lng !== null) {
+        currentCoords = { latitude: lat, longitude: lng };
         setGeoToggle(true);
         if (typeof window.onGeoPreferenceChanged === 'function') {
           window.onGeoPreferenceChanged(true);
