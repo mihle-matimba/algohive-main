@@ -250,6 +250,21 @@
       color: #fff;
     }
 
+    #tx-modal {
+      transition: opacity 0.25s ease;
+    }
+    #tx-modal[data-state="closed"] { opacity: 0; pointer-events: none; }
+    #tx-modal[data-state="open"] { opacity: 1; pointer-events: auto; }
+    .tx-modal-panel {
+      transform: scale(0.96);
+      opacity: 0;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    #tx-modal[data-state="open"] .tx-modal-panel {
+      transform: scale(1);
+      opacity: 1;
+    }
+
     .card-stack {
       position: relative;
       min-height: 270px;
@@ -747,9 +762,9 @@
     </div>
   </nav>
 
-  <div id="tx-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div id="tx-modal" data-state="closed" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none">
     <div id="tx-modal-overlay" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 w-[90%] max-w-md space-y-4">
+    <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 w-[90%] max-w-md space-y-4 tx-modal-panel">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img id="tx-modal-logo" src="" alt="Company" class="w-10 h-10 rounded-full bg-slate-100 object-contain">
@@ -889,12 +904,12 @@
       txModalLogo.alt = details.company;
       txModalName.textContent = details.name;
       txModalCompany.textContent = details.company;
-      txModalAmount.textContent = `${details.amount.startsWith('-') ? '-' : '+'}$${details.amount.replace(/[+-]/, '')} ${details.currency}`;
-      txModalAmount.className = `text-lg font-bold ${details.amount.startsWith('-') ? 'text-rose-600' : 'text-emerald-600'}`;
+      txModalAmount.textContent = `${details.amount}`;
+      txModalAmount.className = `text-lg font-bold ${details.amount.trim().startsWith('-') ? 'text-rose-600' : 'text-emerald-600'}`;
       txModalRef.textContent = details.reference;
       txModalDate.textContent = details.date;
       txModalStatus.textContent = details.status;
-      txModal.classList.remove('hidden');
+      txModal.dataset.state = 'open';
     };
 
     document.querySelectorAll('.view-tx').forEach(btn => {
@@ -904,7 +919,9 @@
       });
     });
 
-    const closeTxModal = () => txModal?.classList.add('hidden');
+    const closeTxModal = () => {
+      if (txModal) txModal.dataset.state = 'closed';
+    };
     txModalOverlay?.addEventListener('click', closeTxModal);
     txModalClose?.addEventListener('click', closeTxModal);
 
