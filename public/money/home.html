@@ -631,12 +631,9 @@
             <a href="#" class="text-sm font-semibold text-sky-700">View statements</a>
           </div>
           <div class="px-4 py-3">
-            <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center text-xs font-semibold text-slate-500 border-b border-slate-100 pb-2">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs font-semibold text-slate-500 border-b border-slate-100 pb-2 px-2">
               <div>Transaction</div>
-              <div>Reference</div>
               <div class="text-right">Amount</div>
-              <div class="text-right">Date / Time</div>
-              <div class="text-right">Status</div>
             </div>
             <div class="divide-y divide-slate-100 text-sm" id="tx-table"></div>
           </div>
@@ -852,10 +849,8 @@
 
     const buildTxRow = (tx) => {
       const amountTone = tx.amount.startsWith('-') ? 'text-rose-600' : 'text-emerald-600';
-      const statusTone = tx.status === 'Success' ? 'text-emerald-600' : tx.status === 'Declined' ? 'text-rose-600' : 'text-slate-700';
-
       const row = document.createElement('div');
-      row.className = 'grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row';
+      row.className = 'grid grid-cols-[minmax(0,1fr)_auto] items-center py-3 gap-3 tx-row cursor-pointer rounded-xl px-2 hover:bg-slate-50 transition-colors';
       row.innerHTML = `
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
@@ -866,43 +861,30 @@
             <p class="text-xs text-slate-500">${tx.company}</p>
           </div>
         </div>
-        <div class="text-slate-700">Ref: ${tx.reference}</div>
         <div class="text-right font-semibold ${amountTone}">${tx.amount}</div>
-        <div class="text-right text-slate-700">${tx.date}</div>
-        <div class="text-right flex justify-end">
-          <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white text-slate-900 text-xs font-semibold border border-slate-200 shadow-sm hover:bg-slate-50">View</button>
-        </div>
       `;
 
-      const button = row.querySelector('.view-tx');
-      if (button) {
-        button.dataset.details = JSON.stringify({
-          name: tx.name,
-          company: tx.company,
-          amount: tx.amount,
-          currency: 'ZAR',
-          date: tx.date,
-          reference: tx.reference,
-          status: tx.status,
-          logo: tx.logo,
-          serviceFee: tx.serviceFee,
-          runningBalance: tx.runningBalance,
-          location: tx.location,
-          mapTile: tx.mapTile
-        });
-      }
+      row.dataset.details = JSON.stringify({
+        name: tx.name,
+        company: tx.company,
+        amount: tx.amount,
+        currency: 'ZAR',
+        date: tx.date,
+        reference: tx.reference,
+        status: tx.status,
+        logo: tx.logo,
+        serviceFee: tx.serviceFee,
+        runningBalance: tx.runningBalance,
+        location: tx.location,
+        mapTile: tx.mapTile
+      });
+
+      row.addEventListener('click', () => {
+        const data = row.dataset.details ? JSON.parse(row.dataset.details) : null;
+        if (data) openTxModal(data);
+      });
 
       return row;
-    };
-
-    const attachTxListeners = () => {
-      if (!txTable) return;
-      txTable.querySelectorAll('.view-tx').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const data = btn.dataset.details ? JSON.parse(btn.dataset.details) : null;
-          if (data) openTxModal(data);
-        });
-      });
     };
 
     const renderTransactions = (rows) => {
@@ -915,7 +897,6 @@
       }
 
       rows.forEach(row => txTable.appendChild(buildTxRow(row)));
-      attachTxListeners();
     };
 
     const prepareTransactions = (companies) => {
