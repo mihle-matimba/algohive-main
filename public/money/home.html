@@ -722,7 +722,7 @@
     </div>
   </div>
 
-  <div id="pay-modal" data-state="closed" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none">
+  <div id="pay-modal" data-state="closed" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none hidden">
     <div id="pay-modal-overlay" class="absolute inset-0 bg-black/40"></div>
     <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 w-[92%] max-w-3xl space-y-5 tx-modal-panel">
       <div class="flex items-start justify-between gap-3">
@@ -1107,7 +1107,10 @@
         clearTimeout(payCloseTimer);
         payCloseTimer = null;
       }
-      payModal.dataset.state = 'open';
+      payModal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        payModal.dataset.state = 'open';
+      });
       setPayMode(null);
       if (payChoiceDetail) {
         payChoiceDetail.innerHTML = `
@@ -1122,6 +1125,7 @@
       payModal.dataset.state = 'closing';
       payCloseTimer = setTimeout(() => {
         payModal.dataset.state = 'closed';
+        payModal.classList.add('hidden');
         payCloseTimer = null;
       }, 180);
     };
