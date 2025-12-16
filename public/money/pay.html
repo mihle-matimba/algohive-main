@@ -340,10 +340,6 @@
                       <p class="text-sm font-semibold text-slate-700">Beneficiary</p>
                       <p id="receipt-beneficiary" class="text-sm font-bold text-slate-900">—</p>
                     </div>
-                    <div class="flex items-center justify-between">
-                      <p class="text-sm font-semibold text-slate-700">Amount</p>
-                      <p id="receipt-amount" class="text-lg font-extrabold text-slate-900">—</p>
-                    </div>
                     <div class="pt-3 border-t border-dashed border-slate-300 flex items-center gap-3 text-xs text-slate-500">
                       <i class="fa-solid fa-receipt text-slate-400"></i>
                       <span>Double check before sending. This acts as your receipt preview.</span>
@@ -433,7 +429,6 @@
     const receiptType = document.getElementById('receipt-type');
     const receiptAccount = document.getElementById('receipt-account');
     const receiptBeneficiary = document.getElementById('receipt-beneficiary');
-    const receiptAmount = document.getElementById('receipt-amount');
     const sendSummary = document.getElementById('send-summary');
 
     let activeAccount = null;
@@ -469,7 +464,9 @@
       if (!beneficiaryList) return;
       beneficiaryList.innerHTML = '';
       const normalized = filterText.trim().toLowerCase();
-      const filtered = beneficiaries.filter(b => b.name.toLowerCase().includes(normalized));
+      const filtered = normalized
+        ? beneficiaries.filter(b => b.name.toLowerCase().includes(normalized)).slice(0, 1)
+        : [];
       beneficiaryCount.textContent = `${filtered.length} shown`;
 
       filtered.forEach(b => {
@@ -482,7 +479,6 @@
             <p class="font-semibold text-slate-900">${b.name}</p>
             <p class="text-sm text-slate-500">${b.location}</p>
           </div>
-          <span class="ml-auto text-sm font-semibold text-slate-900">${b.lastAmount}</span>
         `;
         btn.addEventListener('click', () => setBeneficiary(b));
         if (activeBeneficiary && activeBeneficiary.id === b.id) {
@@ -511,10 +507,7 @@
       receiptType.textContent = activePayMode ? payChoiceCopy[activePayMode] : '—';
       receiptAccount.textContent = activeAccount ? `${activeAccount.name} (${activeAccount.balance})` : '—';
       receiptBeneficiary.textContent = activeBeneficiary ? activeBeneficiary.name : '—';
-      receiptAmount.textContent = activeAmount ? `R${Number(activeAmount).toFixed(2)}` : '—';
-      sendSummary.textContent = activeAmount
-        ? `Sending ${receiptAmount.textContent} from ${receiptAccount.textContent} to ${receiptBeneficiary.textContent}.`
-        : 'Review and hit send to finish.';
+      sendSummary.textContent = 'Review and hit send to finish.';
     };
 
     const setAccount = (buttonEl) => {
