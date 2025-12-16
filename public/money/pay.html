@@ -5,21 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlgoMoney — Pay</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Silence the production warning from the Tailwind CDN helper for this demo environment.
+    (function () {
+      const originalWarn = console.warn;
+      console.warn = function (msg, ...rest) {
+        if (typeof msg === 'string' && msg.includes('cdn.tailwindcss.com should not be used in production')) return;
+        originalWarn.call(console, msg, ...rest);
+      };
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
-    integrity="sha512-QVfXQqtPjSYwGII0CqzGyF/F7fs/3Gzdh0dX8GZFODdgNpTi27C/7fyqCkCmZJLdnOjFkWDXe4YAl4p0uNQNAw=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-o9N1j7kGz2fLG2kLCBc+RclwHK2OFm1A6kS2FFb9Ajo="
+    crossorigin=""
   />
   <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
-    integrity="sha512-5wY9Vyhi3F7S3w7Dnk3a1JpN96CB2A+qsSVqS+8CA0nVddOZXS6jttuPAoBs+K6TfGsZ3jACzmvVsQt1zAr4Yg=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7kGz2fLG2kLCBc+RclwHK2OFm1A6kS2FFb9Ajo="
+    crossorigin=""
   ></script>
   <style>
     :root {
@@ -649,7 +657,7 @@
       try {
         const { data, error } = await supabaseClient
           .from('profiles')
-          .select('first_name,last_name,avatar_url,display_name,geopay_enabled,geo_lat,geo_lng')
+          .select('first_name,last_name,avatar_url,geopay_enabled,geo_lat,geo_lng')
           .eq('id', user.id)
           .maybeSingle();
         if (error && error.code !== 'PGRST116') throw error;
@@ -662,7 +670,6 @@
       const metaFullName = [user.user_metadata?.first_name, user.user_metadata?.last_name].filter(Boolean).join(' ').trim();
       const displayName = fullName
         || metaFullName
-        || (typeof profileRow?.display_name === 'string' && profileRow.display_name.trim())
         || (typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim())
         || 'AlgoMoney Member';
 
@@ -798,7 +805,7 @@
       try {
         const { data, error } = await supabaseClient
           .from('profiles')
-          .select('id,first_name,last_name,avatar_url,display_name,geo_lat,geo_lng,geopay_enabled');
+          .select('id,first_name,last_name,avatar_url,geo_lat,geo_lng,geopay_enabled');
 
         if (error) throw error;
 
@@ -806,7 +813,7 @@
           .filter(row => row.id !== currentUser?.id && row.geopay_enabled && typeof row.geo_lat === 'number' && typeof row.geo_lng === 'number')
           .map(row => {
             const nameParts = [row.first_name, row.last_name].filter(Boolean);
-            const name = (nameParts.join(' ').trim()) || (row.display_name || 'GeoPay user');
+            const name = (nameParts.join(' ').trim()) || 'GeoPay user';
             const coordsObj = { latitude: row.geo_lat, longitude: row.geo_lng };
             return { id: row.id, name, avatar: row.avatar_url, coords: coordsObj, distance: haversineDistanceKm(coords, coordsObj) };
           })
