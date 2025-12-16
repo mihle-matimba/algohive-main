@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AlgoHive — Sign in</title>
   
@@ -822,16 +821,15 @@
                 
                 try {
                     const accType = fixedAccountType || localStorage.getItem("ah_account_type") || "live";
-                    const { data, error } = await signUp(signupForm.email.value.trim(), signupForm.password.value, { account_type: accType });
                     
-                    if (error) throw error;
+                    // --- CHANGED: Removed destructing {data} to avoid undefined error
+                    const data = await signUp(signupForm.email.value.trim(), signupForm.password.value, { account_type: accType });
                     
                     if (!data.session) {
                          showMsg(`${prefix}-msg`, "Account created. Please confirm your email.", "success");
                          btn.textContent = "Check email";
                     } else {
                          showMsg(`${prefix}-msg`, "Success. Redirecting...", "success");
-                         // UPDATED: Use the passed redirectUrl
                          await routePostAuth(redirectUrl, accType);
                     }
                 } catch (err) {
