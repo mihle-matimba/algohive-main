@@ -370,13 +370,13 @@
             <span class="label flex-1 flex items-center justify-between">Make a Payment <i class="fa-solid fa-chevron-down text-[11px] text-slate-500 transition-transform group-open:rotate-180"></i></span>
           </summary>
           <div class="sub ml-9 mt-1 flex flex-col gap-1">
-            <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="#" title="GeoPay">
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/pay.html#geo" title="GeoPay">
               <span class="label">GeoPay</span>
             </a>
-            <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="#" title="Bill Split">
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/pay.html#bill-split" title="Bill Split">
               <span class="label">Bill Split</span>
             </a>
-            <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="#" title="EFT">
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/pay.html#eft" title="EFT">
               <span class="label">EFT</span>
             </a>
           </div>
@@ -432,15 +432,31 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 relative">
             <button class="inline-flex items-center justify-center h-10 w-10 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50" aria-label="Notifications">
               <i class="fa-regular fa-bell text-base"></i>
             </button>
-            <button class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+            <button id="profile-menu-trigger" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
               <img data-profile-avatar src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80" alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
               <span class="text-sm font-semibold text-slate-900 hidden sm:inline" data-profile-name>Ronaldinho Fazio</span>
               <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
             </button>
+            <div id="profile-menu" class="absolute right-0 top-[calc(100%+8px)] w-64 rounded-xl border border-slate-200 bg-white shadow-xl hidden z-20 overflow-hidden">
+              <div class="px-4 py-3 border-b border-slate-200">
+                <p class="text-sm font-semibold text-slate-900" data-profile-name>Ronaldinho Fazio</p>
+                <p class="text-xs text-slate-500">Profile controls</p>
+              </div>
+              <button id="geopay-toggle" class="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <span>Enable GeoPay</span>
+                <div id="geopay-toggle-track" class="relative inline-flex h-5 w-10 items-center rounded-full border border-slate-200 bg-slate-200 transition-colors">
+                  <span id="geopay-toggle-knob" class="h-4 w-4 rounded-full bg-white shadow-sm transition-transform translate-x-1"></span>
+                </div>
+              </button>
+              <button id="sign-out-btn" class="flex items-center gap-2 w-full px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 border-t border-slate-200">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
 
@@ -776,6 +792,14 @@
     const profileNameEls = document.querySelectorAll('[data-profile-name]');
     const profileAvatarEls = document.querySelectorAll('[data-profile-avatar]');
     const PROFILE_AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
+    const profileMenu = document.getElementById('profile-menu');
+    const profileTrigger = document.getElementById('profile-menu-trigger');
+    const signOutBtn = document.getElementById('sign-out-btn');
+    const geoToggle = document.getElementById('geopay-toggle');
+    const geoToggleTrack = document.getElementById('geopay-toggle-track');
+    const geoToggleKnob = document.getElementById('geopay-toggle-knob');
+    const GEO_PREF_KEY = 'algomoney_geo_pay_enabled';
+    let geoPayEnabled = true;
 
     const setProfileName = (value) => {
       const resolved = (typeof value === 'string' && value.trim()) ? value.trim() : 'AlgoMoney Member';
@@ -789,6 +813,39 @@
       const resolved = (typeof url === 'string' && url.trim().startsWith('http')) ? url.trim() : PROFILE_AVATAR_FALLBACK;
       profileAvatarEls.forEach(img => { img.src = resolved; });
     };
+
+    const setGeoToggle = (enabled) => {
+      geoPayEnabled = !!enabled;
+      if (!geoToggleTrack || !geoToggleKnob) return;
+      geoToggleTrack.classList.toggle('bg-indigo-600', enabled);
+      geoToggleTrack.classList.toggle('border-indigo-600', enabled);
+      geoToggleTrack.classList.toggle('bg-slate-200', !enabled);
+      geoToggleTrack.classList.toggle('border-slate-200', !enabled);
+      geoToggleKnob.classList.toggle('translate-x-5', enabled);
+      geoToggleKnob.classList.toggle('translate-x-1', !enabled);
+    };
+
+    const loadGeoPreference = () => {
+      const raw = localStorage.getItem(GEO_PREF_KEY);
+      const enabled = raw !== 'false';
+      setGeoToggle(enabled);
+      return enabled;
+    };
+
+    const persistGeoPreference = (enabled) => {
+      const nextValue = !!enabled;
+      localStorage.setItem(GEO_PREF_KEY, nextValue ? 'true' : 'false');
+      setGeoToggle(nextValue);
+      if (typeof window.onGeoPreferenceChanged === 'function') {
+        window.onGeoPreferenceChanged(nextValue);
+      }
+    };
+
+    const toggleProfileMenu = () => {
+      profileMenu?.classList.toggle('hidden');
+    };
+
+    const closeProfileMenu = () => profileMenu?.classList.add('hidden');
 
     const redirectToAuth = () => {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -843,11 +900,44 @@
       setProfileAvatar(profileRow?.avatar_url || user.user_metadata?.avatar_url);
     };
 
+    const handleSignOut = async () => {
+      try {
+        await supabaseClient?.auth.signOut();
+      } catch (err) {
+        console.warn('Unable to sign out', err);
+      }
+      redirectToAuth();
+    };
+
     (async () => {
       const session = await ensureSession();
       if (!session) return;
       await hydrateProfileFromSupabase(session.user);
     })();
+
+    loadGeoPreference();
+
+    profileTrigger?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleProfileMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!profileMenu?.contains(e.target) && !profileTrigger?.contains(e.target)) {
+        closeProfileMenu();
+      }
+    });
+
+    signOutBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleSignOut();
+      closeProfileMenu();
+    });
+
+    geoToggle?.addEventListener('click', (e) => {
+      e.preventDefault();
+      persistGeoPreference(!geoPayEnabled);
+    });
 
     mobileBtn?.addEventListener('click', () => {
       sidebar?.classList.add('is-open');
