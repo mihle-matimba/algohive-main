@@ -44,6 +44,7 @@
       background: var(--bg);
       color: var(--text);
     }
+    body.fullscreen-map { overflow: hidden; }
 
     /* Demo sidebar styling */
     #layout { --sb: 275px; display: grid; grid-template-columns: 1fr; min-height: 100vh; }
@@ -129,14 +130,55 @@
       border-radius: 16px;
       border: 1px solid #e2e8f0;
       overflow: hidden;
-      min-height: 240px;
+      min-height: 320px;
       background: #eef2ff;
+      box-shadow: 0 18px 46px -32px rgba(15, 23, 42, 0.45);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .map-sim.fullscreen {
+      position: fixed;
+      inset: 16px;
+      z-index: 70;
+      height: auto;
+      min-height: calc(100vh - 32px);
+      max-width: none;
+      border-radius: 18px;
+      box-shadow: 0 30px 80px -34px rgba(15, 23, 42, 0.65);
     }
     #geo-map {
       position: absolute;
       inset: 0;
       z-index: 0;
     }
+    #geo-map-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 60;
+    }
+    .map-action {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 5;
+    }
+    .map-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #e2e8f0;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 12px;
+      box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .map-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 30px -20px rgba(15, 23, 42, 0.55); border-color: #cbd5e1; }
+    .map-btn:active { transform: translateY(0); box-shadow: 0 12px 24px -18px rgba(15, 23, 42, 0.6); }
     .leaflet-container { font-family: 'Inter', sans-serif; }
     .leaflet-tile { filter: saturate(1.05); }
     .leaflet-control-container { display: none; }
@@ -169,6 +211,7 @@
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
+  <div id="geo-map-overlay" class="hidden"></div>
   <div id="layout">
     <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
     <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 bg-white flex flex-col overflow-hidden">
@@ -404,8 +447,14 @@
                         <p class="text-sm font-semibold text-slate-900">Geo discover</p>
                         <span class="text-xs font-semibold text-indigo-700" id="geo-mode-label">Geo Pay on</span>
                       </div>
-                      <div class="map-sim">
+                      <div class="map-sim" id="geo-map-wrapper">
                         <div id="geo-map"></div>
+                        <div class="map-action">
+                          <button id="geo-fullscreen-btn" type="button" class="map-btn" aria-pressed="false">
+                            <i class="fa-solid fa-up-right-and-down-left-from-center text-slate-600"></i>
+                            <span class="map-btn-label">Full screen</span>
+                          </button>
+                        </div>
                         <div class="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 flex flex-col gap-1" id="geo-status">
                           <span id="geo-status-text">Pins show where your people are when using Geo Pay.</span>
                           <span class="text-[11px] text-slate-500" id="geo-status-meta"></span>
@@ -560,6 +609,11 @@
     const beneficiarySearch = document.getElementById('beneficiary-search');
     const geoPanel = document.getElementById('geo-panel');
     const geoModeLabel = document.getElementById('geo-mode-label');
+    const mapWrapper = document.getElementById('geo-map-wrapper');
+    const mapOverlayEl = document.getElementById('geo-map-overlay');
+    const mapFullscreenBtn = document.getElementById('geo-fullscreen-btn');
+    const mapFullscreenLabel = mapFullscreenBtn?.querySelector('.map-btn-label');
+    const mapFullscreenIcon = mapFullscreenBtn?.querySelector('i');
     const geoMap = document.getElementById('geo-map');
     const geoStatus = document.getElementById('geo-status');
     const geoStatusText = document.getElementById('geo-status-text');
@@ -586,6 +640,7 @@
     const geoToggleKnob = document.getElementById('geopay-toggle-knob');
     const GEO_PREF_KEY = 'algomoney_geo_pay_enabled';
     let geoPayEnabled = true;
+    let isMapFullscreen = false;
     let onGeoPreferenceChanged = () => {};
     let currentUser = null;
     let currentCoords = null;
@@ -609,6 +664,25 @@
       sidebar?.classList.remove('is-open');
       overlayEl?.classList.add('hidden');
     });
+
+    const setMapFullscreen = (enabled) => {
+      const next = !!enabled;
+      isMapFullscreen = next;
+      mapWrapper?.classList.toggle('fullscreen', next);
+      mapOverlayEl?.classList.toggle('hidden', !next);
+      document.body.classList.toggle('fullscreen-map', next);
+      if (mapFullscreenBtn) {
+        mapFullscreenBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+        if (mapFullscreenLabel) mapFullscreenLabel.textContent = next ? 'Exit full screen' : 'Full screen';
+        if (mapFullscreenIcon) {
+          mapFullscreenIcon.classList.toggle('fa-up-right-and-down-left-from-center', !next);
+          mapFullscreenIcon.classList.toggle('fa-down-left-and-up-right-to-center', next);
+        }
+      }
+      if (leafletMap) {
+        setTimeout(() => leafletMap.invalidateSize(), 180);
+      }
+    };
 
     const setProfileName = (value) => {
       const resolved = (typeof value === 'string' && value.trim()) ? value.trim() : 'AlgoMoney Member';
@@ -1071,6 +1145,12 @@
 
     accountButtons.forEach(btn => {
       btn.addEventListener('click', () => setAccount(btn));
+    });
+
+    mapFullscreenBtn?.addEventListener('click', () => setMapFullscreen(!isMapFullscreen));
+    mapOverlayEl?.addEventListener('click', () => setMapFullscreen(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && isMapFullscreen) setMapFullscreen(false);
     });
 
     beneficiarySearch?.addEventListener('input', (e) => renderBeneficiaries(e.target.value));
