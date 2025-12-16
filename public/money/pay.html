@@ -75,9 +75,6 @@
     .step-card { border: 1px solid #e2e8f0; }
     .step-card[data-active="true"] { border-color: #4c1d95; box-shadow: 0 10px 30px -18px rgba(76, 29, 149, 0.35); }
     .step-card[data-done="true"] { border-color: #16a34a; }
-    .step-pill { border: 1px solid #e5e7eb; }
-    .step-pill[data-state="current"] { background: #eef2ff; border-color: #c7d2fe; color: #312e81; }
-    .step-pill[data-state="done"] { background: #ecfdf3; border-color: #bbf7d0; color: #166534; }
 
     .map-sim {
       position: relative;
@@ -91,7 +88,6 @@
     .map-pin { position: absolute; width: 18px; height: 18px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25); border: 2px solid white; background: radial-gradient(circle at 30% 30%, #eef2ff, #4f46e5 60%, #4338ca); }
     .map-pin span { position: absolute; transform: rotate(45deg); top: 50%; left: 50%; translate: -50% -50%; color: #fff; font-size: 10px; font-weight: 700; }
 
-    .summary-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
   </style>
 </head>
 <body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
@@ -169,9 +165,9 @@
             <button id="ah-mobile-menu-btn" aria-label="Open menu" class="md:hidden btn h-11 w-11 p-0 rounded-xl border-0">
               <i class="fa-solid fa-bars"></i>
             </button>
-            <div>
-              <p class="text-lg md:text-xl font-semibold text-slate-600">Send money</p>
-              <p class="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-[#2e1065] via-[#4c1d95] to-[#6d28d9] text-transparent bg-clip-text leading-tight">Step through and send</p>
+            <div class="space-y-1">
+              <p class="text-sm font-semibold text-slate-600">Pay</p>
+              <p class="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">Choose how you want to send</p>
             </div>
           </div>
 
@@ -188,153 +184,74 @@
         </div>
 
         <section class="space-y-6">
-          <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 lg:p-6 space-y-5">
-            <div class="flex items-start justify-between gap-3">
-              <div class="space-y-1">
-                <p class="text-sm font-semibold text-slate-500">Send money</p>
-                <p class="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">Walk the steps and send</p>
-                <p class="text-sm text-slate-600">Pick the payment type, choose where it comes from, pick who gets it, then enter and confirm the amount.</p>
-              </div>
-              <a href="home.html" class="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <a href="home.html" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-900">
                 <i class="fa-solid fa-arrow-left"></i>
                 Back to Home
               </a>
+              <span id="step-label" class="text-sm font-semibold text-slate-700">Step 1 • Payment type</span>
+            </div>
+            <div class="h-3 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div id="progress-fill" class="h-full bg-gradient-to-r from-purple-600 via-purple-800 to-black transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p id="step-hint" class="text-sm text-slate-500">Start with payment type</p>
+          </div>
+
+          <div class="space-y-4">
+            <div class="step-card rounded-2xl border border-slate-200 bg-white/90 p-4 sm:p-5" data-step="1">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Step 1</p>
+                  <p class="text-lg font-bold text-slate-900">Choose the payment type</p>
+                </div>
+                <span class="text-xs font-semibold text-slate-500">Required</span>
+              </div>
+              <div class="grid sm:grid-cols-2 gap-3">
+                <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="geo">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 grid place-items-center">
+                      <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-bold text-slate-900">Geo Pay</p>
+                      <p class="text-sm text-slate-500">Discover and send by location</p>
+                    </div>
+                  </div>
+                </button>
+                <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="etf">
+                  <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-sky-50 text-sky-700 grid place-items-center">
+                      <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-bold text-slate-900">ETF</p>
+                      <p class="text-sm text-slate-500">Send into your ETF baskets</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
 
-            <div class="grid lg:grid-cols-[320px_1fr] gap-5 items-start">
-              <div class="space-y-4">
-                <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
-                  <div class="flex items-center justify-between">
-                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">6 steps</p>
-                    <span id="step-hint" class="text-xs font-semibold text-slate-600">Start with payment type</span>
-                  </div>
-                  <div class="grid gap-2" id="stepper">
-                    <div class="flex items-center gap-3 step-pill rounded-xl px-3 py-2" data-step-item="1">
-                      <span class="h-8 w-8 rounded-full grid place-items-center bg-slate-100 font-bold text-slate-800">1</span>
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900">Choose payment type</p>
-                        <p class="text-xs text-slate-500">Geo Pay or ETF</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-3 step-pill rounded-xl px-3 py-2" data-step-item="2">
-                      <span class="h-8 w-8 rounded-full grid place-items-center bg-slate-100 font-bold text-slate-800">2</span>
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900">Choose pay-from account</p>
-                        <p class="text-xs text-slate-500">No logos, just balances</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-3 step-pill rounded-xl px-3 py-2" data-step-item="3">
-                      <span class="h-8 w-8 rounded-full grid place-items-center bg-slate-100 font-bold text-slate-800">3</span>
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900">Pick beneficiary</p>
-                        <p class="text-xs text-slate-500">Search or Geo discover</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-3 step-pill rounded-xl px-3 py-2" data-step-item="4">
-                      <span class="h-8 w-8 rounded-full grid place-items-center bg-slate-100 font-bold text-slate-800">4</span>
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900">Enter amount</p>
-                        <p class="text-xs text-slate-500">What you are sending</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-3 step-pill rounded-xl px-3 py-2" data-step-item="5">
-                      <span class="h-8 w-8 rounded-full grid place-items-center bg-slate-100 font-bold text-slate-800">5</span>
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900">Confirm & receipt</p>
-                        <p class="text-xs text-slate-500">Preview before send</p>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-3 step-pill rounded-xl px-3 py-2" data-step-item="6">
-                      <span class="h-8 w-8 rounded-full grid place-items-center bg-slate-100 font-bold text-slate-800">6</span>
-                      <div>
-                        <p class="text-sm font-semibold text-slate-900">Send</p>
-                        <p class="text-xs text-slate-500">Finish the transfer</p>
-                      </div>
-                    </div>
-                  </div>
+            <div class="step-card rounded-2xl border border-slate-200 bg-white/90 p-4 sm:p-5 hidden" data-step="2">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Step 2</p>
+                  <p class="text-lg font-bold text-slate-900">Choose the amount to pay from</p>
                 </div>
-
-                <div class="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-                  <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-900">Selection summary</p>
-                    <span class="text-xs text-slate-500">Live</span>
-                  </div>
-                  <div class="grid summary-grid gap-3" id="summary-grid">
-                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <p class="text-xs font-semibold text-slate-500">Payment type</p>
-                      <p id="summary-type" class="text-sm font-bold text-slate-900 mt-1">—</p>
-                    </div>
-                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <p class="text-xs font-semibold text-slate-500">Pay from</p>
-                      <p id="summary-account" class="text-sm font-bold text-slate-900 mt-1">—</p>
-                    </div>
-                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <p class="text-xs font-semibold text-slate-500">Beneficiary</p>
-                      <p id="summary-beneficiary" class="text-sm font-bold text-slate-900 mt-1">—</p>
-                    </div>
-                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <p class="text-xs font-semibold text-slate-500">Amount</p>
-                      <p id="summary-amount" class="text-sm font-bold text-slate-900 mt-1">—</p>
-                    </div>
-                  </div>
-                </div>
+                <span class="text-xs font-semibold text-slate-500">Required</span>
               </div>
-
-              <div class="space-y-4">
-                <div class="step-card rounded-2xl bg-white p-4 sm:p-5" data-step="1">
-                  <div class="flex items-center justify-between mb-3">
-                    <div>
-                      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Step 1</p>
-                      <p class="text-lg font-bold text-slate-900">Choose the payment type</p>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-500">Required</span>
-                  </div>
-                  <div class="grid sm:grid-cols-2 gap-3">
-                    <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="geo">
-                      <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 grid place-items-center">
-                          <i class="fa-solid fa-location-dot"></i>
-                        </div>
-                        <div class="min-w-0">
-                          <p class="font-bold text-slate-900">Geo Pay</p>
-                          <p class="text-sm text-slate-500">Discover and send by location</p>
-                        </div>
-                      </div>
-                    </button>
-                    <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="etf">
-                      <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-full bg-sky-50 text-sky-700 grid place-items-center">
-                          <i class="fa-solid fa-sack-dollar"></i>
-                        </div>
-                        <div class="min-w-0">
-                          <p class="font-bold text-slate-900">ETF</p>
-                          <p class="text-sm text-slate-500">Send into your ETF baskets</p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                  <p class="text-sm text-slate-500 mt-3">Geo Pay lets you find people on the map. ETF keeps it to your investment baskets.</p>
-                </div>
-
-                <div class="step-card rounded-2xl bg-white p-4 sm:p-5 hidden" data-step="2">
-                  <div class="flex items-center justify-between mb-3">
-                    <div>
-                      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Step 2</p>
-                      <p class="text-lg font-bold text-slate-900">Choose the amount to pay from</p>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-500">Required</span>
-                  </div>
-                  <div class="grid sm:grid-cols-2 gap-3" id="pay-accounts">
-                    <button class="account-option border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-account-name="Everyday Spending" data-account-id="EVSP" data-account-balance="$4,820.00">
-                      <p class="text-sm font-semibold text-slate-500">Everyday Spending</p>
-                      <p class="text-lg font-bold text-slate-900">$4,820.00</p>
-                      <p class="text-xs text-slate-500">**** 1104</p>
-                    </button>
-                    <button class="account-option border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-account-name="Travel Stash" data-account-id="TRVL" data-account-balance="$2,140.00">
-                      <p class="text-sm font-semibold text-slate-500">Travel Stash</p>
-                      <p class="text-lg font-bold text-slate-900">$2,140.00</p>
-                      <p class="text-xs text-slate-500">**** 4478</p>
-                    </button>
+              <div class="grid sm:grid-cols-2 gap-3" id="pay-accounts">
+                <button class="account-option border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-account-name="Everyday Spending" data-account-id="EVSP" data-account-balance="$4,820.00">
+                  <p class="text-sm font-semibold text-slate-500">Everyday Spending</p>
+                  <p class="text-lg font-bold text-slate-900">$4,820.00</p>
+                  <p class="text-xs text-slate-500">**** 1104</p>
+                </button>
+                <button class="account-option border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-account-name="Travel Stash" data-account-id="TRVL" data-account-balance="$2,140.00">
+                  <p class="text-sm font-semibold text-slate-500">Travel Stash</p>
+                  <p class="text-lg font-bold text-slate-900">$2,140.00</p>
+                  <p class="text-xs text-slate-500">**** 4478</p>
+                </button>
                     <button class="account-option border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-account-name="ETF Contributions" data-account-id="ETF" data-account-balance="$8,960.00">
                       <p class="text-sm font-semibold text-slate-500">ETF Contributions</p>
                       <p class="text-lg font-bold text-slate-900">$8,960.00</p>
@@ -510,8 +427,9 @@
     const payChoiceButtons = document.querySelectorAll('[data-pay-choice]');
     const accountButtons = document.querySelectorAll('.account-option');
     const stepPanels = document.querySelectorAll('[data-step]');
-    const stepItems = document.querySelectorAll('[data-step-item]');
     const stepHint = document.getElementById('step-hint');
+    const stepLabel = document.getElementById('step-label');
+    const progressFill = document.getElementById('progress-fill');
     const stepActionHint = document.getElementById('step-action-hint');
     const stepNext = document.getElementById('step-next');
     const stepBack = document.getElementById('step-back');
@@ -522,10 +440,6 @@
     const geoModeLabel = document.getElementById('geo-mode-label');
     const geoMap = document.getElementById('geo-map');
     const amountInput = document.getElementById('amount-input');
-    const summaryType = document.getElementById('summary-type');
-    const summaryAccount = document.getElementById('summary-account');
-    const summaryBeneficiary = document.getElementById('summary-beneficiary');
-    const summaryAmount = document.getElementById('summary-amount');
     const receiptType = document.getElementById('receipt-type');
     const receiptAccount = document.getElementById('receipt-account');
     const receiptBeneficiary = document.getElementById('receipt-beneficiary');
@@ -603,20 +517,13 @@
       });
     };
 
-    const updateSummary = () => {
-      summaryType.textContent = activePayMode ? payChoiceCopy[activePayMode] : '—';
-      summaryAccount.textContent = activeAccount ? `${activeAccount.name} (${activeAccount.balance})` : '—';
-      summaryBeneficiary.textContent = activeBeneficiary ? activeBeneficiary.name : '—';
-      summaryAmount.textContent = activeAmount ? `$${Number(activeAmount).toFixed(2)}` : '—';
-    };
-
     const updateReceipt = () => {
-      receiptType.textContent = summaryType.textContent;
-      receiptAccount.textContent = summaryAccount.textContent;
-      receiptBeneficiary.textContent = summaryBeneficiary.textContent;
-      receiptAmount.textContent = summaryAmount.textContent;
+      receiptType.textContent = activePayMode ? payChoiceCopy[activePayMode] : '—';
+      receiptAccount.textContent = activeAccount ? `${activeAccount.name} (${activeAccount.balance})` : '—';
+      receiptBeneficiary.textContent = activeBeneficiary ? activeBeneficiary.name : '—';
+      receiptAmount.textContent = activeAmount ? `$${Number(activeAmount).toFixed(2)}` : '—';
       sendSummary.textContent = activeAmount
-        ? `Sending ${summaryAmount.textContent} from ${summaryAccount.textContent} to ${summaryBeneficiary.textContent}.`
+        ? `Sending ${receiptAmount.textContent} from ${receiptAccount.textContent} to ${receiptBeneficiary.textContent}.`
         : 'Review and hit send to finish.';
     };
 
@@ -634,7 +541,6 @@
         id: buttonEl.dataset.accountId,
         balance: buttonEl.dataset.accountBalance
       };
-      updateSummary();
     };
 
     const setPayMode = (mode) => {
@@ -648,7 +554,6 @@
       geoPanel?.classList.toggle('opacity-50', mode !== 'geo');
       geoPanel?.classList.toggle('pointer-events-none', mode !== 'geo');
       geoModeLabel.textContent = mode === 'geo' ? 'Geo Pay on' : 'Geo Pay off';
-      updateSummary();
     };
 
     const setBeneficiary = (beneficiary) => {
@@ -659,7 +564,6 @@
         btn.classList.toggle('ring-indigo-200', active);
         btn.classList.toggle('border-indigo-400', active);
       });
-      updateSummary();
     };
 
     const setStep = (step) => {
@@ -667,11 +571,6 @@
       stepPanels.forEach(panel => {
         panel.classList.toggle('hidden', Number(panel.dataset.step) !== step);
         panel.dataset.active = Number(panel.dataset.step) === step;
-      });
-      stepItems.forEach(item => {
-        const idx = Number(item.dataset.stepItem);
-        const state = idx === step ? 'current' : idx < step ? 'done' : 'upcoming';
-        item.dataset.state = state;
       });
 
       const hints = {
@@ -683,6 +582,16 @@
         6: 'Send it off'
       };
       stepHint.textContent = hints[step];
+      stepLabel.textContent = {
+        1: 'Step 1 • Payment type',
+        2: 'Step 2 • Pay from account',
+        3: 'Step 3 • Beneficiary',
+        4: 'Step 4 • Amount',
+        5: 'Step 5 • Confirm',
+        6: 'Step 6 • Send'
+      }[step];
+      const progress = ((step - 1) / (stepPanels.length - 1)) * 100;
+      progressFill.style.width = `${progress}%`;
 
       stepBack.disabled = step === 1;
       stepNext.textContent = step === 6 ? 'Send' : 'Continue';
@@ -737,7 +646,6 @@
 
     amountInput?.addEventListener('input', (e) => {
       activeAmount = e.target.value;
-      updateSummary();
     });
 
     renderBeneficiaries();
@@ -745,7 +653,6 @@
     setPayMode('geo');
     setAccount(accountButtons[0]);
     setStep(1);
-    updateSummary();
   </script>
 </body>
 </html>
