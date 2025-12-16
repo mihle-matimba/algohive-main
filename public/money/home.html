@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -278,18 +279,25 @@
       position: relative;
       min-height: 270px;
       cursor: pointer;
+      padding-inline: 8px;
     }
     .card-stack .card-visual {
       transition: transform 0.28s ease, box-shadow 0.28s ease, top 0.28s ease;
       position: absolute;
       left: 50%;
-      width: 100%;
+      width: calc(100% - 16px);
+      max-width: 430px;
       transform: translateX(-50%);
     }
     .card-stack:not(.expanded) .card-visual:nth-child(1) { top: 0; z-index: 20; }
     .card-stack:not(.expanded) .card-visual:nth-child(2) { top: 18px; z-index: 10; transform: translateX(-50%); }
     .card-stack.expanded .card-visual { position: relative; top: 0; transform: none; left: 0; width: 100%; }
     .card-stack.expanded .card-visual + .card-visual { margin-top: 16px; }
+
+    @media (min-width: 768px) {
+      .card-stack { padding-inline: 0; }
+      .card-stack .card-visual { width: 100%; max-width: none; }
+    }
 
     .tx-map {
       position: relative;
@@ -492,9 +500,9 @@
               </div>
 
               <div class="grid grid-cols-3 gap-3 max-w-lg mx-auto md:mx-0 md:ml-3 md:mr-auto">
-                <button class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
+                <a href="pay.html" class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm grid place-items-center">
                   Pay
-                </button>
+                </a>
                 <button class="action-btn bg-white text-sky-700 font-semibold rounded-xl py-3 shadow-sm">
                   Receive
                 </button>
@@ -623,117 +631,11 @@
             <a href="#" class="text-sm font-semibold text-sky-700">View statements</a>
           </div>
           <div class="px-4 py-3">
-            <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center text-xs font-semibold text-slate-500 border-b border-slate-100 pb-2">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs font-semibold text-slate-500 border-b border-slate-100 pb-2 px-2">
               <div>Transaction</div>
-              <div>Reference</div>
               <div class="text-right">Amount</div>
-              <div class="text-right">Date / Time</div>
-              <div class="text-right">Status</div>
             </div>
-              <div class="divide-y divide-slate-100 text-sm" id="tx-table">
-              <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row" data-company="Tesla Charge" data-amount="+R30,021.23" data-date="Oct 30, 2024 • 09:35" data-ref="TSL-8791" data-status="Processing">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
-                    <img src="https://logo.clearbit.com/tesla.com" alt="Tesla" class="w-8 h-8 object-contain" />
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-900">Tesla Charge</p>
-                    <p class="text-xs text-slate-500">Tesla, Inc.</p>
-                  </div>
-                </div>
-                <div class="text-slate-700">Ref: TSL-8791</div>
-                <div class="text-right font-semibold text-emerald-600">+R30,021.23</div>
-                <div class="text-right text-slate-700">Oct 30, 2024 • 09:35</div>
-                <div class="text-right flex justify-end">
-                  <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold" data-details='{"name":"Tesla Charge","company":"Tesla, Inc.","amount":"+R30,021.23","currency":"ZAR","date":"Oct 30, 2024 • 09:35","reference":"TSL-8791","status":"Processing","logo":"https://logo.clearbit.com/tesla.com","serviceFee":"R32.10","runningBalance":"R180,233.40","location":"Sandton, Johannesburg","mapTile":"https://tile.openstreetmap.org/14/9230/12306.png"}'>View</button>
-                </div>
-              </div>
-              <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row" data-company="Netflix Premium" data-amount="-R10,045.00" data-date="Jun 24, 2024 • 20:15" data-ref="NFX-2045" data-status="Success">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
-                    <img src="https://logo.clearbit.com/netflix.com" alt="Netflix" class="w-8 h-8 object-contain" />
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-900">Netflix Premium</p>
-                    <p class="text-xs text-slate-500">Entertainment</p>
-                  </div>
-                </div>
-                <div class="text-slate-700">Ref: NFX-2045</div>
-                <div class="text-right font-semibold text-rose-600">-R10,045.00</div>
-                <div class="text-right text-slate-700">Jun 24, 2024 • 20:15</div>
-                <div class="text-right flex justify-end">
-                  <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold" data-details='{"name":"Netflix Premium","company":"Netflix","amount":"-R10,045.00","currency":"ZAR","date":"Jun 24, 2024 • 20:15","reference":"NFX-2045","status":"Success","logo":"https://logo.clearbit.com/netflix.com","serviceFee":"R18.40","runningBalance":"R150,112.90","location":"Cape Town","mapTile":"https://tile.openstreetmap.org/13/4639/3057.png"}'>View</button>
-                </div>
-              </div>
-              <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row" data-company="Datadog Subscription" data-amount="+R40,132.16" data-date="Nov 7, 2023 • 14:08" data-ref="DD-5521" data-status="Success">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
-                    <img src="https://logo.clearbit.com/datadoghq.com" alt="Datadog" class="w-8 h-8 object-contain" />
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-900">Datadog Subscription</p>
-                    <p class="text-xs text-slate-500">Monitoring</p>
-                  </div>
-                </div>
-                <div class="text-slate-700">Ref: DD-5521</div>
-                <div class="text-right font-semibold text-emerald-600">+R40,132.16</div>
-                <div class="text-right text-slate-700">Nov 7, 2023 • 14:08</div>
-                <div class="text-right flex justify-end">
-                  <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold" data-details='{"name":"Datadog Subscription","company":"Datadog","amount":"+R40,132.16","currency":"ZAR","date":"Nov 7, 2023 • 14:08","reference":"DD-5521","status":"Success","logo":"https://logo.clearbit.com/datadoghq.com","serviceFee":"R42.00","runningBalance":"R190,901.50","location":"Hatfield, Pretoria","mapTile":"https://tile.openstreetmap.org/14/9039/12413.png"}'>View</button>
-                </div>
-              </div>
-              <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row" data-company="ARK Genomics" data-amount="-R22,665.12" data-date="Aug 17, 2023 • 16:45" data-ref="ARK-7782" data-status="Declined">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
-                    <img src="https://logo.clearbit.com/ark-invest.com" alt="ARK" class="w-8 h-8 object-contain" />
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-900">ARK Genomics</p>
-                    <p class="text-xs text-slate-500">Investment</p>
-                  </div>
-                </div>
-                <div class="text-slate-700">Ref: ARK-7782</div>
-                <div class="text-right font-semibold text-rose-600">-R22,665.12</div>
-                <div class="text-right text-slate-700">Aug 17, 2023 • 16:45</div>
-                <div class="text-right flex justify-end">
-                  <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold" data-details='{"name":"ARK Genomics","company":"ARK Invest","amount":"-R22,665.12","currency":"ZAR","date":"Aug 17, 2023 • 16:45","reference":"ARK-7782","status":"Declined","logo":"https://logo.clearbit.com/ark-invest.com","serviceFee":"R0.00","runningBalance":"R148,236.38","location":"Rosebank, Johannesburg","mapTile":"https://tile.openstreetmap.org/15/17611/12341.png"}'>View</button>
-                </div>
-              </div>
-              <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row" data-company="Square Terminal" data-amount="+R8,412.77" data-date="Jul 02, 2023 • 11:28" data-ref="SQ-3301" data-status="Success">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
-                    <img src="https://logo.clearbit.com/squareup.com" alt="Square" class="w-8 h-8 object-contain" />
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-900">Square Terminal</p>
-                    <p class="text-xs text-slate-500">Hardware</p>
-                  </div>
-                </div>
-                <div class="text-slate-700">Ref: SQ-3301</div>
-                <div class="text-right font-semibold text-emerald-600">+R8,412.77</div>
-                <div class="text-right text-slate-700">Jul 02, 2023 • 11:28</div>
-                <div class="text-right flex justify-end">
-                  <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold" data-details='{"name":"Square Terminal","company":"Square","amount":"+R8,412.77","currency":"ZAR","date":"Jul 02, 2023 • 11:28","reference":"SQ-3301","status":"Success","logo":"https://logo.clearbit.com/squareup.com","serviceFee":"R12.44","runningBalance":"R156,649.15","location":"Umhlanga, Durban","mapTile":"https://tile.openstreetmap.org/14/17184/12224.png"}'>View</button>
-                </div>
-              </div>
-              <div class="grid grid-cols-[1.6fr,1.1fr,1fr,1fr,0.9fr] items-center py-3 gap-3 tx-row" data-company="Shopify Plus" data-amount="-R12,009.00" data-date="May 20, 2023 • 10:12" data-ref="SH-9087" data-status="Pending">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
-                    <img src="https://logo.clearbit.com/shopify.com" alt="Shopify" class="w-8 h-8 object-contain" />
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-900">Shopify Plus</p>
-                    <p class="text-xs text-slate-500">SaaS</p>
-                  </div>
-                </div>
-                <div class="text-slate-700">Ref: SH-9087</div>
-                <div class="text-right font-semibold text-rose-600">-R12,009.00</div>
-                <div class="text-right text-slate-700">May 20, 2023 • 10:12</div>
-                <div class="text-right flex justify-end">
-                  <button class="view-tx inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold" data-details='{"name":"Shopify Plus","company":"Shopify","amount":"-R12,009.00","currency":"ZAR","date":"May 20, 2023 • 10:12","reference":"SH-9087","status":"Pending","logo":"https://logo.clearbit.com/shopify.com","serviceFee":"R0.00","runningBalance":"R144,640.15","location":"Gqeberha","mapTile":"https://tile.openstreetmap.org/13/4641/3329.png"}'>View</button>
-                </div>
-              </div>
-            </div>
+            <div class="divide-y divide-slate-100 text-sm" id="tx-table"></div>
           </div>
         </section>
       </div>
@@ -843,6 +745,10 @@
     const txModalBalance = document.getElementById('tx-modal-balance');
     const txModalLocation = document.getElementById('tx-modal-location');
     const txModalMap = document.getElementById('tx-modal-map');
+    const txTable = document.getElementById('tx-table');
+    const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
+    const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     mobileBtn?.addEventListener('click', () => {
       sidebar?.classList.add('is-open');
@@ -911,6 +817,159 @@
       btn.addEventListener('click', () => selectTab(btn.dataset.meterTab));
     });
 
+    const fallbackCompanies = [
+      { symbol: 'AAPL', name: 'Apple Inc.', logo: 'https://logo.clearbit.com/apple.com', exchange: 'NASDAQ' },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', logo: 'https://logo.clearbit.com/microsoft.com', exchange: 'NASDAQ' },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', logo: 'https://logo.clearbit.com/nvidia.com', exchange: 'NASDAQ' },
+      { symbol: 'AMZN', name: 'Amazon.com, Inc.', logo: 'https://logo.clearbit.com/amazon.com', exchange: 'NASDAQ' },
+      { symbol: 'TSLA', name: 'Tesla, Inc.', logo: 'https://logo.clearbit.com/tesla.com', exchange: 'NASDAQ' },
+      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', logo: 'https://logo.clearbit.com/jpmorganchase.com', exchange: 'NYSE' }
+    ];
+
+    const safeLogo = (url) => (typeof url === 'string' && url.trim().startsWith('http')
+      ? url.trim()
+      : 'https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg');
+
+    const formatZAR = (value) => {
+      const formatter = new Intl.NumberFormat('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const sign = value >= 0 ? '+' : '-';
+      return `${sign}R${formatter.format(Math.abs(value))}`;
+    };
+
+    const formatBalance = (value) => `R${new Intl.NumberFormat('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.max(value, 0))}`;
+
+    const formatDateLabel = (baseDate, offsetDays) => {
+      const date = new Date(baseDate);
+      date.setDate(date.getDate() - offsetDays);
+      const d = date.toLocaleDateString('en-ZA', { month: 'short', day: '2-digit', year: 'numeric' });
+      const t = date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return `${d} • ${t}`;
+    };
+
+    const buildTxRow = (tx) => {
+      const amountTone = tx.amount.startsWith('-') ? 'text-rose-600' : 'text-emerald-600';
+      const row = document.createElement('div');
+      row.className = 'grid grid-cols-[minmax(0,1fr)_auto] items-center py-3 gap-3 tx-row cursor-pointer rounded-xl px-2 hover:bg-slate-50 transition-colors';
+      row.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden grid place-items-center">
+            <img src="${tx.logo}" alt="${tx.company}" class="w-8 h-8 object-contain" />
+          </div>
+          <div>
+            <p class="font-semibold text-slate-900">${tx.name}</p>
+            <p class="text-xs text-slate-500">${tx.company}</p>
+          </div>
+        </div>
+        <div class="text-right font-semibold ${amountTone}">${tx.amount}</div>
+      `;
+
+      row.dataset.details = JSON.stringify({
+        name: tx.name,
+        company: tx.company,
+        amount: tx.amount,
+        currency: 'ZAR',
+        date: tx.date,
+        reference: tx.reference,
+        status: tx.status,
+        logo: tx.logo,
+        serviceFee: tx.serviceFee,
+        runningBalance: tx.runningBalance,
+        location: tx.location,
+        mapTile: tx.mapTile
+      });
+
+      row.addEventListener('click', () => {
+        const data = row.dataset.details ? JSON.parse(row.dataset.details) : null;
+        if (data) openTxModal(data);
+      });
+
+      return row;
+    };
+
+    const renderTransactions = (rows) => {
+      if (!txTable) return;
+      txTable.innerHTML = '';
+
+      if (!rows.length) {
+        txTable.innerHTML = '<div class="py-4 text-sm text-slate-600">No transactions available.</div>';
+        return;
+      }
+
+      rows.forEach(row => txTable.appendChild(buildTxRow(row)));
+    };
+
+    const prepareTransactions = (companies) => {
+      const now = new Date();
+      const statuses = ['Processing', 'Success', 'Success', 'Declined', 'Success', 'Pending'];
+      const locations = ['Sandton, Johannesburg', 'Cape Town', 'Umhlanga, Durban', 'Hatfield, Pretoria', 'Gqeberha', 'Stellenbosch'];
+      const mapTiles = [
+        'https://a.tile.openstreetmap.org/14/9230/12306.png',
+        'https://a.tile.openstreetmap.org/13/4639/3057.png',
+        'https://a.tile.openstreetmap.org/14/17184/12224.png',
+        'https://a.tile.openstreetmap.org/14/9039/12413.png',
+        'https://a.tile.openstreetmap.org/13/4641/3329.png',
+        'https://a.tile.openstreetmap.org/15/17611/12341.png'
+      ];
+
+      return companies.slice(0, 6).map((company, idx) => {
+        const baseAmount = 4500 + idx * 3200;
+        const direction = idx % 2 === 0 ? 1 : -1;
+        const amountValue = direction * (baseAmount + (idx % 3) * 410.5);
+        const referenceSymbol = (company.symbol || company.name || 'AHM').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || 'AHM';
+        const name = company.name || company.symbol || 'Trading Universe Company';
+        const companyLabel = company.symbol && company.exchange
+          ? `${company.symbol} • ${company.exchange}`
+          : company.symbol || company.exchange || 'trading_universe';
+
+        return {
+          name,
+          company: companyLabel,
+          logo: safeLogo(company.logo),
+          reference: `${referenceSymbol}-${8700 + idx * 9}`,
+          amount: formatZAR(amountValue),
+          date: formatDateLabel(now, idx * 7 + 1),
+          status: statuses[idx % statuses.length],
+          serviceFee: formatBalance(Math.abs(amountValue) * 0.0015),
+          runningBalance: formatBalance(185000 + amountValue),
+          location: locations[idx % locations.length],
+          mapTile: mapTiles[idx % mapTiles.length]
+        };
+      });
+    };
+
+    const loadTradingUniverseTransactions = async () => {
+      if (!txTable) return;
+      txTable.innerHTML = '<div class="py-4 text-sm text-slate-600">Loading transactions...</div>';
+
+      let companies = [];
+
+      if (supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('trading_universe')
+            .select('symbol,name,logo,exchange')
+            .limit(6);
+
+          if (error) {
+            console.warn('Unable to load trading_universe companies', error.message);
+          } else if (Array.isArray(data)) {
+            companies = data.filter(item => item && (item.name || item.symbol));
+          }
+        } catch (err) {
+          console.warn('Error reading trading_universe data', err);
+        }
+      }
+
+      if (!companies.length) {
+        companies = fallbackCompanies;
+      }
+
+      const rows = prepareTransactions(companies);
+      renderTransactions(rows);
+    };
+
+    loadTradingUniverseTransactions();
+
     const openTxModal = (details) => {
       if (!txModal) return;
       txModalLogo.src = details.logo;
@@ -930,13 +989,6 @@
       }
       txModal.dataset.state = 'open';
     };
-
-    document.querySelectorAll('.view-tx').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const data = btn.dataset.details ? JSON.parse(btn.dataset.details) : null;
-        if (data) openTxModal(data);
-      });
-    });
 
     const closeTxModal = () => {
       if (!txModal) return;
