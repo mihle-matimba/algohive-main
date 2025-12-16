@@ -181,17 +181,12 @@
 
         <section class="space-y-6">
           <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <a href="home.html" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-900">
-                <i class="fa-solid fa-arrow-left"></i>
-                Back to Home
-              </a>
+            <div class="flex items-center justify-end">
               <span id="step-label" class="text-sm font-semibold text-slate-700">Step 1 • Payment type</span>
             </div>
             <div class="h-3 w-full bg-slate-200 rounded-full overflow-hidden">
               <div id="progress-fill" class="h-full bg-gradient-to-r from-purple-600 via-purple-800 to-black transition-all duration-300" style="width: 0%"></div>
             </div>
-            <p id="step-hint" class="text-sm text-slate-500">Start with payment type</p>
           </div>
 
           <div class="space-y-4 max-w-3xl mx-auto w-full">
@@ -215,14 +210,14 @@
                     </div>
                   </div>
                 </button>
-                <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="etf">
+                <button class="pay-choice border border-slate-200 rounded-xl p-4 text-left bg-white hover:border-slate-300 hover:shadow-sm transition" data-pay-choice="eft">
                   <div class="flex items-center gap-3">
                     <div class="h-10 w-10 rounded-full bg-sky-50 text-sky-700 grid place-items-center">
                       <i class="fa-solid fa-sack-dollar"></i>
                     </div>
                     <div class="min-w-0">
-                      <p class="font-bold text-slate-900">ETF</p>
-                      <p class="text-sm text-slate-500">Send into your ETF baskets</p>
+                      <p class="font-bold text-slate-900">EFT</p>
+                      <p class="text-sm text-slate-500">Send into your EFT baskets</p>
                     </div>
                   </div>
                 </button>
@@ -379,13 +374,10 @@
                     <i class="fa-solid fa-arrow-left"></i>
                     Back
                   </button>
-                  <div class="flex items-center gap-2">
-                    <span id="step-action-hint" class="text-sm text-slate-500">Next: pick account</span>
-                    <button id="step-next" class="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
-                      Continue
-                      <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                  </div>
+                  <button id="step-next" class="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                    Continue
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -423,10 +415,8 @@
     const payChoiceButtons = document.querySelectorAll('[data-pay-choice]');
     const accountButtons = document.querySelectorAll('.account-option');
     const stepPanels = document.querySelectorAll('[data-step]');
-    const stepHint = document.getElementById('step-hint');
     const stepLabel = document.getElementById('step-label');
     const progressFill = document.getElementById('progress-fill');
-    const stepActionHint = document.getElementById('step-action-hint');
     const stepNext = document.getElementById('step-next');
     const stepBack = document.getElementById('step-back');
     const beneficiaryList = document.getElementById('beneficiary-list');
@@ -460,7 +450,7 @@
 
     const payChoiceCopy = {
       geo: 'Geo Pay',
-      etf: 'ETF'
+      eft: 'EFT'
     };
 
     const beneficiaries = [
@@ -569,15 +559,6 @@
         panel.dataset.active = Number(panel.dataset.step) === step;
       });
 
-      const hints = {
-        1: 'Start with payment type',
-        2: 'Pick the account with the right balance',
-        3: 'Tap a saved person or discover via Geo Pay',
-        4: 'Enter how much to send',
-        5: 'Confirm the receipt',
-        6: 'Send it off'
-      };
-      stepHint.textContent = hints[step];
       stepLabel.textContent = {
         1: 'Step 1 • Payment type',
         2: 'Step 2 • Pay from account',
@@ -591,14 +572,6 @@
 
       stepBack.disabled = step === 1;
       stepNext.textContent = step === 6 ? 'Send' : 'Continue';
-      stepActionHint.textContent = {
-        1: 'Next: pick account',
-        2: 'Next: choose beneficiary',
-        3: activePayMode === 'geo' ? 'Next: search or pick a pin' : 'Next: search and pick a beneficiary',
-        4: 'Next: confirm receipt',
-        5: 'Next: send',
-        6: 'Finish'
-      }[step];
 
       if (step === 5) updateReceipt();
     };
@@ -611,16 +584,15 @@
       return true;
     };
 
-    stepNext?.addEventListener('click', () => {
-      if (!validateStep()) return;
-      if (currentStep < 6) {
-        setStep(currentStep + 1);
-      } else {
-        stepActionHint.textContent = 'Sent';
-        stepNext.disabled = true;
-        stepNext.classList.add('opacity-70');
-      }
-    });
+      stepNext?.addEventListener('click', () => {
+        if (!validateStep()) return;
+        if (currentStep < 6) {
+          setStep(currentStep + 1);
+        } else {
+          stepNext.disabled = true;
+          stepNext.classList.add('opacity-70');
+        }
+      });
 
     stepBack?.addEventListener('click', () => {
       if (currentStep > 1) {
