@@ -8,6 +8,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+    integrity="sha512-QVfXQqtPjSYwGII0CqzGyF/F7fs/3Gzdh0dX8GZFODdgNpTi27C/7fyqCkCmZJLdnOjFkWDXe4YAl4p0uNQNAw=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
+    integrity="sha512-5wY9Vyhi3F7S3w7Dnk3a1JpN96CB2A+qsSVqS+8CA0nVddOZXS6jttuPAoBs+K6TfGsZ3jACzmvVsQt1zAr4Yg=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -107,15 +120,45 @@
 
     .map-sim {
       position: relative;
-      background: radial-gradient(circle at 30% 40%, #e0f2fe, #e2e8f0 40%), linear-gradient(135deg, #f8fafc, #e2e8f0);
       border-radius: 16px;
       border: 1px solid #e2e8f0;
       overflow: hidden;
-      min-height: 220px;
+      min-height: 240px;
+      background: #eef2ff;
     }
-    .map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.15) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.8; }
-    .map-pin { position: absolute; width: 18px; height: 18px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25); border: 2px solid white; background: radial-gradient(circle at 30% 30%, #eef2ff, #4f46e5 60%, #4338ca); }
-    .map-pin span { position: absolute; transform: rotate(45deg); top: 50%; left: 50%; translate: -50% -50%; color: #fff; font-size: 10px; font-weight: 700; }
+    #geo-map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .leaflet-container { font-family: 'Inter', sans-serif; }
+    .leaflet-tile { filter: saturate(1.05); }
+    .leaflet-control-container { display: none; }
+    .geo-pin-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background-size: cover;
+      background-position: center;
+      border: 2px solid #fff;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+    }
+    .geo-pin-avatar[data-self="true"] {
+      border-color: #4f46e5;
+      box-shadow: 0 12px 28px rgba(79, 70, 229, 0.35);
+    }
+    .geo-pin-label {
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.8);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+    }
 
   </style>
 </head>
@@ -356,10 +399,10 @@
                         <span class="text-xs font-semibold text-indigo-700" id="geo-mode-label">Geo Pay on</span>
                       </div>
                       <div class="map-sim">
-                        <div class="map-grid"></div>
-                        <div id="geo-map" class="absolute inset-0"></div>
-                        <div class="absolute bottom-3 left-3 bg-white/90 backdrop-blur rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                          Pins show where your people are when using Geo Pay.
+                        <div id="geo-map"></div>
+                        <div class="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 flex flex-col gap-1" id="geo-status">
+                          <span id="geo-status-text">Pins show where your people are when using Geo Pay.</span>
+                          <span class="text-[11px] text-slate-500" id="geo-status-meta"></span>
                         </div>
                       </div>
                     </div>
@@ -512,6 +555,9 @@
     const geoPanel = document.getElementById('geo-panel');
     const geoModeLabel = document.getElementById('geo-mode-label');
     const geoMap = document.getElementById('geo-map');
+    const geoStatus = document.getElementById('geo-status');
+    const geoStatusText = document.getElementById('geo-status-text');
+    const geoStatusMeta = document.getElementById('geo-status-meta');
     const amountInput = document.getElementById('amount-input');
     const receiptType = document.getElementById('receipt-type');
     const receiptAccount = document.getElementById('receipt-account');
@@ -535,6 +581,11 @@
     const GEO_PREF_KEY = 'algomoney_geo_pay_enabled';
     let geoPayEnabled = true;
     let onGeoPreferenceChanged = () => {};
+    let currentUser = null;
+    let currentCoords = null;
+    let nearbyMarkersLayer = null;
+    let leafletMap = null;
+    const GEO_RADIUS_KM = 1;
 
     let activeAccount = null;
     let activePayMode = null;
@@ -593,12 +644,12 @@
     };
 
     const hydrateProfileFromSupabase = async (user) => {
-      if (!supabaseClient || !user) return;
+      if (!supabaseClient || !user) return null;
       let profileRow = null;
       try {
         const { data, error } = await supabaseClient
           .from('profiles')
-          .select('first_name,last_name,avatar_url,display_name')
+          .select('first_name,last_name,avatar_url,display_name,geopay_enabled,geo_lat,geo_lng')
           .eq('id', user.id)
           .maybeSingle();
         if (error && error.code !== 'PGRST116') throw error;
@@ -617,6 +668,7 @@
 
       setProfileName(displayName);
       setProfileAvatar(profileRow?.avatar_url || user.user_metadata?.avatar_url);
+      return profileRow;
     };
 
     const handleSignOut = async () => {
@@ -637,20 +689,202 @@
       geoToggleTrack.classList.toggle('border-slate-200', !enabled);
       geoToggleKnob.classList.toggle('translate-x-5', enabled);
       geoToggleKnob.classList.toggle('translate-x-1', !enabled);
+      geoModeLabel.textContent = enabled ? 'Geo Pay on' : 'Geo Pay off';
     };
 
-    const loadGeoPreference = () => {
-      const raw = localStorage.getItem(GEO_PREF_KEY);
-      const enabled = raw !== 'false';
-      setGeoToggle(enabled);
-      return enabled;
+    const updateGeoStatus = (text, meta = '') => {
+      if (geoStatusText) geoStatusText.textContent = text;
+      if (geoStatusMeta) geoStatusMeta.textContent = meta;
     };
 
-    const persistGeoPreference = (enabled) => {
+    const requestLocation = () => new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        updateGeoStatus('GeoPay needs location services to show pins.', 'Location unavailable in this browser.');
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        (err) => {
+          console.warn('Geo location denied', err);
+          updateGeoStatus('We could not read your location.', 'Please allow location access to use GeoPay.');
+          resolve(null);
+        },
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 12000 }
+      );
+    });
+
+    const haversineDistanceKm = (a, b) => {
+      if (!a || !b) return Infinity;
+      const R = 6371;
+      const dLat = (b.latitude - a.latitude) * (Math.PI / 180);
+      const dLon = (b.longitude - a.longitude) * (Math.PI / 180);
+      const lat1 = a.latitude * (Math.PI / 180);
+      const lat2 = b.latitude * (Math.PI / 180);
+      const sinDLat = Math.sin(dLat / 2);
+      const sinDLon = Math.sin(dLon / 2);
+      const aVal = sinDLat * sinDLat + sinDLon * sinDLon * Math.cos(lat1) * Math.cos(lat2);
+      const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
+      return R * c;
+    };
+
+    const ensureLeafletMap = (coords) => {
+      if (!geoMap || !window.L) return null;
+      if (!leafletMap) {
+        leafletMap = L.map(geoMap, { zoomControl: false, attributionControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(leafletMap);
+        nearbyMarkersLayer = L.layerGroup().addTo(leafletMap);
+      }
+      if (coords) {
+        leafletMap.setView([coords.latitude, coords.longitude], 15);
+      }
+      return leafletMap;
+    };
+
+    const renderGeoPins = (selfProfile, nearbyProfiles) => {
+      const baseCoords = selfProfile?.coords;
+      const map = ensureLeafletMap(baseCoords || nearbyProfiles?.[0]?.coords);
+      if (!map || !nearbyMarkersLayer) return;
+      nearbyMarkersLayer.clearLayers();
+
+      const markers = [];
+      const addMarker = (profile, isSelf = false) => {
+        if (!profile?.coords) return;
+        const name = profile.name || 'GeoPay user';
+        const avatar = profile.avatar || PROFILE_AVATAR_FALLBACK;
+        const marker = L.marker([profile.coords.latitude, profile.coords.longitude], {
+          icon: L.divIcon({
+            className: 'geo-pin',
+            html: `<div class="geo-pin-avatar" data-self="${isSelf}" style="background-image:url('${avatar}')"></div><div class="geo-pin-label">${name}</div>`
+          })
+        });
+        marker.addTo(nearbyMarkersLayer);
+        markers.push(marker);
+      };
+
+      if (baseCoords) {
+        const boundary = L.circle([baseCoords.latitude, baseCoords.longitude], { radius: GEO_RADIUS_KM * 1000, color: '#4f46e5', weight: 1, fillOpacity: 0.06 });
+        boundary.addTo(nearbyMarkersLayer);
+        addMarker(selfProfile, true);
+      }
+      (nearbyProfiles || []).forEach(profile => addMarker(profile, false));
+
+      const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+      if (bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.35));
+      }
+    };
+
+    const updateProfileGeoState = async (enabled, coords = null) => {
+      const payload = {
+        geopay_enabled: enabled,
+        geo_lat: enabled && coords ? coords.latitude : null,
+        geo_lng: enabled && coords ? coords.longitude : null,
+        geo_updated_at: new Date().toISOString()
+      };
+      try {
+        const { error } = await supabaseClient
+          .from('profiles')
+          .update(payload)
+          .eq('id', currentUser?.id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Unable to persist GeoPay preference', err);
+      }
+    };
+
+    const fetchNearbyProfiles = async (coords) => {
+      if (!coords || !supabaseClient) return [];
+      try {
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('id,first_name,last_name,avatar_url,display_name,geo_lat,geo_lng,geopay_enabled');
+
+        if (error) throw error;
+
+        return (data || [])
+          .filter(row => row.id !== currentUser?.id && row.geopay_enabled && typeof row.geo_lat === 'number' && typeof row.geo_lng === 'number')
+          .map(row => {
+            const nameParts = [row.first_name, row.last_name].filter(Boolean);
+            const name = (nameParts.join(' ').trim()) || (row.display_name || 'GeoPay user');
+            const coordsObj = { latitude: row.geo_lat, longitude: row.geo_lng };
+            return { id: row.id, name, avatar: row.avatar_url, coords: coordsObj, distance: haversineDistanceKm(coords, coordsObj) };
+          })
+          .filter(row => row.distance <= GEO_RADIUS_KM)
+          .sort((a, b) => a.distance - b.distance);
+      } catch (err) {
+        console.warn('Unable to fetch nearby GeoPay users', err);
+        return [];
+      }
+    };
+
+    const setPayMode = (mode) => {
+      activePayMode = mode;
+      payChoiceButtons.forEach(btn => {
+        const active = btn.dataset.payChoice === mode;
+        btn.classList.toggle('ring-2', active);
+        btn.classList.toggle('ring-indigo-200', active);
+        btn.classList.toggle('border-indigo-400', active);
+      });
+      geoPanel?.classList.toggle('opacity-50', mode !== 'geo');
+      geoPanel?.classList.toggle('pointer-events-none', mode !== 'geo');
+      geoModeLabel.textContent = mode === 'geo' ? 'Geo Pay on' : 'Geo Pay off';
+    };
+
+    onGeoPreferenceChanged = (enabled) => {
+      setPayMode(enabled ? 'geo' : 'eft');
+    };
+
+    const syncGeoPreference = async (enabled) => {
       const nextValue = !!enabled;
       localStorage.setItem(GEO_PREF_KEY, nextValue ? 'true' : 'false');
       setGeoToggle(nextValue);
       onGeoPreferenceChanged(nextValue);
+      if (!currentUser || !supabaseClient) return;
+
+      if (nextValue) {
+        updateGeoStatus('Requesting your location...');
+        const coords = await requestLocation();
+        if (!coords) {
+          setGeoToggle(false);
+          localStorage.setItem(GEO_PREF_KEY, 'false');
+          return;
+        }
+        currentCoords = coords;
+        await updateProfileGeoState(true, coords);
+        const nearby = await fetchNearbyProfiles(coords);
+        renderGeoPins({ name: 'You', avatar: profileAvatarEls?.[0]?.src, coords }, nearby);
+        const meta = nearby.length ? `${nearby.length} nearby within ${GEO_RADIUS_KM} km` : 'No nearby GeoPay users yet.';
+        updateGeoStatus('GeoPay is sharing your location.', meta);
+      } else {
+        currentCoords = null;
+        await updateProfileGeoState(false, null);
+        if (nearbyMarkersLayer) nearbyMarkersLayer.clearLayers();
+        updateGeoStatus('GeoPay is turned off.', 'Enable it to discover people nearby.');
+      }
+    };
+
+    const loadGeoPreference = async (profileRow) => {
+      const storedPrefRaw = localStorage.getItem(GEO_PREF_KEY);
+      const storedEnabled = storedPrefRaw !== 'false';
+      const profileEnabled = profileRow?.geopay_enabled === true;
+      const initialEnabled = profileEnabled || storedEnabled;
+      if (profileEnabled && typeof profileRow.geo_lat === 'number' && typeof profileRow.geo_lng === 'number') {
+        currentCoords = { latitude: profileRow.geo_lat, longitude: profileRow.geo_lng };
+        setGeoToggle(true);
+        onGeoPreferenceChanged(true);
+        const nearby = await fetchNearbyProfiles(currentCoords);
+        renderGeoPins({ name: 'You', avatar: profileRow?.avatar_url || PROFILE_AVATAR_FALLBACK, coords: currentCoords }, nearby);
+        updateGeoStatus('GeoPay is sharing your location.', nearby.length ? `${nearby.length} nearby within ${GEO_RADIUS_KM} km` : 'No nearby GeoPay users yet.');
+      } else {
+        setGeoToggle(initialEnabled);
+        if (initialEnabled) {
+          await syncGeoPreference(true);
+        } else {
+          onGeoPreferenceChanged(false);
+          updateGeoStatus('GeoPay is off.', 'Toggle it on to show your live location.');
+        }
+      }
     };
 
     const toggleProfileMenu = () => {
@@ -662,7 +896,9 @@
     (async () => {
       const session = await ensureSession();
       if (!session) return;
-      await hydrateProfileFromSupabase(session.user);
+      currentUser = session.user;
+      const profileRow = await hydrateProfileFromSupabase(session.user);
+      await loadGeoPreference(profileRow);
     })();
 
     const payChoiceCopy = {
@@ -703,21 +939,6 @@
           btn.classList.add('ring-2', 'ring-indigo-200', 'border-indigo-400');
         }
         beneficiaryList.appendChild(btn);
-      });
-    };
-
-    const renderGeoPins = () => {
-      if (!geoMap) return;
-      geoMap.innerHTML = '';
-      beneficiaries.forEach(b => {
-        const pin = document.createElement('div');
-        pin.className = 'map-pin';
-        pin.style.left = `${b.coords[0]}%`;
-        pin.style.top = `${b.coords[1]}%`;
-        const label = document.createElement('span');
-        label.textContent = b.initials;
-        pin.appendChild(label);
-        geoMap.appendChild(pin);
       });
     };
 
@@ -774,23 +995,6 @@
         id: buttonEl.dataset.accountId,
         balance: buttonEl.dataset.accountBalance
       };
-    };
-
-    const setPayMode = (mode) => {
-      activePayMode = mode;
-      payChoiceButtons.forEach(btn => {
-        const active = btn.dataset.payChoice === mode;
-        btn.classList.toggle('ring-2', active);
-        btn.classList.toggle('ring-indigo-200', active);
-        btn.classList.toggle('border-indigo-400', active);
-      });
-      geoPanel?.classList.toggle('opacity-50', mode !== 'geo');
-      geoPanel?.classList.toggle('pointer-events-none', mode !== 'geo');
-      geoModeLabel.textContent = mode === 'geo' ? 'Geo Pay on' : 'Geo Pay off';
-    };
-
-    onGeoPreferenceChanged = (enabled) => {
-      setPayMode(enabled ? 'geo' : 'eft');
     };
 
     const setBeneficiary = (beneficiary) => {
@@ -893,9 +1097,6 @@
     });
 
     renderBeneficiaries();
-    renderGeoPins();
-    const initialGeoPref = loadGeoPreference();
-    onGeoPreferenceChanged(initialGeoPref);
     setAccount(accountButtons[0]);
     setStep(1);
   </script>

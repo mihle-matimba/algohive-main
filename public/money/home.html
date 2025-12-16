@@ -800,6 +800,8 @@
     const geoToggleKnob = document.getElementById('geopay-toggle-knob');
     const GEO_PREF_KEY = 'algomoney_geo_pay_enabled';
     let geoPayEnabled = true;
+    let currentUser = null;
+    let currentCoords = null;
 
     const setProfileName = (value) => {
       const resolved = (typeof value === 'string' && value.trim()) ? value.trim() : 'AlgoMoney Member';
@@ -825,19 +827,82 @@
       geoToggleKnob.classList.toggle('translate-x-1', !enabled);
     };
 
-    const loadGeoPreference = () => {
-      const raw = localStorage.getItem(GEO_PREF_KEY);
-      const enabled = raw !== 'false';
-      setGeoToggle(enabled);
-      return enabled;
+    const requestLocation = () => new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        console.warn('GeoPay requires location support.');
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        (err) => {
+          console.warn('Geo location denied', err);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 12000 }
+      );
+    });
+
+    const updateProfileGeoState = async (enabled, coords = null) => {
+      try {
+        const payload = {
+          geopay_enabled: enabled,
+          geo_lat: enabled && coords ? coords.latitude : null,
+          geo_lng: enabled && coords ? coords.longitude : null,
+          geo_updated_at: new Date().toISOString()
+        };
+        const { error } = await supabaseClient
+          .from('profiles')
+          .update(payload)
+          .eq('id', currentUser?.id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Unable to save GeoPay preference', err);
+      }
     };
 
-    const persistGeoPreference = (enabled) => {
+    const persistGeoPreference = async (enabled) => {
       const nextValue = !!enabled;
       localStorage.setItem(GEO_PREF_KEY, nextValue ? 'true' : 'false');
       setGeoToggle(nextValue);
       if (typeof window.onGeoPreferenceChanged === 'function') {
         window.onGeoPreferenceChanged(nextValue);
+      }
+
+      if (!currentUser || !supabaseClient) return;
+      if (nextValue) {
+        const coords = await requestLocation();
+        if (!coords) {
+          setGeoToggle(false);
+          localStorage.setItem(GEO_PREF_KEY, 'false');
+          return;
+        }
+        currentCoords = coords;
+        await updateProfileGeoState(true, coords);
+      } else {
+        currentCoords = null;
+        await updateProfileGeoState(false, null);
+      }
+    };
+
+    const loadGeoPreference = async (profileRow) => {
+      const storedRaw = localStorage.getItem(GEO_PREF_KEY);
+      const storedEnabled = storedRaw !== 'false';
+      const profileEnabled = profileRow?.geopay_enabled === true;
+      const initialEnabled = profileEnabled || storedEnabled;
+      if (profileEnabled && typeof profileRow.geo_lat === 'number' && typeof profileRow.geo_lng === 'number') {
+        currentCoords = { latitude: profileRow.geo_lat, longitude: profileRow.geo_lng };
+        setGeoToggle(true);
+        if (typeof window.onGeoPreferenceChanged === 'function') {
+          window.onGeoPreferenceChanged(true);
+        }
+      } else if (initialEnabled) {
+        await persistGeoPreference(true);
+      } else {
+        setGeoToggle(false);
+        if (typeof window.onGeoPreferenceChanged === 'function') {
+          window.onGeoPreferenceChanged(false);
+        }
       }
     };
 
@@ -874,12 +939,12 @@
     };
 
     const hydrateProfileFromSupabase = async (user) => {
-      if (!supabaseClient || !user) return;
+      if (!supabaseClient || !user) return null;
       let profileRow = null;
       try {
         const { data, error } = await supabaseClient
           .from('profiles')
-          .select('first_name,last_name,avatar_url,display_name')
+          .select('first_name,last_name,avatar_url,display_name,geopay_enabled,geo_lat,geo_lng')
           .eq('id', user.id)
           .maybeSingle();
         if (error && error.code !== 'PGRST116') throw error;
@@ -898,6 +963,7 @@
 
       setProfileName(displayName);
       setProfileAvatar(profileRow?.avatar_url || user.user_metadata?.avatar_url);
+      return profileRow;
     };
 
     const handleSignOut = async () => {
@@ -912,10 +978,10 @@
     (async () => {
       const session = await ensureSession();
       if (!session) return;
-      await hydrateProfileFromSupabase(session.user);
+      currentUser = session.user;
+      const profileRow = await hydrateProfileFromSupabase(session.user);
+      await loadGeoPreference(profileRow);
     })();
-
-    loadGeoPreference();
 
     profileTrigger?.addEventListener('click', (e) => {
       e.stopPropagation();
