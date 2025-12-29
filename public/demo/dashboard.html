@@ -1580,18 +1580,20 @@
       const avgReturn = totalAllocations
         ? rows.reduce((sum, row) => sum + computeReturnPct(row?.amount_invested, row?.latest_value), 0) / totalAllocations
         : 0;
+      const positiveIncome = Math.max(0, Math.abs(totalIncome));
+      const positiveReturn = Math.max(0, Math.abs(avgReturn));
 
       statsData[1].value = `${totalAllocations}`;
       statsData[1].changePercent = 0;
       statsData[1].changeDirection = 'up';
 
-      statsData[2].value = formatCurrency(totalIncome, currency);
-      statsData[2].changePercent = Number(Math.abs(avgReturn).toFixed(2));
-      statsData[2].changeDirection = totalIncome >= 0 ? 'up' : 'down';
+      statsData[2].value = formatCurrency(positiveIncome, currency);
+      statsData[2].changePercent = Number(positiveReturn.toFixed(2));
+      statsData[2].changeDirection = 'up';
 
-      statsData[3].value = `${Number(avgReturn).toFixed(2)}%`;
-      statsData[3].changePercent = Number(avgReturn.toFixed(2));
-      statsData[3].changeDirection = avgReturn >= 0 ? 'up' : 'down';
+      statsData[3].value = `${Number(positiveReturn).toFixed(2)}%`;
+      statsData[3].changePercent = Number(positiveReturn.toFixed(2));
+      statsData[3].changeDirection = 'up';
 
       renderStats();
     }
