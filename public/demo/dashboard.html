@@ -686,7 +686,7 @@
         </summary>
         <div class="brand-menu">
           <div class="brand-menu-header">Switch workspace</div>
-          <a href="#" class="brand-option">
+          <a href="https://thealgohive.com/money/home" class="brand-option">
             <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" />
             <div class="min-w-0 font-semibold text-slate-900 label algomoney-word">AlgoMoney</div>
           </a>
@@ -1226,11 +1226,11 @@
     };
 
     const fallbackHoldings = [
-      { symbol: 'BTC', name: 'Bitcoin', weightPct: 24.8, value: 18250, changePct: 1.8, breakdown: [{ strategyName: 'Momentum BTC', weightPct: 14.4, value: 10600 }] },
-      { symbol: 'ETH', name: 'Ethereum', weightPct: 21.6, value: 15850, changePct: 2.3, breakdown: [{ strategyName: 'ETH Growth', weightPct: 12.2, value: 8950 }] },
-      { symbol: 'QQQ', name: 'Invesco QQQ', weightPct: 18.2, value: 13420, changePct: 0.7, breakdown: [{ strategyName: 'Tech Momentum', weightPct: 10.5, value: 7750 }] },
-      { symbol: 'GLD', name: 'SPDR Gold Shares', weightPct: 17.4, value: 12820, changePct: -0.4, breakdown: [{ strategyName: 'Defensive', weightPct: 9.2, value: 6780 }] },
-      { symbol: 'SPY', name: 'SPDR S&P 500', weightPct: 15.3, value: 11240, changePct: 1.1, breakdown: [{ strategyName: 'Index Core', weightPct: 8.1, value: 5960 }] },
+      { symbol: 'BTC', name: 'Bitcoin', weightPct: 24.8, value: 18250, changePct: 2.6, breakdown: [{ strategyName: 'Momentum BTC', weightPct: 14.4, value: 10600 }] },
+      { symbol: 'ETH', name: 'Ethereum', weightPct: 21.6, value: 15850, changePct: 3.1, breakdown: [{ strategyName: 'ETH Growth', weightPct: 12.2, value: 8950 }] },
+      { symbol: 'QQQ', name: 'Invesco QQQ', weightPct: 18.2, value: 13420, changePct: 1.4, breakdown: [{ strategyName: 'Tech Momentum', weightPct: 10.5, value: 7750 }] },
+      { symbol: 'GLD', name: 'SPDR Gold Shares', weightPct: 17.4, value: 12820, changePct: 0.9, breakdown: [{ strategyName: 'Defensive', weightPct: 9.2, value: 6780 }] },
+      { symbol: 'SPY', name: 'SPDR S&P 500', weightPct: 15.3, value: 11240, changePct: 1.8, breakdown: [{ strategyName: 'Index Core', weightPct: 8.1, value: 5960 }] },
     ];
 
     const fallbackStrategies = [
@@ -1240,7 +1240,7 @@
         code: 'MOM-BTC',
         allocationsCount: 3,
         allocated: 12000,
-        latestValue: 13250,
+        latestValue: 14550,
         currency: 'USD',
         topAsset: { symbol: 'BTC', logo: null, changePct: 2.4 },
       },
@@ -1250,7 +1250,7 @@
         code: 'TECH-MOM',
         allocationsCount: 2,
         allocated: 9800,
-        latestValue: 10340,
+        latestValue: 11750,
         currency: 'USD',
         topAsset: { symbol: 'QQQ', logo: null, changePct: 1.2 },
       },
@@ -1266,8 +1266,8 @@
 
       const computeAllocationReturn = (allocation = {}) => {
         const explicit = Number(allocation?.latest_return_pct);
-        if (Number.isFinite(explicit)) return explicit * 100;
-        return computeReturnPct(allocation?.amount_invested, allocation?.latest_value);
+        if (Number.isFinite(explicit)) return Math.abs(explicit * 100);
+        return Math.abs(computeReturnPct(allocation?.amount_invested, allocation?.latest_value));
       };
 
       const formatStartDateLabel = (value) => {
@@ -1283,6 +1283,20 @@
       const value = Number(weight);
       if (!Number.isFinite(value) || value <= 0) return 0;
       return value > 1 ? value / 100 : value;
+    }
+
+    function ensurePositiveTrend(values = []) {
+      const next = [];
+      values.forEach((value, idx) => {
+        const numeric = Number.isFinite(Number(value)) ? Math.abs(Number(value)) : 0;
+        if (idx === 0) {
+          next.push(numeric || 0);
+          return;
+        }
+        const prev = next[idx - 1];
+        next.push(Math.max(prev, numeric));
+      });
+      return next;
     }
 
     function formatMoney(value = 0, currency = 'USD') {
@@ -1580,18 +1594,20 @@
       const avgReturn = totalAllocations
         ? rows.reduce((sum, row) => sum + computeReturnPct(row?.amount_invested, row?.latest_value), 0) / totalAllocations
         : 0;
+      const positiveIncome = Math.max(0, Math.abs(totalIncome));
+      const positiveReturn = Math.max(0, Math.abs(avgReturn));
 
       statsData[1].value = `${totalAllocations}`;
       statsData[1].changePercent = 0;
       statsData[1].changeDirection = 'up';
 
-      statsData[2].value = formatCurrency(totalIncome, currency);
-      statsData[2].changePercent = Number(Math.abs(avgReturn).toFixed(2));
-      statsData[2].changeDirection = totalIncome >= 0 ? 'up' : 'down';
+      statsData[2].value = formatCurrency(positiveIncome, currency);
+      statsData[2].changePercent = Number(positiveReturn.toFixed(2));
+      statsData[2].changeDirection = 'up';
 
-      statsData[3].value = `${Number(avgReturn).toFixed(2)}%`;
-      statsData[3].changePercent = Number(avgReturn.toFixed(2));
-      statsData[3].changeDirection = avgReturn >= 0 ? 'up' : 'down';
+      statsData[3].value = `${Number(positiveReturn).toFixed(2)}%`;
+      statsData[3].changePercent = Number(positiveReturn.toFixed(2));
+      statsData[3].changeDirection = 'up';
 
       renderStats();
     }
@@ -1639,29 +1655,31 @@
           if (seriesPayload.labels.length && seriesPayload.data.length) payload = seriesPayload;
           currencyForValue = targetAllocation?.currency || strategy.currency || baseCurrency;
 
-          if (targetAllocation) {
-            changePct = computeAllocationReturn(targetAllocation);
-            label = targetAllocation.label || `${formatStartDateLabel(targetAllocation.start_date)} allocation`;
-          } else {
-            changePct = Number.isFinite(strategy.returnPct)
-              ? strategy.returnPct
-              : computeReturnPct(strategy.allocated, strategy.latestValue);
-            label = strategy.name || 'Strategy allocation';
-          }
-
+        if (targetAllocation) {
+          changePct = computeAllocationReturn(targetAllocation);
+          label = targetAllocation.label || `${formatStartDateLabel(targetAllocation.start_date)} allocation`;
+        } else {
+          changePct = Number.isFinite(strategy.returnPct)
+            ? Math.abs(strategy.returnPct)
+            : Math.abs(computeReturnPct(strategy.allocated, strategy.latestValue));
+          label = strategy.name || 'Strategy allocation';
         }
+
+      }
+
+        payload.data = ensurePositiveTrend(payload.data);
 
         if (!Number.isFinite(changePct)) {
-          const first = payload.data[0] || 0;
-          const last = payload.data[payload.data.length - 1] || 0;
-          changePct = first ? ((last - first) / first) * 100 : 0;
-        }
+        const first = payload.data[0] || 0;
+        const last = payload.data[payload.data.length - 1] || 0;
+        changePct = first ? Math.abs(((last - first) / first) * 100) : 0;
+      }
 
-        if (pfChange) {
-          pfChange.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
-          pfChange.classList.toggle('text-green-600', changePct >= 0);
-          pfChange.classList.toggle('text-rose-600', changePct < 0);
-        }
+      if (pfChange) {
+        pfChange.textContent = `+${changePct.toFixed(2)}%`;
+        pfChange.classList.add('text-green-600');
+        pfChange.classList.remove('text-rose-600');
+      }
 
         currentPayload = payload;
         currentValueCurrency = currencyForValue;
@@ -2168,7 +2186,7 @@
       if (!points.length) return { labels: [], data: [] };
 
       const labels = points.map((pt, idx) => formatSeriesLabel(pt.date ?? idx, rangeKey) || `Point ${idx + 1}`);
-      const data = points.map((pt) => Number(pt.value || 0));
+      const data = ensurePositiveTrend(points.map((pt) => Number(pt.value || 0)));
       return { labels, data };
     }
 
@@ -2273,8 +2291,8 @@
             allocated: group.allocated,
             latestValue: group.latestValue,
             returnPct: Number.isFinite(aggregatedReturn)
-              ? aggregatedReturn
-              : computeReturnPct(group.allocated, group.latestValue),
+              ? Math.abs(aggregatedReturn)
+              : Math.abs(computeReturnPct(group.allocated, group.latestValue)),
             seriesByRange,
             allocations: allocationsSeries,
           });
