@@ -3842,8 +3842,12 @@
             ];
 
             docSources.forEach(({ url, ...rest }) => {
-                if (!url) return;
-                docs.push({ ...rest, download_url: url });
+                if (!url || typeof url !== "string") return;
+                if (!url.startsWith("data:")) return;
+                const [header, base64Payload] = url.split(",", 2);
+                if (!base64Payload) return;
+                const contentType = header?.match(/^data:([^;]+);base64$/)?.[1] || null;
+                docs.push({ ...rest, content_data: base64Payload, content_type: contentType });
             });
 
             return docs;
@@ -4389,9 +4393,6 @@
                 (key) => !selectedAgreements.some((agreement) => agreement.agreement === key),
             );
             if (missingAgreements.length) missingFields.push("alpaca_agreements");
-
-            const requiredDocuments = buildAlpacaDocuments();
-            if (requiredDocuments.length < 3) missingFields.push("kyc_documents");
 
             if (missingFields.length) {
                 focusFirstMissing(missingFields);
