@@ -1048,24 +1048,40 @@
     "first_name",
     "last_name",
     "phone",
+    "address_line1",
+    "address_city",
+    "address_state",
+    "address_postal_code",
     "dob",
     "id_number",
+    "tax_id_type",
+    "tax_id_number",
+    "country_birth",
     "nationality",
     "country_residence",
     "employment_status",
     "occupation",
     "employer",
-    "income_bracket",
     "source_of_funds",
-    "net_worth_range",
     "experience_level",
     "risk_tolerance",
+    "annual_income_min",
+    "annual_income_max",
+    "liquid_net_worth_min",
+    "liquid_net_worth_max",
+    "total_net_worth_min",
+    "total_net_worth_max",
     "objectives",
   ];
+  const OBJECTIVES_FIELD_KEY = "objectives";
 
   const hasValue = (value) => String(value ?? "").trim().length > 0;
+  const isRowFieldSatisfied = (row, key) => {
+    if (key === OBJECTIVES_FIELD_KEY) return hasValue(row?.objectives);
+    return hasValue(row?.[key]);
+  };
   const computeProfileComplete = (row) =>
-    REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
+    REQUIRED_PROFILE_FIELDS.every((key) => isRowFieldSatisfied(row, key));
 
   async function ensureProfile(userId, email) {
     let { data, error } = await supabase
