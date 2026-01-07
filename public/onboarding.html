@@ -4415,16 +4415,18 @@
                     body: JSON.stringify(payload),
                 });
                 const data = await response.json().catch(() => null);
+                const fallbackText = data ? "" : await response.text().catch(() => "");
 
                 if (!response.ok) {
                     const detail = data?.message
                         || data?.error
                         || (Array.isArray(data?.errors) ? data.errors.map((err) => err?.message || err).join("; ") : "")
-                        || (data ? JSON.stringify(data) : "");
+                        || (data ? JSON.stringify(data) : "")
+                        || (fallbackText ? fallbackText.trim() : "");
                     const errorMessage = detail
                         ? `Brokerage request failed (${response.status}): ${detail}`
                         : `Brokerage request failed (${response.status})`;
-                    console.warn("Alpaca account create failed", { status: response.status, data });
+                    console.warn("Alpaca account create failed", { status: response.status, data, fallbackText });
                     updateAlpacaStatus("error", { message: errorMessage, response: data });
                     banner(errorMessage, "err");
                     return;
