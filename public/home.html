@@ -1276,50 +1276,6 @@
     }
   }
 
-  async function loadHoldingsFromUnitLedger() {
-    if (!currentAccount) {
-      holdings = [];
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("unit_ledger")
-      .select("strategy_id, units, ts, account_id")
-      .eq("account_id", currentAccount.id);
-
-    if (error) {
-      const msg = error?.message || "";
-      if (error?.status === 404 || msg.includes("Could not find the table")) {
-        holdings = [];
-        return;
-      }
-      throw error;
-    }
-
-    // reduce per strategy_id (client-side aggregate)
-    const map = new Map();
-    (data || []).forEach((r) => {
-      const k = r.strategy_id;
-      const prev = map.get(k) || { units: 0, last_ts: null };
-      const units = Number(prev.units) + Number(r.units || 0);
-      const last_ts =
-        !prev.last_ts || (r.ts && new Date(r.ts) > new Date(prev.last_ts))
-          ? r.ts
-          : prev.last_ts;
-      map.set(k, { units, last_ts, account_id: r.account_id });
-    });
-
-    holdings = Array.from(map.entries())
-      .map(([strategy_id, v]) => ({
-        strategy_id,
-        units: Number(v.units || 0),
-        last_ts: v.last_ts || null,
-        account_id: v.account_id || currentAccount.id,
-        currency: currentAccount?.currency || "USD",
-      }))
-      .filter((h) => h.units > 0); // only positive net positions
-  }
-
   async function hydrateStrategyMeta() {
     const ids = [...new Set(holdings.map((h) => h.strategy_id))];
     if (!ids.length) return;
@@ -1611,65 +1567,13 @@
 
     try {
       await pickActiveAccount(user);
-      if (!currentAccount) {
-        showEmptyStateAll();
-        setupChart();
-        renderFlatEquity(0, null);
-        return;
-      }
-
-      const { data: rows, error: le } = await supabase
-        .from("unit_ledger")
-        .select("id")
-        .eq("account_id", currentAccount.id)
-        .limit(1);
-      if (le) {
-        const msg = le?.message || "";
-        if (le?.status === 404 || msg.includes("Could not find the table")) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-        throw le;
-      }
-      if (!rows?.length) {
-        showEmptyStateAll();
-        setupChart();
-        renderFlatEquity(0, null);
-        return;
-      }
-    } catch {
-      showEmptyStateAll();
-      setupChart();
-      renderFlatEquity(0, null);
-      return;
-    }
-
-    // proceed normal flow
-    try {
-      await pickActiveAccount(user);
-      await loadHoldingsFromUnitLedger();
-
-      if (!holdings.length) {
-        showEmptyStateAll();
-        setupChart();
-        renderFlatEquity(0, null);
-        return;
-      }
-
-      await hydrateStrategyMeta();
-      await hydrateLatestPrices();
-
-      wireStrategiesCard();
-      setupChart();
-      renderFromSelection();
     } catch (err) {
       console.error(err);
-      showEmptyStateAll();
-      setupChart();
-      renderFlatEquity(0, null);
     }
+
+    showEmptyStateAll();
+    setupChart();
+    renderFlatEquity(0, null);
   })();
 </script>
 
