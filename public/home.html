@@ -1267,7 +1267,9 @@
     try {
       const email = (user?.email || "").trim();
       let query = supabase.from("alpaca_accounts").select("alpaca_account_status");
-      query = email ? query.eq("email", email) : query.eq("user_id", user.id);
+      query = email
+        ? query.or(`user_id.eq.${user.id},email.eq.${email}`)
+        : query.eq("user_id", user.id);
       const { data, error } = await query.maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
       const status = String(data?.alpaca_account_status || "")
