@@ -1108,21 +1108,8 @@
     }
     const row = await ensureProfile(user.id, user.email || null);
     
-    // === [NEW] KYC/PROFILE REDIRECT LOGIC ===
     const profileComplete = computeProfileComplete(row || {});
     const kycDone = resolveKycBoolean(row || {});
-    if (!profileComplete || !kycDone) {
-      const message = gateBannerMessage(profileComplete, kycDone);
-      try {
-        if (message) sessionStorage.setItem("ah_gate_reason", message);
-      } catch (err) {
-        console.warn("Could not persist gate banner", err);
-      }
-      location.replace(`/onboarding.html`);
-      // Stop further execution on this page
-      throw new Error("redirecting");
-    }
-    // === [END NEW REDIRECT LOGIC] ===
     
     // --> CRITICAL STEP <--
     // Call the main boot function from the other script and pass the user object.

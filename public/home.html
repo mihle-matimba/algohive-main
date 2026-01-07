@@ -368,16 +368,8 @@
     }
     
     /* NEW: Digital Stopwatch Display Styles */
-    @font-face {
-        font-family: 'Digital-7 Mono';
-        src: url('https://fonts.cdnfonts.com/s/43424/digital-7%20(mono).woff') format('woff');
-        /* You might need to host this font yourself or use a different source */
-        font-weight: normal;
-        font-style: normal;
-    }
-    
     .digital-display {
-      font-family: 'Digital-7 Mono', monospace; /* Will use a fallback if not available */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 3.5rem; /* Larger font size */
       font-weight: normal; /* Digital fonts are usually not bold */
       color: #000000; /* Black color */
@@ -572,21 +564,27 @@
 
     <main class="flex-1 min-w-0">
       <div class="px-4 md:px-6 pt-4">
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
-            <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-            <h1 class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
-          </div>
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
+              <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+                  <i class="fa-solid fa-bars"></i>
+              </button>
+              <h1 id="dashboard-title" class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
+            </div>
 
-          <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
-            <img id="hdr-avatar"
-              src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
-              alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
-            <span id="hdr-name" class="hidden lg:inline-block text-sm font-semibold text-slate-900">—</span>
-            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
-          </button>
+            <div class="flex items-center gap-3">
+              <div id="alpaca-pending-pill" class="hidden inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
+                <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
+                <p class="whitespace-normal">Pending</p>
+              </div>
+              <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+                <img id="hdr-avatar"
+                  src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
+                  alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+                <span id="hdr-name" class="hidden lg:inline-block text-sm font-semibold text-slate-900">—</span>
+                <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+              </button>
+            </div>
         </div>
       </div>
 
@@ -988,7 +986,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
 
-  <script>
+  <script nonce="ALGOHIVE">
     (function () {
       const btn = document.getElementById('ah-mobile-menu-btn');
       const overlay = document.getElementById('ah-overlay');
@@ -1048,24 +1046,40 @@
     "first_name",
     "last_name",
     "phone",
+    "address_line1",
+    "address_city",
+    "address_state",
+    "address_postal_code",
     "dob",
     "id_number",
+    "tax_id_type",
+    "tax_id_number",
+    "country_birth",
     "nationality",
     "country_residence",
     "employment_status",
     "occupation",
     "employer",
-    "income_bracket",
     "source_of_funds",
-    "net_worth_range",
     "experience_level",
     "risk_tolerance",
+    "annual_income_min",
+    "annual_income_max",
+    "liquid_net_worth_min",
+    "liquid_net_worth_max",
+    "total_net_worth_min",
+    "total_net_worth_max",
     "objectives",
   ];
+  const OBJECTIVES_FIELD_KEY = "objectives";
 
   const hasValue = (value) => String(value ?? "").trim().length > 0;
+  const isRowFieldSatisfied = (row, key) => {
+    if (key === OBJECTIVES_FIELD_KEY) return hasValue(row?.objectives);
+    return hasValue(row?.[key]);
+  };
   const computeProfileComplete = (row) =>
-    REQUIRED_PROFILE_FIELDS.every((key) => hasValue(row?.[key]));
+    REQUIRED_PROFILE_FIELDS.every((key) => isRowFieldSatisfied(row, key));
 
   async function ensureProfile(userId, email) {
     let { data, error } = await supabase
@@ -1088,13 +1102,23 @@
   }
 
   function resolveKycBoolean(row) {
-    const v = row?.kyc_status;
-    if (typeof v === "boolean") return v;
-    if (typeof v === "string")
-      return ["verified", "approved", "done", "passed", "kyc_done"].includes(
-        v.toLowerCase()
-      );
-    return false;
+    const hasUploadedDocuments =
+      !!row?.kyc_selfie_url &&
+      !!row?.kyc_id_document_url &&
+      !!row?.kyc_proof_of_address_url;
+    const status = row?.samsub_status ?? row?.kyc_status;
+    if (typeof status === "boolean") return status || hasUploadedDocuments;
+    if (typeof status === "string")
+      return [
+        "verified",
+        "approved",
+        "done",
+        "passed",
+        "kyc_done",
+        "completed",
+        "complete",
+      ].includes(status.toLowerCase());
+    return hasUploadedDocuments;
   }
 
   function gateBannerMessage(profileComplete, kycDone) {
@@ -1185,15 +1209,14 @@
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, first_name, last_name, avatar_url")
+        .select("first_name, last_name, avatar_url")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
       if (!error) profile = data || null;
     } catch {}
 
     const bestName =
       [
-        profile?.full_name,
         [profile?.first_name, profile?.last_name].filter(Boolean).join(" "),
         user?.user_metadata?.full_name,
         [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
@@ -1240,6 +1263,33 @@
     });
   }
 
+  async function updateAlpacaPendingBanner(user, profile) {
+    const banner = document.getElementById("alpaca-pending-pill");
+    if (!banner) return;
+    try {
+      let statusValue = profile?.alpaca_account_status || "";
+      if (!statusValue) {
+        const email = (user?.email || "").trim();
+        let query = supabase.from("alpaca_accounts").select("alpaca_account_status");
+        query = email
+          ? query.or(`user_id.eq.${user.id},email.eq.${email}`)
+          : query.eq("user_id", user.id);
+        const { data, error } = await query.maybeSingle();
+        if (error && error.code !== "PGRST116") throw error;
+        statusValue = data?.alpaca_account_status || "";
+      }
+      const status = String(statusValue || "")
+        .trim()
+        .toLowerCase();
+      const isPending = ["submitted", "submited"].includes(status);
+      banner.classList.toggle("hidden", !isPending);
+      if (!isPending) return;
+    } catch (err) {
+      console.warn("Could not load alpaca account status", err);
+      banner.classList.add("hidden");
+    }
+  }
+
   // ---------------- data loaders ----------------
   async function pickActiveAccount(user) {
     const { data, error } = await supabase
@@ -1257,43 +1307,6 @@
       badge.textContent = maskId(currentAccount?.id);
       badge.title = currentAccount?.id || "";
     }
-  }
-
-  async function loadHoldingsFromUnitLedger() {
-    if (!currentAccount) {
-      holdings = [];
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("unit_ledger")
-      .select("strategy_id, units, ts, account_id")
-      .eq("account_id", currentAccount.id);
-
-    if (error) throw error;
-
-    // reduce per strategy_id (client-side aggregate)
-    const map = new Map();
-    (data || []).forEach((r) => {
-      const k = r.strategy_id;
-      const prev = map.get(k) || { units: 0, last_ts: null };
-      const units = Number(prev.units) + Number(r.units || 0);
-      const last_ts =
-        !prev.last_ts || (r.ts && new Date(r.ts) > new Date(prev.last_ts))
-          ? r.ts
-          : prev.last_ts;
-      map.set(k, { units, last_ts, account_id: r.account_id });
-    });
-
-    holdings = Array.from(map.entries())
-      .map(([strategy_id, v]) => ({
-        strategy_id,
-        units: Number(v.units || 0),
-        last_ts: v.last_ts || null,
-        account_id: v.account_id || currentAccount.id,
-        currency: currentAccount?.currency || "USD",
-      }))
-      .filter((h) => h.units > 0); // only positive net positions
   }
 
   async function hydrateStrategyMeta() {
@@ -1505,23 +1518,9 @@
       console.error("Profile ensure failed", err);
     }
 
-    // === [THIS IS THE REDIRECT LOGIC YOU ASKED ABOUT] ===
-    const profileComplete = computeProfileComplete(profileRow || {});
-    const kycDone = resolveKycBoolean(profileRow || {});
-    if (!profileComplete || !kycDone) {
-      const message = gateBannerMessage(profileComplete, kycDone);
-      try {
-        if (message) sessionStorage.setItem("ah_gate_reason", message);
-      } catch (err) {
-        console.warn("Could not persist gate banner", err);
-      }
-      location.replace(`/onboarding.html`);
-      return;
-    }
-    // === [END OF REDIRECT LOGIC] ===
-
     await setHeaderNameAndAvatar(user);
     wireProfileMenu();
+    await updateAlpacaPendingBanner(user, profileRow);
 
     // === [NEW] SESSION TIMEOUT LOGIC (10 MINUTES WITH BLACK FADING DISPLAY) ===
     function setupSessionTimeout() {
@@ -1600,73 +1599,15 @@
     setupSessionTimeout();
     // === END SESSION TIMEOUT LOGIC ===
 
-    // quick existence test – uses your RPC: has_units(uid uuid) returns boolean
-    let hasAny = false;
-    try {
-      const { data, error } = await supabase.rpc("has_units", { uid: user.id });
-      if (error) throw error;
-      hasAny = !!data;
-    } catch (err) {
-      // if rpc fails, we’ll fall back to checking account + ledger below
-      console.warn("has_units RPC failed, continuing:", err?.message || err);
-    }
-
-    if (hasAny === true) {
-      toggleEmptyOverlay(false);
-    } else {
-      // fallback check: see if they even have an ACTIVE account and any ledger rows
-      try {
-        await pickActiveAccount(user);
-        if (!currentAccount) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-
-        const { data: rows, error: le } = await supabase
-          .from("unit_ledger")
-          .select("id")
-          .eq("account_id", currentAccount.id)
-          .limit(1);
-        if (le || !rows?.length) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-      } catch {
-        showEmptyStateAll();
-        setupChart();
-        renderFlatEquity(0, null);
-        return;
-      }
-    }
-
-    // proceed normal flow
     try {
       await pickActiveAccount(user);
-      await loadHoldingsFromUnitLedger();
-
-      if (!holdings.length) {
-        showEmptyStateAll();
-        setupChart();
-        renderFlatEquity(0, null);
-        return;
-      }
-
-      await hydrateStrategyMeta();
-      await hydrateLatestPrices();
-
-      wireStrategiesCard();
-      setupChart();
-      renderFromSelection();
     } catch (err) {
       console.error(err);
-      showEmptyStateAll();
-      setupChart();
-      renderFlatEquity(0, null);
     }
+
+    showEmptyStateAll();
+    setupChart();
+    renderFlatEquity(0, null);
   })();
 </script>
 
