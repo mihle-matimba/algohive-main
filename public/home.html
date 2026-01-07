@@ -368,16 +368,8 @@
     }
     
     /* NEW: Digital Stopwatch Display Styles */
-    @font-face {
-        font-family: 'Digital-7 Mono';
-        src: url('https://fonts.cdnfonts.com/s/43424/digital-7%20(mono).woff') format('woff');
-        /* You might need to host this font yourself or use a different source */
-        font-weight: normal;
-        font-style: normal;
-    }
-    
     .digital-display {
-      font-family: 'Digital-7 Mono', monospace; /* Will use a fallback if not available */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 3.5rem; /* Larger font size */
       font-weight: normal; /* Digital fonts are usually not bold */
       color: #000000; /* Black color */
@@ -988,7 +980,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
 
-  <script>
+  <script nonce="ALGOHIVE">
     (function () {
       const btn = document.getElementById('ah-mobile-menu-btn');
       const overlay = document.getElementById('ah-overlay');
@@ -1211,15 +1203,14 @@
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, first_name, last_name, avatar_url")
+        .select("first_name, last_name, avatar_url")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
       if (!error) profile = data || null;
     } catch {}
 
     const bestName =
       [
-        profile?.full_name,
         [profile?.first_name, profile?.last_name].filter(Boolean).join(" "),
         user?.user_metadata?.full_name,
         [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
@@ -1296,7 +1287,14 @@
       .select("strategy_id, units, ts, account_id")
       .eq("account_id", currentAccount.id);
 
-    if (error) throw error;
+    if (error) {
+      const msg = error?.message || "";
+      if (error?.status === 404 || msg.includes("Could not find the table")) {
+        holdings = [];
+        return;
+      }
+      throw error;
+    }
 
     // reduce per strategy_id (client-side aggregate)
     const map = new Map();
@@ -1611,47 +1609,41 @@
     setupSessionTimeout();
     // === END SESSION TIMEOUT LOGIC ===
 
-    // quick existence test – uses your RPC: has_units(uid uuid) returns boolean
-    let hasAny = false;
     try {
-      const { data, error } = await supabase.rpc("has_units", { uid: user.id });
-      if (error) throw error;
-      hasAny = !!data;
-    } catch (err) {
-      // if rpc fails, we’ll fall back to checking account + ledger below
-      console.warn("has_units RPC failed, continuing:", err?.message || err);
-    }
-
-    if (hasAny === true) {
-      toggleEmptyOverlay(false);
-    } else {
-      // fallback check: see if they even have an ACTIVE account and any ledger rows
-      try {
-        await pickActiveAccount(user);
-        if (!currentAccount) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-
-        const { data: rows, error: le } = await supabase
-          .from("unit_ledger")
-          .select("id")
-          .eq("account_id", currentAccount.id)
-          .limit(1);
-        if (le || !rows?.length) {
-          showEmptyStateAll();
-          setupChart();
-          renderFlatEquity(0, null);
-          return;
-        }
-      } catch {
+      await pickActiveAccount(user);
+      if (!currentAccount) {
         showEmptyStateAll();
         setupChart();
         renderFlatEquity(0, null);
         return;
       }
+
+      const { data: rows, error: le } = await supabase
+        .from("unit_ledger")
+        .select("id")
+        .eq("account_id", currentAccount.id)
+        .limit(1);
+      if (le) {
+        const msg = le?.message || "";
+        if (le?.status === 404 || msg.includes("Could not find the table")) {
+          showEmptyStateAll();
+          setupChart();
+          renderFlatEquity(0, null);
+          return;
+        }
+        throw le;
+      }
+      if (!rows?.length) {
+        showEmptyStateAll();
+        setupChart();
+        renderFlatEquity(0, null);
+        return;
+      }
+    } catch {
+      showEmptyStateAll();
+      setupChart();
+      renderFlatEquity(0, null);
+      return;
     }
 
     // proceed normal flow
