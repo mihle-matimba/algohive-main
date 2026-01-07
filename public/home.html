@@ -1261,18 +1261,22 @@
     });
   }
 
-  async function updateAlpacaPendingBanner(user) {
+  async function updateAlpacaPendingBanner(user, profile) {
     const banner = document.getElementById("alpaca-pending-pill");
     if (!banner) return;
     try {
-      const email = (user?.email || "").trim();
-      let query = supabase.from("alpaca_accounts").select("alpaca_account_status");
-      query = email
-        ? query.or(`user_id.eq.${user.id},email.eq.${email}`)
-        : query.eq("user_id", user.id);
-      const { data, error } = await query.maybeSingle();
-      if (error && error.code !== "PGRST116") throw error;
-      const status = String(data?.alpaca_account_status || "")
+      let statusValue = profile?.alpaca_account_status || "";
+      if (!statusValue) {
+        const email = (user?.email || "").trim();
+        let query = supabase.from("alpaca_accounts").select("alpaca_account_status");
+        query = email
+          ? query.or(`user_id.eq.${user.id},email.eq.${email}`)
+          : query.eq("user_id", user.id);
+        const { data, error } = await query.maybeSingle();
+        if (error && error.code !== "PGRST116") throw error;
+        statusValue = data?.alpaca_account_status || "";
+      }
+      const status = String(statusValue || "")
         .trim()
         .toLowerCase();
       const isPending = ["submitted", "submited"].includes(status);
@@ -1514,7 +1518,7 @@
 
     await setHeaderNameAndAvatar(user);
     wireProfileMenu();
-    await updateAlpacaPendingBanner(user);
+    await updateAlpacaPendingBanner(user, profileRow);
 
     // === [NEW] SESSION TIMEOUT LOGIC (10 MINUTES WITH BLACK FADING DISPLAY) ===
     function setupSessionTimeout() {
