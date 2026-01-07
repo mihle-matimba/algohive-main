@@ -2268,7 +2268,7 @@
 
             alpacaAccountPatchPromise = (async () => {
                 const clientIp = await resolveClientIpAddress().catch(() => null);
-                const patchPayload = buildAlpacaAccountUpdatePayload(existingProfile, { clientIp });
+                const patchPayload = await buildAlpacaAccountUpdatePayload(existingProfile, { clientIp });
                 if (!patchPayload) {
                     alpacaAccountPatchPromise = null;
                     return null;
@@ -3825,35 +3825,73 @@
             return selected;
         }
 
-        function buildAlpacaDocuments() {
+        const readFileAsDataUrl = (file) =>
+            new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error("Unable to read file."));
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+
+        const resolveDataUrl = async (source) => {
+            if (!source) return null;
+            if (source instanceof File) {
+                return readFileAsDataUrl(source);
+            }
+            if (typeof source === "string") {
+                if (source.startsWith("data:")) return source;
+                const response = await fetch(source);
+                if (!response.ok) return null;
+                const blob = await response.blob();
+                return readFileAsDataUrl(blob);
+            }
+            return null;
+        };
+
+        async function buildAlpacaDocuments() {
             const docs = [];
             const docSources = [
-                { url: profileRow?.kyc_selfie_url, document_type: "identity_verification", document_sub_type: "selfie" },
                 {
-                    url: profileRow?.kyc_id_document_url,
+                    input: kycSelfieInput?.files?.[0] || null,
+                    url: profileRow?.kyc_selfie_url || null,
+                    document_type: "identity_verification",
+                    document_sub_type: "selfie",
+                },
+                {
+                    input: kycIdDocumentInput?.files?.[0] || null,
+                    url: profileRow?.kyc_id_document_url || null,
                     document_type: "identity_verification",
                     document_sub_type: "government_id",
                 },
                 {
-                    url: profileRow?.kyc_proof_of_address_url,
+                    input: kycProofAddressInput?.files?.[0] || null,
+                    url: profileRow?.kyc_proof_of_address_url || null,
                     document_type: "address_verification",
                     document_sub_type: "proof_of_address",
                 },
             ];
 
-            docSources.forEach(({ url, ...rest }) => {
-                if (!url || typeof url !== "string") return;
-                if (!url.startsWith("data:")) return;
-                const [header, base64Payload] = url.split(",", 2);
-                if (!base64Payload) return;
-                const contentType = header?.match(/^data:([^;]+);base64$/)?.[1] || null;
-                docs.push({ ...rest, content_data: base64Payload, content_type: contentType });
-            });
+            for (const source of docSources) {
+                const dataUrl = await resolveDataUrl(source.input || source.url);
+                if (!dataUrl || typeof dataUrl !== "string") continue;
+                const [header, base64Payload] = dataUrl.split(",", 2);
+                if (!base64Payload) continue;
+                const contentType =
+                    header?.match(/^data:([^;]+);base64$/)?.[1]
+                    || source.input?.type
+                    || "application/octet-stream";
+                docs.push({
+                    document_type: source.document_type,
+                    document_sub_type: source.document_sub_type,
+                    content_data: base64Payload,
+                    content_type: contentType,
+                });
+            }
 
             return docs;
         }
 
-        function buildAlpacaAccountPayload({ clientIp } = {}) {
+        async function buildAlpacaAccountPayload({ clientIp, includeDocuments = true } = {}) {
             const taxIdTypeValue = document.getElementById("tax_id_type")?.value || null;
             const taxIdValue = getTrimmedValue("tax_id_number") || null;
             const identity = cleanObject({
@@ -3904,7 +3942,7 @@
             };
 
             const agreements = getSelectedAgreements({ clientIp });
-            const documents = buildAlpacaDocuments();
+            const documents = includeDocuments ? await buildAlpacaDocuments() : [];
 
             const payload = {
                 identity,
@@ -3933,9 +3971,9 @@
             return false;
         }
 
-        function buildAlpacaAccountUpdatePayload(existingProfile, { clientIp } = {}) {
+        async function buildAlpacaAccountUpdatePayload(existingProfile, { clientIp } = {}) {
             const current = existingProfile || alpacaAccountProfile || {};
-            const desired = buildAlpacaAccountPayload({ clientIp });
+            const desired = await buildAlpacaAccountPayload({ clientIp });
             const patch = {};
 
             const ensureSection = (section, keys) => {
@@ -4371,7 +4409,7 @@
                 if (existingAccount) return;
             }
 
-            const previewPayload = buildAlpacaAccountPayload();
+            const previewPayload = await buildAlpacaAccountPayload({ includeDocuments: false });
             const missingFields = [];
             if (!previewPayload.identity?.given_name) missingFields.push("first_name");
             if (!previewPayload.identity?.family_name) missingFields.push("last_name");
@@ -4405,7 +4443,13 @@
             try {
                 await saveProfileForBrokerage();
                 const clientIp = await resolveClientIpAddress();
-                const payload = buildAlpacaAccountPayload({ clientIp });
+                const payload = await buildAlpacaAccountPayload({ clientIp });
+                if ((payload.documents || []).length < 3) {
+                    focusFirstMissing(["kyc_documents"]);
+                    banner("Upload your selfie, ID, and proof of address before submitting.", "err");
+                    updateAlpacaStatus("error", { message: "Missing required verification documents." });
+                    return;
+                }
                 const response = await fetch(ALPACA_ACCOUNT_URL, {
                     method: "POST",
                     headers: {
