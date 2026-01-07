@@ -569,7 +569,7 @@
               <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
                   <i class="fa-solid fa-bars"></i>
               </button>
-              <h1 class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
+              <h1 id="dashboard-title" class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
               <div id="alpaca-pending-pill" class="hidden inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
                 <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
                 <p class="whitespace-normal">Pending</p>
@@ -1263,6 +1263,7 @@
 
   async function updateAlpacaPendingBanner(user, profile) {
     const banner = document.getElementById("alpaca-pending-pill");
+    const title = document.getElementById("dashboard-title");
     if (!banner) return;
     try {
       let statusValue = profile?.alpaca_account_status || "";
@@ -1281,10 +1282,12 @@
         .toLowerCase();
       const isPending = ["submitted", "submited"].includes(status);
       banner.classList.toggle("hidden", !isPending);
+      if (title) title.classList.toggle("hidden", isPending);
       if (!isPending) return;
     } catch (err) {
       console.warn("Could not load alpaca account status", err);
       banner.classList.add("hidden");
+      if (title) title.classList.remove("hidden");
     }
   }
 
