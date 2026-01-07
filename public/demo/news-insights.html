@@ -1414,8 +1414,8 @@
 
         async function fetchArticles(offset) {
             const { data, count, error } = await supabase
-                .from('news_articles')
-                .select('id,title,preview_text,full_content,source,primary_ticker,tickers,category,published_at,link,is_top_story', { count: 'exact' })
+                .from('alliance_news_articles')
+                .select('id,doc_id,source,channel,title,published_at,author,products,significance,content_types,companies,markets,economics,geography,industries,body_text', { count: 'exact' })
                 .order('published_at', { ascending: false })
                 .range(offset, offset + PAGE_SIZE - 1);
 
@@ -1486,9 +1486,8 @@
             if (!topStoriesContainer) return;
             try {
                 const { data: topStories, error } = await supabase
-                    .from('news_articles')
-                    .select('id,title,link,published_at,preview_text,full_content,category,source,primary_ticker,tickers')
-                    .eq('is_top_story', true)
+                    .from('alliance_news_articles')
+                    .select('id,doc_id,source,channel,title,published_at,author,products,significance,content_types,companies,markets,economics,geography,industries,body_text')
                     .order('published_at', { ascending: false })
                     .limit(6);
 
@@ -1526,26 +1525,39 @@
         function createNewsCard(article) {
             const card = document.createElement('div');
             card.className = 'news-card';
-            card.dataset.category = article.category || 'Markets';
-            card.dataset.search = `${(article.title || '')} ${(article.preview_text || '')} ${(article.full_content || '')}`.toLowerCase();
+            const derivedCategory = getArticleCategory(article);
+            card.dataset.category = derivedCategory;
+            card.dataset.search = [
+                article.title,
+                article.source,
+                article.channel,
+                article.author,
+                article.body_text,
+                ...(article.companies || []),
+                ...(article.products || []),
+                ...(article.markets || []),
+                ...(article.industries || []),
+                ...(article.economics || [])
+            ].filter(Boolean).join(' ').toLowerCase();
             card.dataset.title = article.title || '';
 
             const date = new Date(article.published_at);
             const timeAgo = getTimeAgo(date);
-            const primaryTicker = article.primary_ticker;
-            const tickers = normaliseTickers(article.tickers).filter(ticker => ticker !== primaryTicker);
-            const safeSource = escapeHTML(article.source || 'Alliance News SA');
+            const companies = normaliseTags(article.companies);
+            const primaryCompany = companies[0];
+            const extraCompanies = companies.slice(1);
+            const safeSource = escapeHTML(article.source || 'Alliance News');
             const safeTitle = escapeHTML(article.title || 'Untitled');
-            const safePreview = escapeHTML(article.preview_text || 'Click to read more...');
-            const safeCategory = escapeHTML(article.category || 'Markets');
+            const safePreview = escapeHTML(getPreviewText(article.body_text));
+            const safeCategory = escapeHTML(derivedCategory);
 
             card.innerHTML = `
                 <div class="news-source">
                     <i class="fas fa-newspaper"></i>
                     ${safeSource}
                 </div>
-                ${primaryTicker ? `<span class="news-ticker">${escapeHTML(primaryTicker)}</span>` : ''}
-                ${tickers.slice(0, 2).map(t => `<span class="news-ticker">${escapeHTML(t)}</span>`).join('')}
+                ${primaryCompany ? `<span class="news-ticker">${escapeHTML(primaryCompany)}</span>` : ''}
+                ${extraCompanies.slice(0, 2).map(company => `<span class="news-ticker">${escapeHTML(company)}</span>`).join('')}
                 <div class="news-title">${safeTitle}</div>
                 <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin: 12px 0;">${safePreview}</p>
                 <div class="news-meta">
@@ -1564,7 +1576,7 @@
             return card;
         }
 
-        function normaliseTickers(value) {
+        function normaliseTags(value) {
             if (Array.isArray(value)) return value.filter(Boolean);
             if (typeof value === 'string') return value.split(',').map(t => t.trim()).filter(Boolean);
             return [];
@@ -1573,32 +1585,22 @@
         function renderArticlePreview(container, article) {
             container.innerHTML = '';
 
+            const category = getArticleCategory(article);
             const meta = document.createElement('div');
             meta.className = 'article-modal-meta';
+            const author = article.author ? `By ${escapeHTML(article.author)}` : null;
             meta.innerHTML = `
-                <span>${escapeHTML(article.source || 'Alliance News SA')}</span>
+                <span>${escapeHTML(article.source || 'Alliance News')}</span>
                 <span>&middot;</span>
-                <span>${escapeHTML(article.category || 'Markets')}</span>
+                <span>${escapeHTML(category)}</span>
+                ${author ? `<span>&middot;</span><span>${author}</span>` : ''}
                 <span>&middot;</span>
                 <span>${getTimeAgo(new Date(article.published_at || Date.now()))}</span>
             `;
             container.appendChild(meta);
 
-            const bodyText = article.full_content || article.preview_text || 'No story content available.';
+            const bodyText = article.body_text || 'No story content available.';
             appendArticleParagraphs(container, bodyText);
-
-            if (article.link) {
-                const link = document.createElement('a');
-                link.href = article.link;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                link.className = 'article-modal-link';
-                link.textContent = 'Read full story ';
-                const icon = document.createElement('i');
-                icon.className = 'fas fa-arrow-up-right-from-square';
-                link.appendChild(icon);
-                container.appendChild(link);
-            }
         }
 
         function getTimeAgo(date) {
@@ -1632,6 +1634,26 @@
                 '"': '&quot;',
                 "'": '&#39;'
             })[char] || char);
+        }
+
+        function getPreviewText(bodyText = '') {
+            const cleaned = String(bodyText || '').replace(/\s+/g, ' ').trim();
+            if (!cleaned) return 'Click to read more...';
+            if (cleaned.length <= 180) return cleaned;
+            return `${cleaned.slice(0, 177)}...`;
+        }
+
+        function getArticleCategory(article) {
+            const fallbacks = [
+                article.channel,
+                normaliseTags(article.markets)[0],
+                normaliseTags(article.industries)[0],
+                normaliseTags(article.products)[0],
+                normaliseTags(article.economics)[0],
+                normaliseTags(article.geography)[0],
+                normaliseTags(article.companies)[0]
+            ].filter(Boolean);
+            return fallbacks[0] || 'Markets';
         }
 
         async function initPage() {
