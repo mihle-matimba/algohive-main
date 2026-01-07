@@ -570,19 +570,21 @@
                   <i class="fa-solid fa-bars"></i>
               </button>
               <h1 id="dashboard-title" class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
+            </div>
+
+            <div class="flex items-center gap-3">
               <div id="alpaca-pending-pill" class="hidden inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
                 <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
                 <p class="whitespace-normal">Pending</p>
               </div>
+              <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
+                <img id="hdr-avatar"
+                  src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
+                  alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
+                <span id="hdr-name" class="hidden lg:inline-block text-sm font-semibold text-slate-900">—</span>
+                <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+              </button>
             </div>
-
-          <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
-            <img id="hdr-avatar"
-              src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='100%' height='100%' fill='%23f1f5f9'/></svg>"
-              alt="Profile" class="w-9 h-9 rounded-full object-cover border border-slate-200" />
-            <span id="hdr-name" class="hidden lg:inline-block text-sm font-semibold text-slate-900">—</span>
-            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
-          </button>
         </div>
       </div>
 
@@ -1263,7 +1265,6 @@
 
   async function updateAlpacaPendingBanner(user, profile) {
     const banner = document.getElementById("alpaca-pending-pill");
-    const title = document.getElementById("dashboard-title");
     if (!banner) return;
     try {
       let statusValue = profile?.alpaca_account_status || "";
@@ -1282,12 +1283,10 @@
         .toLowerCase();
       const isPending = ["submitted", "submited"].includes(status);
       banner.classList.toggle("hidden", !isPending);
-      if (title) title.classList.toggle("hidden", isPending);
       if (!isPending) return;
     } catch (err) {
       console.warn("Could not load alpaca account status", err);
       banner.classList.add("hidden");
-      if (title) title.classList.remove("hidden");
     }
   }
 
