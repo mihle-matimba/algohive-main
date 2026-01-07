@@ -564,13 +564,17 @@
 
     <main class="flex-1 min-w-0">
       <div class="px-4 md:px-6 pt-4">
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
-            <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-            <h1 class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
-          </div>
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-start md:items-center gap-3 flex-1 min-w-0">
+              <button id="ah-mobile-menu-btn" class="md:hidden btn h-10 w-10 p-0 rounded-xl border-0" title="Open Menu">
+                  <i class="fa-solid fa-bars"></i>
+              </button>
+              <h1 class="text-xl font-bold text-slate-800 truncate">Dashboard</h1>
+              <div id="alpaca-pending-pill" class="hidden inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
+                <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
+                <p class="whitespace-normal">Pending</p>
+              </div>
+            </div>
 
           <button id="hdr-profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
             <img id="hdr-avatar"
@@ -1257,6 +1261,27 @@
     });
   }
 
+  async function updateAlpacaPendingBanner(user) {
+    const banner = document.getElementById("alpaca-pending-pill");
+    if (!banner) return;
+    try {
+      const email = (user?.email || "").trim();
+      let query = supabase.from("alpaca_accounts").select("alpaca_account_status");
+      query = email ? query.eq("email", email) : query.eq("user_id", user.id);
+      const { data, error } = await query.maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      const status = String(data?.alpaca_account_status || "")
+        .trim()
+        .toLowerCase();
+      const isPending = ["submitted", "submited"].includes(status);
+      banner.classList.toggle("hidden", !isPending);
+      if (!isPending) return;
+    } catch (err) {
+      console.warn("Could not load alpaca account status", err);
+      banner.classList.add("hidden");
+    }
+  }
+
   // ---------------- data loaders ----------------
   async function pickActiveAccount(user) {
     const { data, error } = await supabase
@@ -1487,6 +1512,7 @@
 
     await setHeaderNameAndAvatar(user);
     wireProfileMenu();
+    await updateAlpacaPendingBanner(user);
 
     // === [NEW] SESSION TIMEOUT LOGIC (10 MINUTES WITH BLACK FADING DISPLAY) ===
     function setupSessionTimeout() {
