@@ -4417,7 +4417,14 @@
                 const data = await response.json().catch(() => null);
 
                 if (!response.ok) {
-                    const errorMessage = data?.message || data?.error || `Brokerage request failed (${response.status})`;
+                    const detail = data?.message
+                        || data?.error
+                        || (Array.isArray(data?.errors) ? data.errors.map((err) => err?.message || err).join("; ") : "")
+                        || (data ? JSON.stringify(data) : "");
+                    const errorMessage = detail
+                        ? `Brokerage request failed (${response.status}): ${detail}`
+                        : `Brokerage request failed (${response.status})`;
+                    console.warn("Alpaca account create failed", { status: response.status, data });
                     updateAlpacaStatus("error", { message: errorMessage, response: data });
                     banner(errorMessage, "err");
                     return;
