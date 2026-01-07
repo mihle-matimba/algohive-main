@@ -246,33 +246,6 @@
         return;
       }
 
-      let profileComplete = false;
-      let kycDone = false;
-      try {
-        const selectCols = [...REQUIRED_PROFILE_FIELDS, "kyc_status"].join(",");
-        const { data } = await supabase
-          .from("profiles")
-          .select(selectCols)
-          .eq("id", session.user.id)
-          .maybeSingle();
-        const row = data || {};
-        profileComplete = computeProfileComplete(row);
-        kycDone = resolveKycBoolean(row);
-      } catch (error) {
-        console.warn("Could not fetch profile after reset", error);
-      }
-
-      if (!profileComplete || !kycDone) {
-        const message = gateBannerMessage(profileComplete, kycDone);
-        try {
-          if (message) sessionStorage.setItem("ah_gate_reason", message);
-        } catch (err) {
-          console.warn("Unable to persist gate reason", err);
-        }
-        location.replace(`/onboarding.html`);
-        return;
-      }
-
       location.replace(preferred);
     }
 
