@@ -52,6 +52,90 @@
       background:#f1f5f9
     }
     .leaflet-container { min-height:260px }
+    .preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: opacity .45s ease;
+    }
+    .preloader__logo {
+      height: 3rem;
+      width: auto;
+      animation: heroSlideUp .6s ease-out, preloaderPulse 2.4s ease-in-out .45s infinite;
+    }
+    .preloader__brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      animation: heroSlideUp .6s ease-out .08s both;
+    }
+    .preloader__tagline {
+      font-size: .95rem;
+      color: rgba(15, 23, 42, 0.65);
+      animation: heroSlideUp .6s ease-out .14s both;
+    }
+    .preloader--hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sidebar-step {
+      transition: color .2s ease;
+    }
+    .sidebar-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+      position: relative;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    }
+    .sidebar-step.active .sidebar-dot {
+      border-color: var(--olive);
+      color: var(--olive);
+    }
+    .sidebar-step.complete .sidebar-dot {
+      background: var(--olive);
+      border-color: var(--olive);
+      color: #fff;
+    }
+    .sidebar-step.active .sidebar-title {
+      color: var(--ink);
+    }
+    .sidebar-step.complete .sidebar-title {
+      color: var(--ink);
+    }
+    @keyframes heroSlideUp {
+      0% {
+        transform: translateY(16px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    @keyframes preloaderPulse {
+      0%,
+      100% {
+        opacity: .45;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
   </style>
   <script nonce="ALGOHIVE">
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -59,18 +143,100 @@
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body class="min-h-screen">
-  <!-- Top -->
-  <header class="bg-white border-b border-[var(--line)]">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+  <div id="page-loader" class="preloader">
+    <img class="preloader__logo" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
+    <span class="preloader__brand">Welcome to AlgoHive.</span>
+    <span class="preloader__tagline">We are thrilled to have you here.</span>
+  </div>
+
+  <main class="flex min-h-screen w-full flex-col bg-transparent lg:flex-row lg:items-stretch">
+    <aside
+      class="auth-left relative hidden w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-1/4 lg:min-w-[300px] lg:overflow-y-auto lg:border-r lg:border-slate-100 lg:px-10 lg:py-14 lg:shadow-none">
       <div class="flex items-center gap-3">
-        <img class="w-8 h-8" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
-        <div class="font-bold">AlgoHive Investor Onboarding</div>
+        <img src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"
+          class="h-10 w-auto" />
+        <span class="text-lg font-semibold tracking-tight">AlgoHive</span>
       </div>
-      <div class="hidden sm:flex items-center gap-3 text-sm text-[var(--muted)]">
-        <span>Secure</span><span>•</span><span>No hidden fees</span>
+
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Investor onboarding</p>
+        <h1 class="text-3xl font-semibold leading-tight text-slate-900">Welcome to AlgoHive.</h1>
+        <p class="text-sm text-slate-600">We are thrilled to have you here.</p>
       </div>
-    </div>
-  </header>
+
+      <div class="space-y-5 rounded-3xl border border-slate-100 bg-slate-50/70 p-5">
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-slate-900">Checklist</p>
+          <p class="text-sm text-slate-500">Complete each checkpoint to finish onboarding.</p>
+        </div>
+        <ol class="step-flow space-y-4 text-sm text-slate-600">
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="1">
+            <span class="sidebar-dot">
+              <span class="step-num">1</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Welcome</h2>
+              <p class="text-sm text-slate-500">Meet the team and review the onboarding steps.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="2">
+            <span class="sidebar-dot">
+              <span class="step-num">2</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Your details</h2>
+              <p class="text-sm text-slate-500">Capture ID, contact, address, and investment amount.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="3">
+            <span class="sidebar-dot">
+              <span class="step-num">3</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Signing</h2>
+              <p class="text-sm text-slate-500">Review and sign the subscription agreement.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="4">
+            <span class="sidebar-dot">
+              <span class="step-num">4</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Payment</h2>
+              <p class="text-sm text-slate-500">Send funds and upload proof of payment.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="5">
+            <span class="sidebar-dot">
+              <span class="step-num">5</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Complete</h2>
+              <p class="text-sm text-slate-500">We confirm and activate your account.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </aside>
+
+    <div class="flex-1">
+      <!-- Top -->
+      <header class="bg-white border-b border-[var(--line)]">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img class="w-8 h-8" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
+            <div class="font-bold">AlgoHive Investor Onboarding</div>
+          </div>
+          <div class="hidden sm:flex items-center gap-3 text-sm text-[var(--muted)]">
+            <span>Secure</span><span>•</span><span>No hidden fees</span>
+          </div>
+        </div>
+      </header>
 
   <!-- Stepper + Tabs -->
   <div class="max-w-6xl mx-auto px-4 mt-6">
@@ -79,31 +245,57 @@
         <div id="s1" class="step-dot active">1</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
         <div id="s2" class="step-dot">2</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
         <div id="s3" class="step-dot">3</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
-        <div id="s4" class="step-dot">4</div>
+        <div id="s4" class="step-dot">4</div><div class="flex-1 h-[2px] bg-[var(--line)]"></div>
+        <div id="s5" class="step-dot">5</div>
       </div>
       <div class="mt-3 h-1 w-full bg-[var(--line)] rounded">
-        <div id="progressBar" class="h-1 rounded bg-[var(--olive)]" style="width:25%"></div>
+        <div id="progressBar" class="h-1 rounded bg-[var(--olive)]" style="width:20%"></div>
       </div>
       <div class="mt-4 flex gap-2">
-        <div id="tab1" class="tab-btn active">Intro</div>
+        <div id="tab1" class="tab-btn active">Welcome</div>
         <div id="tab2" class="tab-btn">Details</div>
-        <div id="tab3" class="tab-btn">Payment</div>
-        <div id="tab4" class="tab-btn">Complete</div>
+        <div id="tab3" class="tab-btn">Signing</div>
+        <div id="tab4" class="tab-btn">Payment</div>
+        <div id="tab5" class="tab-btn">Complete</div>
       </div>
     </div>
   </div>
 
   <!-- Step 1 -->
   <section id="step1" class="max-w-6xl mx-auto px-4 mt-8">
-    <div class="grid lg:grid-cols-2 gap-8 items-center">
+    <div class="grid gap-8 items-center">
       <div class="card p-8">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-sm">
           <i class="fa-solid fa-seedling"></i> Welcome to AlgoHive
         </div>
-        <h1 class="mt-4 text-4xl font-extrabold">Own a stake in the hive.</h1>
-        <p class="mt-2 text-lg muted">
-          Join as a shareholder and partner in our growth journey. Clean process, clear docs, bank-grade security.
-        </p>
+        <h1 class="mt-4 text-4xl font-extrabold">Welcome to AlgoHive.</h1>
+        <p class="mt-2 text-lg muted">We are thrilled to have you here.</p>
+
+        <div class="mt-6">
+          <h2 class="text-lg font-semibold">Your onboarding steps</h2>
+          <ol class="mt-3 space-y-3 text-sm text-slate-600">
+            <li class="flex gap-3">
+              <span class="mt-0.5 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center font-bold">1</span>
+              <span>Share your details, address, and investment amount.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-0.5 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center font-bold">2</span>
+              <span>Review and sign the subscription agreement.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-0.5 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center font-bold">3</span>
+              <span>Complete the signing step in the embedded DocuSeal flow.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-0.5 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center font-bold">4</span>
+              <span>Complete the bank transfer and upload proof of payment.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-0.5 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center font-bold">5</span>
+              <span>Receive confirmation and activate your account.</span>
+            </li>
+          </ol>
+        </div>
 
         <div class="mt-6 flex gap-3">
           <button data-next class="btn-olive rounded-xl px-6 py-3 font-semibold">
@@ -112,55 +304,35 @@
         </div>
 
         <div class="mt-6 divider"></div>
-        <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div class="text-2xl font-bold">R0</div>
-            <div class="muted text-sm">AUM fees</div>
-          </div>
-          <div>
-            <div class="text-2xl font-bold">Bank</div>
-            <div class="muted text-sm">integrations</div>
-          </div>
-          <div>
-            <div class="text-2xl font-bold">24/7</div>
-            <div class="muted text-sm">Support</div>
+        <div class="mt-4">
+          <h3 class="text-base font-semibold">Founders</h3>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="card p-4 flex items-center gap-4">
+              <img
+                src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/1760813701952.jpeg"
+                alt="Mihle Matimba"
+                class="h-16 w-16 rounded-full object-cover border border-[var(--line)]"
+              />
+              <div>
+                <div class="font-semibold">Mihle Matimba</div>
+                <div class="text-sm muted">CTO</div>
+              </div>
+            </div>
+            <div class="card p-4 flex items-center gap-4">
+              <img
+                src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/Media%20Assets/1673431038869.jpeg"
+                alt="Lonwabo Damane"
+                class="h-16 w-16 rounded-full object-cover border border-[var(--line)]"
+              />
+              <div>
+                <div class="font-semibold">Lonwabo Damane</div>
+                <div class="text-sm muted">CEO</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="grid sm:grid-cols-2 gap-6">
-        <div class="card p-6">
-          <div class="w-10 h-10 rounded bg-emerald-50 text-emerald-700 grid place-items-center">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <div class="mt-2 font-semibold">Secure Process</div>
-          <p class="muted text-sm mt-1">Bank-grade security and controls.</p>
-        </div>
-
-        <div class="card p-6">
-          <div class="w-10 h-10 rounded bg-blue-50 text-blue-700 grid place-items-center">
-            <i class="fa-solid fa-chart-line"></i>
-          </div>
-          <div class="mt-2 font-semibold">Proven</div>
-          <p class="muted text-sm mt-1">Listed strategies with track records.</p>
-        </div>
-
-        <div class="card p-6">
-          <div class="w-10 h-10 rounded bg-purple-50 text-purple-700 grid place-items-center">
-            <i class="fa-solid fa-headset"></i>
-          </div>
-          <div class="mt-2 font-semibold">Human Support</div>
-          <p class="muted text-sm mt-1">Actual people, not a maze.</p>
-        </div>
-
-        <div class="card p-6">
-          <div class="w-10 h-10 rounded bg-amber-50 text-amber-700 grid place-items-center">
-            <i class="fa-solid fa-lock"></i>
-          </div>
-          <div class="mt-2 font-semibold">Transparent</div>
-          <p class="muted text-sm mt-1">Clear steps and pricing.</p>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -169,7 +341,7 @@
     <div class="card p-8">
       <h2 class="text-2xl font-bold">Your Details</h2>
       <p class="muted">
-        Minimum investment <strong>R80,000</strong>. Share price <strong>R1,000</strong> (no bonus shares).
+        Minimum investment <strong>R500,000</strong>. Share price <strong>R62.62</strong> (no bonus shares). Current issued shares: <strong>1,597,161</strong>.
       </p>
 
       <form id="detailsForm" class="mt-6 grid gap-6">
@@ -201,10 +373,10 @@
             <label class="block text-sm muted mb-1">Investment amount (ZAR) *</label>
             <div class="flex">
               <span class="px-3 grid place-items-center border border-[var(--line)] rounded-l-md bg-gray-50">R</span>
-              <input id="investmentAmount" type="number" min="80000" step="1000" value="80000" class="inp rounded-l-none" required/>
+              <input id="investmentAmount" type="number" min="500000" step="1000" value="500000" class="inp rounded-l-none" required/>
             </div>
-            <div id="amountError" class="hidden text-sm text-red-600 mt-1">Minimum is R80,000</div>
-            <div class="text-xs muted mt-1">Share price: R1,000</div>
+            <div id="amountError" class="hidden text-sm text-red-600 mt-1">Minimum is R500,000</div>
+            <div class="text-xs muted mt-1">Share price: R62.62</div>
           </div>
         </div>
 
@@ -213,7 +385,7 @@
           <div>
             <label class="block text-sm muted mb-1">Search address *</label>
             <input id="addrSearch" class="inp" placeholder="Type an address…"/>
-            <div class="text-xs muted mt-1">We’ll pin it on the map.</div>
+            <div class="text-xs muted mt-1">We’ll pin it on the map. Press Enter when done.</div>
           </div>
           <div>
             <label class="block text-sm muted mb-1">Selected address</label>
@@ -226,71 +398,88 @@
         <!-- Subscription summary -->
         <div class="card p-4 mt-6">
           <div class="text-sm muted mb-1">Subscription summary</div>
-          <div class="text-lg font-semibold">
-            <span id="summaryShares">80</span> shares @ R1,000 per share
-          </div>
+          <div class="text-lg font-semibold">Subscription total</div>
           <div class="text-sm text-[var(--muted)] mt-1">
             Total commitment
-            <span id="summaryAmount" class="font-bold text-[var(--ink)]">R80,000.00</span>
-            (minimum R80,000)
-          </div>
-        </div>
-
-        <!-- Subscription Agreement / DocuSeal -->
-        <div class="card p-4">
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex-1">
-              <div class="font-semibold flex items-center gap-2">
-                <i class="fa-solid fa-file-signature"></i>
-                <span>Subscription Agreement</span>
-              </div>
-              <p class="muted text-sm mt-1">
-                Please sign the Subscription document. This is required for us to issue shares.
-              </p>
-
-              <div class="mt-2 text-sm">
-                <a id="docuSealOpen"
-                   class="text-[var(--olive)] underline font-semibold"
-                   target="_blank"
-                   rel="noopener">
-                  Open &amp; Sign
-                </a>
-              </div>
-
-              <div class="mt-3 flex items-start gap-2">
-                <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
-                <label for="docSigned" class="text-sm leading-snug">
-                  I have signed the Subscription document.
-                </label>
-              </div>
-              <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
-                Please confirm you’ve signed.
-              </div>
-            </div>
-
-            <div class="sm:w-40">
-              <button
-                id="copyDocuSealBtn"
-                type="button"
-                class="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold">
-                Copy link
-              </button>
-            </div>
+            <span id="summaryAmount" class="font-bold text-[var(--ink)]">R500,000.00</span>
+            (minimum R500,000)
           </div>
         </div>
 
         <div class="flex items-center justify-between mt-4">
           <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
-          <button type="button" id="toPayment" class="btn-olive rounded-xl px-6 py-3 font-semibold">
-            Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i>
+          <button type="button" id="toSigning" class="btn-olive rounded-xl px-6 py-3 font-semibold">
+            Proceed to Signing <i class="fa-solid fa-arrow-right ml-2"></i>
           </button>
         </div>
       </form>
     </div>
   </section>
 
-  <!-- Step 3: Payment -->
+  <!-- Step 3: Signing -->
   <section id="step3" class="max-w-6xl mx-auto px-4 mt-8 hidden">
+    <div class="card p-8">
+      <h2 class="text-2xl font-bold">Subscription Agreement</h2>
+      <p class="muted">
+        Please sign the Subscription document. This is required for us to issue shares.
+      </p>
+
+      <div class="card p-4 mt-6">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex-1">
+            <div class="mt-2 text-sm">
+              <a id="docuSealOpen"
+                 class="text-[var(--olive)] underline font-semibold"
+                 target="_blank"
+                 rel="noopener">
+                Open &amp; Sign
+              </a>
+            </div>
+
+            <div class="mt-4 rounded-xl border border-[var(--line)] bg-slate-50 p-3">
+              <iframe
+                id="docuSealEmbed"
+                title="Subscription agreement signing"
+                class="hidden w-full h-96 rounded-lg border border-[var(--line)] bg-white"
+                loading="lazy"></iframe>
+              <div id="docuSealPlaceholder" class="text-sm text-slate-500">
+                Add your DocuSeal link to embed the signing flow here.
+              </div>
+            </div>
+
+            <div class="mt-3 flex items-start gap-2">
+              <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
+              <label for="docSigned" class="text-sm leading-snug">
+                I have signed the Subscription document.
+              </label>
+            </div>
+            <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
+              Please confirm you’ve signed.
+            </div>
+          </div>
+
+          <div class="sm:w-40">
+            <button
+              id="copyDocuSealBtn"
+              type="button"
+              class="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold">
+              Copy link
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6">
+        <button type="button" data-prev class="rounded-xl px-5 py-2.5 border border-[var(--line)]">Back</button>
+        <button type="button" id="toPayment" class="btn-olive rounded-xl px-6 py-3 font-semibold">
+          Proceed to Payment <i class="fa-solid fa-arrow-right ml-2"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 4: Payment -->
+  <section id="step4" class="max-w-6xl mx-auto px-4 mt-8 hidden">
     <div class="card p-8">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -299,7 +488,7 @@
         </div>
         <div class="text-right">
           <div class="text-sm muted">Total Amount</div>
-          <div id="paymentTotal" class="text-2xl font-extrabold text-[var(--olive)]">R80,000.00</div>
+          <div id="paymentTotal" class="text-2xl font-extrabold text-[var(--olive)]">R500,000.00</div>
         </div>
       </div>
 
@@ -353,8 +542,8 @@
     </div>
   </section>
 
-  <!-- Step 4: Complete -->
-  <section id="step4" class="max-w-6xl mx-auto px-4 mt-8 hidden">
+  <!-- Step 5: Complete -->
+  <section id="step5" class="max-w-6xl mx-auto px-4 mt-8 hidden">
     <div class="card p-10 text-center" id="completeCard">
       <div class="w-24 h-24 rounded-full mx-auto grid place-items-center bg-emerald-100">
         <i class="fa-solid fa-check text-4xl text-emerald-700"></i>
@@ -379,9 +568,9 @@
 
     // ======= State =======
     let currentStep = 1;
-    const totalSteps = 4;
-    const minInvestment = 80000;
-    const sharePrice = 1000;
+    const totalSteps = 5;
+    const minInvestment = 500000;
+    const sharePrice = 62.62;
 
     const state = {
       fullName: "",
@@ -402,12 +591,27 @@
     };
 
     // parse ?link= (DocuSeal)
+    const loader = document.getElementById('page-loader');
+
     {
       const urlParams = new URLSearchParams(window.location.search);
-      state.docuSealLink = urlParams.get("link") || "";
+      state.docuSealLink = urlParams.get("link") || "https://docuseal.com/s/p3KhS1p3ya4MDC";
       const docLink = document.getElementById("docuSealOpen");
       if (docLink) {
         docLink.href = state.docuSealLink || "#";
+      }
+    }
+
+    const docEmbed = document.getElementById('docuSealEmbed');
+    const docPlaceholder = document.getElementById('docuSealPlaceholder');
+    if (docEmbed) {
+      if (state.docuSealLink) {
+        docEmbed.src = state.docuSealLink;
+        docEmbed.classList.remove('hidden');
+        docPlaceholder?.classList.add('hidden');
+      } else {
+        docEmbed.classList.add('hidden');
+        docPlaceholder?.classList.remove('hidden');
       }
     }
 
@@ -447,7 +651,7 @@
 
       // update summary card + step 3 payment box
       document.getElementById('summaryAmount').textContent = `R${amt.toFixed(2)}`;
-      document.getElementById('summaryShares').textContent = state.shares;
+      document.getElementById('summaryShares').textContent = state.shares.toLocaleString();
     });
 
     // Copy DocuSeal link
@@ -465,7 +669,8 @@
       });
     }
 
-    document.getElementById('toPayment').addEventListener('click', validateDetails);
+    document.getElementById('toSigning').addEventListener('click', validateDetails);
+    document.getElementById('toPayment').addEventListener('click', validateSigning);
 
     // Payment actions
     document.getElementById('downloadPdfBtn').addEventListener('click', () => {
@@ -479,13 +684,28 @@
       const pct = (currentStep / totalSteps) * 100;
       document.getElementById('progressBar').style.width = `${pct}%`;
 
-      for (let i=1;i<=4;i++){
+      for (let i=1;i<=totalSteps;i++){
         document.getElementById(`s${i}`).classList.toggle('active', i<=currentStep);
       }
       document.getElementById('tab1')?.classList.toggle('active', currentStep===1);
       document.getElementById('tab2')?.classList.toggle('active', currentStep===2);
       document.getElementById('tab3')?.classList.toggle('active', currentStep===3);
       document.getElementById('tab4')?.classList.toggle('active', currentStep===4);
+      document.getElementById('tab5')?.classList.toggle('active', currentStep===5);
+
+      document.querySelectorAll('[data-sidebar-step]').forEach((item) => {
+        const step = Number(item.dataset.sidebarStep);
+        const isActive = step === currentStep;
+        const isComplete = step < currentStep;
+        item.classList.toggle('active', isActive);
+        item.classList.toggle('complete', isComplete);
+        const num = item.querySelector('.step-num');
+        const check = item.querySelector('.step-check');
+        if (num && check) {
+          num.classList.toggle('hidden', isComplete);
+          check.classList.toggle('hidden', !isComplete);
+        }
+      });
     }
 
     function gotoStep(n){
@@ -511,9 +731,6 @@
       const phone = document.getElementById('phone').value.trim();
       const amt = parseFloat(document.getElementById('investmentAmount').value);
 
-      const hasSigned = document.getElementById('docSigned').checked;
-      state.hasSigned = hasSigned;
-
       let ok = true;
       const setErr = (id, show) => document.getElementById(id).classList.toggle('hidden', !show);
 
@@ -523,7 +740,6 @@
       if (!phone){ document.getElementById('phoneError').classList.remove('hidden'); ok=false; } else document.getElementById('phoneError').classList.add('hidden');
       if (!amt || amt < minInvestment){ document.getElementById('amountError').classList.remove('hidden'); ok=false; } else document.getElementById('amountError').classList.add('hidden');
       if (!state.addressText || state.lat===null || state.lng===null){ alert('Please pick an address on the map.'); ok=false; }
-      if (!hasSigned){ document.getElementById('docSignedError').classList.remove('hidden'); ok=false; } else document.getElementById('docSignedError').classList.add('hidden');
 
       if (!ok) return;
 
@@ -533,12 +749,23 @@
       state.idNumber = idNumber;
       state.phone = phone;
       state.amount = amt;
-      state.shares = Math.floor(amt / 1000);
+      state.shares = Math.floor(amt / sharePrice);
 
       // hydrate payment
       document.getElementById('paymentTotal').textContent = `R${state.amount.toFixed(2)}`;
       document.getElementById('emailRef').textContent = state.email || '—';
 
+      nextStep();
+    }
+
+    function validateSigning(){
+      const hasSigned = document.getElementById('docSigned').checked;
+      state.hasSigned = hasSigned;
+      if (!hasSigned) {
+        document.getElementById('docSignedError').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('docSignedError').classList.add('hidden');
       nextStep();
     }
 
@@ -580,7 +807,7 @@
           full_name: state.fullName,
           email: state.email,
           amount: state.amount,
-          share_price: 1000,
+          share_price: sharePrice,
           shares: state.shares,
           id_number: state.idNumber,
           phone: state.phone,
@@ -608,7 +835,7 @@
         // state.applicationId = insertRow.id;
 
         // go to final step
-        gotoStep(4);
+        gotoStep(5);
       } catch (e) {
         console.error(e);
         msg.textContent = e.message || 'Upload failed. Please try again.';
@@ -700,6 +927,13 @@
 
     // init UI
     updateStepper();
+    window.addEventListener('load', () => {
+      if (!loader) return;
+      loader.classList.add('preloader--hide');
+      setTimeout(() => loader.remove(), 500);
+    });
   </script>
+  </div>
+  </main>
 </body>
 </html>
