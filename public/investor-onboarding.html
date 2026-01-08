@@ -52,6 +52,90 @@
       background:#f1f5f9
     }
     .leaflet-container { min-height:260px }
+    .preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: opacity .45s ease;
+    }
+    .preloader__logo {
+      height: 3rem;
+      width: auto;
+      animation: heroSlideUp .6s ease-out, preloaderPulse 2.4s ease-in-out .45s infinite;
+    }
+    .preloader__brand {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      animation: heroSlideUp .6s ease-out .08s both;
+    }
+    .preloader__tagline {
+      font-size: .95rem;
+      color: rgba(15, 23, 42, 0.65);
+      animation: heroSlideUp .6s ease-out .14s both;
+    }
+    .preloader--hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sidebar-step {
+      transition: color .2s ease;
+    }
+    .sidebar-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+      position: relative;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    }
+    .sidebar-step.active .sidebar-dot {
+      border-color: var(--olive);
+      color: var(--olive);
+    }
+    .sidebar-step.complete .sidebar-dot {
+      background: var(--olive);
+      border-color: var(--olive);
+      color: #fff;
+    }
+    .sidebar-step.active .sidebar-title {
+      color: var(--ink);
+    }
+    .sidebar-step.complete .sidebar-title {
+      color: var(--ink);
+    }
+    @keyframes heroSlideUp {
+      0% {
+        transform: translateY(16px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    @keyframes preloaderPulse {
+      0%,
+      100% {
+        opacity: .45;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
   </style>
   <script nonce="ALGOHIVE">
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -59,18 +143,90 @@
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body class="min-h-screen">
-  <!-- Top -->
-  <header class="bg-white border-b border-[var(--line)]">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+  <div id="page-loader" class="preloader">
+    <img class="preloader__logo" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
+    <span class="preloader__brand">Welcome investor.</span>
+    <span class="preloader__tagline">Preparing your onboarding steps…</span>
+  </div>
+
+  <main class="flex min-h-screen w-full flex-col bg-transparent lg:flex-row lg:items-stretch">
+    <aside
+      class="auth-left relative hidden w-full flex-col gap-8 bg-white px-6 py-10 text-slate-800 shadow-xl shadow-slate-200/60 lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-1/4 lg:min-w-[300px] lg:overflow-y-auto lg:border-r lg:border-slate-100 lg:px-10 lg:py-14 lg:shadow-none">
       <div class="flex items-center gap-3">
-        <img class="w-8 h-8" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
-        <div class="font-bold">AlgoHive Investor Onboarding</div>
+        <img src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"
+          class="h-10 w-auto" />
+        <span class="text-lg font-semibold tracking-tight">AlgoHive</span>
       </div>
-      <div class="hidden sm:flex items-center gap-3 text-sm text-[var(--muted)]">
-        <span>Secure</span><span>•</span><span>No hidden fees</span>
+
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--olive)]">Investor onboarding</p>
+        <h1 class="text-3xl font-semibold leading-tight text-slate-900">Welcome, investor.</h1>
+        <p class="text-sm text-slate-600">We’ll guide you through the checklist and keep every step on record.</p>
       </div>
-    </div>
-  </header>
+
+      <div class="space-y-5 rounded-3xl border border-slate-100 bg-slate-50/70 p-5">
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-slate-900">Checklist</p>
+          <p class="text-sm text-slate-500">Complete each checkpoint to finish onboarding.</p>
+        </div>
+        <ol class="step-flow space-y-4 text-sm text-slate-600">
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="1">
+            <span class="sidebar-dot">
+              <span class="step-num">1</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Intro</h2>
+              <p class="text-sm text-slate-500">Quick overview of the share subscription.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="2">
+            <span class="sidebar-dot">
+              <span class="step-num">2</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Your details</h2>
+              <p class="text-sm text-slate-500">Capture ID, contact, address, and signing.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="3">
+            <span class="sidebar-dot">
+              <span class="step-num">3</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Payment</h2>
+              <p class="text-sm text-slate-500">Send funds and upload proof of payment.</p>
+            </div>
+          </li>
+          <li class="sidebar-step relative flex gap-4" data-sidebar-step="4">
+            <span class="sidebar-dot">
+              <span class="step-num">4</span>
+              <i class="fa-solid fa-check step-check hidden"></i>
+            </span>
+            <div class="space-y-1">
+              <h2 class="sidebar-title text-base font-semibold text-slate-900">Complete</h2>
+              <p class="text-sm text-slate-500">We confirm and activate your account.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </aside>
+
+    <div class="flex-1">
+      <!-- Top -->
+      <header class="bg-white border-b border-[var(--line)]">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img class="w-8 h-8" src="https://static.wixstatic.com/shapes/ac771e_e60a2d47ce2d4afb858cb00c0e618c9e.svg" alt="AlgoHive"/>
+            <div class="font-bold">AlgoHive Investor Onboarding</div>
+          </div>
+          <div class="hidden sm:flex items-center gap-3 text-sm text-[var(--muted)]">
+            <span>Secure</span><span>•</span><span>No hidden fees</span>
+          </div>
+        </div>
+      </header>
 
   <!-- Stepper + Tabs -->
   <div class="max-w-6xl mx-auto px-4 mt-6">
@@ -257,6 +413,17 @@
                 </a>
               </div>
 
+              <div class="mt-4 rounded-xl border border-[var(--line)] bg-slate-50 p-3">
+                <iframe
+                  id="docuSealEmbed"
+                  title="Subscription agreement signing"
+                  class="hidden w-full h-72 rounded-lg border border-[var(--line)] bg-white"
+                  loading="lazy"></iframe>
+                <div id="docuSealPlaceholder" class="text-sm text-slate-500">
+                  Add your DocuSeal link to embed the signing flow here.
+                </div>
+              </div>
+
               <div class="mt-3 flex items-start gap-2">
                 <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
                 <label for="docSigned" class="text-sm leading-snug">
@@ -402,12 +569,27 @@
     };
 
     // parse ?link= (DocuSeal)
+    const loader = document.getElementById('page-loader');
+
     {
       const urlParams = new URLSearchParams(window.location.search);
       state.docuSealLink = urlParams.get("link") || "";
       const docLink = document.getElementById("docuSealOpen");
       if (docLink) {
         docLink.href = state.docuSealLink || "#";
+      }
+    }
+
+    const docEmbed = document.getElementById('docuSealEmbed');
+    const docPlaceholder = document.getElementById('docuSealPlaceholder');
+    if (docEmbed) {
+      if (state.docuSealLink) {
+        docEmbed.src = state.docuSealLink;
+        docEmbed.classList.remove('hidden');
+        docPlaceholder?.classList.add('hidden');
+      } else {
+        docEmbed.classList.add('hidden');
+        docPlaceholder?.classList.remove('hidden');
       }
     }
 
@@ -486,6 +668,20 @@
       document.getElementById('tab2')?.classList.toggle('active', currentStep===2);
       document.getElementById('tab3')?.classList.toggle('active', currentStep===3);
       document.getElementById('tab4')?.classList.toggle('active', currentStep===4);
+
+      document.querySelectorAll('[data-sidebar-step]').forEach((item) => {
+        const step = Number(item.dataset.sidebarStep);
+        const isActive = step === currentStep;
+        const isComplete = step < currentStep;
+        item.classList.toggle('active', isActive);
+        item.classList.toggle('complete', isComplete);
+        const num = item.querySelector('.step-num');
+        const check = item.querySelector('.step-check');
+        if (num && check) {
+          num.classList.toggle('hidden', isComplete);
+          check.classList.toggle('hidden', !isComplete);
+        }
+      });
     }
 
     function gotoStep(n){
@@ -700,6 +896,13 @@
 
     // init UI
     updateStepper();
+    window.addEventListener('load', () => {
+      if (!loader) return;
+      loader.classList.add('preloader--hide');
+      setTimeout(() => loader.remove(), 500);
+    });
   </script>
+  </div>
+  </main>
 </body>
 </html>
