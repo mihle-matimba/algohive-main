@@ -658,6 +658,9 @@
         const errorMessage = formWrap?.querySelector(".error-message-wrap");
 
         if (form && title) {
+            if (successMessage) successMessage.style.display = "none";
+            if (errorMessage) errorMessage.style.display = "none";
+
             function swapToBenefitsUI() {
                 introWrap?.classList.add("ah-hide");
                 formWrap?.classList.add("ah-form-hidden");
@@ -673,6 +676,7 @@
 
             form.addEventListener("submit", async function (e) {
                 e.preventDefault();
+                e.stopImmediatePropagation();
 
                 const firstName = (firstNameInput?.value || "").trim();
                 const lastName = (lastNameInput?.value || "").trim();
@@ -696,7 +700,7 @@
 
                 setMessageState({ success: true });
                 swapToBenefitsUI();
-            });
+            }, true);
 
             unlockBenefits?.addEventListener("click", function () {
                 benefitsStep?.classList.remove("show");
