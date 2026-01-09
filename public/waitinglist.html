@@ -435,6 +435,21 @@
                                         class="subscribe-form teaser" data-wf-page-id="686e1441d5523d438be2d159"
                                         data-wf-element-id="d257f2e2-dee1-34d5-1337-bdb985c782a5">
                                         <div class="text-field-wrap">
+                                            <input class="text-field w-input" maxlength="256" name="first_name"
+                                                data-name="First Name" placeholder="First name" type="text"
+                                                id="waitlist-first-name" required />
+                                        </div>
+                                        <div class="text-field-wrap">
+                                            <input class="text-field w-input" maxlength="256" name="last_name"
+                                                data-name="Last Name" placeholder="Last name" type="text"
+                                                id="waitlist-last-name" required />
+                                        </div>
+                                        <div class="text-field-wrap">
+                                            <input class="text-field w-input" maxlength="256" name="whatsapp_number"
+                                                data-name="WhatsApp Number" placeholder="WhatsApp number" type="tel"
+                                                id="waitlist-whatsapp" required />
+                                        </div>
+                                        <div class="text-field-wrap">
                                             <input class="text-field w-input" maxlength="256" name="email"
                                                 data-name="Email" placeholder="Your email" type="email"
                                                 id="waitlist-email" required />
@@ -459,21 +474,20 @@
                                 <div class="ah-plan-card">
                                     <p class="ah-benefits-title">Core benefits</p>
                                     <ul class="ah-benefits">
-                                        <li>Algo Money Perks</li>
-                                        <li>Funds (CIS)</li>
-                                        <li>Unsecured lending</li>
-                                        <li>Up to 6 strategies</li>
+                                        <li>Unsecured Lending</li>
+                                        <li>Portfolio-Backed Lending</li>
+                                        <li>Up to 10 strategies</li>
+                                        <li>AlgoHive Rewards</li>
                                     </ul>
                                 </div>
                                 <div class="ah-plan-card">
                                     <p class="ah-benefits-title">Professional benefits</p>
                                     <ul class="ah-benefits">
-                                        <li>Algo Money Perks</li>
-                                        <li>Up to 10 strategies</li>
-                                        <li>Managed V.A.S.T*</li>
-                                        <li>Self-managed V.A.S.T</li>
-                                        <li>Funds (CIS)</li>
-                                        <li>Investment-backed + unsecured lending</li>
+                                        <li>Unlimited Strategies</li>
+                                        <li>Create Strategy Baskets</li>
+                                        <li>Investment-backed Lending</li>
+                                        <li>Unsecured lending</li>
+                                        <li>AlgoHive Rewards</li>
                                     </ul>
                                 </div>
                                 <button id="ah-unlock-benefits" class="ah-benefits-button" type="button">
@@ -614,36 +628,61 @@
     <script src="https://cdn.prod.website-files.com/6854607509dc4ef9ab21cf1a/js/webflow.89fb1dd6.f10915e5e799c6a4.js"
         type="text/javascript"></script>
 
-    <script nonce="ALGOHIVE">
-        (function () {
-            const form = document.getElementById("teaser-email-form");
-            const emailInput = document.getElementById("waitlist-email");
-            const title = document.getElementById("ah-main-title");
-            const introWrap = document.getElementById("ah-intro");
-            const formWrap = document.getElementById("ah-form-wrap");
-            const benefitsStep = document.getElementById("ah-benefits-step");
-            const plans = document.getElementById("ah-plans");
-            const unlockBenefits = document.getElementById("ah-unlock-benefits");
+    <script type="module" nonce="ALGOHIVE">
+        import { supabase } from "/js/supabase.js";
 
-            if (!form || !title) return;
+        const form = document.getElementById("teaser-email-form");
+        const firstNameInput = document.getElementById("waitlist-first-name");
+        const lastNameInput = document.getElementById("waitlist-last-name");
+        const whatsappInput = document.getElementById("waitlist-whatsapp");
+        const emailInput = document.getElementById("waitlist-email");
+        const title = document.getElementById("ah-main-title");
+        const introWrap = document.getElementById("ah-intro");
+        const formWrap = document.getElementById("ah-form-wrap");
+        const benefitsStep = document.getElementById("ah-benefits-step");
+        const plans = document.getElementById("ah-plans");
+        const unlockBenefits = document.getElementById("ah-unlock-benefits");
+        const successMessage = formWrap?.querySelector(".success-message");
+        const errorMessage = formWrap?.querySelector(".error-message-wrap");
 
+        if (form && title) {
             function swapToBenefitsUI() {
-                if (introWrap) introWrap.classList.add("ah-hide");
-                if (formWrap) formWrap.classList.add("ah-form-hidden");
-
+                introWrap?.classList.add("ah-hide");
+                formWrap?.classList.add("ah-form-hidden");
                 title.textContent = "What do you get?";
-
-                if (benefitsStep) benefitsStep.classList.add("show");
+                benefitsStep?.classList.add("show");
                 benefitsStep?.scrollIntoView({ behavior: "smooth", block: "start" });
             }
 
-            form.addEventListener("submit", function (e) {
-                const email = (emailInput && emailInput.value ? emailInput.value : "").trim();
-                if (!email) return;
+            function setMessageState({ success }) {
+                if (successMessage) successMessage.style.display = success ? "block" : "none";
+                if (errorMessage) errorMessage.style.display = success ? "none" : "block";
+            }
 
-                /* If you want Webflow to still submit, remove the next line */
+            form.addEventListener("submit", async function (e) {
                 e.preventDefault();
 
+                const firstName = (firstNameInput?.value || "").trim();
+                const lastName = (lastNameInput?.value || "").trim();
+                const whatsappNumber = (whatsappInput?.value || "").trim();
+                const email = (emailInput?.value || "").trim();
+
+                if (!firstName || !lastName || !whatsappNumber || !email) return;
+
+                const { error } = await supabase.from('Waiting List').insert({
+                    email,
+                    first_name: firstName,
+                    last_name: lastName,
+                    whatsapp_number: whatsappNumber,
+                    subscribed: false
+                });
+
+                if (error) {
+                    setMessageState({ success: false });
+                    return;
+                }
+
+                setMessageState({ success: true });
                 swapToBenefitsUI();
             });
 
@@ -652,7 +691,7 @@
                 plans?.classList.add("show");
                 plans?.scrollIntoView({ behavior: "smooth", block: "start" });
             });
-        })();
+        }
     </script>
 </body>
 
