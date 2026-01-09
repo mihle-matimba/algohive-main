@@ -233,6 +233,45 @@
             color: rgba(15, 23, 42, 0.85);
         }
 
+        .ah-benefits-step {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .ah-benefits-step.show {
+            display: block;
+        }
+
+        .ah-benefits-title {
+            font-family: Inter, sans-serif;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: -0.02em;
+            color: #0f172a;
+            margin: 0 0 10px 0;
+        }
+
+        .ah-benefits-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.2);
+            background: var(--algohive-olive);
+            color: #fff;
+            font-family: Inter, sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .ah-benefits-button:hover {
+            filter: brightness(1.05);
+        }
+
         /* PayFast embed cleanup */
         .ah-payfast {
             width: 100%;
@@ -406,7 +445,34 @@
                                 </div>
                             </div>
 
-                            <!-- Plans (hidden until email is submitted) -->
+                            <!-- Benefits (hidden until email is submitted) -->
+                            <div id="ah-benefits-step" class="ah-benefits-step" aria-live="polite">
+                                <div class="ah-plan-card">
+                                    <p class="ah-benefits-title">Core benefits</p>
+                                    <ul class="ah-benefits">
+                                        <li>Rewards + AlgoPay perks</li>
+                                        <li>Funds (CIS)</li>
+                                        <li>Unsecured lending</li>
+                                        <li>Up to 6 strategies</li>
+                                    </ul>
+                                </div>
+                                <div class="ah-plan-card">
+                                    <p class="ah-benefits-title">Professional benefits</p>
+                                    <ul class="ah-benefits">
+                                        <li>Rewards + AlgoPay perks</li>
+                                        <li>Up to 10 strategies</li>
+                                        <li>Managed V.A.S.T*</li>
+                                        <li>Self-managed V.A.S.T</li>
+                                        <li>Funds (CIS)</li>
+                                        <li>Investment-backed + unsecured lending</li>
+                                    </ul>
+                                </div>
+                                <button id="ah-unlock-benefits" class="ah-benefits-button" type="button">
+                                    Unlock Benefits
+                                </button>
+                            </div>
+
+                            <!-- Plans (hidden until benefits are unlocked) -->
                             <div id="ah-plans" class="ah-plans" aria-live="polite">
                                 <div class="ah-plan-grid">
                                     <!-- Core -->
@@ -422,12 +488,6 @@
                                         </div>
 
                                         <p class="ah-note">Get 3 months free.</p>
-                                        <ul class="ah-benefits">
-                                            <li>Rewards + AlgoPay perks</li>
-                                            <li>Funds (CIS)</li>
-                                            <li>Unsecured lending</li>
-                                            <li>Up to 6 strategies</li>
-                                        </ul>
 
                                         <div class="ah-payfast">
                                             <form name="PayFastPayNowForm"
@@ -472,14 +532,6 @@
                                         </div>
 
                                         <p class="ah-note">Get 3 months free.</p>
-                                        <ul class="ah-benefits">
-                                            <li>Rewards + AlgoPay perks</li>
-                                            <li>Up to 10 strategies</li>
-                                            <li>Managed V.A.S.T*</li>
-                                            <li>Self-managed V.A.S.T</li>
-                                            <li>Funds (CIS)</li>
-                                            <li>Investment-backed + unsecured lending</li>
-                                        </ul>
 
                                         <div class="ah-payfast">
                                             <form name="PayFastPayNowForm"
@@ -560,18 +612,20 @@
             const title = document.getElementById("ah-main-title");
             const introWrap = document.getElementById("ah-intro");
             const formWrap = document.getElementById("ah-form-wrap");
+            const benefitsStep = document.getElementById("ah-benefits-step");
             const plans = document.getElementById("ah-plans");
+            const unlockBenefits = document.getElementById("ah-unlock-benefits");
 
-            if (!form || !plans || !title) return;
+            if (!form || !title) return;
 
-            function swapToPlansUI() {
+            function swapToBenefitsUI() {
                 if (introWrap) introWrap.classList.add("ah-hide");
                 if (formWrap) formWrap.classList.add("ah-form-hidden");
 
                 title.innerHTML = 'Choose a <span class="accent-text">plan</span><span class="accent-text">.</span>';
 
-                plans.classList.add("show");
-                plans.scrollIntoView({ behavior: "smooth", block: "start" });
+                if (benefitsStep) benefitsStep.classList.add("show");
+                benefitsStep?.scrollIntoView({ behavior: "smooth", block: "start" });
             }
 
             form.addEventListener("submit", function (e) {
@@ -581,7 +635,13 @@
                 /* If you want Webflow to still submit, remove the next line */
                 e.preventDefault();
 
-                swapToPlansUI();
+                swapToBenefitsUI();
+            });
+
+            unlockBenefits?.addEventListener("click", function () {
+                benefitsStep?.classList.remove("show");
+                plans?.classList.add("show");
+                plans?.scrollIntoView({ behavior: "smooth", block: "start" });
             });
         })();
     </script>
