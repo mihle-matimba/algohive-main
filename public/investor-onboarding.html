@@ -41,6 +41,20 @@
       border-color:var(--olive);
       box-shadow:0 0 0 3px rgba(126,141,82,.15)
     }
+    .doc-btn{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:.75rem 1rem;
+      text-align:left;
+      background:#fff;
+      font-weight:600;
+      color:var(--ink);
+      transition:border-color .2s ease, box-shadow .2s ease;
+    }
+    .doc-btn.active{
+      border-color:var(--olive);
+      box-shadow:0 0 0 3px rgba(126,141,82,.15);
+    }
     .preloader {
       position: fixed;
       inset: 0;
@@ -409,46 +423,32 @@
       </p>
 
       <div class="card p-4 mt-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="flex-1">
-            <div class="mt-2 text-sm">
-              <a id="docuSealOpen"
-                 class="text-[var(--olive)] underline font-semibold"
-                 target="_blank"
-                 rel="noopener">
-                Open &amp; Sign
-              </a>
+        <div class="flex flex-col gap-6">
+          <div>
+            <p class="text-sm muted">Select the document you need to sign.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2" id="docButtonGroup">
+              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Subscription Agreement</button>
+              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Investor Declaration</button>
+              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Shareholder Details Form</button>
+              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">POPIA Consent</button>
             </div>
-
-            <div class="mt-4 rounded-xl border border-[var(--line)] bg-slate-50 p-3">
-              <iframe
-                id="docuSealEmbed"
-                title="Subscription agreement signing"
-                class="hidden w-full h-96 rounded-lg border border-[var(--line)] bg-white"
-                loading="lazy"></iframe>
-              <div id="docuSealPlaceholder" class="text-sm text-slate-500">
-                Add your DocuSeal link to embed the signing flow here.
-              </div>
-            </div>
-
-            <div class="mt-3 flex items-start gap-2">
-              <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
-              <label for="docSigned" class="text-sm leading-snug">
-                I have signed the Subscription document.
-              </label>
-            </div>
-            <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
-              Please confirm you’ve signed.
-            </div>
+            <div class="mt-3 text-sm text-slate-500" id="docSelectedLabel">Select a document to continue.</div>
+            <button
+              id="docuSealOpenBtn"
+              type="button"
+              class="mt-4 btn-olive rounded-xl px-6 py-3 font-semibold">
+              Open selected document
+            </button>
           </div>
 
-          <div class="sm:w-40">
-            <button
-              id="copyDocuSealBtn"
-              type="button"
-              class="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold">
-              Copy link
-            </button>
+          <div class="mt-2 flex items-start gap-2">
+            <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
+            <label for="docSigned" class="text-sm leading-snug">
+              I have signed the selected document.
+            </label>
+          </div>
+          <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
+            Please confirm you’ve signed.
           </div>
         </div>
       </div>
@@ -585,24 +585,7 @@
 
     {
       const urlParams = new URLSearchParams(window.location.search);
-      state.docuSealLink = urlParams.get("link") || "https://docuseal.com/s/p3KhS1p3ya4MDC";
-      const docLink = document.getElementById("docuSealOpen");
-      if (docLink) {
-        docLink.href = state.docuSealLink || "#";
-      }
-    }
-
-    const docEmbed = document.getElementById('docuSealEmbed');
-    const docPlaceholder = document.getElementById('docuSealPlaceholder');
-    if (docEmbed) {
-      if (state.docuSealLink) {
-        docEmbed.src = state.docuSealLink;
-        docEmbed.classList.remove('hidden');
-        docPlaceholder?.classList.add('hidden');
-      } else {
-        docEmbed.classList.add('hidden');
-        docPlaceholder?.classList.remove('hidden');
-      }
+      state.docuSealLink = urlParams.get("link") || "";
     }
 
     // ======= Auth guard =======
@@ -644,18 +627,31 @@
       document.getElementById('summaryShares').textContent = state.shares.toLocaleString();
     });
 
-    // Copy DocuSeal link
-    const copyBtn = document.getElementById('copyDocuSealBtn');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => {
-        if (!state.docuSealLink) return;
-        navigator.clipboard.writeText(state.docuSealLink).then(() => {
-          copyBtn.textContent = 'Copied!';
-          setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
-        }).catch(() => {
-          copyBtn.textContent = 'Error';
-          setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
-        });
+    const docButtons = document.querySelectorAll('#docButtonGroup .doc-btn');
+    const docSelectedLabel = document.getElementById('docSelectedLabel');
+    const docOpenBtn = document.getElementById('docuSealOpenBtn');
+
+    const selectDocButton = (button) => {
+      docButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      state.docuSealLink = button.dataset.docLink || '';
+      const label = button.textContent?.trim() || 'Selected document';
+      if (docSelectedLabel) {
+        docSelectedLabel.textContent = `Selected: ${label}`;
+      }
+    };
+
+    docButtons.forEach(button => {
+      button.addEventListener('click', () => selectDocButton(button));
+    });
+
+    if (docOpenBtn) {
+      docOpenBtn.addEventListener('click', () => {
+        if (!state.docuSealLink) {
+          alert('Please select a document first.');
+          return;
+        }
+        window.open(state.docuSealLink, '_blank', 'noopener');
       });
     }
 
