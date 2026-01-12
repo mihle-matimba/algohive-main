@@ -1414,8 +1414,8 @@
 
         async function fetchArticles(offset) {
             const { data, count, error } = await supabase
-                .from('news_articles')
-                .select('id,title,preview_text,full_content,source,primary_ticker,tickers,category,published_at,link,is_top_story', { count: 'exact' })
+                .from('alliance_news_articles')
+                .select('id,doc_id,source,channel,title,published_at,author,products,significance,content_types,companies,markets,economics,geography,industries,body_text', { count: 'exact' })
                 .order('published_at', { ascending: false })
                 .range(offset, offset + PAGE_SIZE - 1);
 
@@ -1486,9 +1486,8 @@
             if (!topStoriesContainer) return;
             try {
                 const { data: topStories, error } = await supabase
-                    .from('news_articles')
-                    .select('id,title,link,published_at,preview_text,full_content,category,source,primary_ticker,tickers')
-                    .eq('is_top_story', true)
+                    .from('alliance_news_articles')
+                    .select('id,doc_id,source,channel,title,published_at,author,products,significance,content_types,companies,markets,economics,geography,industries,body_text')
                     .order('published_at', { ascending: false })
                     .limit(6);
 
@@ -1526,26 +1525,49 @@
         function createNewsCard(article) {
             const card = document.createElement('div');
             card.className = 'news-card';
-            card.dataset.category = article.category || 'Markets';
-            card.dataset.search = `${(article.title || '')} ${(article.preview_text || '')} ${(article.full_content || '')}`.toLowerCase();
+            const derivedCategory = getArticleCategory(article);
+            card.dataset.category = derivedCategory;
+            const productTags = normaliseTags(article.products);
+            const significanceTags = normaliseTags(article.significance);
+            const contentTypeTags = normaliseTags(article.content_types);
+            const companyTags = normaliseTags(article.companies);
+            const marketTags = normaliseTags(article.markets);
+            const industryTags = normaliseTags(article.industries);
+            const economicTags = normaliseTags(article.economics);
+            const geographyTags = normaliseTags(article.geography);
+            card.dataset.search = [
+                article.title,
+                article.source,
+                article.channel,
+                article.author,
+                article.body_text,
+                ...companyTags,
+                ...productTags,
+                ...marketTags,
+                ...industryTags,
+                ...economicTags,
+                ...geographyTags,
+                ...significanceTags,
+                ...contentTypeTags
+            ].filter(Boolean).join(' ').toLowerCase();
             card.dataset.title = article.title || '';
 
             const date = new Date(article.published_at);
             const timeAgo = getTimeAgo(date);
-            const primaryTicker = article.primary_ticker;
-            const tickers = normaliseTickers(article.tickers).filter(ticker => ticker !== primaryTicker);
-            const safeSource = escapeHTML(article.source || 'Alliance News SA');
+            const primaryCompany = companyTags[0];
+            const extraCompanies = companyTags.slice(1);
+            const safeSource = escapeHTML(article.source || 'Alliance News');
             const safeTitle = escapeHTML(article.title || 'Untitled');
-            const safePreview = escapeHTML(article.preview_text || 'Click to read more...');
-            const safeCategory = escapeHTML(article.category || 'Markets');
+            const safePreview = escapeHTML(getPreviewText(article.body_text));
+            const safeCategory = escapeHTML(derivedCategory);
 
             card.innerHTML = `
                 <div class="news-source">
                     <i class="fas fa-newspaper"></i>
                     ${safeSource}
                 </div>
-                ${primaryTicker ? `<span class="news-ticker">${escapeHTML(primaryTicker)}</span>` : ''}
-                ${tickers.slice(0, 2).map(t => `<span class="news-ticker">${escapeHTML(t)}</span>`).join('')}
+                ${primaryCompany ? `<span class="news-ticker">${escapeHTML(primaryCompany)}</span>` : ''}
+                ${extraCompanies.slice(0, 2).map(company => `<span class="news-ticker">${escapeHTML(company)}</span>`).join('')}
                 <div class="news-title">${safeTitle}</div>
                 <p style="font-size: 14px; color: #6b7280; line-height: 1.6; margin: 12px 0;">${safePreview}</p>
                 <div class="news-meta">
@@ -1564,41 +1586,260 @@
             return card;
         }
 
-        function normaliseTickers(value) {
-            if (Array.isArray(value)) return value.filter(Boolean);
-            if (typeof value === 'string') return value.split(',').map(t => t.trim()).filter(Boolean);
-            return [];
+        const ALLIANCE_CODE_LABELS = {
+            AGSPRO: 'Alliance News Global 500',
+            ALLPRO: 'Alliance News UK Professional',
+            ALLWEB: 'Alliance News UK Investor',
+            AISPRO: 'Alliance News Italian Service Professional',
+            AISWEB: 'Alliance News Italian Service Selection',
+            ASAPRO: 'Alliance News South Africa Professional',
+            ASAWEB: 'Alliance News South Africa Investor',
+            ALLTOP: 'Top News',
+            ALLSIG: 'Significant',
+            ALLPOS: 'Positive',
+            ALLNEG: 'Negative',
+            ALLEXL: 'ALL Exclusive',
+            ALLBRF: 'Briefing',
+            ALLCAL: 'Calendar',
+            ALLXTR: 'Extra',
+            ALLFLS: 'Flash Headline',
+            ALLDEP: 'In Depth',
+            ALLMED: 'Media Pickup',
+            ALLRPT: 'Repeat',
+            ALLSUM: 'Summary',
+            ALLTBL: 'Tabular Content',
+            ALLENL: 'English Language',
+            ALLITL: 'Italian Language',
+            ALLCOS: 'All Company News',
+            ALLERN: 'Earnings',
+            ALLPRE: 'Earnings Preview',
+            ALLOUT: 'Company Outlook',
+            ALLSAL: 'Sales and Production',
+            ALLTST: 'Testing and Test Results',
+            ALLEXX: 'Executive Change',
+            ALLCON: 'Contracts and JVs',
+            ALLSUE: 'Litigation',
+            ALLPDT: 'Product News',
+            ALLRGC: 'Company Regulation',
+            ALLPDR: 'Consumer Product Regulation',
+            ALLCMA: 'Competition Regulation',
+            ALLFRG: 'Financial Service Regulation',
+            ALLPLN: 'Land Use Regulation',
+            ALLESG: 'ESG Regulation',
+            ALLENV: 'Environmental Regulation',
+            ALLSOC: 'Social Regulation',
+            ALLGVR: 'Governance Regulation',
+            ALLACT: 'Corporate Action',
+            ALLMNA: 'Merger and Acquisition',
+            ALLISS: 'Stock and Bond Transactions',
+            ALLIPO: 'IPOs',
+            ALLDIV: 'Dividend and Buybacks',
+            ALLEXS: 'Director Dealings',
+            ALLFIN: 'Financing',
+            ALLSCT: 'Restructuring',
+            ALLMKT: 'All Markets News',
+            ALLMRP: 'Stock Markets',
+            ALLKNO: 'In The Know',
+            ALLTAK: 'Taking AIM',
+            ALLRAT: 'Broker Ratings',
+            ALLMOV: 'Winners & Losers',
+            ALLIDX: 'Index Changes',
+            ALLBON: 'Bond Markets',
+            ALLFRX: 'Forex Markets',
+            ALLCOM: 'Commodities Markets',
+            ALLECO: 'All Economic News',
+            ALLDTA: 'Economic Indicators',
+            ALLGOV: 'Government Policy',
+            ALLCBK: 'Central Banks',
+            ALLSOV: 'Sovereign Debt',
+            ASX20: 'ASX 20',
+            AISMTA: 'Borsa Italiana MTA',
+            CAC40: 'CAC 40',
+            DAX40: 'DAX 40',
+            DOW30: 'Dow Jones Industrial Average',
+            EURSTX: 'EuroStoxx',
+            ALL100: 'FTSE 100',
+            ALL250: 'FTSE 250',
+            AISAIM: 'FTSE Italia Growth',
+            AISMID: 'FTSE Italia Mid Cap',
+            AISSMA: 'FTSE Italia Small Cap',
+            ASAASI: 'FTSE JSE All-Share',
+            ASAFLE: 'FTSE JSE Fledgling',
+            ASAMID: 'FTSE JSE Mid Cap',
+            ASASMA: 'FTSE JSE Small Cap',
+            ASA40: 'FTSE JSE Top 40',
+            AISMIB: 'FTSE MIB',
+            ALLISE: 'Irish Stock Exchange',
+            ALLAIM: 'London AIM',
+            ALLAQS: 'London Aquis Stock Exchange',
+            ALLFTA: 'London Main Market',
+            MDAX: 'MDAX',
+            NDQ100: 'Nasdaq 100',
+            SMI20: 'SMI 20',
+            STXE50: 'Stoxx 50',
+            STX150: 'Stoxx Global 150',
+            TECDAX: 'TecDAX',
+            ALL1: 'Energy',
+            ALL530: 'Non-Renewable Energy',
+            ALL570: 'Oil Equipment, Drilling & Other Services',
+            ALL580: 'Renewable Energy',
+            ALL1000: 'Basic Resources',
+            ALL1350: 'Chemicals',
+            ALL1730: 'Industrial Materials',
+            ALL1750: 'Industrial Metals & Mining',
+            ALL1770: 'Precious Metals & Mining',
+            ALL2000: 'Industrials',
+            ALL2350: 'Construction & Materials',
+            ALL2710: 'Aerospace & Defense',
+            ALL2720: 'General Industrials',
+            ALL2730: 'Electronic & Electrical Equipment',
+            ALL2750: 'Industrial Engineering',
+            ALL2770: 'Industrial Transportation',
+            ALL2790: 'Support Services',
+            ALL3000: 'Consumer Discretionary',
+            ALL3350: 'Automobiles & Parts',
+            ALL3700: 'Consumer Services',
+            ALL3720: 'Household Goods & Home Construction',
+            ALL3740: 'Leisure Goods',
+            ALL3760: 'Personal Goods',
+            ALL3550: 'Media',
+            ALL3370: 'General Retailers',
+            ALL3750: 'Travel & Leisure',
+            ALL5000: 'Consumer Staples',
+            ALL5530: 'Beverages',
+            ALL5570: 'Food Producers',
+            ALL5780: 'Tobacco',
+            ALL5330: 'Personal Care, Drug & Grocery Stores',
+            ALL4000: 'Health Care',
+            ALL4530: 'Health Care Equipment & Services',
+            ALL4570: 'Pharmaceuticals & Biotechnology',
+            ALL4510: 'Health Care Providers',
+            ALL6000: 'Telecommunications',
+            ALL6530: 'Telecommunications Service Providers',
+            ALL6540: 'Telecommunications Equipment',
+            ALL7000: 'Utilities',
+            ALL7530: 'Electricity',
+            ALL7570: 'Gas, Water & Multiutilities',
+            ALL7535: 'Waste & Disposal Services',
+            ALL8000: 'Financials',
+            ALL8350: 'Banks',
+            ALL8570: 'Life Insurance',
+            ALL8530: 'Nonlife Insurance',
+            ALL8770: 'Financial Services',
+            ALL8302: 'Open End and Miscellaneous Investment Vehicles',
+            ALL8980: 'Equity Investment Trusts',
+            ALL8990: 'Nonequity Investment Instruments',
+            ALL8600: 'Real Estate',
+            ALL8630: 'Real Estate Investment & Services',
+            ALL8670: 'Real Estate Investment Trusts',
+            ALL9000: 'Technology',
+            ALL9530: 'Software & Computer Services',
+            ALL9570: 'Technology Hardware & Equipment',
+            ALLAME: 'Americas',
+            ALLCAN: 'Canada',
+            ALLUSA: 'US',
+            ALLAPA: 'Asia Pacific',
+            ALLAUS: 'Australia',
+            ALLCHI: 'China',
+            ALLIND: 'India',
+            ALLJPA: 'Japan',
+            ALLNZE: 'New Zealand',
+            ALLEUR: 'Europe',
+            ALLFRA: 'France',
+            ALLEUO: 'European Union',
+            ALLGER: 'Germany',
+            ALLIRE: 'Ireland',
+            ALLITA: 'Italy',
+            ALLRUS: 'Russia',
+            ALLSGP: 'Singapore',
+            ALLESP: 'Spain',
+            ALLSWZ: 'Switzerland',
+            ALLUK: 'UK',
+            ALLMEA: 'Middle East North Africa',
+            ALLAFR: 'Sub-Saharan Africa',
+            ALLSAF: 'South Africa',
+            ALLPAG11: 'UK earnings, trading statements calendar',
+            ALLPAG12: 'UK dividends calendar',
+            ALLPAG13: 'UK shareholder meetings calendar',
+            ALLPAG14: 'Global economic events calendar',
+            ALLPAG16: 'Major economy comparative indicators',
+            ALLPAG118: 'Get Ready for earnings or economic indicators',
+            ALLPAG119: 'Calendario eventi societari italiani',
+            ALLPAG122: 'South Africa company events calendar',
+            ALLPAG123: 'Global company events calendar',
+            ALLPAG22: 'LONDON BROKER RATINGS',
+            ALLPAG23: 'LONDON SMALL-CAP WINNERS & LOSERS',
+            ALLPAG24: 'LONDON AIM WINNERS & LOSERS',
+            ALLPAG25: 'MILAN AIM WINNERS & LOSERS',
+            ALLPAG26: 'MILAN BROKER RATINGS SUMMARY',
+            ALLPAG27: 'MILAN SMALL-CAP WINNERS & LOSERS',
+            ALLPAG29: 'GLOBAL BROKER RATINGS SUMMARY',
+            ALLPAG211: 'MILAN SHORT POSITIONS',
+            ALLPAG31: 'LONDON MARKET comment',
+            ALLPAG32: 'MILAN MARKET comment',
+            ALLPAG33: 'JOHANNESBURG MARKET comment',
+            ALLPAG34: 'NEW YORK MARKET comment',
+            ALLPAG41: 'LONDON BRIEFING',
+            ALLPAG42: 'AFFARI IN PIAZZA',
+            ALLPAG45: 'GLOBAL BRIEFING',
+            ALLPAG53: 'IPO statistics: London Main Market',
+            ALLPAG54: 'IPO statistics: London AIM and AQSE markets',
+            ALLPAG61: 'US Federal Reserve Preview',
+            ALLPAG62: 'Bank of England Preview',
+            ALLPAG63: 'European Central Bank Preview',
+            ALLPAG64: 'South African Reserve Bank Preview',
+            ALLPAG71: 'FOREX MARKET: SA',
+            ALLPAG72: 'FOREX MARKET: IS',
+            ALLPAG73: 'FOREX MARKET: Global UK',
+            ALLPAG74: 'COMMODITIES MARKET: Global UK SA',
+            ALLPAG75: 'GOLD MARKET: IS',
+            ALLPAG76: 'OIL MARKET: IS',
+            ALLPAG81: 'BOND MARKET: SA',
+            ALLPAG82: 'BOND MARKET: IS',
+            ALLPAG91: 'Alliance News UK - start Of day',
+            ALLPAG92: 'Alliance News IS - messaggio di apertura',
+            ALLPAG93: 'Alliance News South Africa - start of day',
+            ALLPAG94: 'Alliance News Global 500 - start Of day'
+        };
+
+        function resolveAllianceCode(value) {
+            if (!value) return value;
+            if (ALLIANCE_CODE_LABELS[value]) return ALLIANCE_CODE_LABELS[value];
+            if (/^ALL\./.test(value)) return `Company Code (${value})`;
+            if (/^AIS\./.test(value)) return `Company Code (${value})`;
+            if (/^ASA\./.test(value)) return `Company Code (${value})`;
+            if (value.includes('=ABOUT')) return `Primary Ticker (${value})`;
+            return value;
+        }
+
+        function normaliseTags(value) {
+            const tags = Array.isArray(value)
+                ? value
+                : typeof value === 'string'
+                    ? value.split(',').map(t => t.trim())
+                    : [];
+            return tags.filter(Boolean).map(tag => resolveAllianceCode(tag));
         }
 
         function renderArticlePreview(container, article) {
             container.innerHTML = '';
 
+            const category = getArticleCategory(article);
             const meta = document.createElement('div');
             meta.className = 'article-modal-meta';
+            const author = article.author ? `By ${escapeHTML(article.author)}` : null;
             meta.innerHTML = `
-                <span>${escapeHTML(article.source || 'Alliance News SA')}</span>
+                <span>${escapeHTML(article.source || 'Alliance News')}</span>
                 <span>&middot;</span>
-                <span>${escapeHTML(article.category || 'Markets')}</span>
+                <span>${escapeHTML(category)}</span>
+                ${author ? `<span>&middot;</span><span>${author}</span>` : ''}
                 <span>&middot;</span>
                 <span>${getTimeAgo(new Date(article.published_at || Date.now()))}</span>
             `;
             container.appendChild(meta);
 
-            const bodyText = article.full_content || article.preview_text || 'No story content available.';
+            const bodyText = article.body_text || 'No story content available.';
             appendArticleParagraphs(container, bodyText);
-
-            if (article.link) {
-                const link = document.createElement('a');
-                link.href = article.link;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                link.className = 'article-modal-link';
-                link.textContent = 'Read full story ';
-                const icon = document.createElement('i');
-                icon.className = 'fas fa-arrow-up-right-from-square';
-                link.appendChild(icon);
-                container.appendChild(link);
-            }
         }
 
         function getTimeAgo(date) {
@@ -1632,6 +1873,26 @@
                 '"': '&quot;',
                 "'": '&#39;'
             })[char] || char);
+        }
+
+        function getPreviewText(bodyText = '') {
+            const cleaned = String(bodyText || '').replace(/\s+/g, ' ').trim();
+            if (!cleaned) return 'Click to read more...';
+            if (cleaned.length <= 180) return cleaned;
+            return `${cleaned.slice(0, 177)}...`;
+        }
+
+        function getArticleCategory(article) {
+            const fallbacks = [
+                article.channel,
+                normaliseTags(article.markets)[0],
+                normaliseTags(article.industries)[0],
+                normaliseTags(article.products)[0],
+                normaliseTags(article.economics)[0],
+                normaliseTags(article.geography)[0],
+                normaliseTags(article.companies)[0]
+            ].filter(Boolean);
+            return fallbacks[0] || 'Markets';
         }
 
         async function initPage() {
