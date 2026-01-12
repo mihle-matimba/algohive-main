@@ -873,10 +873,10 @@
             <button id="ah-mobile-menu-btn" class="md:hidden btn h-11 w-11 p-0 rounded-xl border-0" title="Open Menu">
               <i class="fa-solid fa-bars"></i>
             </button>
-            <div class="inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold">
+            <a id="account-status-pill" class="inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold transition hover:bg-blue-100" href="#" aria-disabled="true">
               <div class="h-8 w-8 rounded-full border border-blue-200 bg-white grid place-items-center text-blue-600 text-base">ⓘ</div>
-              <p class="whitespace-normal">Demo Account</p>
-            </div>
+              <p id="account-status-label" class="whitespace-normal">Demo Account</p>
+            </a>
           </div>
 
           <button id="profile-btn" class="shrink-0 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm hover:bg-slate-50">
@@ -1150,6 +1150,8 @@
     const dashboardTitle = document.getElementById('dashboard-title');
     const profileNameEl = document.getElementById('profile-name');
     const profileAvatarEl = document.getElementById('profile-avatar');
+    const accountStatusPill = document.getElementById('account-status-pill');
+    const accountStatusLabel = document.getElementById('account-status-label');
     const pfValue = document.getElementById('pf-value');
     const pfChange = document.getElementById('pf-change');
     const pfUpdated = document.getElementById('pf-updated');
@@ -1186,6 +1188,54 @@
     const setProfileName = (fullName) => {
       if (profileNameEl && fullName) {
         profileNameEl.textContent = fullName;
+      }
+    };
+
+    const ACCOUNT_PILL_STYLES = {
+      pending: {
+        label: 'Pending',
+        className: 'inline-flex items-center gap-3 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 font-semibold transition',
+        dotClass: 'border-amber-200 text-amber-600',
+      },
+      active: {
+        label: 'Live Account',
+        className: 'inline-flex items-center gap-3 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 font-semibold transition',
+        dotClass: 'border-emerald-200 text-emerald-600',
+      },
+      action: {
+        label: 'Action required',
+        className: 'inline-flex items-center gap-3 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800 font-semibold transition hover:bg-rose-100',
+        dotClass: 'border-rose-200 text-rose-600',
+      },
+      fallback: {
+        label: 'Demo Account',
+        className: 'inline-flex items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 font-semibold transition',
+        dotClass: 'border-blue-200 text-blue-600',
+      },
+    };
+
+    const applyAccountStatusPill = (status) => {
+      if (!accountStatusPill || !accountStatusLabel) return;
+      const normalized = String(status || '').toUpperCase();
+      let tone = 'pending';
+      if (normalized === 'ACTIVE') tone = 'active';
+      if (normalized === 'ACTION_REQUIRED') tone = 'action';
+      if (!normalized) tone = 'fallback';
+
+      const style = ACCOUNT_PILL_STYLES[tone] || ACCOUNT_PILL_STYLES.fallback;
+      const dotEl = accountStatusPill.querySelector('div');
+      accountStatusPill.className = style.className;
+      accountStatusLabel.textContent = style.label;
+      if (dotEl) {
+        dotEl.className = `h-8 w-8 rounded-full border bg-white grid place-items-center text-base ${style.dotClass}`;
+      }
+
+      if (tone === 'action') {
+        accountStatusPill.setAttribute('href', '/settings.html');
+        accountStatusPill.removeAttribute('aria-disabled');
+      } else {
+        accountStatusPill.setAttribute('href', '#');
+        accountStatusPill.setAttribute('aria-disabled', 'true');
       }
     };
 
@@ -1491,6 +1541,7 @@
         if (!user) {
           setGreetingName();
           setProfileName('Demo User');
+          applyAccountStatusPill();
           hydrateBalanceFromDemo();
           return;
         }
@@ -1513,9 +1564,35 @@
         const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
         if (avatarUrl && profileAvatarEl) profileAvatarEl.src = avatarUrl;
 
+        await hydrateAccountStatus(user);
         hydrateBalanceFromDemo(user.id);
       } catch (error) {
         console.warn('Profile hydration failed; using defaults', error);
+      }
+    }
+
+    async function hydrateAccountStatus(user) {
+      if (!user) {
+        applyAccountStatusPill();
+        return;
+      }
+      try {
+        const emailAddress = (user.email || '').trim();
+        let query = supabase.from('alpaca_accounts').select('alpaca_account_status').eq('user_id', user.id);
+        let { data, error } = await query.maybeSingle();
+        if (error && error.code !== 'PGRST116') throw error;
+        if (!data && emailAddress) {
+          ({ data, error } = await supabase
+            .from('alpaca_accounts')
+            .select('alpaca_account_status')
+            .eq('email', emailAddress)
+            .maybeSingle());
+          if (error && error.code !== 'PGRST116') throw error;
+        }
+        applyAccountStatusPill(data?.alpaca_account_status || 'PENDING');
+      } catch (error) {
+        console.warn('Alpaca account status fetch failed', error);
+        applyAccountStatusPill('PENDING');
       }
     }
 
