@@ -11,10 +11,6 @@
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
-  <!-- Leaflet (CSP-allowed via cdnjs) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
-
   <style>
     :root{
       --ink:#0f172a; --muted:#64748b; --olive:#7e8d52; --brand:#f59e0b; --line:#e2e8f0; --panel:#ffffff; --bg:#f8fafc;
@@ -45,13 +41,16 @@
       border-color:var(--olive);
       box-shadow:0 0 0 3px rgba(126,141,82,.15)
     }
-    #map{
-      height:260px;
-      border-radius:12px;
+    .doc-btn{
       border:1px solid var(--line);
-      background:#f1f5f9
+      border-radius:12px;
+      padding:.75rem 1rem;
+      text-align:left;
+      background:#fff;
+      font-weight:600;
+      color:var(--ink);
+      transition:border-color .2s ease, box-shadow .2s ease;
     }
-    .leaflet-container { min-height:260px }
     .preloader {
       position: fixed;
       inset: 0;
@@ -383,17 +382,12 @@
         <!-- Address -->
         <div class="grid lg:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm muted mb-1">Search address *</label>
-            <input id="addrSearch" class="inp" placeholder="Type an address…"/>
-            <div class="text-xs muted mt-1">We’ll pin it on the map. Press Enter when done.</div>
-          </div>
-          <div>
-            <label class="block text-sm muted mb-1">Selected address</label>
-            <input id="addressText" class="inp" placeholder="—" readonly/>
+            <label class="block text-sm muted mb-1">Address *</label>
+            <textarea id="addressText" class="inp min-h-[120px]" placeholder="Enter your full residential address"></textarea>
+            <div class="text-xs muted mt-1">Please include street, suburb, city, and postal code.</div>
+            <div id="addressError" class="hidden text-sm text-red-600 mt-1">Please enter your address</div>
           </div>
         </div>
-
-        <div id="map" class="mt-2"></div>
 
         <!-- Subscription summary -->
         <div class="card p-4 mt-6">
@@ -425,46 +419,30 @@
       </p>
 
       <div class="card p-4 mt-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="flex-1">
-            <div class="mt-2 text-sm">
-              <a id="docuSealOpen"
-                 class="text-[var(--olive)] underline font-semibold"
-                 target="_blank"
-                 rel="noopener">
-                Open &amp; Sign
-              </a>
-            </div>
-
-            <div class="mt-4 rounded-xl border border-[var(--line)] bg-slate-50 p-3">
-              <iframe
-                id="docuSealEmbed"
-                title="Subscription agreement signing"
-                class="hidden w-full h-96 rounded-lg border border-[var(--line)] bg-white"
-                loading="lazy"></iframe>
-              <div id="docuSealPlaceholder" class="text-sm text-slate-500">
-                Add your DocuSeal link to embed the signing flow here.
-              </div>
-            </div>
-
-            <div class="mt-3 flex items-start gap-2">
-              <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
-              <label for="docSigned" class="text-sm leading-snug">
-                I have signed the Subscription document.
+        <div class="flex flex-col gap-6">
+          <div>
+            <p class="text-sm muted">
+              The signing pack contains the Subscription Agreement only. Please open it, review, and sign.
+            </p>
+            <button
+              id="docuSealOpenBtn"
+              type="button"
+              class="mt-4 btn-olive rounded-xl px-6 py-3 font-semibold">
+              Open Subscription Agreement
+            </button>
+            <div class="mt-5 space-y-3">
+              <label class="flex items-start gap-2 text-sm">
+                <input id="docSignedReview" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1" data-doc-check>
+                <span>I have reviewed the Subscription Agreement.</span>
+              </label>
+              <label class="flex items-start gap-2 text-sm">
+                <input id="docSignedSubscription" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1" data-doc-check>
+                <span>I have signed the Subscription Agreement.</span>
               </label>
             </div>
-            <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
-              Please confirm you’ve signed.
+            <div id="docSignedError" class="hidden text-sm text-red-600 mt-3">
+              Please confirm you’ve reviewed and signed the Subscription Agreement.
             </div>
-          </div>
-
-          <div class="sm:w-40">
-            <button
-              id="copyDocuSealBtn"
-              type="button"
-              class="w-full rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold">
-              Copy link
-            </button>
           </div>
         </div>
       </div>
@@ -578,8 +556,6 @@
       idNumber: "",
       phone: "",
       addressText: "",
-      lat: null,
-      lng: null,
       amount: minInvestment,
       shares: Math.floor(minInvestment / sharePrice),
       user: null,
@@ -603,24 +579,7 @@
 
     {
       const urlParams = new URLSearchParams(window.location.search);
-      state.docuSealLink = urlParams.get("link") || "https://docuseal.com/s/p3KhS1p3ya4MDC";
-      const docLink = document.getElementById("docuSealOpen");
-      if (docLink) {
-        docLink.href = state.docuSealLink || "#";
-      }
-    }
-
-    const docEmbed = document.getElementById('docuSealEmbed');
-    const docPlaceholder = document.getElementById('docuSealPlaceholder');
-    if (docEmbed) {
-      if (state.docuSealLink) {
-        docEmbed.src = state.docuSealLink;
-        docEmbed.classList.remove('hidden');
-        docPlaceholder?.classList.add('hidden');
-      } else {
-        docEmbed.classList.add('hidden');
-        docPlaceholder?.classList.remove('hidden');
-      }
+      state.docuSealLink = urlParams.get("link") || "";
     }
 
     // ======= Auth guard =======
@@ -662,18 +621,15 @@
       document.getElementById('summaryShares').textContent = state.shares.toLocaleString();
     });
 
-    // Copy DocuSeal link
-    const copyBtn = document.getElementById('copyDocuSealBtn');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => {
-        if (!state.docuSealLink) return;
-        navigator.clipboard.writeText(state.docuSealLink).then(() => {
-          copyBtn.textContent = 'Copied!';
-          setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
-        }).catch(() => {
-          copyBtn.textContent = 'Error';
-          setTimeout(() => { copyBtn.textContent = 'Copy link'; }, 2000);
-        });
+    const docOpenBtn = document.getElementById('docuSealOpenBtn');
+    const subscriptionLink = state.docuSealLink || "https://docuseal.com/s/p3KhS1p3ya4MDC";
+    if (docOpenBtn) {
+      docOpenBtn.addEventListener('click', () => {
+        if (!subscriptionLink) {
+          alert('Signing link unavailable.');
+          return;
+        }
+        window.open(subscriptionLink, '_blank', 'noopener');
       });
     }
 
@@ -724,9 +680,6 @@
       updateStepper();
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      if (currentStep === 2) {
-        ensureMapReady();
-      }
     }
     function nextStep(){ gotoStep(currentStep+1); }
     function prevStep(){ gotoStep(currentStep-1); }
@@ -747,7 +700,8 @@
       if (!idNumber){ document.getElementById('idError').classList.remove('hidden'); ok=false; } else document.getElementById('idError').classList.add('hidden');
       if (!phone){ document.getElementById('phoneError').classList.remove('hidden'); ok=false; } else document.getElementById('phoneError').classList.add('hidden');
       if (!amt || amt < minInvestment){ document.getElementById('amountError').classList.remove('hidden'); ok=false; } else document.getElementById('amountError').classList.add('hidden');
-      if (!state.addressText || state.lat===null || state.lng===null){ alert('Please pick an address on the map.'); ok=false; }
+      const addressText = document.getElementById('addressText').value.trim();
+      if (!addressText){ document.getElementById('addressError').classList.remove('hidden'); ok=false; } else document.getElementById('addressError').classList.add('hidden');
 
       if (!ok) return;
 
@@ -758,6 +712,7 @@
       state.phone = phone;
       state.amount = amt;
       state.shares = Math.floor(amt / sharePrice);
+      state.addressText = addressText;
 
       // hydrate payment
       document.getElementById('paymentTotal').textContent = `R${state.amount.toFixed(2)}`;
@@ -767,7 +722,8 @@
     }
 
     function validateSigning(){
-      const hasSigned = document.getElementById('docSigned').checked;
+      const checks = Array.from(document.querySelectorAll('[data-doc-check]'));
+      const hasSigned = checks.every((checkbox) => checkbox.checked);
       state.hasSigned = hasSigned;
       if (!hasSigned) {
         document.getElementById('docSignedError').classList.remove('hidden');
@@ -820,8 +776,8 @@
           id_number: state.idNumber,
           phone: state.phone,
           address_text: state.addressText,
-          address_lat: state.lat,
-          address_lng: state.lng,
+          address_lat: null,
+          address_lng: null,
           pop_path: path,
           status: 'received',
           updated_at: new Date().toISOString()
@@ -849,89 +805,6 @@
         msg.textContent = e.message || 'Upload failed. Please try again.';
       }
     }
-
-    // ======= Leaflet map logic =======
-    let map, marker;
-    let mapInited = false;
-
-    function initMap(){
-      map = L.map('map', { zoomControl: true }).setView([-26.2041, 28.0473], 10); // Joburg-ish
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(map);
-
-      map.on('click', async (e) => {
-        setMarker(e.latlng.lat, e.latlng.lng);
-        reverseGeocode(e.latlng.lat, e.latlng.lng);
-      });
-
-      mapInited = true;
-      setTimeout(() => {
-        try { map.invalidateSize(); } catch(_) {}
-      }, 200);
-    }
-
-    function ensureMapReady(){
-      if (!mapInited) {
-        initMap();
-      } else {
-        setTimeout(() => {
-          try { map.invalidateSize(); } catch(_) {}
-        }, 200);
-      }
-    }
-
-    function setMarker(lat, lng){
-      state.lat = lat;
-      state.lng = lng;
-      if (!marker) {
-        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-        marker.on('dragend', () => {
-          const ll = marker.getLatLng();
-          setMarker(ll.lat, ll.lng);
-          reverseGeocode(ll.lat, ll.lng);
-        });
-      } else {
-        marker.setLatLng([lat, lng]);
-      }
-    }
-
-    async function reverseGeocode(lat, lng){
-      try{
-        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-        const j = await r.json();
-        const disp = j.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        state.addressText = disp;
-        document.getElementById('addressText').value = disp;
-      }catch{
-        const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        state.addressText = fallback;
-        document.getElementById('addressText').value = fallback;
-      }
-    }
-
-    async function searchAddress(q){
-      if (!q || q.length < 3) return;
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&limit=1`);
-      const j = await r.json();
-      if (j?.length){
-        const { lat, lon, display_name } = j[0];
-        const latf = parseFloat(lat), lngf = parseFloat(lon);
-        map.setView([latf, lngf], 15);
-        setMarker(latf, lngf);
-        state.addressText = display_name;
-        document.getElementById('addressText').value = display_name;
-      }
-    }
-
-    document.getElementById('addrSearch').addEventListener('keydown', e => {
-      if (e.key === 'Enter'){
-        e.preventDefault();
-        ensureMapReady();
-        searchAddress(e.currentTarget.value.trim());
-      }
-    });
 
     // init UI
     updateStepper();
