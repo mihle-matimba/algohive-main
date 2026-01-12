@@ -51,10 +51,6 @@
       color:var(--ink);
       transition:border-color .2s ease, box-shadow .2s ease;
     }
-    .doc-btn.active{
-      border-color:var(--olive);
-      box-shadow:0 0 0 3px rgba(126,141,82,.15);
-    }
     .preloader {
       position: fixed;
       inset: 0;
@@ -425,30 +421,40 @@
       <div class="card p-4 mt-6">
         <div class="flex flex-col gap-6">
           <div>
-            <p class="text-sm muted">Select the document you need to sign.</p>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2" id="docButtonGroup">
-              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Subscription Agreement</button>
-              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Investor Declaration</button>
-              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Shareholder Details Form</button>
-              <button type="button" class="doc-btn" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">POPIA Consent</button>
+            <p class="text-sm muted">Open each document and confirm once you have signed it.</p>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2" id="docButtonGroup">
+              <div class="space-y-2">
+                <button type="button" class="doc-btn w-full" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Subscription Agreement</button>
+                <label class="flex items-start gap-2 text-sm">
+                  <input id="docSignedSubscription" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1" data-doc-check>
+                  <span>I have signed the Subscription Agreement.</span>
+                </label>
+              </div>
+              <div class="space-y-2">
+                <button type="button" class="doc-btn w-full" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Investor Declaration</button>
+                <label class="flex items-start gap-2 text-sm">
+                  <input id="docSignedDeclaration" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1" data-doc-check>
+                  <span>I have signed the Investor Declaration.</span>
+                </label>
+              </div>
+              <div class="space-y-2">
+                <button type="button" class="doc-btn w-full" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">Shareholder Details Form</button>
+                <label class="flex items-start gap-2 text-sm">
+                  <input id="docSignedShareholder" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1" data-doc-check>
+                  <span>I have signed the Shareholder Details Form.</span>
+                </label>
+              </div>
+              <div class="space-y-2">
+                <button type="button" class="doc-btn w-full" data-doc-link="https://docuseal.com/s/p3KhS1p3ya4MDC">POPIA Consent</button>
+                <label class="flex items-start gap-2 text-sm">
+                  <input id="docSignedPopia" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1" data-doc-check>
+                  <span>I have signed the POPIA Consent.</span>
+                </label>
+              </div>
             </div>
-            <div class="mt-3 text-sm text-slate-500" id="docSelectedLabel">Select a document to continue.</div>
-            <button
-              id="docuSealOpenBtn"
-              type="button"
-              class="mt-4 btn-olive rounded-xl px-6 py-3 font-semibold">
-              Open selected document
-            </button>
-          </div>
-
-          <div class="mt-2 flex items-start gap-2">
-            <input id="docSigned" type="checkbox" class="w-4 h-4 rounded border-[var(--line)] mt-1">
-            <label for="docSigned" class="text-sm leading-snug">
-              I have signed the selected document.
-            </label>
-          </div>
-          <div id="docSignedError" class="hidden text-sm text-red-600 mt-1">
-            Please confirm you’ve signed.
+            <div id="docSignedError" class="hidden text-sm text-red-600 mt-3">
+              Please confirm you’ve signed every document.
+            </div>
           </div>
         </div>
       </div>
@@ -628,32 +634,14 @@
     });
 
     const docButtons = document.querySelectorAll('#docButtonGroup .doc-btn');
-    const docSelectedLabel = document.getElementById('docSelectedLabel');
-    const docOpenBtn = document.getElementById('docuSealOpenBtn');
-
-    const selectDocButton = (button) => {
-      docButtons.forEach(btn => btn.classList.remove('active'));
-      button.classList.add('active');
-      state.docuSealLink = button.dataset.docLink || '';
-      const label = button.textContent?.trim() || 'Selected document';
-      if (docSelectedLabel) {
-        docSelectedLabel.textContent = `Selected: ${label}`;
-      }
-    };
-
     docButtons.forEach(button => {
-      button.addEventListener('click', () => selectDocButton(button));
-    });
-
-    if (docOpenBtn) {
-      docOpenBtn.addEventListener('click', () => {
-        if (!state.docuSealLink) {
-          alert('Please select a document first.');
-          return;
+      button.addEventListener('click', () => {
+        const link = button.dataset.docLink;
+        if (link) {
+          window.open(link, '_blank', 'noopener');
         }
-        window.open(state.docuSealLink, '_blank', 'noopener');
       });
-    }
+    });
 
     document.getElementById('toSigning').addEventListener('click', validateDetails);
     document.getElementById('toPayment').addEventListener('click', validateSigning);
@@ -744,7 +732,8 @@
     }
 
     function validateSigning(){
-      const hasSigned = document.getElementById('docSigned').checked;
+      const checks = Array.from(document.querySelectorAll('[data-doc-check]'));
+      const hasSigned = checks.every((checkbox) => checkbox.checked);
       state.hasSigned = hasSigned;
       if (!hasSigned) {
         document.getElementById('docSignedError').classList.remove('hidden');
