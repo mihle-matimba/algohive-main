@@ -456,6 +456,22 @@
                                     <p id="msg" class="text-xs text-white/55 min-h-[18px]"></p>
                                 </form>
 
+                                <div id="successState"
+                                    class="mt-6 hidden rounded-2xl bg-white/5 subtle-border px-6 py-8 text-center">
+                                    <div
+                                        class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+                                        <svg class="h-6 w-6 text-white/90" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M20 6L9 17l-5-5" />
+                                        </svg>
+                                    </div>
+                                    <div class="mt-4 text-xs tracking-[.2em] text-white/50">Amazing!</div>
+                                    <div class="mt-2 text-xl font-semibold text-white">Congratulations. You’ve got
+                                        covered</div>
+                                    <div class="mt-3 text-[11px] uppercase tracking-[.2em] text-white/45">Reference
+                                        number: <span id="referenceNumber" class="text-white/70"></span></div>
+                                </div>
+
                                 <div class="mt-6 text-xs muted2 leading-relaxed">
                                     By continuing you confirm this is a private invitation and not a public offer. Thank
                                     you.
@@ -495,11 +511,20 @@
         const msg = document.getElementById("msg");
         const form = document.getElementById("inviteForm");
         const submitBtn = document.getElementById("submitBtn");
+        const successState = document.getElementById("successState");
+        const referenceNumber = document.getElementById("referenceNumber");
 
         emailEl.value = getQueryParam("email");
 
         function setStatus(text) {
             msg.textContent = text || "";
+        }
+
+        function setSuccessState() {
+            const ref = `#${Math.floor(100000000 + Math.random() * 900000000)}`;
+            referenceNumber.textContent = ref;
+            form.classList.add("hidden");
+            successState.classList.remove("hidden");
         }
 
         function setLoading(isLoading) {
@@ -558,10 +583,8 @@
             try {
                 console.log("Invite accept payload", payload);
 
-                setStatus("Invite confirmed. Redirecting");
-                setTimeout(() => {
-                    window.location.href = "onboarding.html";
-                }, 900);
+                setStatus("");
+                setSuccessState();
             } catch (err) {
                 console.error(err);
                 setStatus("Sorry something went wrong. Please try again.");
