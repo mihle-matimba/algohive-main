@@ -497,8 +497,8 @@
                                     </div>
                                     <div class="mt-5">
                                         <a href="#" class="link-btn focus-ring"
-                                            style="width:auto; padding:.75rem 1.4rem; border-radius:14px;">Go to
-                                            Dashboard</a>
+                                            style="width:auto; padding:.75rem 1.4rem; border-radius:14px;">Get
+                                            Started</a>
                                     </div>
                                 </div>
 
@@ -549,6 +549,10 @@
 
         function setStatus(text) {
             msg.textContent = text || "";
+        }
+
+        function setStatusHtml(html) {
+            msg.innerHTML = html || "";
         }
 
         function setSuccessState() {
@@ -607,12 +611,28 @@
             const payload = {
                 email: emailEl.value.trim(),
                 full_name: fullNameEl.value.trim(),
-                invited_by: referrerEl.value.trim(),
-                acceptedAt: new Date().toISOString()
+                invited_by: referrerEl.value.trim()
             };
 
             try {
-                console.log("Invite accept payload", payload);
+                const response = await fetch("/api/invites/accept", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.status === 409) {
+                    setStatusHtml('You have already accepted the invite. Please <a href="/wealth/auth.html" class="underline">create an account</a> to continue.');
+                    setLoading(false);
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    setStatus(errorData.error || "Sorry something went wrong. Please try again.");
+                    setLoading(false);
+                    return;
+                }
 
                 setStatus("");
                 setSuccessState();
