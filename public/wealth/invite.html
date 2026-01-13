@@ -607,12 +607,28 @@
             const payload = {
                 email: emailEl.value.trim(),
                 full_name: fullNameEl.value.trim(),
-                invited_by: referrerEl.value.trim(),
-                acceptedAt: new Date().toISOString()
+                invited_by: referrerEl.value.trim()
             };
 
             try {
-                console.log("Invite accept payload", payload);
+                const response = await fetch("/api/invites/accept", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.status === 409) {
+                    setStatus("You have already accepted the invite.");
+                    setLoading(false);
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    setStatus(errorData.error || "Sorry something went wrong. Please try again.");
+                    setLoading(false);
+                    return;
+                }
 
                 setStatus("");
                 setSuccessState();
