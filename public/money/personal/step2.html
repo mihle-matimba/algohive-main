@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Amount Input</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:600&display=swap');
+
+      :root {
+        --bg: #f8f8f8;
+        --text-primary: #606060;
+        --text-muted: #808080;
+        --purple: #6a43ff;
+        --purple-dark: #4b22d6;
+        --step-dot-size: 32px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont;
+        background: var(--bg);
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .container {
+        width: min(580px, 100%);
+        text-align: center;
+        animation: slideUp 0.8s ease-out 0.2s both;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .back-arrow {
+        position: fixed;
+        top: 2rem;
+        left: 2rem;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: var(--purple-dark);
+        font-size: 1.2rem;
+        z-index: 100;
+      }
+
+      .back-arrow:hover {
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(106, 67, 255, 0.3);
+        transform: translateX(-2px);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: 0 4px 12px rgba(106, 67, 255, 0.3);
+      }
+
+      h1 {
+        margin: 0.6rem 0 0.8rem;
+        font-size: clamp(2rem, 4vw, 2.5rem);
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        text-shadow: 0 0 30px rgba(106, 67, 255, 0.3);
+      }
+
+      .intro {
+        margin: 0 0 2.5rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+
+      .progress-footer {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(96, 96, 96, 0.08);
+      }
+
+      .step-track {
+        position: relative;
+        width: min(420px, 100%);
+        margin: 0 auto;
+        height: 48px;
+      }
+
+      .step-line-base,
+      .step-line-active {
+        position: absolute;
+        top: 50%;
+        left: calc(var(--step-dot-size) / 2);
+        height: 2px;
+        transform: translateY(-50%);
+        border-radius: 2px;
+        z-index: 1;
+      }
+
+      .step-line-base {
+        width: calc(100% - var(--step-dot-size));
+        background: rgba(106, 67, 255, 0.18);
+      }
+
+      .step-line-active {
+        width: calc((100% - var(--step-dot-size)) / 3 * var(--active-segments, 1));
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        box-shadow: 0 8px 20px rgba(106, 67, 255, 0.25);
+      }
+
+      .step-dot {
+        position: absolute;
+        top: 50%;
+        width: var(--step-dot-size);
+        height: var(--step-dot-size);
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid rgba(106, 67, 255, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+      }
+
+      .step-dot.done {
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 20px rgba(106, 67, 255, 0.3);
+      }
+
+      .step-dot.active {
+        border-color: var(--purple);
+        border-width: 3px;
+        color: var(--purple);
+        background: #fff;
+        box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+        animation: stepPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes stepPulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(106, 67, 255, 0);
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+      }
+
+      .step-dot.upcoming {
+        border-style: dashed;
+        color: rgba(96, 96, 96, 0.55);
+      }
+
+      .step-dot:nth-of-type(1) {
+        left: calc(var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(2) {
+        left: calc((100% - var(--step-dot-size)) / 3 + var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(3) {
+        left: calc((100% - var(--step-dot-size)) * 2 / 3 + var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(4) {
+        left: calc(100% - var(--step-dot-size) / 2);
+      }
+
+      .input-wrapper {
+        position: relative;
+        margin: 0 auto 0.75rem;
+        max-width: 420px;
+      }
+
+      .currency-symbol {
+        position: absolute;
+        left: 24px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--purple-dark);
+        pointer-events: none;
+        z-index: 2;
+        text-shadow: 0 1px #fff, 0 0 15px rgba(106, 67, 255, 0.6);
+      }
+
+      #loan-amount {
+        -webkit-appearance: none;
+        user-select: none;
+        width: 100%;
+        padding: 1.5rem 1.5rem 1.5rem 3.5rem;
+        height: 80px;
+        background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+        border-radius: 40px;
+        border: 1px solid #8F9092;
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 0 #CECFD1,
+          0 0 25px rgba(75, 34, 214, 0.2);
+        transition: all .2s ease;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-family: 'Space Grotesk', sans-serif;
+        text-shadow: 0 1px #fff, 0 0 20px rgba(106, 67, 255, 0.3);
+        outline: none;
+        cursor: text;
+      }
+
+      #loan-amount:hover {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 35px rgba(75, 34, 214, 0.35);
+      }
+
+      #loan-amount:focus {
+        animation: active-input .9s alternate infinite;
+      }
+
+      @keyframes active-input {
+        from {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 10px 0px rgba(75, 34, 214, .7),
+            0 0 40px rgba(106, 67, 255, 0.5);
+        }
+        to {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 3px 3px #CECFD1,
+            0 0 35px rgba(75, 34, 214, 0.35);
+        }
+      }
+
+      #loan-amount::placeholder {
+        color: rgba(96, 96, 96, 0.4);
+      }
+
+      .disclaimer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0 0 2.5rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        animation: fadeInSlide 0.8s ease-out 0.6s both;
+      }
+
+      @keyframes fadeInSlide {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .disclaimer i {
+        color: var(--purple);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 0.7;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+      }
+
+      .disclaimer strong {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      button {
+        -webkit-appearance: none;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        outline: none;
+        cursor: pointer;
+        width: 200px;
+        height: 60px;
+        background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+        border-radius: 30px;
+        border: 1px solid #8F9092;
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 0 #CECFD1,
+          0 0 20px rgba(106, 67, 255, 0.15);
+        transition: all .2s ease;
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        text-shadow: 0 1px #fff;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      button::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 32px;
+        background: linear-gradient(135deg, rgba(106, 67, 255, 0.3), rgba(75, 34, 214, 0.3));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+        filter: blur(8px);
+      }
+
+      button:hover::before {
+        opacity: 1;
+      }
+
+      button::-moz-focus-inner {
+        border: 0;
+      }
+
+      button > * {
+        transition: transform .2s ease;
+      }
+
+      button:hover:not([disabled]) {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 30px rgba(106, 67, 255, 0.3);
+      }
+
+      button:hover:not([disabled]) > * {
+        transform: scale(.975);
+      }
+
+      button:focus:not(:active) {
+        animation: active-button .9s alternate infinite;
+        outline: none;
+      }
+
+      @keyframes active-button {
+        from {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 10px 0px rgba(75, 34, 214, .7),
+            0 0 40px rgba(106, 67, 255, 0.5);
+        }
+        to {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 3px 3px #CECFD1,
+            0 0 30px rgba(106, 67, 255, 0.3);
+        }
+      }
+
+      button:active:not([disabled]) {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 5px 3px #999, 
+          inset 0 0 30px #aaa;
+      }
+
+      button:active:not([disabled]) > * {
+        transform: scale(.95);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 0 1rem;
+        }
+
+        #loan-amount {
+          font-size: 1.5rem;
+          padding: 1.25rem 1.25rem 1.25rem 3rem;
+          height: 70px;
+        }
+
+        .currency-symbol {
+          font-size: 1.5rem;
+          left: 20px;
+        }
+
+        button {
+          width: 180px;
+          height: 55px;
+          font-size: 14px;
+        }
+      }
+
+      /* Toast Notification - achievement vibe */
+      .toast-notification {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        width: 92px;
+        height: 92px;
+        max-width: 92vw;
+        border-radius: 46px;
+        background: linear-gradient(145deg, rgba(106, 67, 255, 0.95), rgba(75, 34, 214, 0.92));
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 18px 40px rgba(75, 34, 214, 0.35);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 14px 10px 10px;
+        opacity: 0;
+        transform: translateX(130%);
+        pointer-events: none;
+        z-index: 9999;
+        overflow: hidden;
+        backdrop-filter: blur(6px);
+      }
+
+      .toast-notification.show {
+        animation: toastShell 5s ease forwards;
+      }
+
+      .toast-circle {
+        position: relative;
+        width: 92px;
+        height: 92px;
+        flex: 0 0 92px;
+      }
+
+      .toast-loader {
+        width: 92px;
+        height: 92px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: 46px;
+        background: linear-gradient(145deg, var(--purple), var(--purple-dark));
+        transform: scale(0);
+      }
+
+      .toast-notification.show .toast-loader {
+        animation: toastLoader 4.2s ease-in-out forwards;
+      }
+
+      .toast-notification.show .toast-loader:nth-child(1) { animation-delay: 0s; opacity: 1; }
+      .toast-notification.show .toast-loader:nth-child(2) { animation-delay: 0.16s; opacity: 0.9; }
+      .toast-notification.show .toast-loader:nth-child(3) { animation-delay: 0.32s; opacity: 0.8; }
+      .toast-notification.show .toast-loader:nth-child(4) { animation-delay: 0.48s; opacity: 0.7; }
+      .toast-notification.show .toast-loader:nth-child(5) { animation-delay: 0.64s; opacity: 0.65; }
+
+      .toast-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        font-size: 1.9rem;
+        color: #fff;
+        z-index: 10;
+        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+      }
+
+      .toast-notification.show .toast-icon {
+        animation: toastIcon 4.2s ease forwards;
+        animation-delay: 0.4s;
+      }
+
+      .toast-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      .toast-notification.show .toast-text {
+        animation: toastText 4s ease forwards;
+        animation-delay: 0.8s;
+      }
+
+      .toast-kicker {
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.82);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 700;
+      }
+
+      .toast-kicker i {
+        font-size: 0.85rem;
+      }
+
+      .toast-title {
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Keep loaders purple for all variants */
+
+      @keyframes toastShell {
+        0% { opacity: 0; transform: translateX(130%); width: 92px; }
+        12% { opacity: 1; transform: translateX(0); width: 92px; }
+        26% { width: 440px; }
+        76% { opacity: 1; transform: translateX(0); width: 440px; }
+        100% { opacity: 0; transform: translateX(130%); width: 92px; }
+      }
+
+      @keyframes toastLoader {
+        0% { transform: scale(0); }
+        16% { transform: scale(1.08); }
+        24% { transform: scale(1); }
+        78% { transform: scale(1); }
+        100% { transform: scale(0); }
+      }
+
+      @keyframes toastIcon {
+        0% { transform: translate(-50%, -50%) scale(0) rotate(-120deg); opacity: 0; }
+        18% { transform: translate(-50%, -50%) scale(1.05) rotate(0deg); opacity: 1; }
+        78% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(0) rotate(120deg); opacity: 0; }
+      }
+
+      @keyframes toastText {
+        0% { opacity: 0; transform: translateY(14px); }
+        24% { opacity: 1; transform: translateY(0); }
+        78% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(6px); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toast-notification" id="toast">
+      <div class="toast-circle">
+        <div class="toast-loader"></div>
+        <div class="toast-loader"></div>
+        <div class="toast-loader"></div>
+        <div class="toast-loader"></div>
+        <div class="toast-loader"></div>
+        <i class="toast-icon fa-solid fa-trophy" id="toastIcon"></i>
+      </div>
+      <div class="toast-text">
+        <div class="toast-kicker"><i class="fa-solid fa-bolt"></i> loan submitted</div>
+        <div class="toast-title" id="toastMessage">Success!</div>
+      </div>
+    </div>
+    <a href="credit-check.html" class="back-arrow" title="Back to Credit Check">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    
+    <div class="container">
+      <div class="badge">
+        <i class="fa-solid fa-circle-2"></i>
+        Step 2 · Loan Amount
+      </div>
+
+      <h1>Request Your Loan</h1>
+      
+      <p class="intro">
+        Enter the amount you wish to borrow. We'll process your application instantly and provide you with personalized terms.
+      </p>
+
+      <div class="input-wrapper">
+        <span class="currency-symbol">R</span>
+        <input 
+          type="number" 
+          id="loan-amount" 
+          placeholder="5000"
+          min="0"
+          max="5000"
+          step="100"
+          autocomplete="off"
+        >
+      </div>
+
+      <p class="disclaimer">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Maximum loan cap: <strong>R5,000</strong></span>
+      </p>
+
+      <button onclick="handleSubmit()">
+        <span>Continue Application</span>
+      </button>
+
+      <div class="progress-footer" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="2" aria-label="Loan application progress">
+        <div class="step-track">
+          <div class="step-line-base"></div>
+          <div class="step-line-active" style="--active-segments: 1;"></div>
+          <span class="step-dot done"><i class="fa-solid fa-check"></i></span>
+          <span class="step-dot active">2</span>
+          <span class="step-dot upcoming">3</span>
+          <span class="step-dot upcoming">4</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const loanInput = document.getElementById('loan-amount');
+      const toast = document.getElementById('toast');
+      const toastIcon = document.getElementById('toastIcon');
+      const toastMessage = document.getElementById('toastMessage');
+      const TOAST_DURATION_MS = 5000;
+      const REDIRECT_DELAY_MS = TOAST_DURATION_MS + 400; // small buffer so toast fully clears
+      let redirectTimer = null;
+      
+      function showToast(message, type = 'success', icon = 'fa-check') {
+        // Reset animation
+        toast.className = 'toast-notification';
+        void toast.offsetWidth; // Trigger reflow
+        
+        // Set message and icon
+        toastMessage.textContent = message;
+        toastIcon.className = `toast-icon fa-solid ${icon}`;
+        
+        // Apply type and trigger animation
+        toast.classList.add('show', type);
+        
+        // Remove after animation completes
+        setTimeout(() => {
+          toast.classList.remove('show', type);
+        }, TOAST_DURATION_MS);
+      }
+      
+      loanInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/,/g, '');
+        
+        if (parseFloat(value) > 5000) {
+          value = '5000';
+        }
+        
+        value = value.replace(/[^\d.]/g, '');
+        
+        e.target.value = value;
+      });
+
+      function handleSubmit() {
+        const amount = parseFloat(loanInput.value);
+        
+        if (!amount || amount <= 0) {
+          showToast('Please enter a valid loan amount', 'error', 'fa-exclamation-circle');
+          return;
+        }
+        
+        if (amount > 5000) {
+          showToast('Loan amount cannot exceed R5,000', 'error', 'fa-exclamation-triangle');
+          return;
+        }
+        
+        showToast(`R${amount.toFixed(2)} loan submitted!`, 'success', 'fa-check-circle');
+
+        if (redirectTimer) {
+          clearTimeout(redirectTimer);
+        }
+
+        redirectTimer = setTimeout(() => {
+          window.location.href = 'contract.html';
+        }, REDIRECT_DELAY_MS);
+      }
+    </script>
+  </body>
+</html>

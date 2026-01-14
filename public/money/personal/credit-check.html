@@ -20,6 +20,7 @@
         --lavender: #f2edff;
         --success: #34c759;
         --danger: #ff3b30;
+        --step-dot-size: 32px;
       }
 
       * {
@@ -845,6 +846,107 @@
         font-size: 0.85rem;
       }
 
+      .progress-footer {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(96, 96, 96, 0.08);
+      }
+
+      .step-track {
+        position: relative;
+        width: min(420px, 100%);
+        margin: 0 auto;
+        height: 48px;
+      }
+
+      .step-line-base,
+      .step-line-active {
+        position: absolute;
+        top: 50%;
+        left: calc(var(--step-dot-size) / 2);
+        height: 2px;
+        transform: translateY(-50%);
+        border-radius: 2px;
+        z-index: 1;
+      }
+
+      .step-line-base {
+        width: calc(100% - var(--step-dot-size));
+        background: rgba(106, 67, 255, 0.18);
+      }
+
+      .step-line-active {
+        width: calc((100% - var(--step-dot-size)) / 3 * var(--active-segments, 1));
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        box-shadow: 0 8px 20px rgba(106, 67, 255, 0.25);
+      }
+
+      .step-dot {
+        position: absolute;
+        top: 50%;
+        width: var(--step-dot-size);
+        height: var(--step-dot-size);
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid rgba(106, 67, 255, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+      }
+
+      .step-dot.done {
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 20px rgba(106, 67, 255, 0.3);
+      }
+
+      .step-dot.active {
+        border-color: var(--purple);
+        border-width: 3px;
+        color: var(--purple);
+        background: #fff;
+        box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+        animation: stepPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes stepPulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(106, 67, 255, 0);
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+      }
+
+      .step-dot.upcoming {
+        border-style: dashed;
+        color: rgba(96, 96, 96, 0.55);
+      }
+
+      .step-dot:nth-of-type(1) {
+        left: calc(var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(2) {
+        left: calc((100% - var(--step-dot-size)) / 3 + var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(3) {
+        left: calc((100% - var(--step-dot-size)) * 2 / 3 + var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(4) {
+        left: calc(100% - var(--step-dot-size) / 2);
+      }
+
       .page-footer {
         margin-top: 2rem;
         text-align: center;
@@ -1092,7 +1194,7 @@
             <p class="status-line" id="status">Inputs pending</p>
             <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: 100%;">
               <button class="primary-btn" id="run-credit-check-btn" type="button">Start Engine</button>
-              <button class="primary-btn hidden" id="proceed-step-two-btn" type="button" onclick="window.location.href='loanamount.html'">Proceed to Step Two</button>
+              <button class="primary-btn hidden" id="proceed-step-two-btn" type="button" onclick="window.location.href='step2.html'">Proceed to Step Two</button>
               <button class="ghost-btn" id="edit-inputs-btn" type="button">Edit Inputs</button>
               <button class="link-btn" id="view-details-btn" type="button">View details</button>
             </div>
@@ -1199,6 +1301,17 @@
             Download the ZIP retdata returned by Experian (PDF + XML) straight from this run.
           </p>
           <button class="primary-btn" id="download-retdata-btn" disabled>Download retdata ZIP</button>
+        </div>
+
+        <div class="progress-footer" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-label="Loan application progress">
+          <div class="step-track">
+            <div class="step-line-base"></div>
+            <div class="step-line-active" style="--active-segments: 0;"></div>
+            <span class="step-dot active">1</span>
+            <span class="step-dot upcoming">2</span>
+            <span class="step-dot upcoming">3</span>
+            <span class="step-dot upcoming">4</span>
+          </div>
         </div>
 
         <footer class="page-footer">
