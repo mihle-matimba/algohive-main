@@ -6,9 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// Use the ephemeral /tmp volume so this works on serverless (no repo writes allowed).
-const TMP_DIR = process.env.TMPDIR || '/tmp';
-const DATA_DIR = path.join(TMP_DIR, 'credit-checks');
+const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'credit-checks.json');
 
 // Experian API Configuration

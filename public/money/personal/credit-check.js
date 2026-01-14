@@ -60,6 +60,30 @@
   const intakeErrorEl = document.getElementById('intake-error');
   const proceedStepTwoBtn = document.getElementById('proceed-step-two-btn');
 
+  // Supabase client for auth + token pass-through to the API
+  const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
+  const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => fetch(url, { mode: 'cors', cache: 'no-store', ...options })
+    }
+  });
+
+  async function getActiveSession() {
+    try {
+      if (!supabaseClient) return null;
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) {
+        console.warn('Supabase session fetch error', error.message);
+        return null;
+      }
+      return data?.session || null;
+    } catch (err) {
+      console.warn('Unable to fetch session', err);
+      return null;
+    }
+  }
+
   const HTML_ESCAPES = {
     '&': '&amp;',
     '<': '&lt;',
@@ -78,7 +102,7 @@
   }
 
   const randFormatter = new Intl.NumberFormat('en-ZA', { maximumFractionDigits: 0 });
-  const EMPLOYER_CSV_PATH = '/money/personal/2025-10-16%20JSE%20Listed%20Companies.csv';
+  const EMPLOYER_CSV_PATH = '/2025-10-16%20JSE%20Listed%20Companies.csv';
   const PRIVATE_EMPLOYER_DEFAULT_MESSAGE = 'Type three or more characters to match against the JSE directory (80% when matched).';
 
   function formatRand(value) {
@@ -940,7 +964,7 @@
 
   async function runCreditCheck() {
     if (!button) {
-      console.error('❌ Run button missing');
+      console.error('Missing run button');
       return;
     }
 
@@ -965,51 +989,60 @@
     const requestPayload = JSON.parse(JSON.stringify(lockedPayload));
 
     try {
-      const response = await fetch('/api/credit-check', {
+      const session = await getActiveSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        setIntakeError('Session expired. Please sign in again.');
+        const next = encodeURIComponent(location.pathname + location.search + location.hash);
+        location.replace(`/auth.html?tab=in&redirect=${next}`);
+        failEngineLoader();
+        return;
+      }
+
+      if (session?.user?.id) {
+        requestPayload.userData.user_id = session.user.id;
+      }
+
+      const res = await fetch('/api/credit-check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          applicationId: requestPayload.applicationId || Date.now(),
+          userData: requestPayload.userData
+        })
       });
 
-      const payload = await response.json();
-
-      const succeeded = payload?.success === true || payload?.ok === true;
-      if (!response.ok || !succeeded) {
-        throw new Error(payload?.error || payload?.message || `HTTP ${response.status}`);
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.success || !payload?.creditScore) {
+        throw new Error(payload?.error || payload?.message || 'Credit check failed');
       }
 
       appendConsoleLine('Experian response received.', 'success');
       appendConsoleLine('Normalizing loan-engine factors...', 'muted');
 
-      const mockMode = payload?.mockMode ?? payload?.raw?.mockMode;
+      const creditScore = payload.creditScore || {};
+      const mockMode = payload.mockMode ?? payload.mock ?? payload.raw?.mockMode;
       if (mockModeEl && typeof mockMode === 'boolean') {
         mockModeEl.textContent = mockMode ? 'ON' : 'OFF';
       }
 
       const normalizedLoanScore = deriveNormalizedLoanScore(
-        payload?.loanEngineScore,
-        payload?.loanEngineScoreMax,
-        payload?.loanEngineScoreNormalized
+        creditScore.score,
+        creditScore.max || 900,
+        creditScore.normalizedPercent || creditScore.normalized_score
       );
 
-      if (Number.isFinite(payload?.loanEngineScoreMax)) {
-        latestLoanEngineMax = payload.loanEngineScoreMax;
+      if (Number.isFinite(creditScore.score)) {
+        scoreValueEl.textContent = creditScore.score.toString();
+      } else {
+        scoreValueEl.textContent = '--';
       }
 
-      if (scoreValueEl) {
-        scoreValueEl.textContent = Number.isFinite(normalizedLoanScore)
-          ? normalizedLoanScore.toFixed(1)
-          : '--';
-      }
+      statusEl.textContent = `Engine complete · Experian ${creditScore.score ?? '--'}`;
 
-      if (statusEl) {
-        const rec = payload?.recommendation?.toUpperCase?.() ?? 'ENGINE COMPLETE';
-        statusEl.textContent = `${rec} · Experian ${payload?.creditScore ?? '--'}`;
-      }
-
-      if (resultEl) {
-        resultEl.textContent = JSON.stringify(payload, null, 2);
-      }
       try {
         sessionStorage.setItem('latestCreditResult', JSON.stringify(payload));
       } catch (err) {
@@ -1017,32 +1050,43 @@
       }
       hasEngineResult = true;
       detailsVisible = false;
-      if (detailSections) {
-        detailSections.classList.add('hidden');
-      }
+      detailSections?.classList.add('hidden');
       if (viewDetailsBtn) {
         viewDetailsBtn.disabled = false;
       }
 
-      renderCreditScoreBreakdown(payload?.breakdown?.creditScore);
-      renderLoanEngineSummary(
-        payload?.breakdown,
-        payload?.loanEngineScore,
-        payload?.loanEngineScoreMax,
-        payload?.loanEngineScoreNormalized
-      );
-      renderCreditExposure(payload?.creditExposure);
-      renderScoreReasons(payload?.scoreReasons);
-      renderEmploymentHistory(payload?.employmentHistory);
-      prepareRetdataDownload(
-        payload?.raw?.zipData,
-        `${payload?.applicationId || 'credit-check'}-experian-retdata.zip`
-      );
-      completeEngineLoader();
+      renderCreditScoreBreakdown({
+        score: creditScore.score,
+        min: creditScore.min || 0,
+        max: creditScore.max || 900,
+        normalizedPercent: creditScore.normalizedPercent || creditScore.normalized_score || 0,
+        weightPercent: creditScore.weightPercent || 35,
+        contributionPercent: creditScore.contributionPercent || 0
+      });
 
+      renderLoanEngineSummary(
+        null,
+        Number.isFinite(normalizedLoanScore) ? normalizedLoanScore : 0,
+        100,
+        Number.isFinite(normalizedLoanScore) ? normalizedLoanScore : 0
+      );
+
+      renderCreditExposure(creditScore.accountSummary || creditScore.accounts?.exposure || creditScore.exposure);
+      renderScoreReasons(creditScore.declineReasons || creditScore.reasons);
+      renderEmploymentHistory(creditScore.employmentHistory || []);
+
+      prepareRetdataDownload(
+        payload.zipData || payload.retdata || payload.raw?.zipData,
+        `${payload.applicationId || 'credit-check'}-experian-retdata.zip`
+      );
+
+      if (resultEl) {
+        resultEl.textContent = 'Credit check completed.';
+        resultEl.classList.remove('hidden');
+      }
+      completeEngineLoader();
       appendConsoleLine('Engine finished. Score ready.', 'success');
-      
-      // Show the "Proceed to Step Two" button and hide the "Start Engine" button
+
       if (proceedStepTwoBtn) {
         proceedStepTwoBtn.classList.remove('hidden');
       }
@@ -1061,6 +1105,7 @@
       failEngineLoader();
       hasEngineResult = false;
       resetDetailSections();
+      setIntakeError(error.message || 'Credit check failed');
     } finally {
       if (button && intakeLocked) {
         button.disabled = false;
@@ -1077,72 +1122,68 @@
     }
   }
 
-  lockInputsBtn?.addEventListener('click', () => {
+  function toggleDetailSections() {
+    if (!detailSections || !viewDetailsBtn) return;
+    detailsVisible = !detailsVisible;
+    detailSections.classList.toggle('hidden', !detailsVisible);
+    viewDetailsBtn.textContent = detailsVisible ? 'Hide details' : 'View details';
+  }
+
+  function toggleBreakdown() {
+    if (!breakdownToggleBtn || !engineList) return;
+    breakdownExpanded = !breakdownExpanded;
+    breakdownToggleBtn.textContent = breakdownExpanded ? 'Hide breakdown' : 'Show breakdown';
+    engineList.classList.toggle('collapsed', !breakdownExpanded);
+  }
+
+  function lockInputs() {
     try {
       const payload = buildRequestPayload();
-      lockedPayload = payload;
+      lockedPayload = {
+        ...payload,
+        applicationId: Date.now()
+      };
       intakeLocked = true;
       setIntakeError('');
-      if (governmentEmployerSection) {
-        governmentEmployerSection.classList.add('hidden');
-      }
-      if (privateEmployerSection) {
-        privateEmployerSection.classList.add('hidden');
-      }
+      appendConsoleLine('Inputs locked. Ready for Experian.', 'success');
       showEnginePanel();
-      resetDetailSections();
       resetVisualOutputs('Ready to launch');
-      resetConsole('Inputs locked. Engine ready for launch.');
-      appendConsoleLine('Payload sealed. Awaiting Start Engine command.', 'success');
+      resetConsole('Inputs locked. Launch when ready.');
       if (button) {
         button.disabled = false;
       }
     } catch (error) {
-      setIntakeError(error.message);
+      intakeLocked = false;
+      lockedPayload = null;
+      setIntakeError(error.message || 'Unable to lock inputs.');
       appendConsoleLine(`Validation failed: ${error.message}`, 'error');
+      if (button) {
+        button.disabled = true;
+      }
     }
-  });
+  }
 
-  editInputsBtn?.addEventListener('click', () => {
-    returnToIntake();
-    appendConsoleLine('Inputs unlocked. Update applicant snapshot before locking again.', 'muted');
-  });
-
-  viewDetailsBtn?.addEventListener('click', () => {
-    if (viewDetailsBtn.disabled) {
-      return;
-    }
-    if (!hasEngineResult) {
-      appendConsoleLine('Run the engine before viewing details.', 'muted');
-      return;
-    }
-    window.location.href = 'credit-details.html';
-  });
-
-  button?.addEventListener('click', runCreditCheck);
-  breakdownToggleBtn?.addEventListener('click', () => {
-    breakdownExpanded = !breakdownExpanded;
-    if (engineList) {
-      engineList.classList.toggle('collapsed', !breakdownExpanded);
-    }
-    if (breakdownToggleBtn) {
-      breakdownToggleBtn.textContent = breakdownExpanded ? 'Hide breakdown' : 'Show breakdown';
-    }
-  });
+  breakdownToggleBtn?.addEventListener('click', toggleBreakdown);
   engineLoader?.addEventListener('click', toggleConsoleVisibility);
+  viewDetailsBtn?.addEventListener('click', toggleDetailSections);
+  lockInputsBtn?.addEventListener('click', lockInputs);
+  editInputsBtn?.addEventListener('click', returnToIntake);
+  button?.addEventListener('click', runCreditCheck);
+
   employmentSectorSelect?.addEventListener('change', event => {
-    const sector = event.target.value;
-    setEmploymentSector(sector);
-    if (sector === 'PRIVATE') {
-      loadEmploymentDirectory();
-    }
+    setEmploymentSector(event.target.value);
   });
-  governmentEmployerInput?.addEventListener('input', () => {
+
+  governmentEmployerInput?.addEventListener('input', event => {
     if (employmentState.sector !== 'GOVERNMENT' && employmentSectorSelect) {
       employmentSectorSelect.value = 'GOVERNMENT';
       setEmploymentSector('GOVERNMENT');
     }
+    if (!event.target.value) {
+      employmentState.listedMatch = null;
+    }
   });
+
   privateEmployerInput?.addEventListener('input', event => {
     if (employmentState.sector !== 'PRIVATE' && employmentSectorSelect) {
       employmentSectorSelect.value = 'PRIVATE';
@@ -1150,10 +1191,13 @@
     }
     evaluatePrivateEmployerMatch(event.target.value);
   });
+
   privateEmployerInput?.addEventListener('change', event => {
     evaluatePrivateEmployerMatch(event.target.value);
   });
+
   updateEmploymentSections();
+
   retdataButton?.addEventListener('click', () => {
     if (!retdataDownloadUrl) {
       return;
@@ -1167,6 +1211,7 @@
     tempLink.click();
     document.body.removeChild(tempLink);
   });
+
   window.addEventListener('beforeunload', revokeRetdataDownloadUrl);
   returnToIntake();
   detectMockMode();

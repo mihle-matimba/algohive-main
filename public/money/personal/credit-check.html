@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loan score Engine</title>
+    <script src="https://cdn.tailwindcss.com" nonce="ALGOHIVE"></script>
+    <script nonce="ALGOHIVE">
+      (function () {
+        const originalWarn = console.warn;
+        console.warn = function (msg, ...rest) {
+          if (typeof msg === 'string' && msg.includes('cdn.tailwindcss.com should not be used in production')) return;
+          originalWarn.call(console, msg, ...rest);
+        };
+      })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" nonce="ALGOHIVE"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
@@ -26,15 +38,14 @@
         box-sizing: border-box;
       }
 
-      /* Sidebar layout */
-      #layout { --sb: 350px; display: grid; grid-template-columns: 1fr; min-height: 100vh; }
-      #ah-overlay { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.4); display: none; }
-      #ah-sidebar { transition: transform .3s ease, width .2s ease; width: var(--sb); max-width: 85vw; position: fixed; top: 0; z-index: 50; height: 100vh; transform: translateX(-100%); background: #fff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+      /* Sidebar layout (aligned with home.html) */
+      #layout { --sb: 275px; display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+      #ah-overlay { position: fixed; inset: 0; z-index: 40; }
+      #ah-sidebar { transition: transform .3s ease, width .2s ease; width: 350px; max-width: 85vw; position: fixed; top: 0; z-index: 50; height: 100vh; transform: translateX(-100%); background: #fff; }
       #ah-sidebar.is-open { transform: translateX(0); }
       @media (min-width: 768px) {
         #layout { grid-template-columns: var(--sb) 1fr; }
         #ah-sidebar { position: sticky; top: 0; width: var(--sb); max-width: none; height: 100vh; transform: translateX(0); z-index: auto; }
-        #ah-overlay { display: none !important; }
       }
 
       /* Brand switcher */
@@ -43,20 +54,19 @@
       #ah-brand-switcher summary::-webkit-details-marker { display: none; }
       .brand-toggle { margin: 10px 12px; border: 1px solid #e2e8f0; border-radius: 14px; background: linear-gradient(135deg, #f8fafc, #eef2ff); box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.4); display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s ease; }
       #ah-brand-switcher[open] .brand-toggle { border-color: #cbd5e1; background: #fff; box-shadow: 0 14px 36px -18px rgba(15, 23, 42, 0.55); }
-      #ah-brand-switcher[open] .brand-toggle .fa-chevron-down { transform: rotate(180deg); }
-      .brand-marker { width: 42px; height: 42px; border-radius: 12px; background: #111827; display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+      .brand-marker { width: 42px; height: 42px; border-radius: 12px; background: #fff; border: 1px solid #e2e8f0; display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
       .brand-menu { position: absolute; left: 12px; right: 12px; top: calc(100% - 6px); border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; box-shadow: 0 24px 48px -20px rgba(15, 23, 42, 0.5); padding: 12px; display: grid; gap: 8px; z-index: 10; }
       .brand-menu-header { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #475569; padding: 4px 4px 2px; }
-      .brand-option { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; transition: background-color 0.2s ease, color 0.2s ease, filter 0.2s ease; text-decoration: none; color: inherit; }
+      .brand-option { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; transition: background-color 0.2s ease, color 0.2s ease, filter 0.2s ease; }
       .brand-option:hover { background: linear-gradient(135deg, #000000, #7c3aed); }
       .brand-option:hover img { filter: brightness(0) invert(1); }
       .brand-option:hover .algomoney-word { color: #fff; }
       .brand-option img { width: 38px; height: 38px; border-radius: 10px; object-fit: contain; background: #fff; border: 1px solid #e2e8f0; padding: 6px; }
 
       /* Sidebar navigation */
-      #main-nav { padding: 8px; font-size: 14px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-evenly; }
-      #main-nav .nav-section-label { padding: 8px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-top: 0; }
-      #main-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-weight: 500; color: #0f172a; text-decoration: none; transition: background 0.2s ease; }
+      #main-nav { padding: 8px; font-size: 14px; flex: 1; overflow-y: auto; }
+      #main-nav .nav-section-label { padding: 8px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; }
+      #main-nav a { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 8px; font-weight: 500; color: #0f172a; text-decoration: none; transition: background 0.2s ease; }
       #main-nav a:hover { background: #f1f5f9; }
       #main-nav a.nav-active { background: #f1f5f9; font-weight: 600; }
       #main-nav a img { width: 16px; height: 16px; flex-shrink: 0; }
@@ -868,104 +878,110 @@
     </style>
     <script defer src="credit-check.js"></script>
   </head>
-  <body>
+  <body class="min-h-screen overflow-x-hidden bg-[var(--bg)]">
     <div id="layout">
-      <div id="ah-overlay"></div>
-      <aside id="ah-sidebar">
-        <details class="group" id="ah-brand-switcher" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+      <div id="ah-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+
+      <aside id="ah-sidebar" data-collapsed="false" class="border-r border-slate-200 bg-white flex flex-col overflow-hidden">
+        <details class="group border-b border-slate-200 pb-2" id="ah-brand-switcher">
           <summary class="brand-toggle">
             <div class="brand-marker">
-              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" style="width: 28px; height: 28px; object-fit: contain;" />
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/ICON%20AHM.svg" alt="AlgoMoney Logo" class="w-7 h-7 object-contain" />
             </div>
-            <div style="min-width: 0;">
-              <div style="font-weight: 700; font-size: 15px; color: #0f172a;">AlgoMoney</div>
-              <div style="font-size: 11px; color: #64748b;">Workspace</div>
+            <div class="min-w-0">
+              <div class="font-bold text-[15px] text-slate-900 label">AlgoMoney</div>
             </div>
-            <i class="fa-solid fa-chevron-down" style="color: #94a3b8; margin-left: auto; transition: transform 0.2s ease;"></i>
+            <i class="fa-solid fa-chevron-down text-slate-400 ml-auto transition-transform group-open:rotate-180"></i>
           </summary>
           <div class="brand-menu">
-            <div class="brand-menu-header">Switch workspace</div>
+            <div class="brand-menu-header">Switch</div>
             <a href="/demo/dashboard.html" class="brand-option">
               <img src="https://static.wixstatic.com/media/ac771e_af06d86a7a1f4abd87e52e45f3bcbd96~mv2.png" alt="AlgoHive Markets Logo" />
-              <div style="min-width: 0; font-weight: 600; color: #0f172a;" class="algomoney-word">AlgoHive Markets</div>
+              <div class="min-w-0 font-semibold text-slate-900 label algomoney-word">AlgoHive Markets</div>
             </a>
           </div>
         </details>
 
-        <nav id="main-nav">
-          <p class="nav-section-label">Algolend</p>
-          <a href="/money/home.html" title="Home">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" />
-            <span>Algolend</span>
+        <nav id="main-nav" class="p-2 text-[14px] flex-1 overflow-y-auto">
+          <p class="px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Overview</p>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/money/home.html" title="Home">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/home-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Home</span>
           </a>
-          <a href="#" title="Dashboard">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" />
-            <span>Dashboard</span>
-          </a>
-          <a href="#" title="Apply Loan" class="nav-active">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/money-send-01-stroke-rounded.svg" alt="" />
-            <span>Apply Loan</span>
-          </a>
-          <a href="#" title="Calculator">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/calculator-stroke-rounded.svg" alt="" />
-            <span>Calculator</span>
-          </a>
-          <a href="#" title="Transactions">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/money-receive-flow-02-stroke-rounded.svg" alt="" />
-            <span>Transactions</span>
-          </a>
-          <a href="#" title="Transcripts">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/file-02-stroke-rounded.svg" alt="" />
-            <span>Transcripts</span>
-          </a>
-          <a href="#" title="Policies">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/security-check-stroke-rounded.svg" alt="" />
-            <span>Policies</span>
-          </a>
-          <a href="#" title="Settings">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/settings-02-stroke-rounded.svg" alt="" />
-            <span>Settings</span>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Accounts">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/pie-chart-09-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Accounts</span>
           </a>
 
-         <!-- <p class="nav-section-label" style="margin-top: 16px;">Pay</p>
-          <a href="#" title="Geo Pay">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/maps-circle-02-stroke-rounded.svg" alt="" />
-            <span>Geo Pay</span>
+          <!--
+          <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Pay</p>
+          <details class="group rounded-lg">
+            <summary class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 cursor-pointer">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/money-send-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" />
+              <span class="label flex-1 flex items-center justify-between">Make a Payment <i class="fa-solid fa-chevron-down text-[11px] text-slate-500 transition-transform group-open:rotate-180"></i></span>
+            </summary>
+            <div class="sub ml-9 mt-1 flex flex-col gap-1">
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/pay.html#geo" title="GeoPay">
+                <span class="label">GeoPay</span>
+              </a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/pay.html#bill-split" title="Bill Split">
+                <span class="label">Bill Split</span>
+              </a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/pay.html#eft" title="EFT">
+                <span class="label">EFT</span>
+              </a>
+            </div>
+          </details>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Receive a Payment">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/money-receive-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Receive a Payment</span>
           </a>
-          <a href="#" title="Split Bill">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" />
-            <span>Split Bill</span>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Statements">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Statements</span>
+          </a>
+          -->
+
+          <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Credit</p>
+          <details class="group rounded-lg">
+            <summary class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900 cursor-pointer">
+              <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" />
+              <span class="label flex-1 flex items-center justify-between">Personal Credit <i class="fa-solid fa-chevron-down text-[11px] text-slate-500 transition-transform group-open:rotate-180"></i></span>
+            </summary>
+            <div class="sub ml-9 mt-1 flex flex-col gap-1">
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800 nav-active" href="#" title="Unsecured Credit" aria-current="page">
+                <span class="label">Unsecured Credit</span>
+              </a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="/money/instant-liquidity.html" title="Portfolio Credit">
+                <span class="label">Portfolio Credit</span>
+              </a>
+              <a class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-800" href="#" title="Instant Liquidity">
+                <span class="label">Instant Liquidity</span>
+              </a>
+            </div>
+          </details>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="/money/business/apply.html" title="For my business">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/corporate-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">For my business</span>
           </a>
 
-          <p class="nav-section-label" style="margin-top: 16px;">Credit</p>
-          <a href="#" class="nav-active" title="Personal Credit">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/invoice-01-stroke-rounded.svg" alt="" />
-            <span>Personal Credit</span>
-          </a>
-          <a href="#" title="Business Funding">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/corporate-stroke-rounded.svg" alt="" />
-            <span>Business Funding</span>
-          </a>
-
-          <p class="nav-section-label" style="margin-top: 16px;">Activity</p>
-          <a href="#" title="Transactions">
-            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" />
-            <span>Transactions</span>
+          <p class="mt-4 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 label">Documents</p>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 font-medium text-slate-900" href="#" title="Statements">
+            <img src="https://aazofjsssobejhkyyiqv.supabase.co/storage/v1/object/public/AlgoHive/icons/analysis-text-link-stroke-rounded.svg" alt="" class="w-4 h-4 shrink-0" /><span class="label">Statements</span>
           </a>
         </nav>
 
--->
-        <div class="sidebar-footer">
-          <a class="btn-settings" href="/public/money/home.html" title="Go Back">
-            <i class="fa-solid fa-arrow-left" style="color: #64748b;"></i>
+        <div class="p-3 border-t border-slate-200 footer flex items-center justify-between gap-2">
+          <a id="ah-settings" class="btn btn-settings h-10 w-10 p-0 rounded-xl bg-slate-100 hover:bg-slate-200 border-0" href="/demo/settings.html" title="Settings">
+            <i class="fa-solid fa-gear"></i>
           </a>
         </div>
       </aside>
 
-      <main class="app-shell" style="position: relative; flex: 1; min-width: 0;">
-        <button id="ah-mobile-menu-btn" aria-label="Open menu">
-          <i class="fa-solid fa-bars" style="color: #64748b;"></i>
-        </button>
+      <main class="relative flex-1 min-w-0 bg-[var(--bg)]">
+        <div class="max-w-7xl mx-auto px-3 md:px-5 pb-24 lg:pb-12 pt-6 lg:pt-8">
+          <div class="flex items-start md:items-center gap-3 flex-1 min-w-0 mb-4">
+            <button id="ah-mobile-menu-btn" aria-label="Open menu" class="md:hidden inline-flex items-center justify-center h-11 w-11 p-0 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+          </div>
+
+          <div class="app-shell" style="position: relative; flex: 1; min-width: 0; padding: 0;">
       <section class="intake-panel" id="intake-panel">
         <div class="badge">
           <i class="fa-solid fa-shield-halved"></i>
@@ -1205,37 +1221,61 @@
           Score Engine · Mock mode toggle via ENV. Built for the one-button credit check flow.
         </footer>
       </section>
-        </div>
-      </main>
-    </div>
+            </div>
+          </div>
+        </main>
+      </div>
 
-    <script nonce="ALGOHIVE">
-      (function() {
+    <script>
+      (() => {
         const sidebar = document.getElementById('ah-sidebar');
         const overlay = document.getElementById('ah-overlay');
         const mobileBtn = document.getElementById('ah-mobile-menu-btn');
 
-        if (mobileBtn && sidebar && overlay) {
-          mobileBtn.addEventListener('click', function() {
-            sidebar.classList.add('is-open');
-            overlay.style.display = 'block';
-          });
+        const openSidebar = () => {
+          sidebar?.classList.add('is-open');
+          overlay?.classList.remove('hidden');
+        };
 
-          overlay.addEventListener('click', function() {
-            sidebar.classList.remove('is-open');
-            overlay.style.display = 'none';
-          });
-        }
+        const closeSidebar = () => {
+          sidebar?.classList.remove('is-open');
+          overlay?.classList.add('hidden');
+        };
 
-        // Hide mobile menu button on desktop
-        if (mobileBtn && window.innerWidth >= 768) {
-          mobileBtn.style.display = 'none';
-        }
-        window.addEventListener('resize', function() {
-          if (mobileBtn) {
-            mobileBtn.style.display = window.innerWidth >= 768 ? 'none' : 'inline-flex';
+        mobileBtn?.addEventListener('click', openSidebar);
+        overlay?.addEventListener('click', closeSidebar);
+      })();
+
+      // Auth guard (mirrors home.html): require Supabase session and redirect to auth if missing
+      (async () => {
+        const SUPABASE_URL = "https://aazofjsssobejhkyyiqv.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM";
+        const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          global: {
+            fetch: (url, options = {}) => fetch(url, { mode: 'cors', cache: 'no-store', ...options })
           }
         });
+
+        const redirectToAuth = () => {
+          const next = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace(`/auth.html?tab=in&redirect=${next}`);
+        };
+
+        try {
+          if (!supabaseClient) {
+            console.warn('Supabase unavailable; redirecting to auth');
+            redirectToAuth();
+            return;
+          }
+          const { data: { session }, error } = await supabaseClient.auth.getSession();
+          if (error) console.warn('Error fetching session', error.message);
+          if (!session) {
+            redirectToAuth();
+          }
+        } catch (err) {
+          console.warn('Unable to enforce session guard', err);
+          redirectToAuth();
+        }
       })();
     </script>
   </body>
