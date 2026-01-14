@@ -13,4 +13,4 @@
 - [x] Algolend Repayment History · 3% · ask borrower if brand-new (100%) or existing (50%) until live feeds
 - [x] Device (IP) Risk · 2% · derive fraud signals from client IP/device fingerprint
 
-**Current coverage:** 90% of the total weight (Credit Score 25% + Credit Utilization 5% + Adverse Listings 10% + Debt-to-Income 15% + Employment Tenure 5% + Contract Type 5% + Employment Category 5% + Income Stability 10% + AGL Retrieval 5% + Algolend Repayment 3% + Device/IP 2%) has live scoring. Remaining 10% is pending bank statement cashflow analysis. dont forget to update average 
+**Current coverage:** 90% of the total weight (Credit Score 25% + Credit Utilization 5% + Adverse Listings 10% + Debt-to-Income 15% + Employment Tenure 5% + Contract Type 5% + Employment Category 5% + Income Stability 10% + AGL Retrieval 5% + Algolend Repayment 3% + Device/IP 2%) has live scoring. Remaining 10% is pending bank statement cashflow analysis.
