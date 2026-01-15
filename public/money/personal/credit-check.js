@@ -8,6 +8,9 @@ import { supabase } from '/js/supabase.js';
   const identityInput = document.getElementById('identity-number');
   const firstNameInput = document.getElementById('first-name');
   const lastNameInput = document.getElementById('last-name');
+  const identityDisplay = document.getElementById('identity-number-display');
+  const firstNameDisplay = document.getElementById('first-name-display');
+  const lastNameDisplay = document.getElementById('last-name-display');
   const grossMonthlyIncomeInput = document.getElementById('gross-monthly-income');
   const yearsCurrentEmployerInput = document.getElementById('years-current-employer');
   const contractTypeSelect = document.getElementById('contract-type');
@@ -63,6 +66,11 @@ import { supabase } from '/js/supabase.js';
   const proceedStepTwoBtn = document.getElementById('proceed-step-two-btn');
 
   const profileInputs = [identityInput, firstNameInput, lastNameInput].filter(Boolean);
+  const profileDisplays = [
+    { value: identityDisplay, fallback: 'South African ID Number' },
+    { value: firstNameDisplay, fallback: 'First Name' },
+    { value: lastNameDisplay, fallback: 'Surname' }
+  ].filter(item => item.value);
 
   const HTML_ESCAPES = {
     '&': '&amp;',
@@ -85,23 +93,11 @@ import { supabase } from '/js/supabase.js';
   const EMPLOYER_CSV_PATH = '/money/personal/2025-10-16%20JSE%20Listed%20Companies.csv';
   const PRIVATE_EMPLOYER_DEFAULT_MESSAGE = 'Type three or more characters to match against the JSE directory (80% when matched).';
 
-  function setProfileInputsReadonly(isReadonly) {
-    profileInputs.forEach(input => {
-      if (!input) return;
-      if (isReadonly) {
-        input.setAttribute('readonly', 'readonly');
-        input.setAttribute('aria-readonly', 'true');
-      } else {
-        input.removeAttribute('readonly');
-        input.removeAttribute('aria-readonly');
-      }
-    });
-  }
-
-  function setProfileInputsPlaceholder(value) {
-    profileInputs.forEach(input => {
-      if (!input) return;
-      input.placeholder = value;
+  function setProfileDisplayText(value, isMissing = false) {
+    profileDisplays.forEach(item => {
+      if (!item.value) return;
+      item.value.textContent = value || item.fallback || '—';
+      item.value.style.color = isMissing ? 'var(--danger)' : 'var(--text-primary)';
     });
   }
 
@@ -121,8 +117,7 @@ import { supabase } from '/js/supabase.js';
       lockInputsBtn.disabled = true;
     }
 
-    setProfileInputsReadonly(true);
-    setProfileInputsPlaceholder('Fetching profile...');
+    setProfileDisplayText('Fetching profile...');
 
     const session = await requireSession();
     if (!session) {
@@ -141,24 +136,39 @@ import { supabase } from '/js/supabase.js';
       return;
     }
 
+    const identityValue = profile?.id_number ? String(profile.id_number) : '';
+    const firstNameValue = profile?.first_name ? String(profile.first_name) : '';
+    const lastNameValue = profile?.last_name ? String(profile.last_name) : '';
+
     if (identityInput) {
-      identityInput.value = profile?.id_number ? String(profile.id_number) : '';
+      identityInput.value = identityValue;
     }
     if (firstNameInput) {
-      firstNameInput.value = profile?.first_name ? String(profile.first_name) : '';
+      firstNameInput.value = firstNameValue;
     }
     if (lastNameInput) {
-      lastNameInput.value = profile?.last_name ? String(profile.last_name) : '';
+      lastNameInput.value = lastNameValue;
+    }
+
+    if (identityDisplay) {
+      identityDisplay.textContent = identityValue || 'Missing in profile';
+      identityDisplay.style.color = identityValue ? 'var(--text-primary)' : 'var(--danger)';
+    }
+    if (firstNameDisplay) {
+      firstNameDisplay.textContent = firstNameValue || 'Missing in profile';
+      firstNameDisplay.style.color = firstNameValue ? 'var(--text-primary)' : 'var(--danger)';
+    }
+    if (lastNameDisplay) {
+      lastNameDisplay.textContent = lastNameValue || 'Missing in profile';
+      lastNameDisplay.style.color = lastNameValue ? 'var(--text-primary)' : 'var(--danger)';
     }
 
     const missingProfileFields = !profile?.id_number || !profile?.first_name || !profile?.last_name;
     if (missingProfileFields) {
-      setProfileInputsPlaceholder('Complete profile to continue');
       setIntakeError('Please complete your profile (first name, last name, ID number) before running a credit check.');
       return;
     }
 
-    setProfileInputsPlaceholder('Auto-filled from profile');
     setIntakeError('');
     if (lockInputsBtn) {
       lockInputsBtn.disabled = false;
