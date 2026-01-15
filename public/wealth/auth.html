@@ -329,25 +329,6 @@
       color: hsl(var(--foreground));
     }
 
-    @keyframes inputShake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-6px); }
-      40% { transform: translateX(6px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
-    }
-
-    .shake {
-      animation: inputShake 0.35s ease-in-out;
-    }
-
-    .glass-input.error {
-      border-color: rgba(239, 68, 68, 0.55);
-      box-shadow:
-        inset 0 1px 1px rgba(255,255,255,0.75),
-        inset 0 -1px 2px rgba(239, 68, 68, 0.2),
-        0 14px 32px rgba(239, 68, 68, 0.15);
-    }
   </style>
 </head>
 <body class="relative flex min-h-screen flex-col">
@@ -600,22 +581,12 @@
       });
     }
 
-    function showToast(message, input) {
+    function showToast(message) {
       clearTimeout(toastTimeout);
       toastMessage.textContent = message;
       toast.classList.add('show');
-      let wrapper;
-      if (input) {
-        wrapper = input.closest('.glass-input');
-        wrapper?.classList.add('error');
-        wrapper?.classList.remove('shake');
-        requestAnimationFrame(() => {
-          wrapper?.classList.add('shake');
-        });
-      }
       toastTimeout = setTimeout(() => {
         toast.classList.remove('show');
-        wrapper?.classList.remove('error');
       }, 3200);
     }
 
@@ -638,7 +609,7 @@
         showStep('firstName');
         return;
       }
-      showToast('Enter a valid email address to continue.', document.getElementById('email'));
+      showToast('Enter a valid email address to continue.');
     };
 
     document.getElementById('show-login').onclick = () => showStep('loginEmail');
@@ -651,7 +622,7 @@
         showStep('password');
         return;
       }
-      showToast('Add your first name to continue.', document.getElementById('first-name'));
+      showToast('Add your first name to continue.');
     };
 
     document.getElementById('to-login-password').onclick = () => {
@@ -660,18 +631,18 @@
         showStep('loginPassword');
         return;
       }
-      showToast('Enter the email you signed up with.', document.getElementById('login-email'));
+      showToast('Enter the email you signed up with.');
     };
 
     document.getElementById('login-submit').onclick = () => {
       const email = document.getElementById('login-email').value.trim();
       const pw = document.getElementById('login-password').value;
       if (!email || !email.includes('@') || !email.includes('.')) {
-        showToast('Enter a valid email address.', document.getElementById('login-email'));
+        showToast('Enter a valid email address.');
         return;
       }
       if (pw.length < 6) {
-        showToast('Your password must be at least 6 characters.', document.getElementById('login-password'));
+        showToast('Your password must be at least 6 characters.');
         return;
       }
 
@@ -694,7 +665,7 @@
         showStep('confirm');
         return;
       }
-      showToast('Use at least 6 characters for your password.', document.getElementById('password'));
+      showToast('Use at least 6 characters for your password.');
     };
 
     document.getElementById('back-to-email').onclick = () => showStep('email');
@@ -707,7 +678,7 @@
       const confirmPw = document.getElementById('confirm').value;
 
       if (pw !== confirmPw) {
-        showToast("Passwords don't match.", document.getElementById('confirm'));
+        showToast("Passwords don't match.");
         return false;
       }
 
