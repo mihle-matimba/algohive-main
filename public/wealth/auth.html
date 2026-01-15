@@ -276,6 +276,58 @@
       -webkit-text-fill-color: transparent;
       display: inline-block;
     }
+
+    .toast {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 60;
+      max-width: min(90vw, 380px);
+      background: linear-gradient(135deg, rgba(210,185,255,0.45) 0%, rgba(230,210,255,0.7) 55%, rgba(200,175,245,0.45) 100%);
+      border: 1px solid rgba(210,185,255,0.6);
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.7),
+        inset 0 -1px 2px rgba(150,102,220,0.2),
+        0 18px 40px rgba(91,33,182,0.2);
+      border-radius: 18px;
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      color: hsl(var(--foreground));
+      padding: 0.9rem 1.2rem;
+      transform: translateY(-12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .toast-title {
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .toast-message {
+      font-size: 0.95rem;
+      color: hsla(var(--foreground), 0.68);
+      margin-top: 0.25rem;
+    }
+
+    .toast-close {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.55rem;
+      color: hsla(var(--foreground), 0.6);
+      transition: color 0.2s ease;
+    }
+
+    .toast-close:hover {
+      color: hsl(var(--foreground));
+    }
   </style>
 </head>
 <body class="relative flex min-h-screen flex-col">
@@ -474,6 +526,16 @@
     </div>
   </div>
 
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <button type="button" id="toast-close" class="toast-close" aria-label="Close notification">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+    <div class="toast-title">Something needs your attention</div>
+    <div id="toast-message" class="toast-message"></div>
+  </div>
+
   <script nonce="ALGOHIVE">
     let currentStep = 'email';
     const form = document.getElementById('signup-form');
@@ -481,8 +543,11 @@
     const modalContent = document.getElementById('modal-content');
     const heroHeading = document.getElementById('hero-heading');
     const heroSubheading = document.getElementById('hero-subheading');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
     const heroDefault = heroHeading.textContent.trim();
     const heroSubDefault = heroSubheading.innerHTML;
+    let toastTimeout;
 
     const steps = {
       email: document.getElementById('step-email'),
@@ -509,6 +574,20 @@
       wrapper.classList.toggle('has-value', input.value.trim().length > 0);
     }
 
+    function showToast(message) {
+      clearTimeout(toastTimeout);
+      toastMessage.textContent = message;
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3200);
+    }
+
+    document.getElementById('toast-close').onclick = () => {
+      toast.classList.remove('show');
+      clearTimeout(toastTimeout);
+    };
+
     document.querySelectorAll('.glass-input input').forEach((input) => {
       updateGlassInputState(input);
       input.addEventListener('input', () => updateGlassInputState(input));
@@ -516,7 +595,11 @@
 
     document.getElementById('to-first-name').onclick = () => {
       const email = document.getElementById('email').value.trim();
-      if (email && email.includes('@') && email.includes('.')) showStep('firstName');
+      if (email && email.includes('@') && email.includes('.')) {
+        showStep('firstName');
+        return;
+      }
+      showToast('Enter a valid email address to continue.');
     };
 
     document.getElementById('show-login').onclick = () => showStep('loginEmail');
@@ -525,18 +608,33 @@
 
     document.getElementById('to-password').onclick = () => {
       const firstName = document.getElementById('first-name').value.trim();
-      if (firstName.length > 0) showStep('password');
+      if (firstName.length > 0) {
+        showStep('password');
+        return;
+      }
+      showToast('Add your first name to continue.');
     };
 
     document.getElementById('to-login-password').onclick = () => {
       const email = document.getElementById('login-email').value.trim();
-      if (email && email.includes('@') && email.includes('.')) showStep('loginPassword');
+      if (email && email.includes('@') && email.includes('.')) {
+        showStep('loginPassword');
+        return;
+      }
+      showToast('Enter the email you signed up with.');
     };
 
     document.getElementById('login-submit').onclick = () => {
       const email = document.getElementById('login-email').value.trim();
       const pw = document.getElementById('login-password').value;
-      if (!email || !email.includes('@') || !email.includes('.') || pw.length < 6) return;
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        showToast('Enter a valid email address.');
+        return;
+      }
+      if (pw.length < 6) {
+        showToast('Your password must be at least 6 characters.');
+        return;
+      }
 
       showModal('loading');
       modalContent.innerHTML = `
@@ -553,7 +651,11 @@
 
     document.getElementById('to-confirm').onclick = () => {
       const pw = document.getElementById('password').value;
-      if (pw.length >= 6) showStep('confirm');
+      if (pw.length >= 6) {
+        showStep('confirm');
+        return;
+      }
+      showToast('Use at least 6 characters for your password.');
     };
 
     document.getElementById('back-to-email').onclick = () => showStep('email');
@@ -566,7 +668,7 @@
       const confirmPw = document.getElementById('confirm').value;
 
       if (pw !== confirmPw) {
-        showModal('error', "Passwords don't match");
+        showToast("Passwords don't match.");
         return false;
       }
 
