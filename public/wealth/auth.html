@@ -286,14 +286,6 @@
         0 10px 24px rgba(91,33,182,0.18);
     }
 
-    .otp-confirm {
-      width: min(100%, 360px);
-      margin: 0 auto;
-      height: 3rem;
-      font-weight: 600;
-      color: hsl(var(--foreground));
-    }
-
     .step { display: none; }
     .step.active { display: block; }
 
@@ -419,7 +411,7 @@
   <div class="flex flex-1 items-center justify-center px-6 pt-32 pb-16 relative z-10">
     <div class="w-full max-w-md space-y-12">
 
-        <div class="text-center space-y-5">
+        <div id="hero-copy" class="text-center space-y-5">
           <h2 id="hero-heading" class="text-5xl sm:text-6xl font-light tracking-tight animate-on-load delay-2">
             Get started
           </h2>
@@ -546,11 +538,8 @@
             <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="4"/>
             <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="5"/>
           </div>
-          <button type="button" id="verify-otp" class="glass otp-confirm">
-            Confirm
-          </button>
-          <button type="button" id="back-to-confirm" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
-            ← Back
+          <button type="button" id="edit-email" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
+            Edit Email
           </button>
         </div>
 
@@ -594,6 +583,7 @@
     const modalContent = document.getElementById('modal-content');
     const heroHeading = document.getElementById('hero-heading');
     const heroSubheading = document.getElementById('hero-subheading');
+    const heroCopy = document.getElementById('hero-copy');
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
     const heroDefault = heroHeading.textContent.trim();
@@ -619,6 +609,7 @@
       heroSubheading.innerHTML = stepName.startsWith('login')
         ? 'Log in to your <span class="mint-brand">MINT</span> account'
         : heroSubDefault;
+      heroCopy.classList.toggle('hidden', stepName === 'otp');
     }
 
     function updateGlassInputState(input) {
@@ -651,6 +642,22 @@
     syncAllInputStates();
 
     const otpInputs = Array.from(document.querySelectorAll('.otp-input'));
+
+    function checkOtpValue() {
+      const otpValues = otpInputs.map((input) => input.value.trim()).join('');
+      if (otpValues.length !== 6) return;
+      if (otpValues !== '000000') {
+        showToast('That code is incorrect. Try again.');
+        otpInputs.forEach((input) => {
+          input.value = '';
+        });
+        otpInputs[0]?.focus();
+        return;
+      }
+      modal.classList.remove('hidden');
+      showSuccess();
+    }
+
     otpInputs.forEach((input, index) => {
       input.addEventListener('input', (event) => {
         const target = event.target;
@@ -658,6 +665,7 @@
         if (target.value && otpInputs[index + 1]) {
           otpInputs[index + 1].focus();
         }
+        checkOtpValue();
       });
 
       input.addEventListener('keydown', (event) => {
@@ -674,6 +682,7 @@
         input.value = text[index] ?? '';
       });
       otpInputs[Math.min(text.length, otpInputs.length) - 1]?.focus();
+      checkOtpValue();
     });
 
     document.getElementById('to-first-name').onclick = () => {
@@ -754,7 +763,7 @@
     document.getElementById('back-to-first-name').onclick = () => showStep('firstName');
     document.getElementById('back-to-last-name').onclick = () => showStep('lastName');
     document.getElementById('back-to-password').onclick = () => showStep('password');
-    document.getElementById('back-to-confirm').onclick = () => showStep('confirm');
+    document.getElementById('edit-email').onclick = () => showStep('email');
 
     document.getElementById('to-otp').onclick = () => {
       const pw = document.getElementById('password').value;
@@ -774,30 +783,10 @@
       firstOtp?.focus();
     };
 
-    document.getElementById('verify-otp').onclick = () => {
-      const otpValues = Array.from(document.querySelectorAll('.otp-input'))
-        .map((input) => input.value.trim())
-        .join('');
-      if (otpValues.length !== 6) {
-        showToast('Enter the 6-digit code to continue.');
-        return;
-      }
-      if (otpValues !== '000000') {
-        showToast('That code is incorrect. Try again.');
-        return;
-      }
-      modal.classList.remove('hidden');
-      showSuccess();
-    };
-
     form.onsubmit = (e) => {
       e.preventDefault();
       if (currentStep === 'confirm') {
         document.getElementById('to-otp').click();
-        return false;
-      }
-      if (currentStep === 'otp') {
-        document.getElementById('verify-otp').click();
         return false;
       }
       return false;
