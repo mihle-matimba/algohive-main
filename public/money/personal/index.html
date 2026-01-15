@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connect Bank Account</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:600&display=swap');
+
+    :root {
+      --bg: radial-gradient(circle at top, #fef6ff, #f7fbff 40%, #f0f4ff 70%);
+      --card: #ffffff;
+      --border: #e6e6ef;
+      --text-primary: #1f1f2b;
+      --text-muted: #6c6c80;
+      --accent: #6a43ff;
+      --accent-dark: #4b22d6;
+      --accent-soft: rgba(106, 67, 255, 0.12);
+      --danger: #ff3b30;
+      --success: #34c759;
+      --step-dot-size: 32px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      width: min(720px, 100%);
+      background: var(--card);
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      padding: clamp(2rem, 4vw, 3rem);
+      box-shadow: 0 10px 40px rgba(21, 14, 50, 0.08);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: linear-gradient(120deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      border: none;
+      box-shadow: 0 6px 18px rgba(106, 67, 255, 0.35);
+    }
+
+    .masthead {
+      margin-top: 0.8rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.6;
+      max-width: 540px;
+      margin: 0 auto 2.5rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .hiddenField {
+      display: none;
+    }
+
+    .profileHint {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .ctaWrap {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    button {
+      -webkit-appearance: none;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      cursor: pointer;
+      width: 200px;
+      height: 60px;
+      background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+      border-radius: 30px;
+      border: 1px solid #8F9092;
+      box-shadow:
+        0 4px 3px 1px #FCFCFC,
+        0 6px 8px #D6D7D9,
+        0 -4px 4px #CECFD1,
+        0 -6px 4px #FEFEFE,
+        inset 0 0 3px 0 #CECFD1,
+        0 0 20px rgba(106, 67, 255, 0.15);
+      transition: all 0.2s ease;
+      font-family: 'Source Sans Pro', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #606060;
+      text-shadow: 0 1px #fff;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 32px;
+      background: linear-gradient(135deg, rgba(106, 67, 255, 0.3), rgba(75, 34, 214, 0.3));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+      filter: blur(8px);
+    }
+
+    button:hover::before {
+      opacity: 1;
+    }
+
+    button > * {
+      transition: transform 0.2s ease;
+    }
+
+    button:hover:not([disabled]) {
+      box-shadow:
+        0 4px 3px 1px #FCFCFC,
+        0 6px 8px #D6D7D9,
+        0 -4px 4px #CECFD1,
+        0 -6px 4px #FEFEFE,
+        inset 0 0 3px 3px #CECFD1,
+        0 0 30px rgba(106, 67, 255, 0.3);
+    }
+
+    button:hover:not([disabled]) > * {
+      transform: scale(0.975);
+    }
+
+    button:focus:not(:active) {
+      animation: active-button 0.9s alternate infinite;
+      outline: none;
+    }
+
+    @keyframes active-button {
+      from {
+        box-shadow:
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 10px 0 rgba(75, 34, 214, 0.7),
+          0 0 40px rgba(106, 67, 255, 0.5);
+      }
+      to {
+        box-shadow:
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 30px rgba(106, 67, 255, 0.3);
+      }
+    }
+
+    button:active:not([disabled]) {
+      box-shadow:
+        0 4px 3px 1px #FCFCFC,
+        0 6px 8px #D6D7D9,
+        0 -4px 4px #CECFD1,
+        0 -6px 4px #FEFEFE,
+        inset 0 0 5px 3px #999,
+        inset 0 0 30px #aaa;
+    }
+
+    button:active:not([disabled]) > * {
+      transform: scale(0.95);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      min-height: 20px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .status.success { color: var(--success); }
+    .status.error { color: var(--danger); }
+
+    .results {
+      display: none;
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      border-radius: 18px;
+      background: #f4f4fb;
+      border: 1px solid var(--border);
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #1c1c28;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .progress-footer {
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(111, 111, 140, 0.12);
+    }
+
+    .step-track {
+      position: relative;
+      width: min(460px, 100%);
+      margin: 0 auto;
+      height: 48px;
+    }
+
+    .step-line-base,
+    .step-line-active {
+      position: absolute;
+      top: 50%;
+      left: calc(var(--step-dot-size) / 2);
+      height: 2px;
+      transform: translateY(-50%);
+      border-radius: 2px;
+      z-index: 1;
+    }
+
+    .step-line-base {
+      width: calc(100% - var(--step-dot-size));
+      background: rgba(106, 67, 255, 0.18);
+    }
+
+    .step-line-active {
+      width: calc((100% - var(--step-dot-size)) / 3 * var(--active-segments, 0));
+      background: linear-gradient(120deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 6px 16px rgba(106, 67, 255, 0.3);
+    }
+
+    .step-dot {
+      position: absolute;
+      top: 50%;
+      width: var(--step-dot-size);
+      height: var(--step-dot-size);
+      border-radius: 50%;
+      border: 2px solid rgba(106, 67, 255, 0.35);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transform: translate(-50%, -50%);
+      transition: border 0.2s ease, background 0.2s ease;
+      z-index: 2;
+    }
+
+    .step-dot.done {
+      background: linear-gradient(120deg, var(--accent), var(--accent-dark));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(106, 67, 255, 0.35);
+    }
+
+    .step-dot.active {
+      border-width: 3px;
+      border-color: var(--accent);
+      color: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .step-dot.upcoming {
+      border-style: dashed;
+      color: rgba(31, 31, 43, 0.45);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.35); }
+      50% { box-shadow: 0 0 0 9px rgba(106, 67, 255, 0); }
+    }
+
+    .step-dot:nth-of-type(1) { left: calc(var(--step-dot-size) / 2); }
+    .step-dot:nth-of-type(2) { left: calc((100% - var(--step-dot-size)) / 3 + var(--step-dot-size) / 2); }
+    .step-dot:nth-of-type(3) { left: calc((100% - var(--step-dot-size)) * 2 / 3 + var(--step-dot-size) / 2); }
+    .step-dot:nth-of-type(4) { left: calc(100% - var(--step-dot-size) / 2); }
+
+    @media (max-width: 640px) {
+      body { padding: 1.5rem; }
+      .container { border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">
+      <i class="fa-solid fa-lock"></i>
+      Step 1
+    </span>
+
+    <div class="masthead">
+      <h1>Connect Your Bank</h1>
+      <p class="subtitle">
+        Launch a TruID session. <br />
+        Securely connect your bank account and share your financial data with our application.
+      </p>
+       
+    </div>
+
+    <form id="bankForm">
+      <input class="hiddenField" id="name" name="name" type="hidden" value="Joe Customer" />
+      <input class="hiddenField" id="idNumber" name="idNumber" type="hidden" value="8901015000111" />
+      <input class="hiddenField" id="email" name="email" type="hidden" value="joe@example.com" />
+      <input class="hiddenField" id="mobile" name="mobile" type="hidden" value="0720000000" />
+
+      
+
+      <div class="ctaWrap">
+        <button id="startBtn" type="submit">
+          <span>Start TruID Session</span>
+        </button>
+      </div>
+    </form>
+
+    <div class="status" id="status" role="status"></div>
+
+    <div class="results" id="results">
+      <pre id="dataOutput"></pre>
+    </div>
+
+    <div class="progress-footer" aria-live="polite">
+      <div class="step-track">
+        <div class="step-line-base"></div>
+        <div class="step-line-active" style="--active-segments: 0;"></div>
+        <span class="step-dot active">1</span>
+        <span class="step-dot upcoming">2</span>
+        <span class="step-dot upcoming">3</span>
+        <span class="step-dot upcoming">4</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentCollectionId = null;
+    let statusInterval = null;
+
+    const form = document.getElementById('bankForm');
+    const btn = document.getElementById('startBtn');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    const dataOutput = document.getElementById('dataOutput');
+    const progressLine = document.querySelector('.step-line-active');
+    const progressDots = Array.from(document.querySelectorAll('.step-dot'));
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Starting session…</span>';
+      showStatus('Initializing secure connection…');
+
+      try {
+        const response = await fetch('/api/banking/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Could not start connection');
+
+        currentCollectionId = data.collectionId;
+        showStatus('Opening secure TruID window…');
+
+        const popup = window.open(
+          data.consumerUrl,
+          'TruID Banking Connection',
+          'width=500,height=700,scrollbars=yes,resizable=yes'
+        );
+
+        if (!popup) throw new Error('Popup blocked. Please allow popups.');
+
+        startStatusPolling(currentCollectionId);
+      } catch (error) {
+        console.error(error);
+        showStatus(error.message || 'Unable to start session', 'error');
+        resetButton();
+        updateProgress(1);
+      }
+    });
+
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'TRUID_SUCCESS') {
+        showStatus('Connection completed in TruID window', 'success');
+        updateProgress(3);
+      }
+    });
+
+    function startStatusPolling(collectionId) {
+      showStatus('Waiting for TruID to finish…');
+      updateProgress(2);
+
+      statusInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/banking/status?collectionId=${collectionId}`);
+          const data = await response.json();
+
+          if (data.currentStatus === 'COLLECT_SUCCESS') {
+            clearInterval(statusInterval);
+            showStatus('Success! Downloading banking summary…', 'success');
+            updateProgress(3);
+            await fetchBankingData(collectionId);
+            resetButton();
+          } else if (
+            String(data.currentStatus || '').includes('FAILED') ||
+            String(data.currentStatus || '').includes('CANCELLED') ||
+            String(data.currentStatus || '').includes('TIMED_OUT')
+          ) {
+            clearInterval(statusInterval);
+            showStatus('Connection ' + formatStatus(data.currentStatus), 'error');
+            resetButton();
+            updateProgress(2);
+          } else {
+            showStatus('Status: ' + formatStatus(data.currentStatus));
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }, 3000);
+    }
+
+    async function fetchBankingData(collectionId) {
+      try {
+        const response = await fetch(`/api/banking/all?collectionId=${collectionId}`);
+        const data = await response.json();
+        resultsEl.style.display = 'block';
+        dataOutput.textContent = JSON.stringify(data, null, 2);
+        showStatus('Complete. Review the payload below.', 'success');
+        updateProgress(4);
+      } catch (error) {
+        console.error(error);
+        showStatus('Unable to download collection data', 'error');
+      }
+    }
+
+    function resetButton() {
+      btn.disabled = false;
+      btn.innerHTML = '<span>Start TruID Session</span>';
+    }
+
+    function showStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function formatStatus(status) {
+      if (!status) return 'pending';
+      return String(status).replace('COLLECT_', '').replace(/_/g, ' ').toLowerCase();
+    }
+
+    function updateProgress(step) {
+      const clamped = Math.max(1, Math.min(step, 4));
+      if (progressLine) {
+        progressLine.style.setProperty('--active-segments', Math.max(0, clamped - 1));
+      }
+      progressDots.forEach((dot, index) => {
+        dot.classList.remove('active', 'done', 'upcoming');
+        if (index + 1 < clamped) {
+          dot.classList.add('done');
+        } else if (index + 1 === clamped) {
+          dot.classList.add('active');
+        } else {
+          dot.classList.add('upcoming');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

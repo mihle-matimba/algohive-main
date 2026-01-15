@@ -1,0 +1,1 @@
+// Deprecated: TruID now runs via serverless endpoints in /api.
