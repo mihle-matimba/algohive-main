@@ -155,6 +155,20 @@
       -webkit-backdrop-filter: blur(18px) saturate(170%);
     }
 
+    .glass-input svg {
+      transition: opacity 0.35s ease, transform 0.35s ease, width 0.35s ease;
+    }
+
+    .glass-input.has-value {
+      padding-left: 14px;
+    }
+
+    .glass-input.has-value svg {
+      opacity: 0;
+      width: 0;
+      transform: scale(0.6);
+    }
+
     .glass-input input {
       background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(210,190,255,0.18));
       border: 1px solid rgba(255,255,255,0.6);
@@ -169,6 +183,11 @@
       box-shadow:
         inset 0 1px 1px rgba(255,255,255,0.85),
         inset 0 -2px 4px rgba(120,72,210,0.2);
+      transition: padding 0.35s ease;
+    }
+
+    .glass-input.has-value input {
+      padding-left: 1.75rem;
     }
 
     .glass-input:focus-within {
@@ -452,6 +471,17 @@
       steps[stepName].classList.add('active');
       heroHeading.textContent = stepName.startsWith('login') ? 'Welcome back' : heroDefault;
     }
+
+    function updateGlassInputState(input) {
+      const wrapper = input.closest('.glass-input');
+      if (!wrapper) return;
+      wrapper.classList.toggle('has-value', input.value.trim().length > 0);
+    }
+
+    document.querySelectorAll('.glass-input input').forEach((input) => {
+      updateGlassInputState(input);
+      input.addEventListener('input', () => updateGlassInputState(input));
+    });
 
     document.getElementById('to-password').onclick = () => {
       const email = document.getElementById('email').value.trim();
