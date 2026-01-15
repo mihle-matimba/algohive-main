@@ -283,15 +283,15 @@
       right: 1.5rem;
       z-index: 60;
       max-width: min(90vw, 380px);
-      background: linear-gradient(135deg, rgba(210,185,255,0.45) 0%, rgba(230,210,255,0.7) 55%, rgba(200,175,245,0.45) 100%);
-      border: 1px solid rgba(210,185,255,0.6);
+      background: linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.5) 55%, rgba(255,255,255,0.68) 100%);
+      border: 1px solid rgba(255,255,255,0.65);
       box-shadow:
-        inset 0 1px 1px rgba(255,255,255,0.7),
-        inset 0 -1px 2px rgba(150,102,220,0.2),
-        0 18px 40px rgba(91,33,182,0.2);
+        inset 0 1px 1px rgba(255,255,255,0.85),
+        inset 0 -1px 2px rgba(255,255,255,0.35),
+        0 20px 45px rgba(0,0,0,0.18);
       border-radius: 18px;
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      backdrop-filter: blur(18px) saturate(190%);
+      -webkit-backdrop-filter: blur(18px) saturate(190%);
       color: hsl(var(--foreground));
       padding: 0.9rem 1.2rem;
       transform: translateY(-12px);
@@ -313,7 +313,7 @@
 
     .toast-message {
       font-size: 0.95rem;
-      color: hsla(var(--foreground), 0.68);
+      color: rgb(185 28 28);
       margin-top: 0.25rem;
     }
 
@@ -327,6 +327,18 @@
 
     .toast-close:hover {
       color: hsl(var(--foreground));
+    }
+
+    @keyframes inputShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    .shake {
+      animation: inputShake 0.35s ease-in-out;
     }
   </style>
 </head>
@@ -409,7 +421,7 @@
           </p>
         </div>
 
-        <form id="signup-form" class="space-y-10">
+        <form id="signup-form" class="space-y-10" novalidate>
 
         <div id="step-email" class="step active space-y-8">
           <div class="glass glass-input shadow-xl animate-on-load delay-4">
@@ -574,10 +586,19 @@
       wrapper.classList.toggle('has-value', input.value.trim().length > 0);
     }
 
-    function showToast(message) {
+    function showToast(message, input) {
       clearTimeout(toastTimeout);
       toastMessage.textContent = message;
       toast.classList.add('show');
+      if (input) {
+        const wrapper = input.closest('.glass-input');
+        wrapper?.classList.remove('shake');
+        input.classList.remove('shake');
+        requestAnimationFrame(() => {
+          wrapper?.classList.add('shake');
+          input.classList.add('shake');
+        });
+      }
       toastTimeout = setTimeout(() => {
         toast.classList.remove('show');
       }, 3200);
@@ -599,7 +620,7 @@
         showStep('firstName');
         return;
       }
-      showToast('Enter a valid email address to continue.');
+      showToast('Enter a valid email address to continue.', document.getElementById('email'));
     };
 
     document.getElementById('show-login').onclick = () => showStep('loginEmail');
@@ -612,7 +633,7 @@
         showStep('password');
         return;
       }
-      showToast('Add your first name to continue.');
+      showToast('Add your first name to continue.', document.getElementById('first-name'));
     };
 
     document.getElementById('to-login-password').onclick = () => {
@@ -621,18 +642,18 @@
         showStep('loginPassword');
         return;
       }
-      showToast('Enter the email you signed up with.');
+      showToast('Enter the email you signed up with.', document.getElementById('login-email'));
     };
 
     document.getElementById('login-submit').onclick = () => {
       const email = document.getElementById('login-email').value.trim();
       const pw = document.getElementById('login-password').value;
       if (!email || !email.includes('@') || !email.includes('.')) {
-        showToast('Enter a valid email address.');
+        showToast('Enter a valid email address.', document.getElementById('login-email'));
         return;
       }
       if (pw.length < 6) {
-        showToast('Your password must be at least 6 characters.');
+        showToast('Your password must be at least 6 characters.', document.getElementById('login-password'));
         return;
       }
 
@@ -655,7 +676,7 @@
         showStep('confirm');
         return;
       }
-      showToast('Use at least 6 characters for your password.');
+      showToast('Use at least 6 characters for your password.', document.getElementById('password'));
     };
 
     document.getElementById('back-to-email').onclick = () => showStep('email');
@@ -668,7 +689,7 @@
       const confirmPw = document.getElementById('confirm').value;
 
       if (pw !== confirmPw) {
-        showToast("Passwords don't match.");
+        showToast("Passwords don't match.", document.getElementById('confirm'));
         return false;
       }
 
