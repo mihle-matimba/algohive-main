@@ -594,6 +594,12 @@
       wrapper.classList.toggle('has-value', input.value.trim().length > 0);
     }
 
+    function syncAllInputStates() {
+      document.querySelectorAll('.glass-input input').forEach((input) => {
+        updateGlassInputState(input);
+      });
+    }
+
     function showToast(message, input) {
       clearTimeout(toastTimeout);
       toastMessage.textContent = message;
@@ -620,8 +626,11 @@
 
     document.querySelectorAll('.glass-input input').forEach((input) => {
       updateGlassInputState(input);
-      input.addEventListener('input', () => updateGlassInputState(input));
+      ['input', 'change', 'focus', 'blur'].forEach((eventName) => {
+        input.addEventListener(eventName, () => updateGlassInputState(input));
+      });
     });
+    syncAllInputStates();
 
     document.getElementById('to-first-name').onclick = () => {
       const email = document.getElementById('email').value.trim();
