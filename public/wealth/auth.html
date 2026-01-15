@@ -259,6 +259,41 @@
       height: clamp(1rem, 3vw, 1.35rem);
     }
 
+    .otp-input {
+      width: clamp(2.4rem, 10vw, 3rem);
+      height: clamp(2.8rem, 12vw, 3.4rem);
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+      background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(210,190,255,0.18));
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: 16px;
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.85),
+        inset 0 -2px 4px rgba(120,72,210,0.2);
+      backdrop-filter: blur(14px) saturate(180%);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .otp-input:focus {
+      border-color: rgba(191,152,238,0.7);
+      box-shadow:
+        inset 0 1px 2px rgba(255,255,255,0.85),
+        inset 0 -2px 6px rgba(150,102,220,0.35),
+        0 10px 24px rgba(91,33,182,0.18);
+    }
+
+    .otp-confirm {
+      width: min(100%, 360px);
+      margin: 0 auto;
+      height: 3rem;
+      font-weight: 600;
+      color: hsl(var(--foreground));
+    }
+
     .step { display: none; }
     .step.active { display: block; }
 
@@ -304,11 +339,6 @@
       opacity: 1;
       transform: translateY(0);
       pointer-events: auto;
-    }
-
-    .toast-title {
-      font-weight: 600;
-      letter-spacing: 0.02em;
     }
 
     .toast-message {
@@ -418,13 +448,27 @@
         <div id="step-first-name" class="step space-y-8">
           <div class="glass glass-input shadow-xl animate-on-load delay-4">
             <input type="text" id="first-name" placeholder="First name" required autocomplete="given-name" class="flex-1 bg-transparent outline-none"/>
-            <button type="button" id="to-password" class="glass-btn mr-2" aria-label="Continue">
+            <button type="button" id="to-last-name" class="glass-btn mr-2" aria-label="Continue">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
               </svg>
             </button>
           </div>
           <button type="button" id="back-to-email" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
+            ← Back
+          </button>
+        </div>
+
+        <div id="step-last-name" class="step space-y-8">
+          <div class="glass glass-input shadow-xl animate-on-load delay-4">
+            <input type="text" id="last-name" placeholder="Last name" required autocomplete="family-name" class="flex-1 bg-transparent outline-none"/>
+            <button type="button" id="to-password" class="glass-btn mr-2" aria-label="Continue">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+          <button type="button" id="back-to-first-name" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
             ← Back
           </button>
         </div>
@@ -467,7 +511,7 @@
               </svg>
             </button>
           </div>
-          <button type="button" id="back-to-first-name" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
+          <button type="button" id="back-to-last-name" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
             ← Back
           </button>
         </div>
@@ -475,13 +519,37 @@
         <div id="step-confirm" class="step space-y-8">
           <div class="glass glass-input shadow-xl animate-on-load delay-4">
             <input type="password" id="confirm" placeholder="Confirm password" required class="flex-1 bg-transparent outline-none"/>
-            <button type="submit" class="glass-btn mr-2" aria-label="Create account">
+            <button type="button" id="to-otp" class="glass-btn mr-2" aria-label="Continue">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
               </svg>
             </button>
           </div>
           <button type="button" id="back-to-password" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
+            ← Back
+          </button>
+        </div>
+
+        <div id="step-otp" class="step space-y-8">
+          <div class="text-center space-y-3 animate-on-load delay-4">
+            <h3 class="text-2xl font-semibold tracking-tight">Confirm your email</h3>
+            <p class="text-sm text-muted-foreground">
+              Enter the 6-digit code sent to
+              <span id="otp-email" class="font-semibold text-foreground"></span>
+            </p>
+          </div>
+          <div class="flex justify-center gap-3">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" class="otp-input" data-otp="0"/>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="1"/>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="2"/>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="3"/>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="4"/>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-otp="5"/>
+          </div>
+          <button type="button" id="verify-otp" class="glass otp-confirm">
+            Confirm
+          </button>
+          <button type="button" id="back-to-confirm" class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition animate-on-load delay-5">
             ← Back
           </button>
         </div>
@@ -535,10 +603,12 @@
     const steps = {
       email: document.getElementById('step-email'),
       firstName: document.getElementById('step-first-name'),
+      lastName: document.getElementById('step-last-name'),
       loginEmail: document.getElementById('step-login-email'),
       loginPassword: document.getElementById('step-login-password'),
       password: document.getElementById('step-password'),
-      confirm: document.getElementById('step-confirm')
+      confirm: document.getElementById('step-confirm'),
+      otp: document.getElementById('step-otp')
     };
 
     function showStep(stepName) {
@@ -580,6 +650,32 @@
     });
     syncAllInputStates();
 
+    const otpInputs = Array.from(document.querySelectorAll('.otp-input'));
+    otpInputs.forEach((input, index) => {
+      input.addEventListener('input', (event) => {
+        const target = event.target;
+        target.value = target.value.replace(/\D/g, '').slice(-1);
+        if (target.value && otpInputs[index + 1]) {
+          otpInputs[index + 1].focus();
+        }
+      });
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Backspace' && !input.value && otpInputs[index - 1]) {
+          otpInputs[index - 1].focus();
+        }
+      });
+    });
+
+    document.getElementById('step-otp').addEventListener('paste', (event) => {
+      const text = event.clipboardData?.getData('text')?.replace(/\D/g, '') ?? '';
+      if (!text) return;
+      otpInputs.forEach((input, index) => {
+        input.value = text[index] ?? '';
+      });
+      otpInputs[Math.min(text.length, otpInputs.length) - 1]?.focus();
+    });
+
     document.getElementById('to-first-name').onclick = () => {
       const email = document.getElementById('email').value.trim();
       if (email && email.includes('@') && email.includes('.')) {
@@ -593,13 +689,22 @@
     document.getElementById('back-to-signup').onclick = () => showStep('email');
     document.getElementById('back-to-login-email').onclick = () => showStep('loginEmail');
 
-    document.getElementById('to-password').onclick = () => {
+    document.getElementById('to-last-name').onclick = () => {
       const firstName = document.getElementById('first-name').value.trim();
       if (firstName.length > 0) {
-        showStep('password');
+        showStep('lastName');
         return;
       }
       showToast('Add your first name to continue.');
+    };
+
+    document.getElementById('to-password').onclick = () => {
+      const lastName = document.getElementById('last-name').value.trim();
+      if (lastName.length > 0) {
+        showStep('password');
+        return;
+      }
+      showToast('Add your last name to continue.');
     };
 
     document.getElementById('to-login-password').onclick = () => {
@@ -647,37 +752,54 @@
 
     document.getElementById('back-to-email').onclick = () => showStep('email');
     document.getElementById('back-to-first-name').onclick = () => showStep('firstName');
+    document.getElementById('back-to-last-name').onclick = () => showStep('lastName');
     document.getElementById('back-to-password').onclick = () => showStep('password');
+    document.getElementById('back-to-confirm').onclick = () => showStep('confirm');
+
+    document.getElementById('to-otp').onclick = () => {
+      const pw = document.getElementById('password').value;
+      const confirmPw = document.getElementById('confirm').value;
+      if (pw.length < 6) {
+        showToast('Use at least 6 characters for your password.');
+        return;
+      }
+      if (pw !== confirmPw) {
+        showToast("Passwords don't match.");
+        return;
+      }
+      const emailValue = document.getElementById('email').value.trim();
+      document.getElementById('otp-email').textContent = emailValue || 'your email';
+      showStep('otp');
+      const firstOtp = document.querySelector('.otp-input');
+      firstOtp?.focus();
+    };
+
+    document.getElementById('verify-otp').onclick = () => {
+      const otpValues = Array.from(document.querySelectorAll('.otp-input'))
+        .map((input) => input.value.trim())
+        .join('');
+      if (otpValues.length !== 6) {
+        showToast('Enter the 6-digit code to continue.');
+        return;
+      }
+      if (otpValues !== '000000') {
+        showToast('That code is incorrect. Try again.');
+        return;
+      }
+      modal.classList.remove('hidden');
+      showSuccess();
+    };
 
     form.onsubmit = (e) => {
       e.preventDefault();
-      const pw = document.getElementById('password').value;
-      const confirmPw = document.getElementById('confirm').value;
-
-      if (pw !== confirmPw) {
-        showToast("Passwords don't match.");
+      if (currentStep === 'confirm') {
+        document.getElementById('to-otp').click();
         return false;
       }
-
-      showModal('loading');
-
-      const messages = ["Creating your account...", "Setting things up...", "Almost there..."];
-      let i = 0;
-      const interval = setInterval(() => {
-        if (i < messages.length) {
-          modalContent.innerHTML = `
-            <div class="flex flex-col items-center gap-8 py-12">
-              <div class="w-14 h-14 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-              <p class="text-lg font-medium">${messages[i]}</p>
-            </div>
-          `;
-          i++;
-        } else {
-          clearInterval(interval);
-          showSuccess();
-        }
-      }, 1400);
-
+      if (currentStep === 'otp') {
+        document.getElementById('verify-otp').click();
+        return false;
+      }
       return false;
     };
 
