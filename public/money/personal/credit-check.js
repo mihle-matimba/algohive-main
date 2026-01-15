@@ -1,3 +1,5 @@
+import { supabase } from '/js/supabase.js';
+
 (() => {
   const statusEl = document.getElementById('status');
   const button = document.getElementById('run-credit-check-btn');
@@ -60,6 +62,8 @@
   const intakeErrorEl = document.getElementById('intake-error');
   const proceedStepTwoBtn = document.getElementById('proceed-step-two-btn');
 
+  const profileInputs = [identityInput, firstNameInput, lastNameInput].filter(Boolean);
+
   const HTML_ESCAPES = {
     '&': '&amp;',
     '<': '&lt;',
@@ -80,6 +84,86 @@
   const randFormatter = new Intl.NumberFormat('en-ZA', { maximumFractionDigits: 0 });
   const EMPLOYER_CSV_PATH = '/money/personal/2025-10-16%20JSE%20Listed%20Companies.csv';
   const PRIVATE_EMPLOYER_DEFAULT_MESSAGE = 'Type three or more characters to match against the JSE directory (80% when matched).';
+
+  function setProfileInputsReadonly(isReadonly) {
+    profileInputs.forEach(input => {
+      if (!input) return;
+      if (isReadonly) {
+        input.setAttribute('readonly', 'readonly');
+        input.setAttribute('aria-readonly', 'true');
+      } else {
+        input.removeAttribute('readonly');
+        input.removeAttribute('aria-readonly');
+      }
+    });
+  }
+
+  function setProfileInputsPlaceholder(value) {
+    profileInputs.forEach(input => {
+      if (!input) return;
+      input.placeholder = value;
+    });
+  }
+
+  async function requireSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.replace('/auth.html?tab=in');
+      return null;
+    }
+    return session;
+  }
+
+  async function hydrateProfileIdentity() {
+    if (!profileInputs.length) return;
+
+    if (lockInputsBtn) {
+      lockInputsBtn.disabled = true;
+    }
+
+    setProfileInputsReadonly(true);
+    setProfileInputsPlaceholder('Fetching profile...');
+
+    const session = await requireSession();
+    if (!session) {
+      return;
+    }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('first_name,last_name,id_number')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      console.error('Unable to fetch profile identity fields', error);
+      setIntakeError('Unable to load your profile details. Please refresh or update your profile.');
+      return;
+    }
+
+    if (identityInput) {
+      identityInput.value = profile?.id_number ? String(profile.id_number) : '';
+    }
+    if (firstNameInput) {
+      firstNameInput.value = profile?.first_name ? String(profile.first_name) : '';
+    }
+    if (lastNameInput) {
+      lastNameInput.value = profile?.last_name ? String(profile.last_name) : '';
+    }
+
+    const missingProfileFields = !profile?.id_number || !profile?.first_name || !profile?.last_name;
+    if (missingProfileFields) {
+      setProfileInputsPlaceholder('Complete profile to continue');
+      setIntakeError('Please complete your profile (first name, last name, ID number) before running a credit check.');
+      return;
+    }
+
+    setProfileInputsPlaceholder('Auto-filled from profile');
+    setIntakeError('');
+    if (lockInputsBtn) {
+      lockInputsBtn.disabled = false;
+    }
+  }
 
   function formatRand(value) {
     const numericValue = Number(value);
@@ -1168,7 +1252,12 @@
     document.body.removeChild(tempLink);
   });
   window.addEventListener('beforeunload', revokeRetdataDownloadUrl);
-  returnToIntake();
-  detectMockMode();
-  loadEmploymentDirectory();
+  const init = async () => {
+    returnToIntake();
+    await hydrateProfileIdentity();
+    detectMockMode();
+    loadEmploymentDirectory();
+  };
+
+  init();
 })();
