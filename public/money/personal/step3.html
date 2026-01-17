@@ -207,8 +207,12 @@
         transform-style: preserve-3d;
       }
 
-      .input-flipper.flipped {
+      .input-flipper.flipped-once {
         transform: rotateX(180deg);
+      }
+
+      .input-flipper.flipped-twice {
+        transform: rotateX(360deg);
       }
 
       .input-face {
@@ -218,8 +222,12 @@
         backface-visibility: hidden;
       }
 
-      .input-face.back {
+      .input-face.middle {
         transform: rotateX(180deg);
+      }
+
+      .input-face.back {
+        transform: rotateX(360deg);
       }
 
       .currency-symbol {
@@ -236,6 +244,7 @@
       }
 
       #loan-amount,
+      #loan-months,
       #repayment-date {
         -webkit-appearance: none;
         user-select: none;
@@ -263,6 +272,7 @@
       }
 
       #loan-amount:hover,
+      #loan-months:hover,
       #repayment-date:hover {
         box-shadow: 
           0 4px 3px 1px #FCFCFC,
@@ -274,6 +284,7 @@
       }
 
       #loan-amount:focus,
+      #loan-months:focus,
       #repayment-date:focus {
         animation: active-input .9s alternate infinite;
       }
@@ -300,6 +311,7 @@
       }
 
       #loan-amount::placeholder,
+      #loan-months::placeholder,
       #repayment-date::placeholder {
         color: rgba(96, 96, 96, 0.4);
       }
@@ -472,6 +484,27 @@
         cursor: not-allowed;
       }
 
+      .repayable-info {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0 2rem;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        animation: fadeInSlide 0.6s ease-out;
+      }
+
+      .repayable-info.visible {
+        display: flex;
+      }
+
+      .repayable-info strong {
+        color: var(--purple-dark);
+        font-size: 1.05rem;
+      }
+
       @media (max-width: 600px) {
         .container {
           padding: 0 1rem;
@@ -494,168 +527,10 @@
           font-size: 14px;
         }
       }
-
-      /* Toast Notification - achievement vibe */
-      .toast-notification {
-        position: fixed;
-        top: 18px;
-        right: 18px;
-        width: 92px;
-        height: 92px;
-        max-width: 92vw;
-        border-radius: 46px;
-        background: linear-gradient(145deg, rgba(106, 67, 255, 0.95), rgba(75, 34, 214, 0.92));
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        box-shadow: 0 18px 40px rgba(75, 34, 214, 0.35);
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 10px 14px 10px 10px;
-        opacity: 0;
-        transform: translateX(130%);
-        pointer-events: none;
-        z-index: 9999;
-        overflow: hidden;
-        backdrop-filter: blur(6px);
-      }
-
-      .toast-notification.show {
-        animation: toastShell 5s ease forwards;
-      }
-
-      .toast-circle {
-        position: relative;
-        width: 92px;
-        height: 92px;
-        flex: 0 0 92px;
-      }
-
-      .toast-loader {
-        width: 92px;
-        height: 92px;
-        position: absolute;
-        top: 0;
-        left: 0;
-        border-radius: 46px;
-        background: linear-gradient(145deg, var(--purple), var(--purple-dark));
-        transform: scale(0);
-      }
-
-      .toast-notification.show .toast-loader {
-        animation: toastLoader 4.2s ease-in-out forwards;
-      }
-
-      .toast-notification.show .toast-loader:nth-child(1) { animation-delay: 0s; opacity: 1; }
-      .toast-notification.show .toast-loader:nth-child(2) { animation-delay: 0.16s; opacity: 0.9; }
-      .toast-notification.show .toast-loader:nth-child(3) { animation-delay: 0.32s; opacity: 0.8; }
-      .toast-notification.show .toast-loader:nth-child(4) { animation-delay: 0.48s; opacity: 0.7; }
-      .toast-notification.show .toast-loader:nth-child(5) { animation-delay: 0.64s; opacity: 0.65; }
-
-      .toast-icon {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        font-size: 1.9rem;
-        color: #fff;
-        z-index: 10;
-        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
-      }
-
-      .toast-notification.show .toast-icon {
-        animation: toastIcon 4.2s ease forwards;
-        animation-delay: 0.4s;
-      }
-
-      .toast-text {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-        opacity: 0;
-        transform: translateY(12px);
-      }
-
-      .toast-notification.show .toast-text {
-        animation: toastText 4s ease forwards;
-        animation-delay: 0.8s;
-      }
-
-      .toast-kicker {
-        font-size: 0.72rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.82);
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        font-weight: 700;
-      }
-
-      .toast-kicker i {
-        font-size: 0.85rem;
-      }
-
-      .toast-title {
-        font-size: 1rem;
-        font-weight: 800;
-        letter-spacing: 0.01em;
-        color: #fff;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      /* Keep loaders purple for all variants */
-
-      @keyframes toastShell {
-        0% { opacity: 0; transform: translateX(130%); width: 92px; }
-        12% { opacity: 1; transform: translateX(0); width: 92px; }
-        26% { width: 440px; }
-        76% { opacity: 1; transform: translateX(0); width: 440px; }
-        100% { opacity: 0; transform: translateX(130%); width: 92px; }
-      }
-
-      @keyframes toastLoader {
-        0% { transform: scale(0); }
-        16% { transform: scale(1.08); }
-        24% { transform: scale(1); }
-        78% { transform: scale(1); }
-        100% { transform: scale(0); }
-      }
-
-      @keyframes toastIcon {
-        0% { transform: translate(-50%, -50%) scale(0) rotate(-120deg); opacity: 0; }
-        18% { transform: translate(-50%, -50%) scale(1.05) rotate(0deg); opacity: 1; }
-        78% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-        100% { transform: translate(-50%, -50%) scale(0) rotate(120deg); opacity: 0; }
-      }
-
-      @keyframes toastText {
-        0% { opacity: 0; transform: translateY(14px); }
-        24% { opacity: 1; transform: translateY(0); }
-        78% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(6px); }
-      }
     </style>
   </head>
   <body>
       <main class="app-shell" style="position: relative; flex: 1; min-width: 0;">
-        <div class="toast-notification" id="toast">
-          <div class="toast-circle">
-            <div class="toast-loader"></div>
-            <div class="toast-loader"></div>
-            <div class="toast-loader"></div>
-            <div class="toast-loader"></div>
-            <div class="toast-loader"></div>
-            <i class="toast-icon fa-solid fa-trophy" id="toastIcon"></i>
-          </div>
-          <div class="toast-text">
-            <div class="toast-kicker"><i class="fa-solid fa-bolt"></i> loan submitted</div>
-            <div class="toast-title" id="toastMessage">Success!</div>
-          </div>
-        </div>
-
         <section>
           <div class="container">
             <div class="badge">
@@ -684,6 +559,18 @@
                     autocomplete="off"
                   >
                 </div>
+                <!-- Middle: Months Input -->
+                <div class="input-face middle">
+                  <input 
+                    type="number" 
+                    id="loan-months" 
+                    placeholder="12"
+                    min="1"
+                    max="24"
+                    step="1"
+                    autocomplete="off"
+                  >
+                </div>
                 <!-- Back: Date Input -->
                 <div class="input-face back">
                   <input 
@@ -700,6 +587,10 @@
             <p class="disclaimer" id="disclaimer">
               <i class="fa-solid fa-circle-info"></i>
               <span id="disclaimer-text">Maximum loan cap: <strong>R5,000</strong></span>
+            </p>
+
+            <p class="repayable-info" id="repayable-info">
+              <span>Loan repayable: <strong id="repayable-amount">R0.00</strong></span>
             </p>
 
             <button id="continue-application-btn">
@@ -722,21 +613,20 @@
 
     <script nonce="ALGOHIVE">
       const loanInput = document.getElementById('loan-amount');
+      const loanMonthsInput = document.getElementById('loan-months');
       const repaymentDateInput = document.getElementById('repayment-date');
-      const toast = document.getElementById('toast');
-      const toastIcon = document.getElementById('toastIcon');
-      const toastMessage = document.getElementById('toastMessage');
       const inputFlipper = document.getElementById('input-flipper');
       const disclaimer = document.getElementById('disclaimer');
       const disclaimerText = document.getElementById('disclaimer-text');
+      const repayableInfo = document.getElementById('repayable-info');
+      const repayableAmount = document.getElementById('repayable-amount');
       const continueButton = document.getElementById('continue-application-btn');
       const buttonText = document.getElementById('button-text');
       
-      const TOAST_DURATION_MS = 5000;
-      const REDIRECT_DELAY_MS = TOAST_DURATION_MS + 400;
-      let redirectTimer = null;
-      let currentStep = 'amount'; // 'amount' or 'date'
+      const INTEREST_RATE = 0.15; // 15% interest
+      let currentStep = 'amount'; // 'amount', 'months', or 'date'
       let loanAmount = null;
+      let loanMonths = null;
       let repaymentDate = null;
 
       // Set date input constraints (max 30 days from today)
@@ -751,20 +641,6 @@
       repaymentDateInput.min = formatDate(today);
       repaymentDateInput.max = formatDate(maxDate);
       
-      function showToast(message, type = 'success', icon = 'fa-check') {
-        toast.className = 'toast-notification';
-        void toast.offsetWidth;
-        
-        toastMessage.textContent = message;
-        toastIcon.className = `toast-icon fa-solid ${icon}`;
-        
-        toast.classList.add('show', type);
-        
-        setTimeout(() => {
-          toast.classList.remove('show', type);
-        }, TOAST_DURATION_MS);
-      }
-      
       loanInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/,/g, '');
         
@@ -777,18 +653,62 @@
         e.target.value = value;
       });
 
-      function flipToDate() {
+      loanMonthsInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/,/g, '');
+        
+        if (parseFloat(value) > 24) {
+          value = '24';
+        }
+        
+        value = value.replace(/[^\d]/g, '');
+        
+        e.target.value = value;
+      });
+
+      function flipToMonths() {
         // Fade out and change disclaimer
         disclaimer.classList.add('fade-out');
         
         setTimeout(() => {
-          disclaimerText.innerHTML = 'Maximum repayment period: <strong>30 Days</strong>';
+          disclaimerText.innerHTML = 'Maximum repayment period: <strong>24 Months</strong>';
           disclaimer.classList.remove('fade-out');
           disclaimer.classList.add('fade-in');
         }, 400);
 
-        // Flip the input
-        inputFlipper.classList.add('flipped');
+        // Flip the input to months
+        inputFlipper.classList.add('flipped-once');
+        
+        // Change button text
+        buttonText.textContent = 'Configure Months';
+        
+        currentStep = 'months';
+        
+        // Focus months input after flip
+        setTimeout(() => {
+          loanMonthsInput.focus();
+        }, 600);
+      }
+
+      function flipToDate() {
+        // Calculate repayable amount with 15% interest
+        const repayable = loanAmount * (1 + INTEREST_RATE);
+        repayableAmount.textContent = `R${repayable.toFixed(2)}`;
+        
+        // Fade out and change disclaimer
+        disclaimer.classList.add('fade-out');
+        
+        setTimeout(() => {
+          disclaimerText.innerHTML = 'Repayment start date: <strong>Select below</strong>';
+          disclaimer.classList.remove('fade-out');
+          disclaimer.classList.add('fade-in');
+          
+          // Show repayable info
+          repayableInfo.classList.add('visible');
+        }, 400);
+
+        // Flip the input to date
+        inputFlipper.classList.remove('flipped-once');
+        inputFlipper.classList.add('flipped-twice');
         
         // Change button text
         buttonText.textContent = 'Configure Date';
@@ -806,23 +726,39 @@
           const amount = parseFloat(loanInput.value);
           
           if (!amount || amount <= 0) {
-            showToast('Please enter a valid loan amount', 'error', 'fa-exclamation-circle');
+            alert('Please enter a valid loan amount');
             return;
           }
           
           if (amount > 5000) {
-            showToast('Loan amount cannot exceed R5,000', 'error', 'fa-exclamation-triangle');
+            alert('Loan amount cannot exceed R5,000');
             return;
           }
           
           loanAmount = amount;
+          flipToMonths();
+          
+        } else if (currentStep === 'months') {
+          const months = parseInt(loanMonthsInput.value);
+          
+          if (!months || months <= 0) {
+            alert('Please enter a valid number of months');
+            return;
+          }
+          
+          if (months > 24) {
+            alert('Months cannot exceed 24');
+            return;
+          }
+          
+          loanMonths = months;
           flipToDate();
           
         } else if (currentStep === 'date') {
           const date = repaymentDateInput.value;
           
           if (!date) {
-            showToast('Please select a repayment date', 'error', 'fa-exclamation-circle');
+            alert('Please select a repayment date');
             return;
           }
           
@@ -831,29 +767,26 @@
           const maxDateCheck = new Date(maxDate);
           
           if (selectedDate < minDate || selectedDate > maxDateCheck) {
-            showToast('Date must be within 30 days', 'error', 'fa-exclamation-triangle');
+            alert('Date must be within 30 days');
             return;
           }
           
           repaymentDate = date;
           
-          // Store both values (prepare for database save)
+          // Store all three values (prepare for database save)
           const loanData = {
             amount: loanAmount,
-            repaymentDate: repaymentDate
+            months: loanMonths,
+            repaymentDate: repaymentDate,
+            repayableAmount: loanAmount * (1 + INTEREST_RATE)
           };
           
           console.log('Loan data ready for database:', loanData);
           
-          showToast(`R${loanAmount.toFixed(2)} loan submitted!`, 'success', 'fa-check-circle');
-
-          if (redirectTimer) {
-            clearTimeout(redirectTimer);
-          }
-
-          redirectTimer = setTimeout(() => {
+          // Redirect after 1 second
+          setTimeout(() => {
             window.location.href = 'Step4.html';
-          }, REDIRECT_DELAY_MS);
+          }, 1000);
         }
       }
 
