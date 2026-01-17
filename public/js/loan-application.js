@@ -46,7 +46,11 @@ async function createLoan(stepNumber) {
     .from("loan_application")
     .insert({
       step_number: stepNumber,
-      interest_rate: DEFAULT_INTEREST_RATE
+      interest_rate: DEFAULT_INTEREST_RATE,
+      status: "in_progress",
+      principal_amount: 0,
+      amount_repayable: 0,
+      number_of_months: 1
     })
     .select()
     .single();
@@ -64,7 +68,7 @@ export async function initLoanStep(currentStepNumber, { updateStep = true } = {}
   const loanId = localStorage.getItem(LOAN_KEY);
   let loan = await fetchLoanById(loanId);
 
-  if (loan && loan.step_number === 4 && currentStepNumber === 1) {
+  if (loan && (loan.step_number === 4 || loan.status === "completed") && currentStepNumber === 1) {
     localStorage.removeItem(LOAN_KEY);
     loan = null;
   }

@@ -914,15 +914,51 @@
     const viewContractBtn = document.getElementById('viewContractBtn');
     const contractModal = document.getElementById('contractModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
+    const amountRequestedEl = document.getElementById('amount-requested');
+    const loanTermEl = document.getElementById('loan-term');
+    const totalRepaymentEl = document.getElementById('total-repayment');
+    const repaymentDateEl = document.getElementById('repayment-date');
 
     let isDrawing = false;
     let hasSigned = false;
     let termsAccepted = false;
 
+    const moneyFormatter = new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      maximumFractionDigits: 2
+    });
+
+    const dateFormatter = new Intl.DateTimeFormat('en-ZA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+
     (async () => {
       loanRecord = await initLoanStep(4, { updateStep: false });
       if (!loanRecord) {
         window.location.href = 'step1.html';
+        return;
+      }
+
+      const principal = loanRecord.principal_amount ?? null;
+      const months = loanRecord.number_of_months ?? null;
+      const interestRate = loanRecord.interest_rate ?? 0.15;
+      const repayable = loanRecord.amount_repayable ?? (principal ? principal * (1 + interestRate) : null);
+
+      if (amountRequestedEl && principal !== null) {
+        amountRequestedEl.textContent = moneyFormatter.format(principal);
+      }
+      if (loanTermEl && months !== null) {
+        loanTermEl.textContent = `${months} Months`;
+      }
+      if (totalRepaymentEl && repayable !== null) {
+        totalRepaymentEl.textContent = moneyFormatter.format(repayable);
+      }
+      if (repaymentDateEl && loanRecord.first_repayment_date) {
+        const date = new Date(loanRecord.first_repayment_date);
+        repaymentDateEl.textContent = dateFormatter.format(date);
       }
     })();
 
@@ -1072,7 +1108,23 @@
         submitBtn.disabled = true;
 
         if (loanRecord?.id) {
-          await updateLoan(loanRecord.id, { step_number: 4 });
+          const payload = {
+            step_number: 4,
+            status: 'completed',
+            principal_amount: loanRecord.principal_amount ?? null,
+            amount_repayable: loanRecord.amount_repayable ?? null,
+            first_repayment_date: loanRecord.first_repayment_date ?? null,
+            number_of_months: loanRecord.number_of_months ?? null,
+            interest_rate: loanRecord.interest_rate ?? null
+          };
+
+          Object.keys(payload).forEach((key) => {
+            if (payload[key] === null || payload[key] === undefined) {
+              delete payload[key];
+            }
+          });
+
+          await updateLoan(loanRecord.id, payload);
         }
         
         setTimeout(() => {
