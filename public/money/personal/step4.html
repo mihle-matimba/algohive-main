@@ -899,7 +899,10 @@
     </div>
   </div>
 
-  <script nonce="ALGOHIVE">
+  <script type="module" nonce="ALGOHIVE">
+    import { initLoanStep, updateLoan } from "/js/loan-application.js";
+
+    let loanRecord = null;
     const canvas = document.getElementById('signatureCanvas');
     const ctx = canvas.getContext('2d');
     const termsCheckbox = document.getElementById('termsCheckbox');
@@ -915,6 +918,13 @@
     let isDrawing = false;
     let hasSigned = false;
     let termsAccepted = false;
+
+    (async () => {
+      loanRecord = await initLoanStep(4, { updateStep: false });
+      if (!loanRecord) {
+        window.location.href = 'step1.html';
+      }
+    })();
 
     // Set canvas size
     function resizeCanvas() {
@@ -1056,10 +1066,14 @@
     }
 
     // Submit button
-    submitBtn.addEventListener('click', function() {
+    submitBtn.addEventListener('click', async function() {
       if (termsAccepted && hasSigned) {
         successMessage.classList.add('show');
         submitBtn.disabled = true;
+
+        if (loanRecord?.id) {
+          await updateLoan(loanRecord.id, { step_number: 4 });
+        }
         
         setTimeout(() => {
           window.location.href = 'step3.html';

@@ -639,7 +639,11 @@
         </section>
       </main>
 
-    <script nonce="ALGOHIVE">
+    <script type="module" nonce="ALGOHIVE">
+      import { initLoanStep, updateLoan } from "/js/loan-application.js";
+
+      let loanRecord = null;
+
       const loanInput = document.getElementById('loan-amount');
       const loanMonthsInput = document.getElementById('loan-months');
       const repaymentDateInput = document.getElementById('repayment-date');
@@ -656,6 +660,23 @@
       let loanAmount = null;
       let loanMonths = null;
       let repaymentDate = null;
+
+      (async () => {
+        loanRecord = await initLoanStep(3);
+        if (!loanRecord) return;
+        if (loanRecord.principal_amount) {
+          loanInput.value = loanRecord.principal_amount;
+          loanAmount = loanRecord.principal_amount;
+        }
+        if (loanRecord.number_of_months) {
+          loanMonthsInput.value = loanRecord.number_of_months;
+          loanMonths = loanRecord.number_of_months;
+        }
+        if (loanRecord.first_repayment_date) {
+          repaymentDateInput.value = loanRecord.first_repayment_date;
+          repaymentDate = loanRecord.first_repayment_date;
+        }
+      })();
 
       // Set date input constraints (max 30 days from today)
       const today = new Date();
@@ -749,7 +770,7 @@
         }, 600);
       }
 
-      function handleSubmit() {
+      async function handleSubmit() {
         if (currentStep === 'amount') {
           const amount = parseFloat(loanInput.value);
           
@@ -810,6 +831,17 @@
           };
           
           console.log('Loan data ready for database:', loanData);
+
+          if (loanRecord?.id) {
+            await updateLoan(loanRecord.id, {
+              principal_amount: loanAmount,
+              amount_repayable: loanAmount * (1 + INTEREST_RATE),
+              first_repayment_date: repaymentDate,
+              number_of_months: loanMonths,
+              interest_rate: INTEREST_RATE,
+              step_number: 3
+            });
+          }
           
           // Redirect after 1 second
           setTimeout(() => {
