@@ -556,7 +556,7 @@ function renderRecentApplications(applications = []) {
   }
 
   applications.forEach((app) => {
-    const amountValue = app.principal_amount ?? app.amount ?? 0;
+    const amountValue = app.principal_amount ?? 0;
     const amountLabel = formatAmount(amountValue);
     const statusLabel = formatStatus(app.status);
 
@@ -586,7 +586,7 @@ async function loadRecentApplications() {
 
     let query = supabase
       .from('loan_application')
-      .select('id,application_id,status,principal_amount,amount,created_at,step_number')
+      .select('id,application_id,status,principal_amount,created_at,step_number')
       .order('created_at', { ascending: false })
       .limit(3);
 
