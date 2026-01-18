@@ -1,3 +1,5 @@
+import { supabase } from "/js/supabase.js";
+
 let currentCard = 1;
 const loans = [
   {
@@ -504,4 +506,108 @@ window.addEventListener('DOMContentLoaded', () => {
 
   drawScoreGauge(82);
   drawRepaidChart();
+
+  loadRecentApplications();
 });
+
+const pendingCount = document.getElementById('pending-applications-count');
+const recentApplicationsList = document.getElementById('recent-applications-list');
+const recentApplicationsEmpty = document.getElementById('recent-applications-empty');
+
+function setRecentApplicationsEmpty(message) {
+  if (!recentApplicationsEmpty) return;
+  recentApplicationsEmpty.textContent = message;
+  recentApplicationsEmpty.classList.remove('hidden');
+}
+
+function formatAmount(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 'R 0';
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+    maximumFractionDigits: 0
+  }).format(numeric);
+}
+
+function formatApplicationId(value) {
+  if (!value) return 'Application';
+  const id = String(value);
+  return id.length > 8 ? `Application ${id.slice(-6)}` : `Application ${id}`;
+}
+
+function formatStatus(value) {
+  if (!value) return 'In progress';
+  return value.replace(/_/g, ' ');
+}
+
+function renderRecentApplications(applications = []) {
+  if (!recentApplicationsList) return;
+  recentApplicationsList.innerHTML = '';
+
+  if (!applications.length) {
+    setRecentApplicationsEmpty('No active applications yet.');
+    return;
+  }
+
+  if (recentApplicationsEmpty) {
+    recentApplicationsEmpty.classList.add('hidden');
+  }
+
+  applications.forEach((app) => {
+    const amountValue = app.principal_amount ?? app.amount_requested ?? app.amount ?? 0;
+    const amountLabel = formatAmount(amountValue);
+    const statusLabel = formatStatus(app.status);
+
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-2xl';
+    row.innerHTML = `
+      <span class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">●</span>
+      <div class="min-w-0">
+        <div class="text-sm font-medium truncate">${formatApplicationId(app.id)}</div>
+        <div class="text-xs text-gray-400">${statusLabel}</div>
+      </div>
+      <div class="ml-auto text-xs text-gray-500">${amountLabel}</div>
+    `;
+    recentApplicationsList.appendChild(row);
+  });
+}
+
+async function loadRecentApplications() {
+  if (!recentApplicationsList) return;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setRecentApplicationsEmpty('Sign in to see your active applications.');
+      return;
+    }
+
+    let query = supabase
+      .from('loan_application')
+      .select('id,status,principal_amount,amount_requested,amount,created_at,step_number')
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    if (session.user.id) {
+      query = query.eq('user_id', session.user.id);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Recent applications fetch error:', error.message || error);
+      renderRecentApplications([]);
+      return;
+    }
+
+    const active = (data || []).filter((app) => !['completed', 'rejected', 'cancelled'].includes(app.status));
+    renderRecentApplications(active);
+
+    if (pendingCount) {
+      pendingCount.textContent = String(active.length);
+    }
+  } catch (err) {
+    console.error('Recent applications fetch error:', err);
+    renderRecentApplications([]);
+  }
+}
