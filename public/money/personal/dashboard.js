@@ -508,6 +508,13 @@ window.addEventListener('DOMContentLoaded', () => {
   drawRepaidChart();
 
   loadRecentApplications();
+
+  document.querySelectorAll('[data-switch-card]').forEach((el) => {
+    el.addEventListener('click', (event) => {
+      event.preventDefault();
+      switchCard();
+    });
+  });
 });
 
 const pendingCount = document.getElementById('pending-applications-count');
