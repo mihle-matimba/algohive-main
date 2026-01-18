@@ -513,6 +513,7 @@ window.addEventListener('DOMContentLoaded', () => {
 const pendingCount = document.getElementById('pending-applications-count');
 const recentApplicationsList = document.getElementById('recent-applications-list');
 const recentApplicationsEmpty = document.getElementById('recent-applications-empty');
+const totalAmountRequested = document.getElementById('total-amount-requested');
 
 function setRecentApplicationsEmpty(message) {
   if (!recentApplicationsEmpty) return;
@@ -599,11 +600,16 @@ async function loadRecentApplications() {
       return;
     }
 
-    const active = (data || []).filter((app) => !['completed', 'rejected', 'cancelled'].includes(app.status));
-    renderRecentApplications(active);
+    const displayable = (data || []).filter((app) => ['completed', 'rejected', 'in_review'].includes(app.status));
+    renderRecentApplications(displayable);
 
     if (pendingCount) {
-      pendingCount.textContent = String(active.length);
+      pendingCount.textContent = String(displayable.length);
+    }
+
+    if (totalAmountRequested) {
+      const total = displayable.reduce((sum, app) => sum + Number(app.principal_amount || 0), 0);
+      totalAmountRequested.innerHTML = `${formatAmount(total)} <span class="text-xs text-gray-400"> ZAR</span>`;
     }
   } catch (err) {
     console.error('Recent applications fetch error:', err);
