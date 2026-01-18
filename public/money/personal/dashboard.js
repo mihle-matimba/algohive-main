@@ -530,9 +530,10 @@ function formatAmount(value) {
   }).format(numeric);
 }
 
-function formatApplicationId(value) {
-  if (!value) return 'Application';
-  const id = String(value);
+function formatApplicationId(value, fallback) {
+  if (value) return String(value);
+  if (!fallback) return 'Application';
+  const id = String(fallback);
   return id.length > 8 ? `Application ${id.slice(-6)}` : `Application ${id}`;
 }
 
@@ -555,7 +556,7 @@ function renderRecentApplications(applications = []) {
   }
 
   applications.forEach((app) => {
-    const amountValue = app.principal_amount ?? app.amount_requested ?? app.amount ?? 0;
+    const amountValue = app.principal_amount ?? app.amount ?? 0;
     const amountLabel = formatAmount(amountValue);
     const statusLabel = formatStatus(app.status);
 
@@ -564,7 +565,7 @@ function renderRecentApplications(applications = []) {
     row.innerHTML = `
       <span class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">●</span>
       <div class="min-w-0">
-        <div class="text-sm font-medium truncate">${formatApplicationId(app.id)}</div>
+        <div class="text-sm font-medium truncate">${formatApplicationId(app.application_id, app.id)}</div>
         <div class="text-xs text-gray-400">${statusLabel}</div>
       </div>
       <div class="ml-auto text-xs text-gray-500">${amountLabel}</div>
@@ -585,13 +586,11 @@ async function loadRecentApplications() {
 
     let query = supabase
       .from('loan_application')
-      .select('id,status,principal_amount,amount_requested,amount,created_at,step_number')
+      .select('id,application_id,status,principal_amount,amount,created_at,step_number')
       .order('created_at', { ascending: false })
       .limit(3);
 
-    if (session.user.id) {
-      query = query.eq('user_id', session.user.id);
-    }
+    // No user_id column in schema; returning latest applications.
 
     const { data, error } = await query;
     if (error) {

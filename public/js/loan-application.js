@@ -23,6 +23,15 @@ async function fetchLoanById(loanId) {
   return data || null;
 }
 
+export async function getActiveStoredLoan() {
+  const loanId = localStorage.getItem(LOAN_KEY);
+  if (!loanId) return null;
+  const loan = await fetchLoanById(loanId);
+  if (!loan) return null;
+  if (loan.step_number === 4 || loan.status === "completed") return null;
+  return loan;
+}
+
 export async function updateLoan(loanId, fields) {
   if (!loanId) return null;
   const { data, error } = await supabase
