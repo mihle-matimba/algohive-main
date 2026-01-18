@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+      :root {
+        --bg: #f8f8f8;
+        --card: #ffffff;
+        --border: #e8e8ed;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --text-muted: #d2d2d7;
+        --purple: #6a43ff;
+        --purple-dark: #4b22d6;
+        --lavender: #f2edff;
+        --success: #34c759;
+        --danger: #ff3b30;
+      }
+      body {
+        font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+        background: linear-gradient(135deg, #f8f8f8 0%, #e8e8ed 100%) !important;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+      .bg-white {
+        background: var(--card) !important;
+        border: 1px solid var(--border);
+      }
+      .shadow-sm {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+      }
+      .text-gray-400,
+      .text-gray-500 {
+        color: var(--text-secondary) !important;
+      }
+      .text-gray-600,
+      .text-gray-700,
+      .text-gray-900 {
+        color: var(--text-primary) !important;
+      }
+      .bg-gray-50,
+      .bg-gray-100,
+      .bg-gray-200 {
+        background: #f4f4f7 !important;
+      }
+      .border-gray-200 {
+        border-color: var(--border) !important;
+      }
+      .bg-orange-400,
+      .bg-orange-500,
+      .text-orange-500 {
+        background: var(--purple) !important;
+        color: #fff !important;
+      }
+      .bg-orange-100 {
+        background: var(--lavender) !important;
+      }
+      .text-orange-500 {
+        color: var(--purple) !important;
+        background: transparent !important;
+      }
+      .bg-red-400,
+      .bg-red-500,
+      .text-red-500 {
+        color: var(--danger) !important;
+        background: transparent !important;
+      }
+      .bg-red-100,
+      .bg-red-200,
+      .bg-red-300,
+      .bg-red-50 {
+        background: #fff1f0 !important;
+      }
+      .btn-receive {
+        background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(106, 67, 255, 0.2);
+      }
+      .btn-send {
+        background: #f7f7fb;
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+      }
+      .neo-btn {
+        -webkit-appearance: none;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        outline: none;
+        padding: 0 2rem;
+        height: 54px;
+        background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+        border-radius: 28px;
+        border: 1px solid #8F9092;
+        box-shadow:
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 0 #CECFD1,
+          0 0 20px rgba(106, 67, 255, 0.15);
+        transition: all .2s ease;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        text-shadow: 0 1px #fff;
+        position: relative;
+      }
+      .neo-btn::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 30px;
+        background: linear-gradient(135deg, rgba(106, 67, 255, 0.3), rgba(75, 34, 214, 0.3));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+        filter: blur(8px);
+      }
+      .neo-btn:hover::before {
+        opacity: 1;
+      }
+      .neo-btn > * {
+        transition: transform .2s ease;
+      }
+      .neo-btn:hover:not([disabled]) {
+        box-shadow:
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 30px rgba(106, 67, 255, 0.3);
+      }
+      .neo-btn:hover:not([disabled]) > * {
+        transform: scale(.975);
+      }
+      .neo-btn:active:not([disabled]) {
+        box-shadow:
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 5px 3px #999,
+          inset 0 0 30px #aaa;
+      }
+      .neo-btn:active:not([disabled]) > * {
+        transform: scale(.95);
+      }
+      .neo-btn-icon {
+        padding: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 9999px;
+      }
+      .neo-btn-icon svg,
+      .neo-btn-icon i {
+        width: 20px;
+        height: 20px;
+      }
+      .neo-btn-icon {
+        text-shadow: none;
+      }
+      .oval-button {
+        border: 1px solid var(--border);
+        background: var(--card);
+      }
+      .oval-button {
+        width: 50px;
+        height: 100%;
+        background: white;
+        border-radius: 25px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+      }
+      .oval-button:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ddd;
+        transition: background 0.3s ease;
+      }
+      .dot.active {
+        background: var(--purple);
+      }
+      .card-stack {
+        position: relative;
+        width: 100%;
+        cursor: pointer;
+      }
+      .card-behind {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        right: -8px;
+        height: 100%;
+        background: #e0e0e0;
+        border-radius: 24px;
+        padding: 24px;
+        border: 1px solid #d0d0d0;
+        z-index: 1;
+        opacity: 0.8;
+      }
+      .card-behind .behind-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+      .card-behind .behind-logo {
+        font-size: 16px;
+        font-weight: 700;
+        color: #9a9aa0;
+        letter-spacing: -0.3px;
+      }
+      .card-behind .behind-status {
+        background: #e6e6ea;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 10px;
+        color: #9a9aa0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .card-behind .behind-amount {
+        font-size: 24px;
+        font-weight: 700;
+        color: #c0c0c7;
+        margin-bottom: 18px;
+        letter-spacing: -0.3px;
+      }
+      .card-behind .behind-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      .card-behind .behind-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .card-behind .behind-label {
+        font-size: 9px;
+        color: #b6b6bd;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        font-weight: 600;
+      }
+      .card-behind .behind-value {
+        font-size: 12px;
+        color: #c2c2c9;
+        font-weight: 600;
+      }
+      .card {
+        position: relative;
+        background: white;
+        border-radius: 24px;
+        padding: 24px;
+        width: 100%;
+        min-height: 220px;
+        border: 1px solid #e8e8e8;
+        z-index: 2;
+        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card.swapping {
+        transform: translateY(-50%) scale(0.98);
+        opacity: 0;
+      }
+      .card-stack:hover .card:not(.swapping) {
+        transform: translateY(-4px);
+      }
+      .loan-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+      .loan-id {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--purple-dark);
+        letter-spacing: -0.3px;
+      }
+      .loan-status {
+        padding: 6px 12px;
+        background: rgba(106, 67, 255, 0.12);
+        color: var(--purple);
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .loan-amount {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 24px;
+        letter-spacing: -0.4px;
+      }
+      .loan-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+      .loan-detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .loan-detail-label {
+        font-size: 10px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+      }
+      .loan-detail-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--purple);
+      }
+      .loan-filter {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+      }
+      .loan-filter-trigger {
+        appearance: none;
+        -webkit-appearance: none;
+        background: linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%);
+        border: 1px solid #e1e1e6;
+        border-radius: 9999px;
+        padding: 4px 28px 4px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        box-shadow: inset 0 1px 0 #ffffff, 0 2px 6px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        min-width: 132px;
+      }
+      .loan-filter-trigger::after {
+        content: '▾';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: #8a8a95;
+      }
+      .loan-filter-trigger:hover {
+        border-color: #d4d4db;
+        color: var(--text-primary);
+      }
+      .loan-filter-trigger:focus {
+        outline: none;
+        border-color: rgba(106, 67, 255, 0.5);
+        box-shadow: 0 0 0 3px rgba(106, 67, 255, 0.15);
+      }
+      .loan-filter-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        min-width: 170px;
+        background: #ffffff;
+        border: 1px solid #e6e6ee;
+        border-radius: 16px;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+        padding: 8px;
+        display: none;
+        z-index: 20;
+      }
+      .loan-filter.open .loan-filter-menu {
+        display: grid;
+        gap: 6px;
+      }
+      .loan-filter-option {
+        width: 100%;
+        text-align: left;
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--purple);
+        background: rgba(106, 67, 255, 0.08);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .loan-filter-option:hover {
+        background: rgba(106, 67, 255, 0.14);
+        border-color: rgba(106, 67, 255, 0.3);
+      }
+      .loan-filter-option.is-selected {
+        background: rgba(106, 67, 255, 0.2);
+        border-color: rgba(106, 67, 255, 0.45);
+        color: var(--purple-dark);
+      }
+      .navbar {
+        background: #ffffff;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 20px;
+        margin: -24px -24px 24px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .navbar-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .navbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+      .menu-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        color: #7a7a86;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+      }
+      .menu-btn:hover {
+        background: #f8f8fb;
+        border-color: #dfe0e6;
+      }
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+      }
+      .notification-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        color: #7a7a86;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+      }
+      .notification-btn:hover {
+        background: #f8f8fb;
+        border-color: #dfe0e6;
+      }
+      .profile-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        padding: 6px 12px 6px 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+      }
+      .profile-trigger:hover {
+        background: #f8f8fb;
+        border-color: #dfe0e6;
+      }
+      .profile-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border);
+      }
+      .profile-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .chevron-icon {
+        color: #b0b0ba;
+        font-size: 11px;
+      }
+      .profile-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 10px);
+        width: 256px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+        z-index: 50;
+        display: none;
+      }
+      .profile-menu.open {
+        display: block;
+      }
+      .profile-menu-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .profile-menu-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+      }
+      .profile-menu-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .menu-toggle-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #5f6068;
+        background: white;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        text-align: left;
+      }
+      .menu-toggle-item:hover {
+        background: #f8f8fb;
+      }
+      .toggle-track {
+        position: relative;
+        display: inline-flex;
+        height: 20px;
+        width: 40px;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid #e2e2ea;
+        background: #e2e2ea;
+        transition: all 0.2s ease;
+      }
+      .toggle-track.active {
+        background: var(--purple);
+        border-color: var(--purple);
+      }
+      .toggle-knob {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        transition: transform 0.2s ease;
+        transform: translateX(4px);
+      }
+      .toggle-track.active .toggle-knob {
+        transform: translateX(20px);
+      }
+      .sign-out-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #5f6068;
+        background: white;
+        border: none;
+        border-top: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.2s ease;
+        text-align: left;
+      }
+      .sign-out-btn:hover {
+        background: #f8f8fb;
+      }
+      @media (max-width: 640px) {
+        .profile-name {
+          display: none;
+        }
+      }
+      .progress-track {
+        background: #e6e7eb;
+        border: 1px solid #d8dbe2;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+      }
+      .progress-fill {
+        background: var(--purple);
+        box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.35);
+      }
+      .account-info {
+        margin-bottom: 24px;
+      }
+      .account-label {
+        font-size: 11px;
+        color: #999;
+        margin-bottom: 6px;
+      }
+      .account-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a1a;
+        letter-spacing: 1px;
+      }
+      .card-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      .card-btn {
+        flex: 1;
+        padding: 12px 0;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+      }
+      .btn-receive {
+        background: #1a1a1a;
+        color: white;
+      }
+      .btn-receive:hover {
+        background: #333;
+      }
+      .btn-send {
+        background: #f8f8f8;
+        color: #333;
+      }
+      .btn-send:hover {
+        background: #f0f0f0;
+      }
+      .score-card {
+        overflow: hidden;
+        font-family: "Rubik", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        border-radius: 25px;
+        box-shadow: 0px 10px 35px rgb(0 0 0 / 12%);
+        background: #fff;
+        color: #111;
+        transition: transform 0.3s ease;
+      }
+      .score-card:hover {
+        transform: translateY(-4px);
+      }
+      .score-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-flow: column;
+        border-bottom: dashed 2px #eaeaea;
+        padding: 24px 24px 18px;
+      }
+      .score-card-title {
+        font-weight: 600;
+        font-size: 18px;
+        margin: 0 0 10px 0;
+      }
+      .score-card-subtitle {
+        font-size: 12px;
+        font-weight: 300;
+        opacity: 0.7;
+      }
+      .score-chart {
+        background: #fff;
+        position: relative;
+        padding: 18px 24px 0;
+        margin: 10px auto 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .score-chart-legend {
+        background: transparent;
+        vertical-align: middle;
+        position: absolute;
+        text-align: center;
+        letter-spacing: 0.2em;
+      }
+      #score-middle {
+        font-size: 38px;
+        padding: 0;
+        line-height: 1em;
+        width: 100%;
+        text-align: center;
+        font-weight: 100;
+      }
+      .score-chart p {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 100;
+        opacity: 0.8;
+        margin: 0;
+      }
+      .score-grid {
+        display: flex;
+        margin: 12px 0 16px;
+      }
+      .score-grid-box {
+        flex: 1;
+      }
+      .score-grid-detail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 0;
+      }
+      .score-grid .score-grid-box:first-child .score-grid-detail {
+        border-right: dashed 1px #e1e1e1;
+      }
+      .score-grid .score-grid-box:last-child .score-grid-detail {
+        border-left: dashed 1px #e1e1e1;
+      }
+      .score-main-info {
+        font-size: 18px;
+      }
+      .score-detail-info {
+        font-size: 9px;
+        opacity: 0.5;
+        margin: 5px 0 6px 0;
+        padding: 0 16px;
+        text-align: center;
+      }
+      .score-card svg path {
+        opacity: 1 !important;
+        stroke-opacity: 1 !important;
+      }
+      .score-card svg path:first-child {
+        fill: rgb(249 249 249) !important;
+      }
+      .score-card svg path:nth-child(2),
+      .score-card svg path:nth-child(3) {
+        fill: rgb(241 241 241) !important;
+      }
+      .repaid-chart {
+        position: relative;
+        width: 100%;
+        height: 170px;
+        border: 1px solid #eee;
+        border-radius: 14px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .repaid-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .repaid-label {
+        position: absolute;
+        display: none;
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+        border-radius: 6px;
+        font-size: 11px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        padding: 6px 8px;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      .repaid-title {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .repaid-subtitle {
+        font-size: 11px;
+        color: #666;
+      }
+      .repaid-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .repaid-nav {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease, background 0.2s ease;
+      }
+      .repaid-nav:hover {
+        background: #e5e7eb;
+        transform: translateY(-1px);
+      }
+      .repaid-nav[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .repaid-slide-in-right {
+        animation: repaidSlideInRight 320ms ease;
+      }
+      .repaid-slide-in-left {
+        animation: repaidSlideInLeft 320ms ease;
+      }
+      @keyframes repaidSlideInRight {
+        from { opacity: 0; transform: translateX(16px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes repaidSlideInLeft {
+        from { opacity: 0; transform: translateX(-16px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-100 p-6">
+    <nav class="navbar">
+      <div class="navbar-container">
+        <div class="navbar-left">
+          <button class="menu-btn" id="menu-btn" aria-label="Open menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
+
+        <div class="navbar-right">
+          <button class="notification-btn" aria-label="Notifications">
+            <i class="fa-regular fa-bell"></i>
+          </button>
+
+          <button class="profile-trigger" id="profile-trigger">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80"
+                 alt="Profile"
+                 class="profile-avatar" />
+            <span class="profile-name">Ronaldinho Fazio</span>
+            <i class="fa-solid fa-chevron-down chevron-icon"></i>
+          </button>
+
+          <div class="profile-menu" id="profile-menu">
+            <div class="profile-menu-header">
+              <p class="profile-menu-name">Ronaldinho Fazio</p>
+              <p class="profile-menu-subtitle">Profile controls</p>
+            </div>
+
+            <button class="menu-toggle-item" id="geopay-toggle" type="button">
+              <span>Enable GeoPay</span>
+              <div class="toggle-track" id="toggle-track">
+                <span class="toggle-knob"></span>
+              </div>
+            </button>
+
+            <button class="sign-out-btn" type="button">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="max-w-[1400px] mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 items-stretch">
+        <div class="flex gap-4 items-start min-h-[220px]">
+          <button class="oval-button" onclick="switchCard()" aria-label="Card navigation">
+            <div class="dot active" id="dot1"></div>
+            <div class="dot" id="dot2"></div>
+            <div class="dot" id="dot3"></div>
+          </button>
+          
+          <div class="flex flex-col flex-1 gap-4">
+            <div class="card-stack" onclick="switchCard()">
+              <div class="card-behind">
+                <div class="behind-header">
+                  <div class="behind-logo" id="behindId">LOAN-2024-002</div>
+                  <div class="behind-status">Active</div>
+                </div>
+                <div class="behind-amount" id="behindAmount">R 85,500.00</div>
+                <div class="behind-grid">
+                  <div class="behind-detail">
+                    <div class="behind-label">Monthly Payment</div>
+                    <div class="behind-value" id="behindMonthly">R 5,125.00</div>
+                  </div>
+                  <div class="behind-detail">
+                    <div class="behind-label">Interest Rate</div>
+                    <div class="behind-value" id="behindRate">7.2%</div>
+                  </div>
+                  <div class="behind-detail">
+                    <div class="behind-label">Term</div>
+                    <div class="behind-value" id="behindTerm">24 months</div>
+                  </div>
+                  <div class="behind-detail">
+                    <div class="behind-label">Next Payment</div>
+                    <div class="behind-value" id="behindNext">Dec 20, 2024</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card" id="mainCard">
+                <div class="loan-header">
+                  <div class="loan-id" id="loanId">LOAN-2024-001</div>
+                  <div class="loan-status">Active</div>
+                </div>
+
+                <div class="loan-amount" id="loanAmount">R 45,000.00</div>
+
+                <div class="loan-details-grid">
+                  <div class="loan-detail-item">
+                    <div class="loan-detail-label">Monthly Payment</div>
+                    <div class="loan-detail-value" id="monthlyPayment">R 3,750.00</div>
+                  </div>
+                  <div class="loan-detail-item">
+                    <div class="loan-detail-label">Interest Rate</div>
+                    <div class="loan-detail-value" id="interestRate">8.5%</div>
+                  </div>
+                  <div class="loan-detail-item">
+                    <div class="loan-detail-label">Term</div>
+                    <div class="loan-detail-value" id="term">12 months</div>
+                  </div>
+                  <div class="loan-detail-item">
+                    <div class="loan-detail-label">Next Payment</div>
+                    <div class="loan-detail-value" id="nextPayment">Dec 15, 2024</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button class="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center neo-btn neo-btn-icon" aria-label="View card details">
+                <i class="w-5 h-5 text-gray-600" data-lucide="eye"></i>
+              </button>
+              <button class="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center neo-btn neo-btn-icon" aria-label="Show card list">
+                <i class="w-5 h-5 text-gray-600" data-lucide="credit-card"></i>
+              </button>
+              <div class="flex-1 h-3 rounded-full overflow-hidden progress-track">
+                <div class="h-full rounded-full progress-fill" id="loanProgress" style="width: 50%;"></div>
+              </div>
+              <span class="text-xs font-semibold text-gray-500" id="loanProgressLabel">50%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4 min-h-[220px]">
+          <section class="bg-white rounded-3xl p-6 shadow-sm flex flex-col justify-between flex-1">
+            <article>
+              <div class="flex items-center gap-2 mb-3">
+                <i class="w-4 h-4 text-gray-400" data-lucide="info"></i>
+                <div class="loan-filter" data-filter>
+                  <button class="loan-filter-trigger" type="button" data-filter-trigger>
+                    Overall
+                  </button>
+                  <div class="loan-filter-menu" data-filter-menu>
+                    <button class="loan-filter-option" type="button" data-value="overall">Overall</button>
+                    <button class="loan-filter-option" type="button" data-value="current">Current active loan</button>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Total borrowed</p>
+              <p class="text-2xl font-bold">R 23,194.80</p>
+              <p class="text-xs text-gray-400 mt-2 hidden" id="borrowedDue">To be fully paid before <span class="font-semibold text-gray-600">Dec 20, 2026</span></p>
+            </article>
+          </section>
+
+          <section class="bg-white rounded-3xl p-6 shadow-sm flex flex-col justify-between flex-1">
+            <article>
+              <div class="flex items-center gap-2 mb-3">
+                <i class="w-4 h-4 text-gray-400" data-lucide="info"></i>
+                <div class="loan-filter" data-filter>
+                  <button class="loan-filter-trigger" type="button" data-filter-trigger>
+                    Overall
+                  </button>
+                  <div class="loan-filter-menu" data-filter-menu>
+                    <button class="loan-filter-option" type="button" data-value="overall">Overall</button>
+                    <button class="loan-filter-option" type="button" data-value="current">Current active loan</button>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Total repaid</p>
+              <p class="text-2xl font-bold">R 8,145.20</p>
+              <p class="text-xs text-gray-400 mt-2 hidden" id="repaidNext">Next repayment date <span class="font-semibold text-gray-600">Feb 05, 2026</span></p>
+            </article>
+          </section>
+        </div>
+
+        <div class="flex flex-col gap-4 min-h-[220px]">
+          <section class="bg-white rounded-3xl p-6 shadow-sm flex flex-col justify-between flex-1">
+            <article>
+              <div class="flex items-center gap-2 mb-3">
+                <i class="w-4 h-4 text-gray-400" data-lucide="info"></i>
+                <div class="loan-filter" data-filter>
+                  <button class="loan-filter-trigger" type="button" data-filter-trigger>
+                    Overall
+                  </button>
+                  <div class="loan-filter-menu" data-filter-menu>
+                    <button class="loan-filter-option" type="button" data-value="overall">Overall</button>
+                    <button class="loan-filter-option" type="button" data-value="current">Current active loan</button>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Outstanding balance</p>
+              <p class="text-2xl font-bold">R 23,194.80</p>
+              <p class="text-xs text-gray-400 mt-2 hidden" id="outstandingNext">Next monthly payment <span class="font-semibold text-gray-600">R 3,750.00</span></p>
+            </article>
+          </section>
+
+          <section class="bg-white rounded-3xl p-6 shadow-sm flex flex-col justify-between flex-1">
+            <article>
+              <div class="flex items-center gap-2 mb-3">
+                <i class="w-4 h-4 text-gray-400" data-lucide="info"></i>
+                <div class="loan-filter" data-filter>
+                  <button class="loan-filter-trigger" type="button" data-filter-trigger>
+                    Overall
+                  </button>
+                  <div class="loan-filter-menu" data-filter-menu>
+                    <button class="loan-filter-option" type="button" data-value="overall">Overall</button>
+                    <button class="loan-filter-option" type="button" data-value="current">Current active loan</button>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Open loan count</p>
+              <p class="text-2xl font-bold">8,145.20</p>
+              <p class="text-xs text-gray-400 mt-2">Pending applications <span class="font-semibold text-gray-600">3</span></p>
+            </article>
+          </section>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <article class="score-card">
+          <div class="score-card-header">
+            <div class="score-card-title">Engine score</div>
+            <div class="score-card-subtitle">Out of 100%</div>
+          </div>
+          
+          <div class="score-chart">
+            <svg id="score-svg-chart"></svg>
+            <div class="score-chart-legend">
+              <div id="score-middle">0</div>
+              <p>out of 100</p>
+            </div>
+          </div>
+
+          <div class="score-grid">
+            <div class="score-grid-box">
+              <div class="score-grid-detail">
+                <div class="score-main-info">34%</div>
+                <div class="score-detail-info">Credit score</div>
+              </div>
+            </div>
+            <div class="score-grid-box">
+              <div class="score-grid-detail">
+                <div class="score-main-info">2</div>
+                <div class="score-detail-info">Credit utilization</div>
+              </div>
+            </div>
+            <div class="score-grid-box">
+              <div class="score-grid-detail">
+                <div class="score-main-info">98%</div>
+                <div class="score-detail-info">Tenure data</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <section class="bg-white rounded-3xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold">Recent applications</h3>
+            <div class="flex items-center gap-2">
+              <i class="w-4 h-4 text-gray-400" data-lucide="more-vertical"></i>
+              <button class="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs">
+                <i class="w-3 h-3" data-lucide="filter"></i>
+                Filters
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 mb-4">
+            <i class="w-4 h-4 text-gray-400" data-lucide="search"></i>
+            <input type="text" placeholder="Search in activities..." class="bg-transparent border-none outline-none flex-1 text-sm" />
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+              <div class="flex items-center gap-3">
+                <i class="w-4 h-4 text-gray-400" data-lucide="more-vertical"></i>
+                <div>
+                  <p class="text-xs text-gray-500 mb-1">Total amount requested</p>
+                  <p class="text-2xl font-bold">
+                    R 43.20
+                    <span class="text-xs text-gray-400"> ZAR</span>
+                  </p>
+                </div>
+              </div>
+              <div class="h-12 w-24 flex items-end gap-0.5">
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 30%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 50%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 25%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 60%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 40%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 70%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 35%;"></span>
+                <span class="flex-1 bg-orange-400 rounded-t-sm" style="height: 65%;"></span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-3">
+              <span class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">●</span>
+              <span class="text-sm">Loan application 1</span>
+              <span class="ml-auto text-xs">▼</span>
+            </div>
+            <div class="flex items-center gap-3 p-3">
+              <span class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">●</span>
+              <span class="text-sm">Loan application 2</span>
+              <span class="ml-auto text-xs">▼</span>
+            </div>
+            <div class="flex items-center gap-3 p-3">
+              <span class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">●</span>
+              <span class="text-sm">Loan application 3</span>
+              <span class="ml-auto text-xs">▼</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="space-y-6">
+          <section class="bg-white rounded-3xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-lg font-bold">Loan breakdown</h3>
+                <p class="text-xs text-gray-400">Repaid vs Outstanding</p>
+              </div>
+              <span class="text-xs text-gray-400">This year</span>
+            </div>
+
+            <div class="flex items-center gap-6">
+              <div class="relative w-28 h-28">
+                <div class="absolute inset-0 rounded-full" style="background: conic-gradient(#6a43ff 0 62%, #e5e5e5 62% 100%); box-shadow: 0 8px 16px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -2px 4px rgba(0,0,0,0.1);"></div>
+                <div class="absolute inset-2 bg-white rounded-full" style="box-shadow: 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 2px rgba(255,255,255,0.8);"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-sm font-semibold">
+                  62%
+                </div>
+              </div>
+              <div class="space-y-3 text-sm">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-purple-600"></span>
+                  <span class="text-gray-600">Repaid</span>
+                  <span class="ml-auto font-semibold text-gray-900">R 16,073</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-gray-300"></span>
+                  <span class="text-gray-600">Outstanding</span>
+                  <span class="ml-auto font-semibold text-gray-900">R 9,842</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="bg-white rounded-3xl p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <div class="repaid-title">Total amount repaid</div>
+                <div class="repaid-subtitle">Monthly trend</div>
+              </div>
+              <div class="repaid-controls">
+                <button class="repaid-nav" id="repaid-prev" aria-label="Previous months" disabled>
+                  <i class="w-4 h-4" data-lucide="chevron-left"></i>
+                </button>
+                <button class="repaid-nav" id="repaid-next" aria-label="Next months">
+                  <i class="w-4 h-4" data-lucide="chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="repaid-chart" id="repaid-chart">
+              <canvas id="repaid-canvas" class="repaid-canvas"></canvas>
+              <div class="repaid-label" id="repaid-label"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      let currentCard = 1;
+      const loans = [
+        {
+          id: 'LOAN-2024-001',
+          amount: 'R 45,000.00',
+          monthly: 'R 3,750.00',
+          rate: '8.5%',
+          term: '12 months',
+          next: 'Dec 15, 2024',
+          progress: 50
+        },
+        {
+          id: 'LOAN-2024-002',
+          amount: 'R 85,500.00',
+          monthly: 'R 5,125.00',
+          rate: '7.2%',
+          term: '24 months',
+          next: 'Dec 20, 2024',
+          progress: 68
+        },
+        {
+          id: 'LOAN-2024-003',
+          amount: 'R 125,000.00',
+          monthly: 'R 8,950.00',
+          rate: '6.8%',
+          term: '18 months',
+          next: 'Dec 25, 2024',
+          progress: 42
+        }
+      ];
+      let isAnimating = false;
+
+      function switchCard() {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const mainCard = document.getElementById('mainCard');
+        
+        mainCard.classList.add('swapping');
+        
+        setTimeout(() => {
+          currentCard = (currentCard % 3) + 1;
+          const loan = loans[currentCard - 1];
+          document.getElementById('loanId').textContent = loan.id;
+          document.getElementById('loanAmount').textContent = loan.amount;
+          document.getElementById('monthlyPayment').textContent = loan.monthly;
+          document.getElementById('interestRate').textContent = loan.rate;
+          document.getElementById('term').textContent = loan.term;
+          document.getElementById('nextPayment').textContent = loan.next;
+          
+          const nextBehindIndex = currentCard % loans.length;
+          const nextLoan = loans[nextBehindIndex];
+          document.getElementById('behindId').textContent = nextLoan.id;
+          document.getElementById('behindAmount').textContent = nextLoan.amount;
+          document.getElementById('behindMonthly').textContent = nextLoan.monthly;
+          document.getElementById('behindRate').textContent = nextLoan.rate;
+          document.getElementById('behindTerm').textContent = nextLoan.term;
+          document.getElementById('behindNext').textContent = nextLoan.next;
+
+          const progressFill = document.getElementById('loanProgress');
+          const progressLabel = document.getElementById('loanProgressLabel');
+          if (progressFill && progressLabel) {
+            const pct = Math.max(0, Math.min(100, loan.progress));
+            progressFill.style.width = `${pct}%`;
+            progressLabel.textContent = `${pct}%`;
+          }
+          
+          document.getElementById('dot1').classList.toggle('active', currentCard === 1);
+          document.getElementById('dot2').classList.toggle('active', currentCard === 2);
+          document.getElementById('dot3').classList.toggle('active', currentCard === 3);
+          
+          mainCard.style.transition = 'none';
+          mainCard.style.transform = 'translateY(50%) scale(0.98)';
+          mainCard.style.opacity = '0';
+          
+          setTimeout(() => {
+            mainCard.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+            mainCard.classList.remove('swapping');
+            mainCard.style.transform = '';
+            mainCard.style.opacity = '';
+            
+            setTimeout(() => {
+              isAnimating = false;
+            }, 400);
+          }, 50);
+        }, 400);
+      }
+
+      const loanFilters = document.querySelectorAll('[data-filter]');
+      const borrowedDue = document.getElementById('borrowedDue');
+      const repaidNext = document.getElementById('repaidNext');
+      const outstandingNext = document.getElementById('outstandingNext');
+
+      function updateLoanFilter(value) {
+        loanFilters.forEach((wrapper) => {
+          const trigger = wrapper.querySelector('[data-filter-trigger]');
+          const options = wrapper.querySelectorAll('[data-value]');
+          if (trigger) {
+            trigger.textContent = value === 'current' ? 'Current active loan' : 'Overall';
+          }
+          options.forEach((option) => {
+            option.classList.toggle('is-selected', option.dataset.value === value);
+          });
+        });
+        if (borrowedDue) {
+          borrowedDue.classList.toggle('hidden', value !== 'current');
+        }
+        if (repaidNext) {
+          repaidNext.classList.toggle('hidden', value !== 'current');
+        }
+        if (outstandingNext) {
+          outstandingNext.classList.toggle('hidden', value !== 'current');
+        }
+      }
+
+      function closeAllFilters() {
+        loanFilters.forEach((wrapper) => wrapper.classList.remove('open'));
+      }
+
+      loanFilters.forEach((wrapper) => {
+        const trigger = wrapper.querySelector('[data-filter-trigger]');
+        const options = wrapper.querySelectorAll('[data-value]');
+
+        trigger?.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const isOpen = wrapper.classList.contains('open');
+          closeAllFilters();
+          wrapper.classList.toggle('open', !isOpen);
+        });
+
+        options.forEach((option) => {
+          option.addEventListener('click', (event) => {
+            event.stopPropagation();
+            updateLoanFilter(option.dataset.value || 'overall');
+            closeAllFilters();
+          });
+        });
+      });
+
+      document.addEventListener('click', closeAllFilters);
+
+      updateLoanFilter('overall');
+
+      const profileTrigger = document.getElementById('profile-trigger');
+      const profileMenu = document.getElementById('profile-menu');
+      const geopayToggle = document.getElementById('geopay-toggle');
+      const toggleTrack = document.getElementById('toggle-track');
+      const menuBtn = document.getElementById('menu-btn');
+      let geopayEnabled = false;
+
+      profileTrigger?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        profileMenu?.classList.toggle('open');
+      });
+
+      document.addEventListener('click', (event) => {
+        if (profileMenu && profileTrigger) {
+          if (!profileMenu.contains(event.target) && !profileTrigger.contains(event.target)) {
+            profileMenu.classList.remove('open');
+          }
+        }
+      });
+
+      geopayToggle?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        geopayEnabled = !geopayEnabled;
+        toggleTrack?.classList.toggle('active', geopayEnabled);
+      });
+
+      menuBtn?.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+      });
+
+      function getScoreColour(value) {
+        const colours = {
+          20:'#4b22d6', 19:'#5530e0', 18:'#5f3dea', 17:'#6a4af2',
+          16:'#7457f7', 15:'#7f63fb', 14:'#8a70ff', 13:'#947bff',
+          12:'#9f87ff', 11:'#aa93ff', 10:'#b49eff', 9:'#bea9ff',
+          8:'#c9b4ff', 7:'#d3bfff', 6:'#ddc9ff', 5:'#e6d3ff',
+          4:'#eddcff', 3:'#f2e6ff', 2:'#f6efff', 1:'#faf7ff',
+          0:'#ffffff'
+        };
+        const length = Object.keys(colours).length;
+        const max = 100;
+        const index = Math.floor(value / (max / length));
+        return colours[index] !== undefined ? colours[index] : colours[20];
+      }
+
+      function drawScoreGauge(value) {
+        if (!window.d3) return;
+        const tau = 2 * Math.PI;
+        const radius = 100;
+        const perc = value / 100;
+
+        const arc = d3.arc()
+          .innerRadius(radius - 10)
+          .outerRadius(radius)
+          .startAngle(0);
+
+        const ring1 = d3.arc()
+          .innerRadius(radius + 18)
+          .outerRadius(radius + 20)
+          .startAngle(0);
+
+        const ring2 = d3.arc()
+          .innerRadius(radius - 1)
+          .outerRadius(radius + 11)
+          .startAngle(0);
+
+        const width = 46 + radius * 2;
+        const height = 46 + radius * 2;
+
+        const svg = d3.select('#score-svg-chart')
+          .attr('width', width)
+          .attr('height', height);
+
+        const g = svg.append('g')
+          .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+        const circle = svg.append('circle')
+          .style('fill', getScoreColour(value))
+          .attr('cx', 0)
+          .attr('cy', 0)
+          .attr('r', 8);
+
+        g.append('path')
+          .datum({ endAngle: tau })
+          .style('fill', '#f9f9f9')
+          .attr('d', arc);
+
+        g.append('path')
+          .datum({ endAngle: tau })
+          .style('stroke-opacity', 0.1)
+          .style('opacity', 0.1)
+          .style('fill', '#ffffff')
+          .attr('d', ring2);
+
+        g.append('path')
+          .datum({ endAngle: tau })
+          .style('stroke-opacity', 0.3)
+          .style('opacity', 0.3)
+          .style('fill', '#ffffff')
+          .attr('d', ring1);
+
+        const foreground = g.append('path')
+          .datum({ endAngle: 0.1 * tau })
+          .style('fill', getScoreColour(value))
+          .attr('d', arc);
+
+        const scoreDiv = d3.select('#score-middle');
+
+        foreground.transition()
+          .duration(2000)
+          .attrTween('d', function(d) {
+            const interpolate = d3.interpolate(d.endAngle, perc * tau);
+            return function(t) {
+              d.endAngle = interpolate(t);
+              const path = arc(d);
+              const curScore = perc * t;
+              const score = curScore * 100;
+              scoreDiv.html(parseInt(score));
+              scoreDiv.style('color', getScoreColour(parseInt(score)));
+
+              const cx = radius + Math.sin(d.endAngle) * 0.97 * radius;
+              const cy = radius - Math.cos(d.endAngle) * 0.97 * radius;
+              circle.attr('cx', cx + 23).attr('cy', cy + 23);
+
+              return path;
+            };
+          });
+      }
+
+      function drawRepaidChart() {
+        const canvas = document.getElementById('repaid-canvas');
+        const label = document.getElementById('repaid-label');
+        const prevBtn = document.getElementById('repaid-prev');
+        const nextBtn = document.getElementById('repaid-next');
+        if (!canvas || !label || !prevBtn || !nextBtn) return;
+
+        const ctx = canvas.getContext('2d');
+        const parent = canvas.parentElement;
+        const cw = canvas.width = parent.clientWidth;
+        const ch = canvas.height = parent.clientHeight;
+
+        const data = {
+          Jan: 10,
+          Feb: 39.9,
+          Mar: 17,
+          Apr: 30,
+          May: 5.3,
+          Jun: 38.4,
+          Jul: 15.7,
+          Aug: 9.0,
+          Sep: 25.5,
+          Oct: 42.1,
+          Nov: 18.3,
+          Dec: 33.7
+        };
+
+        const allLabels = Object.keys(data);
+        const allValues = Object.values(data);
+        const windowSize = 6;
+        let windowStart = 0;
+        let isAnimating = false;
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, ch);
+        gradient.addColorStop(0, 'hsla(263,85%,60%,0.5)');
+        gradient.addColorStop(1, 'hsla(263,85%,60%,0)');
+
+        function render(direction = 'right') {
+          if (isAnimating) return;
+          isAnimating = true;
+
+          canvas.classList.remove('repaid-slide-in-right', 'repaid-slide-in-left');
+          canvas.offsetHeight;
+          canvas.classList.add(direction === 'right' ? 'repaid-slide-in-right' : 'repaid-slide-in-left');
+
+          const labels = allLabels.slice(windowStart, windowStart + windowSize);
+          const values = allValues.slice(windowStart, windowStart + windowSize);
+          const vData = 3;
+          const padding = 22;
+          const chartHeight = ch - 2 * padding;
+          const chartWidth = cw - 2 * padding;
+          const max = Math.ceil(Math.max(...values) * 1.15 / 10) * 10;
+          const min = Math.floor(Math.min(...values) / 10) * 10;
+          const aStepValue = (max - min) / vData || 1;
+          const verticalUnit = (chartHeight - 20) / aStepValue;
+          const bStep = chartWidth / (labels.length + 1);
+          const t = 1 / 7;
+          const speed = 3;
+
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#666';
+          ctx.fillStyle = '#333';
+          ctx.font = '11px "Segoe UI", sans-serif';
+
+          const A = { x: padding, y: padding };
+          const B = { x: padding, y: padding + chartHeight };
+          const C = { x: padding + chartWidth, y: padding + chartHeight };
+
+          const a = [];
+          for (let i = 0; i <= vData; i++) {
+            a[i] = {
+              x: A.x,
+              y: A.y + 10 + i * ((chartHeight - 20) / vData),
+              val: max - i * aStepValue
+            };
+          }
+
+          const b = [];
+          for (let i = 0; i < labels.length; i++) {
+            b[i] = {
+              x: B.x + bStep * (i + 1),
+              y: B.y,
+              val: labels[i]
+            };
+          }
+
+          const dots = b.map((point, i) => ({
+            x: point.x,
+            y: Math.max(A.y + 12, point.y - (values[i] - min) * verticalUnit - 10),
+            val: values[i],
+            label: labels[i]
+          }));
+
+          const flat = dots.map((point) => ({ x: point.x, y: B.y - 10 }));
+
+          function controlPoints(p) {
+            const pc = [];
+            for (let i = 1; i < p.length - 1; i++) {
+              const dx = p[i - 1].x - p[i + 1].x;
+              const dy = p[i - 1].y - p[i + 1].y;
+              pc[i] = [
+                { x: p[i].x - dx * t, y: p[i].y - dy * t },
+                { x: p[i].x + dx * t, y: p[i].y + dy * t }
+              ];
+            }
+            return pc;
+          }
+
+          function drawCurve(p) {
+            const pc = controlPoints(p);
+            ctx.beginPath();
+            ctx.moveTo(p[0].x, p[0].y);
+            if (p.length > 1) {
+              ctx.quadraticCurveTo(pc[1][1].x, pc[1][1].y, p[1].x, p[1].y);
+            }
+
+            if (p.length > 2) {
+              for (let i = 1; i < p.length - 2; i++) {
+                ctx.bezierCurveTo(pc[i][0].x, pc[i][0].y, pc[i + 1][1].x, pc[i + 1][1].y, p[i + 1].x, p[i + 1].y);
+              }
+              const n = p.length - 1;
+              ctx.quadraticCurveTo(pc[n - 1][0].x, pc[n - 1][0].y, p[n].x, p[n].y);
+            }
+
+            ctx.stroke();
+            ctx.save();
+            ctx.lineTo(p[p.length - 1].x, B.y - 10);
+            ctx.lineTo(p[0].x, B.y - 10);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          let frames = 0;
+          function animate() {
+            frames += speed;
+            ctx.clearRect(0, 0, cw, ch);
+
+            ctx.beginPath();
+            ctx.moveTo(A.x, A.y);
+            ctx.lineTo(B.x, B.y);
+            ctx.lineTo(C.x, C.y);
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.stroke();
+
+            ctx.fillStyle = '#6b7280';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            a.forEach((tick) => {
+              ctx.beginPath();
+              ctx.moveTo(tick.x - 3, tick.y);
+              ctx.lineTo(tick.x + 3, tick.y);
+              ctx.stroke();
+              ctx.fillText(Math.round(tick.val), tick.x - 6, tick.y);
+            });
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'hanging';
+            b.forEach((tick) => {
+              ctx.beginPath();
+              ctx.moveTo(tick.x, tick.y - 3);
+              ctx.lineTo(tick.x, tick.y + 3);
+              ctx.stroke();
+              ctx.fillText(tick.val, tick.x, tick.y + 6);
+            });
+
+            for (let i = 0; i < flat.length; i++) {
+              if (flat[i].y > dots[i].y) flat[i].y -= speed;
+            }
+
+            ctx.strokeStyle = '#7c3aed';
+            drawCurve(flat);
+
+            ctx.fillStyle = '#7c3aed';
+            flat.forEach((point) => {
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+              ctx.fill();
+            });
+
+            if (frames < (max - min) * verticalUnit) {
+              requestAnimationFrame(animate);
+            } else {
+              isAnimating = false;
+            }
+          }
+
+          animate();
+
+          canvas.onmousemove = (e) => {
+            label.style.display = 'none';
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            for (let i = 0; i < dots.length; i++) {
+              const dx = mx - dots[i].x;
+              const dy = my - dots[i].y;
+              if (Math.sqrt(dx * dx + dy * dy) < 10) {
+                label.style.display = 'block';
+                label.style.left = `${mx + 8}px`;
+                label.style.top = `${my + 8}px`;
+                label.innerHTML = `<strong>${dots[i].label}</strong>: R${dots[i].val.toFixed(1)}K`;
+                break;
+              }
+            }
+          };
+
+          prevBtn.disabled = windowStart === 0;
+          nextBtn.disabled = windowStart + windowSize >= allLabels.length;
+        }
+
+        prevBtn.addEventListener('click', () => {
+          if (windowStart === 0) return;
+          windowStart = Math.max(0, windowStart - windowSize);
+          render('left');
+        });
+
+        nextBtn.addEventListener('click', () => {
+          if (windowStart + windowSize >= allLabels.length) return;
+          windowStart = Math.min(allLabels.length - windowSize, windowStart + windowSize);
+          render('right');
+        });
+
+        render('right');
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.lucide && window.lucide.createIcons) {
+          window.lucide.createIcons();
+        }
+
+        drawScoreGauge(82);
+        drawRepaidChart();
+
+      });
+    </script>
+  </body>
+</html>
