@@ -460,6 +460,11 @@
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('[truID:step1] session', {
+          hasSession: Boolean(session),
+          userId: session?.user?.id,
+          expiresAt: session?.expires_at
+        });
         if (!session?.access_token) {
           throw new Error('Please sign in to continue.');
         }
@@ -474,6 +479,11 @@
         });
 
         const data = await response.json();
+        console.log('[truID:step1] initiate response', {
+          status: response.status,
+          ok: response.ok,
+          data
+        });
         if (!data.success) throw new Error(data.error || 'Could not start connection');
 
         currentCollectionId = data.collectionId;

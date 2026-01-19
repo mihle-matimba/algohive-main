@@ -58,11 +58,19 @@ module.exports = async function handler(req, res) {
     ? authHeader.slice('Bearer '.length).trim()
     : null;
 
+  console.log('[truID:initiate] auth header present:', Boolean(authHeader));
+
   if (!accessToken) {
     return res.status(401).json({ success: false, error: 'Missing bearer token' });
   }
 
   const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+  if (userError) {
+    console.error('[truID:initiate] supabase auth error', userError);
+  }
+  if (userData?.user?.id) {
+    console.log('[truID:initiate] user id', userData.user.id);
+  }
   if (userError || !userData?.user?.id) {
     return res.status(401).json({ success: false, error: 'Invalid or expired session', details: userError?.message });
   }
@@ -72,6 +80,10 @@ module.exports = async function handler(req, res) {
     .select('first_name,last_name,id_number,phone,email,email_address')
     .eq('id', userData.user.id)
     .single();
+
+  if (profileError) {
+    console.error('[truID:initiate] profile error', profileError);
+  }
 
   if (profileError || !profile) {
     return res.status(404).json({ success: false, error: 'Profile not found' });
@@ -101,6 +113,11 @@ module.exports = async function handler(req, res) {
       services,
       correlation,
       force
+    });
+    console.log('[truID:initiate] collection response', {
+      collectionId: collection.collectionId,
+      consentId: collection.consentId,
+      consumerUrl: collection.consumerUrl
     });
     res.status(201).json({
       success: true,
