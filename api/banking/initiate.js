@@ -3,7 +3,7 @@ const truIDClient = require('../../services/truidClient');
 
 const REQUIRED_ENV = ['TRUID_API_KEY', 'TRUID_API_BASE', 'COMPANY_ID', 'BRAND_ID', 'WEBHOOK_URL', 'REDIRECT_URL'];
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://aazofjsssobejhkyyiqv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2IiwiY3JvbGUiOiJhbm9uIiwiaWF0IjoxNzU4MTEyNTQ1LCJleHAiOjIwNzM2ODg1NDV9.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function applyCors(res) {
@@ -72,7 +72,15 @@ module.exports = async function handler(req, res) {
     console.log('[truID:initiate] user id', userData.user.id);
   }
   if (userError || !userData?.user?.id) {
-    return res.status(401).json({ success: false, error: 'Invalid or expired session', details: userError?.message });
+    const message = userError?.message || 'Invalid or expired session';
+    if (String(message).toLowerCase().includes('invalid api key')) {
+      return res.status(500).json({
+        success: false,
+        error: 'Server Supabase configuration error',
+        details: 'Check SUPABASE_URL and SUPABASE_ANON_KEY on the server.'
+      });
+    }
+    return res.status(401).json({ success: false, error: 'Invalid or expired session', details: message });
   }
 
   const { data: profile, error: profileError } = await supabase
