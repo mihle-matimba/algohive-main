@@ -1,3 +1,4 @@
+import { supabase } from "/js/supabase.js";
 import { getActiveStoredLoan } from "/js/loan-application.js";
 
 const DEFAULT_TARGET = "/money/personal/step1.html";
@@ -76,6 +77,18 @@ function resolveTarget(link) {
   }
 }
 
+async function hasAnyLoanApplications() {
+  const { data, error } = await supabase
+    .from("loan_application")
+    .select("id")
+    .limit(1);
+  if (error) {
+    console.warn("Loan lookup failed", error.message || error);
+    return null;
+  }
+  return Array.isArray(data) && data.length > 0;
+}
+
 async function handleUnsecuredClick(event) {
   event.preventDefault();
   if (isNavigating) return;
@@ -88,14 +101,26 @@ async function handleUnsecuredClick(event) {
 
   try {
     const activeLoan = await getActiveStoredLoan();
+    let hasAny = null;
+    if (!activeLoan) {
+      hasAny = await hasAnyLoanApplications();
+    }
     const elapsed = Date.now() - start;
     if (elapsed < MIN_SPINNER_MS) {
       await new Promise((resolve) => setTimeout(resolve, MIN_SPINNER_MS - elapsed));
     }
-    window.location.assign(activeLoan ? DASHBOARD_TARGET : target);
+    if (activeLoan) {
+      window.location.assign(DASHBOARD_TARGET);
+      return;
+    }
+    if (hasAny === false) {
+      window.location.assign(DEFAULT_TARGET);
+      return;
+    }
+    window.location.assign(DASHBOARD_TARGET);
   } catch (err) {
     console.warn("Unable to check loan application", err);
-    window.location.assign(target);
+    window.location.assign(DASHBOARD_TARGET);
   }
 }
 
