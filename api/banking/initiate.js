@@ -4,7 +4,11 @@ const truIDClient = require('../../services/truidClient');
 const REQUIRED_ENV = ['TRUID_API_KEY', 'TRUID_API_BASE', 'COMPANY_ID', 'BRAND_ID', 'WEBHOOK_URL', 'REDIRECT_URL'];
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://aazofjsssobejhkyyiqv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhem9manNzc29iZWpoa3l5aXF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTI1NDUsImV4cCI6MjA3MzY4ODU0NX0.guYlxaV5RwTlTVFoUhpER0KWEIGPay8svLsxMwyRUyM';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
 
 function applyCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -83,7 +87,8 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'Invalid or expired session', details: message });
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const profileClient = supabaseAdmin || supabase;
+  let { data: profile, error: profileError } = await profileClient
     .from('profiles')
     .select('first_name,last_name,id_number,phone,email,email_address')
     .eq('id', userData.user.id)
@@ -94,7 +99,40 @@ module.exports = async function handler(req, res) {
   }
 
   if (profileError || !profile) {
-    return res.status(404).json({ success: false, error: 'Profile not found' });
+    if (!supabaseAdmin) {
+      return res.status(404).json({
+        success: false,
+        error: 'Profile not found',
+        details: 'Missing SUPABASE_SERVICE_ROLE_KEY or RLS policy prevents access.'
+      });
+    }
+
+    const newProfile = {
+      id: userData.user.id,
+      email: userData.user.email,
+      email_address: userData.user.email,
+      first_name: userData.user.user_metadata?.first_name || userData.user.user_metadata?.firstName || '',
+      last_name: userData.user.user_metadata?.last_name || userData.user.user_metadata?.lastName || '',
+      id_number: userData.user.user_metadata?.id_number || userData.user.user_metadata?.idNumber || '',
+      phone: userData.user.user_metadata?.phone || userData.user.phone || ''
+    };
+
+    const { data: createdProfile, error: createError } = await supabaseAdmin
+      .from('profiles')
+      .insert(newProfile)
+      .select('first_name,last_name,id_number,phone,email,email_address')
+      .single();
+
+    if (createError || !createdProfile) {
+      console.error('[truID:initiate] failed to create profile', createError);
+      return res.status(500).json({
+        success: false,
+        error: 'Profile not found and could not be created',
+        details: createError?.message
+      });
+    }
+
+    profile = createdProfile;
   }
 
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
