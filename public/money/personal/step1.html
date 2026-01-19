@@ -459,7 +459,11 @@
       showStatus('Initializing secure connection…');
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          const refreshed = await supabase.auth.refreshSession();
+          session = refreshed?.data?.session || null;
+        }
         console.log('[truID:step1] session', {
           hasSession: Boolean(session),
           userId: session?.user?.id,
