@@ -149,6 +149,9 @@ const geopayToggle = document.getElementById('geopay-toggle');
 const toggleTrack = document.getElementById('toggle-track');
 const menuBtn = document.getElementById('menu-btn');
 let geopayEnabled = false;
+const engineCreditScoreEl = document.getElementById('engine-credit-score');
+const engineCreditUtilizationEl = document.getElementById('engine-credit-utilization');
+const engineTenureEl = document.getElementById('engine-tenure-data');
 
 profileTrigger?.addEventListener('click', (event) => {
   event.stopPropagation();
@@ -188,6 +191,76 @@ function getScoreColour(value) {
   return colours[index] !== undefined ? colours[index] : colours[20];
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatPercent(value, digits = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '--';
+  return `${num.toFixed(digits)}%`;
+}
+
+function formatYears(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '--';
+  const formatted = num < 10 ? num.toFixed(1) : num.toFixed(0);
+  return `${formatted} yrs`;
+}
+
+function formatCreditScore(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '--';
+  return String(Math.round(num));
+}
+
+function setEngineScoreFallback() {
+  if (engineCreditScoreEl) engineCreditScoreEl.textContent = '--';
+  if (engineCreditUtilizationEl) engineCreditUtilizationEl.textContent = '--';
+  if (engineTenureEl) engineTenureEl.textContent = '--';
+  drawScoreGauge(0);
+}
+
+async function loadEngineScore() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setEngineScoreFallback();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('loan_engine_score')
+      .select('engine_score, experian_score, exposure_revolving_utilization, years_current_employer, run_at')
+      .eq('user_id', session.user.id)
+      .order('run_at', { ascending: false })
+      .limit(1);
+
+    if (error || !Array.isArray(data) || data.length === 0) {
+      setEngineScoreFallback();
+      return;
+    }
+
+    const record = data[0] || {};
+    const engineScoreValue = Number(record.engine_score);
+    const score = Number.isFinite(engineScoreValue) ? clamp(Math.round(engineScoreValue), 0, 100) : 0;
+    drawScoreGauge(score);
+
+    if (engineCreditScoreEl) {
+      engineCreditScoreEl.textContent = formatCreditScore(record.experian_score);
+    }
+    if (engineCreditUtilizationEl) {
+      engineCreditUtilizationEl.textContent = formatPercent(record.exposure_revolving_utilization, 0);
+    }
+    if (engineTenureEl) {
+      engineTenureEl.textContent = formatYears(record.years_current_employer);
+    }
+  } catch (err) {
+    console.error('Engine score fetch error:', err);
+    setEngineScoreFallback();
+  }
+}
+
 function drawScoreGauge(value) {
   if (!window.d3) return;
   const tau = 2 * Math.PI;
@@ -212,8 +285,9 @@ function drawScoreGauge(value) {
   const width = 46 + radius * 2;
   const height = 46 + radius * 2;
 
-  const svg = d3.select('#score-svg-chart')
-    .attr('width', width)
+  const svg = d3.select('#score-svg-chart');
+  svg.selectAll('*').remove();
+  svg.attr('width', width)
     .attr('height', height);
 
   const g = svg.append('g')
@@ -504,7 +578,7 @@ window.addEventListener('DOMContentLoaded', () => {
     window.lucide.createIcons();
   }
 
-  drawScoreGauge(82);
+  loadEngineScore();
   drawRepaidChart();
 
   loadRecentApplications();
