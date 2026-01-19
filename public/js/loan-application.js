@@ -8,6 +8,7 @@ const STEP_PAGES = {
   4: "step4.html"
 };
 const DEFAULT_INTEREST_RATE = 0.15;
+const STALE_LOAN_MS = 60 * 60 * 1000;
 
 async function fetchLoanById(loanId) {
   if (!loanId) return null;
@@ -23,11 +24,39 @@ async function fetchLoanById(loanId) {
   return data || null;
 }
 
+async function deleteLoanById(loanId) {
+  if (!loanId) return false;
+  const { error } = await supabase
+    .from("loan_application")
+    .delete()
+    .eq("id", loanId);
+  if (error) {
+    console.error("Loan delete error:", error.message || error);
+    return false;
+  }
+  return true;
+}
+
+function isStaleLoan(loan) {
+  if (!loan) return false;
+  if (loan.status !== "in_progress") return false;
+  const timestamp = loan.updated_at || loan.created_at;
+  if (!timestamp) return false;
+  const updatedAt = new Date(timestamp).getTime();
+  if (!Number.isFinite(updatedAt)) return false;
+  return Date.now() - updatedAt > STALE_LOAN_MS;
+}
+
 export async function getActiveStoredLoan() {
   const loanId = localStorage.getItem(LOAN_KEY);
   if (!loanId) return null;
   const loan = await fetchLoanById(loanId);
   if (!loan) return null;
+  if (isStaleLoan(loan)) {
+    await deleteLoanById(loan.id);
+    localStorage.removeItem(LOAN_KEY);
+    return null;
+  }
   if (loan.step_number === 4 || loan.status === "completed") return null;
   return loan;
 }
