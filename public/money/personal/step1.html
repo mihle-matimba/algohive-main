@@ -433,7 +433,36 @@
 
     let loanRecord = null;
 
+    const redirectToAuth = () => {
+      const next = encodeURIComponent(location.pathname + location.search + location.hash);
+      location.replace(`/auth.html?tab=in&redirect=${next}`);
+    };
+
+    const ensureSession = async () => {
+      try {
+        let { data: { session }, error } = await supabase.auth.getSession();
+        if (error) console.warn('[truID:step1] session error', error.message);
+        const expiresSoon = session?.expires_at
+          ? session.expires_at * 1000 < Date.now() + 60_000
+          : true;
+        if (expiresSoon) {
+          const refreshed = await supabase.auth.refreshSession();
+          session = refreshed?.data?.session || null;
+        }
+        if (!session?.access_token) {
+          redirectToAuth();
+          return null;
+        }
+        return session;
+      } catch (err) {
+        console.warn('[truID:step1] unable to verify session', err);
+        redirectToAuth();
+        return null;
+      }
+    };
+
     (async () => {
+      await ensureSession();
       loanRecord = await initLoanStep(1, { allowRedirect: false });
     })();
 
@@ -459,10 +488,10 @@
       showStatus('Initializing secure connection…');
 
       try {
-        let { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          const refreshed = await supabase.auth.refreshSession();
-          session = refreshed?.data?.session || null;
+        const session = await ensureSession();
+        if (!session) {
+          resetButton();
+          return;
         }
         console.log('[truID:step1] session', {
           hasSession: Boolean(session),
