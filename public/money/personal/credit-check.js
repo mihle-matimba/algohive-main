@@ -110,6 +110,66 @@ import { supabase } from '/js/supabase.js';
     return session;
   }
 
+  function normalizeScoreReasons(reasons) {
+    if (!Array.isArray(reasons)) return [];
+    return reasons
+      .map(reason => reason?.description || reason?.code || reason?.raw || null)
+      .filter(Boolean)
+      .map(value => String(value));
+  }
+
+  function buildLoanEngineInsertPayload({ session, creditPayload, normalizedLoanScore }) {
+    if (!session?.user) return null;
+    const creditScoreBreakdown = creditPayload?.breakdown?.creditScore || {};
+    const exposure = creditPayload?.creditExposure || {};
+
+    return {
+      user_id: session.user.id,
+      run_at: new Date().toISOString(),
+      engine_score: Number.isFinite(normalizedLoanScore) ? Number(normalizedLoanScore.toFixed(0)) : null,
+      score_band: creditPayload?.recommendation ?? null,
+      experian_score: Number.isFinite(creditPayload?.creditScore) ? creditPayload.creditScore : null,
+      experian_weight: Number.isFinite(creditScoreBreakdown?.weightPercent) ? creditScoreBreakdown.weightPercent : null,
+      engine_total_contribution: Number.isFinite(creditPayload?.loanEngineScore) ? creditPayload.loanEngineScore : null,
+      gross_monthly_income: lockedPayload?.grossMonthlyIncome ?? null,
+      years_current_employer: lockedPayload?.yearsCurrentEmployer ?? null,
+      contract_type: lockedPayload?.contractType ?? null,
+      is_new_borrower: typeof lockedPayload?.isNewBorrower === 'boolean' ? lockedPayload.isNewBorrower : null,
+      employment_sector: lockedPayload?.employmentSector ?? null,
+      employer_name: lockedPayload?.employerName ?? null,
+      exposure_revolving_utilization: Number.isFinite(exposure?.revolvingUtilizationPercent)
+        ? exposure.revolvingUtilizationPercent
+        : (Number.isFinite(exposure?.ratioPercent) ? exposure.ratioPercent : null),
+      exposure_revolving_balance: Number.isFinite(exposure?.revolvingBalance) ? exposure.revolvingBalance : null,
+      exposure_revolving_limit: Number.isFinite(exposure?.revolvingLimits) ? exposure.revolvingLimits : null,
+      exposure_total_balance: Number.isFinite(exposure?.totalBalance) ? exposure.totalBalance : null,
+      exposure_total_limit: Number.isFinite(exposure?.totalLimits) ? exposure.totalLimits : null,
+      exposure_open_accounts: Number.isFinite(exposure?.openAccounts) ? exposure.openAccounts : null,
+      score_reasons: normalizeScoreReasons(creditPayload?.scoreReasons)
+    };
+  }
+
+  async function saveLoanEngineResult(creditPayload, normalizedLoanScore) {
+    const session = await requireSession();
+    if (!session?.user) return;
+
+    const insertPayload = buildLoanEngineInsertPayload({
+      session,
+      creditPayload,
+      normalizedLoanScore
+    });
+
+    if (!insertPayload) return;
+
+    const { error } = await supabase
+      .from('loan_engine_score')
+      .insert(insertPayload);
+
+    if (error) {
+      console.warn('Unable to save loan engine score', error.message || error);
+    }
+  }
+
   async function hydrateProfileIdentity() {
     if (!profileInputs.length) return;
 
@@ -1119,6 +1179,7 @@ import { supabase } from '/js/supabase.js';
       }
 
       renderCreditScoreBreakdown(payload?.breakdown?.creditScore);
+      await saveLoanEngineResult(payload, normalizedLoanScore);
       renderLoanEngineSummary(
         payload?.breakdown,
         payload?.loanEngineScore,
