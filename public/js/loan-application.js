@@ -102,7 +102,7 @@ async function createLoan(stepNumber) {
   return data;
 }
 
-export async function initLoanStep(currentStepNumber, { updateStep = true } = {}) {
+export async function initLoanStep(currentStepNumber, { updateStep = true, allowRedirect = true } = {}) {
   const loanId = localStorage.getItem(LOAN_KEY);
   let loan = await fetchLoanById(loanId);
 
@@ -116,7 +116,7 @@ export async function initLoanStep(currentStepNumber, { updateStep = true } = {}
     return loan;
   }
 
-  if (loan.step_number > currentStepNumber && loan.step_number < 4) {
+  if (allowRedirect && loan.step_number > currentStepNumber && loan.step_number < 4) {
     const nextPage = STEP_PAGES[loan.step_number];
     if (nextPage) {
       window.location.href = nextPage;
