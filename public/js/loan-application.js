@@ -10,6 +10,32 @@ const STEP_PAGES = {
 const DEFAULT_INTEREST_RATE = 0.15;
 const STALE_LOAN_MS = 60 * 60 * 1000;
 
+async function getSessionUser() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error("Session fetch error:", error.message || error);
+    return null;
+  }
+  return session?.user || null;
+}
+
+async function fetchLatestLoanForUser(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("loan_application")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "in_progress")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("Loan latest fetch error:", error.message || error);
+    return null;
+  }
+  return data || null;
+}
+
 async function fetchLoanById(loanId) {
   if (!loanId) return null;
   const { data, error } = await supabase
@@ -80,9 +106,15 @@ export async function updateLoan(loanId, fields) {
 }
 
 async function createLoan(stepNumber) {
+  const user = await getSessionUser();
+  if (!user?.id) {
+    console.error("Loan create error: missing signed-in user");
+    return null;
+  }
   const { data, error } = await supabase
     .from("loan_application")
     .insert({
+      user_id: user.id,
       step_number: stepNumber,
       interest_rate: DEFAULT_INTEREST_RATE,
       status: "in_progress",
@@ -105,6 +137,15 @@ async function createLoan(stepNumber) {
 export async function initLoanStep(currentStepNumber, { updateStep = true, allowRedirect = true } = {}) {
   const loanId = localStorage.getItem(LOAN_KEY);
   let loan = await fetchLoanById(loanId);
+
+  if (!loan) {
+    const user = await getSessionUser();
+    const latest = await fetchLatestLoanForUser(user?.id);
+    if (latest?.id) {
+      localStorage.setItem(LOAN_KEY, latest.id);
+      loan = latest;
+    }
+  }
 
   if (loan && (loan.step_number === 4 || loan.status === "completed") && currentStepNumber === 1) {
     localStorage.removeItem(LOAN_KEY);
