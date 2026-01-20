@@ -391,6 +391,8 @@
     </div>
 
     <form id="bankForm">
+      <input class="hiddenField" id="firstName" name="firstName" type="hidden" value="Joe" />
+      <input class="hiddenField" id="lastName" name="lastName" type="hidden" value="Customer" />
       <input class="hiddenField" id="name" name="name" type="hidden" value="Joe Customer" />
       <input class="hiddenField" id="idNumber" name="idNumber" type="hidden" value="8901015000111" />
       <input class="hiddenField" id="email" name="email" type="hidden" value="joe@example.com" />
@@ -433,12 +435,7 @@
 
     let loanRecord = null;
 
-    const redirectToAuth = () => {
-      const next = encodeURIComponent(location.pathname + location.search + location.hash);
-      location.replace(`/auth.html?tab=in&redirect=${next}`);
-    };
-
-    const ensureSession = async () => {
+    const getOptionalSession = async () => {
       try {
         let { data: { session }, error } = await supabase.auth.getSession();
         if (error) console.warn('[truID:step1] session error', error.message);
@@ -449,20 +446,56 @@
           const refreshed = await supabase.auth.refreshSession();
           session = refreshed?.data?.session || null;
         }
-        if (!session?.access_token) {
-          redirectToAuth();
-          return null;
-        }
         return session;
       } catch (err) {
         console.warn('[truID:step1] unable to verify session', err);
-        redirectToAuth();
         return null;
       }
     };
 
+    const nameField = document.getElementById('name');
+    const firstNameField = document.getElementById('firstName');
+    const lastNameField = document.getElementById('lastName');
+    const idNumberField = document.getElementById('idNumber');
+    const emailField = document.getElementById('email');
+    const mobileField = document.getElementById('mobile');
+
+    const setIfEmpty = (field, value) => {
+      if (!field) return;
+      if (!field.value && value) field.value = value;
+    };
+
+    const buildFullName = (first, last) => [first, last].filter(Boolean).join(' ').trim();
+
+    const hydrateIdentityFromSession = (session) => {
+      if (!session?.user) return;
+      const meta = session.user.user_metadata || {};
+
+      let first = meta.first_name || meta.firstName || '';
+      let last = meta.last_name || meta.lastName || meta.surname || '';
+      const fullName = meta.full_name || meta.name || buildFullName(first, last);
+
+      if (fullName && (!first || !last)) {
+        const parts = String(fullName).trim().split(/\s+/);
+        if (!first && parts.length) {
+          first = parts.shift();
+        }
+        if (!last && parts.length) {
+          last = parts.join(' ');
+        }
+      }
+
+      setIfEmpty(firstNameField, first);
+      setIfEmpty(lastNameField, last);
+      setIfEmpty(nameField, fullName || buildFullName(first, last));
+      setIfEmpty(idNumberField, meta.id_number || meta.idNumber || '');
+      setIfEmpty(emailField, session.user.email || meta.email || '');
+      setIfEmpty(mobileField, meta.phone || session.user.phone || '');
+    };
+
     (async () => {
-      await ensureSession();
+      const session = await getOptionalSession();
+      hydrateIdentityFromSession(session);
       loanRecord = await initLoanStep(1, { allowRedirect: false });
     })();
 
@@ -488,26 +521,21 @@
       showStatus('Initializing secure connection…');
 
       try {
-        const session = await ensureSession();
-        if (!session) {
-          resetButton();
-          return;
-        }
+        const session = await getOptionalSession();
         console.log('[truID:step1] session', {
           hasSession: Boolean(session),
           userId: session?.user?.id,
           expiresAt: session?.expires_at
         });
-        if (!session?.access_token) {
-          throw new Error('Please sign in to continue.');
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
         }
-
         const response = await fetch('/api/banking/initiate', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`
-          },
+          headers,
           body: JSON.stringify(payload)
         });
 
