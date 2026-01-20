@@ -1,7 +1,7 @@
 import { supabase } from "/js/supabase.js";
 
 let currentCard = 1;
-const loans = [
+const fallbackLoans = [
   {
     id: 'LOAN-2024-001',
     amount: 'R 45,000.00',
@@ -30,6 +30,7 @@ const loans = [
     progress: 42
   }
 ];
+let loans = [...fallbackLoans];
 let isAnimating = false;
 
 function switchCard() {
@@ -37,11 +38,14 @@ function switchCard() {
   isAnimating = true;
 
   const mainCard = document.getElementById('mainCard');
+  if (!loans.length) {
+    loans = [...fallbackLoans];
+  }
 
   mainCard.classList.add('swapping');
 
   setTimeout(() => {
-    currentCard = (currentCard % 3) + 1;
+    currentCard = (currentCard % loans.length) + 1;
     const loan = loans[currentCard - 1];
     document.getElementById('loanId').textContent = loan.id;
     document.getElementById('loanAmount').textContent = loan.amount;
@@ -624,6 +628,35 @@ function formatStatus(value) {
   return value.replace(/_/g, ' ');
 }
 
+function formatRate(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '--';
+  return `${(numeric * 100).toFixed(1)}%`;
+}
+
+function formatTerm(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '--';
+  return `${numeric} months`;
+}
+
+function formatDate(value) {
+  if (!value) return '--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+  return date.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function computeProgress(app) {
+  if (!app) return 0;
+  const status = String(app.status || '').toLowerCase();
+  if (status === 'completed' || status === 'approved') return 100;
+  if (status === 'rejected') return 0;
+  const step = Number(app.step_number);
+  if (Number.isFinite(step)) return Math.max(0, Math.min(100, Math.round((step / 4) * 100)));
+  return 0;
+}
+
 function renderRecentApplications(applications = []) {
   if (!recentApplicationsList) return;
   recentApplicationsList.innerHTML = '';
@@ -666,13 +699,24 @@ async function loadRecentApplications() {
       return;
     }
 
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    try {
+      await supabase
+        .from('loan_application')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('status', 'in_progress')
+        .lt('updated_at', cutoff);
+    } catch (cleanupError) {
+      console.warn('Loan cleanup failed:', cleanupError);
+    }
+
     let query = supabase
       .from('loan_application')
-      .select('id,application_id,status,principal_amount,created_at,step_number')
+      .select('id,application_id,status,principal_amount,created_at,updated_at,step_number,monthly_repayable,interest_rate,number_of_months,first_repayment_date')
+      .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
-      .limit(3);
-
-    // No user_id column in schema; returning latest applications.
+      .limit(6);
 
     const { data, error } = await query;
     if (error) {
@@ -681,16 +725,32 @@ async function loadRecentApplications() {
       return;
     }
 
-    const displayable = (data || []).filter((app) => ['completed', 'rejected', 'in_review'].includes(app.status));
+    const displayable = data || [];
     renderRecentApplications(displayable);
 
     if (pendingCount) {
-      pendingCount.textContent = String(displayable.length);
+      const pending = displayable.filter((app) => String(app.status || '').toLowerCase() === 'in_progress').length;
+      pendingCount.textContent = String(pending);
     }
 
     if (totalAmountRequested) {
       const total = displayable.reduce((sum, app) => sum + Number(app.principal_amount || 0), 0);
       totalAmountRequested.innerHTML = `${formatAmount(total)} <span class="text-xs text-gray-400"> ZAR</span>`;
+    }
+
+    if (displayable.length) {
+      loans = displayable.slice(0, 3).map((app, index) => ({
+        id: formatApplicationId(app.application_id, app.id),
+        amount: formatAmount(app.principal_amount || 0),
+        monthly: formatAmount(app.monthly_repayable || 0),
+        rate: formatRate(app.interest_rate),
+        term: formatTerm(app.number_of_months),
+        next: formatDate(app.first_repayment_date),
+        progress: computeProgress(app),
+        order: index
+      }));
+    } else {
+      loans = [...fallbackLoans];
     }
   } catch (err) {
     console.error('Recent applications fetch error:', err);
