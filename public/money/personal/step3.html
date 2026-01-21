@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Amount Input</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:600&display=swap');
+
+      :root {
+        --bg: #f8f8f8;
+        --card: #ffffff;
+        --border: #e8e8ed;
+        --text-primary: #606060;
+        --text-muted: #808080;
+        --purple: #6a43ff;
+        --purple-dark: #4b22d6;
+        --step-dot-size: 32px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont;
+        background: var(--bg);
+        color: var(--text-primary);
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .back-link {
+        position: fixed;
+        top: 24px;
+        left: 24px;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: #f1f1f4;
+        border: 1px solid #e2e2ea;
+        color: #8a8a92;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease;
+        z-index: 5;
+      }
+
+      .back-link:hover {
+        color: var(--purple);
+        background: #ffffff;
+        border-color: #d6d6e0;
+      }
+
+      .app-shell {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem 1.25rem 2rem;
+        min-height: calc(100vh - 3.5rem);
+        justify-content: center;
+      }
+
+      .app-shell section {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 1.5rem 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .container {
+        width: min(580px, 100%);
+        text-align: center;
+        margin: 0 auto;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: 0 4px 12px rgba(106, 67, 255, 0.3);
+      }
+
+      h1 {
+        margin: 0.6rem 0 0.8rem;
+        font-size: clamp(2rem, 4vw, 2.5rem);
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        text-shadow: 0 0 30px rgba(106, 67, 255, 0.3);
+      }
+
+      .intro {
+        margin: 0 0 2.5rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+
+      .progress-footer {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(96, 96, 96, 0.08);
+      }
+
+      .step-track {
+        position: relative;
+        width: min(420px, 100%);
+        margin: 0 auto;
+        height: 48px;
+      }
+
+      .step-line-base,
+      .step-line-active {
+        position: absolute;
+        top: 50%;
+        left: calc(var(--step-dot-size) / 2);
+        height: 2px;
+        transform: translateY(-50%);
+        border-radius: 2px;
+        z-index: 1;
+      }
+
+      .step-line-base {
+        width: calc(100% - var(--step-dot-size));
+        background: rgba(106, 67, 255, 0.18);
+      }
+
+      .step-line-active {
+        width: calc((100% - var(--step-dot-size)) / 3 * var(--active-segments, 1));
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        box-shadow: 0 8px 20px rgba(106, 67, 255, 0.25);
+      }
+
+      .step-dot {
+        position: absolute;
+        top: 50%;
+        width: var(--step-dot-size);
+        height: var(--step-dot-size);
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid rgba(106, 67, 255, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+      }
+
+      .step-dot.done {
+        background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 20px rgba(106, 67, 255, 0.3);
+      }
+
+      .step-dot.active {
+        border-color: var(--purple);
+        border-width: 3px;
+        color: var(--purple);
+        background: #fff;
+        box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+        animation: stepPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes stepPulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(106, 67, 255, 0);
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+      }
+
+      .step-dot.upcoming {
+        border-style: dashed;
+        color: rgba(96, 96, 96, 0.55);
+      }
+
+      .step-dot:nth-of-type(1) {
+        left: calc(var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(2) {
+        left: calc((100% - var(--step-dot-size)) / 3 + var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(3) {
+        left: calc((100% - var(--step-dot-size)) * 2 / 3 + var(--step-dot-size) / 2);
+      }
+
+      .step-dot:nth-of-type(4) {
+        left: calc(100% - var(--step-dot-size) / 2);
+      }
+
+      .input-wrapper {
+        position: relative;
+        margin: 0 auto 0.75rem;
+        max-width: 420px;
+        perspective: 1000px;
+      }
+
+      .input-flipper {
+        position: relative;
+        width: 100%;
+        height: 80px;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+      }
+
+      .input-flipper.flipped-once {
+        transform: rotateX(-120deg);
+      }
+
+      .input-flipper.flipped-twice {
+        transform: rotateX(-240deg);
+      }
+
+      .input-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+      }
+
+      .input-face.middle {
+        transform: rotateX(120deg);
+      }
+
+      .input-face.back {
+        transform: rotateX(240deg);
+      }
+
+      .currency-symbol {
+        position: absolute;
+        left: 24px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--purple-dark);
+        pointer-events: none;
+        z-index: 2;
+        text-shadow: 0 1px #fff, 0 0 15px rgba(106, 67, 255, 0.6);
+      }
+
+      #loan-amount,
+      #loan-months,
+      #repayment-date {
+        -webkit-appearance: none;
+        user-select: none;
+        width: 100%;
+        padding: 1.5rem 1.5rem 1.5rem 3.5rem;
+        height: 80px;
+        background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+        border-radius: 40px;
+        border: 1px solid #8F9092;
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 0 #CECFD1,
+          0 0 25px rgba(75, 34, 214, 0.2);
+        transition: all .2s ease;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-family: 'Space Grotesk', sans-serif;
+        text-shadow: 0 1px #fff, 0 0 20px rgba(106, 67, 255, 0.3);
+        outline: none;
+        cursor: text;
+      }
+
+      #loan-amount:hover,
+      #loan-months:hover,
+      #repayment-date:hover {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 35px rgba(75, 34, 214, 0.35);
+      }
+
+      #loan-amount:focus,
+      #loan-months:focus,
+      #repayment-date:focus {
+        animation: active-input .9s alternate infinite;
+      }
+
+      @keyframes active-input {
+        from {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 10px 0px rgba(75, 34, 214, .7),
+            0 0 40px rgba(106, 67, 255, 0.5);
+        }
+        to {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 3px 3px #CECFD1,
+            0 0 35px rgba(75, 34, 214, 0.35);
+        }
+      }
+
+      #loan-amount::placeholder,
+      #loan-months::placeholder,
+      #repayment-date::placeholder {
+        color: rgba(96, 96, 96, 0.4);
+      }
+
+      .disclaimer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0 0 2.5rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        animation: fadeInSlide 0.8s ease-out 0.6s both;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+
+      .disclaimer.fade-out {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      .disclaimer.fade-in {
+        opacity: 1;
+        transform: translateY(0);
+        animation: fadeInSlide 0.6s ease-out;
+      }
+
+      @keyframes fadeInSlide {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .disclaimer i {
+        color: var(--purple);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 0.7;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+      }
+
+      .disclaimer strong {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      button {
+        -webkit-appearance: none;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        outline: none;
+        cursor: pointer;
+        width: 200px;
+        height: 60px;
+        background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+        border-radius: 30px;
+        border: 1px solid #8F9092;
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 0 #CECFD1,
+          0 0 20px rgba(106, 67, 255, 0.15);
+        transition: all .2s ease;
+        font-family: "Source Sans Pro", sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        text-shadow: 0 1px #fff;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      button::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 32px;
+        background: linear-gradient(135deg, rgba(106, 67, 255, 0.3), rgba(75, 34, 214, 0.3));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+        filter: blur(8px);
+      }
+
+      button:hover::before {
+        opacity: 1;
+      }
+
+      button::-moz-focus-inner {
+        border: 0;
+      }
+
+      button > * {
+        transition: transform .2s ease;
+      }
+
+      button:hover:not([disabled]) {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 30px rgba(106, 67, 255, 0.3);
+      }
+
+      button:hover:not([disabled]) > * {
+        transform: scale(.975);
+      }
+
+      button:focus:not(:active) {
+        animation: active-button .9s alternate infinite;
+        outline: none;
+      }
+
+      @keyframes active-button {
+        from {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 10px 0px rgba(75, 34, 214, .7),
+            0 0 40px rgba(106, 67, 255, 0.5);
+        }
+        to {
+          box-shadow: 
+            0 4px 3px 1px #FCFCFC,
+            0 6px 8px #D6D7D9,
+            0 -4px 4px #CECFD1,
+            0 -6px 4px #FEFEFE,
+            inset 0 0 3px 3px #CECFD1,
+            0 0 30px rgba(106, 67, 255, 0.3);
+        }
+      }
+
+      button:active:not([disabled]) {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 5px 3px #999, 
+          inset 0 0 30px #aaa;
+      }
+
+      button:active:not([disabled]) > * {
+        transform: scale(.95);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .repayable-info {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0 2rem;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        animation: fadeInSlide 0.6s ease-out;
+      }
+
+      .repayable-info.visible {
+        display: flex;
+      }
+
+      .repayable-info strong {
+        color: var(--purple-dark);
+        font-size: 1.05rem;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 0 1rem;
+        }
+
+        #loan-amount {
+          font-size: 1.5rem;
+          padding: 1.25rem 1.25rem 1.25rem 3rem;
+          height: 70px;
+        }
+
+        .currency-symbol {
+          font-size: 1.5rem;
+          left: 20px;
+        }
+
+        button {
+          width: 180px;
+          height: 55px;
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+      <a class="back-link" href="step2.html" aria-label="Go to previous step">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <main class="app-shell" style="position: relative; flex: 1; min-width: 0;">
+        <section>
+          <div class="container">
+            <div class="badge">
+              <i class="fa-solid fa-circle-3"></i>
+              Step 3 · Loan Amount
+            </div>
+
+            <h1>Request Your Loan</h1>
+            
+            <p class="intro">
+              Enter the amount you wish to borrow. We'll process your application instantly and provide you with personalized terms.
+            </p>
+
+            <div class="input-wrapper">
+              <div class="input-flipper" id="input-flipper">
+                <!-- Front: Amount Input -->
+                <div class="input-face front">
+                  <span class="currency-symbol">R</span>
+                  <input 
+                    type="number" 
+                    id="loan-amount" 
+                    placeholder="5000"
+                    min="0"
+                    max="5000"
+                    step="100"
+                    autocomplete="off"
+                  >
+                </div>
+                <!-- Middle: Months Input -->
+                <div class="input-face middle">
+                  <input 
+                    type="number" 
+                    id="loan-months" 
+                    placeholder="12"
+                    min="1"
+                    max="24"
+                    step="1"
+                    autocomplete="off"
+                  >
+                </div>
+                <!-- Back: Date Input -->
+                <div class="input-face back">
+                  <input 
+                    type="date" 
+                    id="repayment-date" 
+                    min=""
+                    max=""
+                    autocomplete="off"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <p class="disclaimer" id="disclaimer">
+              <i class="fa-solid fa-circle-info"></i>
+              <span id="disclaimer-text">Maximum loan cap: <strong>R5,000</strong></span>
+            </p>
+
+            <p class="repayable-info" id="repayable-info">
+              <span>Loan repayable: <strong id="repayable-amount">R0.00</strong></span>
+            </p>
+
+            <button id="continue-application-btn">
+              <span id="button-text">Continue Application</span>
+            </button>
+
+            <div class="progress-footer" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="3" aria-label="Loan application progress">
+              <div class="step-track">
+                <div class="step-line-base"></div>
+                <div class="step-line-active" style="--active-segments: 2;"></div>
+                <span class="step-dot done"><i class="fa-solid fa-check"></i></span>
+                <span class="step-dot done"><i class="fa-solid fa-check"></i></span>
+                <span class="step-dot active">3</span>
+                <span class="step-dot upcoming">4</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+    <script type="module" nonce="ALGOHIVE">
+      import { initLoanStep, updateLoan } from "/js/loan-application.js";
+
+      let loanRecord = null;
+
+      const loanInput = document.getElementById('loan-amount');
+      const loanMonthsInput = document.getElementById('loan-months');
+      const repaymentDateInput = document.getElementById('repayment-date');
+      const inputFlipper = document.getElementById('input-flipper');
+      const disclaimer = document.getElementById('disclaimer');
+      const disclaimerText = document.getElementById('disclaimer-text');
+      const repayableInfo = document.getElementById('repayable-info');
+      const repayableAmount = document.getElementById('repayable-amount');
+      const continueButton = document.getElementById('continue-application-btn');
+      const buttonText = document.getElementById('button-text');
+      
+      // Calculation parameters
+      const BASE_FEE = 169;
+      const ABOVE_1K_RATE = 0.10;
+      const MONTHLY_RATE = 0.05;
+      const MAX_MONTHS = 2;
+      let currentStep = 'amount'; // 'amount', 'months', or 'date'
+      let loanAmount = null;
+      let loanMonths = null;
+      let repaymentDate = null;
+
+      (async () => {
+        loanRecord = await initLoanStep(3);
+        if (!loanRecord) return;
+        if (loanRecord.principal_amount) {
+          loanInput.value = loanRecord.principal_amount;
+          loanAmount = loanRecord.principal_amount;
+        }
+        if (loanRecord.number_of_months) {
+          loanMonthsInput.value = loanRecord.number_of_months;
+          loanMonths = loanRecord.number_of_months;
+        }
+        if (loanRecord.first_repayment_date) {
+          repaymentDateInput.value = loanRecord.first_repayment_date;
+          repaymentDate = loanRecord.first_repayment_date;
+        }
+      })();
+
+      // Set date input constraints (max 30 days from today , ill change it after some clarity)
+      const today = new Date();
+      const maxDate = new Date();
+      maxDate.setDate(today.getDate() + 30);
+      
+      const formatDate = (date) => {
+        return date.toISOString().split('T')[0];
+      };
+      
+      repaymentDateInput.min = formatDate(today);
+      repaymentDateInput.max = formatDate(maxDate);
+      
+      loanInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/,/g, '');
+        
+        if (parseFloat(value) > 5000) {
+          value = '5000';
+        }
+        
+        value = value.replace(/[^\d.]/g, '');
+        
+        e.target.value = value;
+      });
+
+      loanMonthsInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/,/g, '');
+        
+        if (parseFloat(value) > 24) {
+          value = '24';
+        }
+        
+        value = value.replace(/[^\d]/g, '');
+        
+        e.target.value = value;
+      });
+
+      function flipToMonths() {
+        // Fade out and change disclaimer
+        disclaimer.classList.add('fade-out');
+        
+        setTimeout(() => {
+          disclaimerText.innerHTML = 'Maximum repayment period: <strong>24 Months</strong>';
+          disclaimer.classList.remove('fade-out');
+          disclaimer.classList.add('fade-in');
+        }, 400);
+
+        // Flip the input to months
+        inputFlipper.classList.add('flipped-once');
+        
+        // Change button text
+        buttonText.textContent = 'Configure Months';
+        
+        currentStep = 'months';
+        
+        // Focus months input after flip
+        setTimeout(() => {
+          loanMonthsInput.focus();
+        }, 600);
+      }
+
+      function calculateRepayment(amount, months) {
+        // Total Repayment = R169 + 10% of amounts above R1k + 5% per month (max 2 months)
+        const above1k = Math.max(0, amount - 1000);
+        const monthsUsed = Math.min(months, MAX_MONTHS);
+        const totalRepayment = BASE_FEE + (above1k * ABOVE_1K_RATE) + (amount * MONTHLY_RATE * monthsUsed);
+        const monthlyRepayment = totalRepayment / monthsUsed;
+        return {
+          totalRepayment,
+          monthlyRepayment,
+          monthsUsed
+        };
+      }
+
+      function flipToDate() {
+        // Calculate repayable amount using new logic
+        const { totalRepayment, monthlyRepayment, monthsUsed } = calculateRepayment(loanAmount, loanMonths);
+        repayableAmount.textContent = `R${totalRepayment.toFixed(2)} (Monthly: R${monthlyRepayment.toFixed(2)} x ${monthsUsed} months)`;
+
+        // Fade out and change disclaimer
+        disclaimer.classList.add('fade-out');
+
+        setTimeout(() => {
+          disclaimerText.innerHTML = 'Repayment start date: <strong>Select below</strong>';
+          disclaimer.classList.remove('fade-out');
+          disclaimer.classList.add('fade-in');
+          
+          // Show repayable info
+          repayableInfo.classList.add('visible');
+        }, 400);
+
+        // Flip the input to date
+        inputFlipper.classList.remove('flipped-once');
+        inputFlipper.classList.add('flipped-twice');
+
+        // Change button text
+        buttonText.textContent = 'Configure Date';
+
+        currentStep = 'date';
+
+        // Focus date input after flip
+        setTimeout(() => {
+          repaymentDateInput.focus();
+        }, 600);
+      }
+
+      async function handleSubmit() {
+        if (currentStep === 'amount') {
+          const amount = parseFloat(loanInput.value);
+          
+          if (!amount || amount <= 0) {
+            alert('Please enter a valid loan amount');
+            return;
+          }
+          
+          if (amount > 5000) {
+            alert('Loan amount cannot exceed R5,000');
+            return;
+          }
+          
+          loanAmount = amount;
+          flipToMonths();
+          
+        } else if (currentStep === 'months') {
+          const months = parseInt(loanMonthsInput.value);
+          
+          if (!months || months <= 0) {
+            alert('Please enter a valid number of months');
+            return;
+          }
+          
+          if (months > 24) {
+            alert('Months cannot exceed 24');
+            return;
+          }
+          
+          loanMonths = months;
+          flipToDate();
+          
+        } else if (currentStep === 'date') {
+          const date = repaymentDateInput.value;
+          
+          if (!date) {
+            alert('Please select a repayment date');
+            return;
+          }
+          
+          const selectedDate = new Date(date);
+          const minDate = new Date(today);
+          const maxDateCheck = new Date(maxDate);
+          
+          if (selectedDate < minDate || selectedDate > maxDateCheck) {
+            alert('Date must be within 30 days');
+            return;
+          }
+          
+          repaymentDate = date;
+          
+          // Store all values (prepare for database save)
+          const { totalRepayment, monthlyRepayment, monthsUsed } = calculateRepayment(loanAmount, loanMonths);
+          const loanData = {
+            amount: loanAmount,
+            months: loanMonths,
+            repaymentDate: repaymentDate,
+            totalRepayment,
+            monthlyRepayment,
+            monthsUsed
+          };
+          console.log('Loan data ready for database:', loanData);
+
+          if (loanRecord?.id) {
+            await updateLoan(loanRecord.id, {
+              principal_amount: loanAmount,
+              amount_repayable: totalRepayment,
+              first_repayment_date: repaymentDate,
+              number_of_months: monthsUsed,
+              monthly_repayment: monthlyRepayment,
+              step_number: 3
+            });
+          }
+          
+          // Redirect after 1 second
+          setTimeout(() => {
+            window.location.href = 'step4.html';
+          }, 1000);
+        }
+      }
+
+      if (continueButton) {
+        continueButton.addEventListener('click', handleSubmit);
+      }
+    </script>
+  </body>
+</html>
