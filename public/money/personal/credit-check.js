@@ -122,6 +122,7 @@ import { supabase } from '/js/supabase.js';
     if (!session?.user) return null;
     const creditScoreBreakdown = creditPayload?.breakdown?.creditScore || {};
     const exposure = creditPayload?.creditExposure || {};
+    const lockedUserData = lockedPayload?.userData || {};
 
     return {
       user_id: session.user.id,
@@ -131,12 +132,14 @@ import { supabase } from '/js/supabase.js';
       experian_score: Number.isFinite(creditPayload?.creditScore) ? creditPayload.creditScore : null,
       experian_weight: Number.isFinite(creditScoreBreakdown?.weightPercent) ? creditScoreBreakdown.weightPercent : null,
       engine_total_contribution: Number.isFinite(creditPayload?.loanEngineScore) ? creditPayload.loanEngineScore : null,
-      gross_monthly_income: lockedPayload?.grossMonthlyIncome ?? null,
-      years_current_employer: lockedPayload?.yearsCurrentEmployer ?? null,
-      contract_type: lockedPayload?.contractType ?? null,
-      is_new_borrower: typeof lockedPayload?.isNewBorrower === 'boolean' ? lockedPayload.isNewBorrower : null,
-      employment_sector: lockedPayload?.employmentSector ?? null,
-      employer_name: lockedPayload?.employerName ?? null,
+      gross_monthly_income: lockedPayload?.grossMonthlyIncome ?? lockedUserData.gross_monthly_income ?? null,
+      years_current_employer: lockedPayload?.yearsCurrentEmployer ?? lockedUserData.years_in_current_job ?? null,
+      contract_type: lockedPayload?.contractType ?? lockedUserData.contract_type ?? null,
+      is_new_borrower: typeof lockedPayload?.isNewBorrower === 'boolean'
+        ? lockedPayload.isNewBorrower
+        : (typeof lockedUserData.algolend_is_new_borrower === 'boolean' ? lockedUserData.algolend_is_new_borrower : null),
+      employment_sector: lockedPayload?.employmentSector ?? lockedUserData.employment_sector_type ?? null,
+      employer_name: lockedPayload?.employerName ?? lockedUserData.employment_employer_name ?? null,
       exposure_revolving_utilization: Number.isFinite(exposure?.revolvingUtilizationPercent)
         ? exposure.revolvingUtilizationPercent
         : (Number.isFinite(exposure?.ratioPercent) ? exposure.ratioPercent : null),
@@ -749,7 +752,15 @@ import { supabase } from '/js/supabase.js';
       overrides.date_of_birth = derivedDob;
     }
 
-    return { userData: overrides };
+    return {
+      userData: overrides,
+      grossMonthlyIncome: overrides.gross_monthly_income,
+      yearsCurrentEmployer: yearsAtCurrentEmployer,
+      contractType,
+      isNewBorrower: overrides.algolend_is_new_borrower,
+      employmentSector: employmentSnapshot.sector,
+      employerName: employmentSnapshot.employerName
+    };
   }
 
   function renderCreditScoreBreakdown(data) {
