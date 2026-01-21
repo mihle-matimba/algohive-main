@@ -655,7 +655,11 @@
       const continueButton = document.getElementById('continue-application-btn');
       const buttonText = document.getElementById('button-text');
       
-      const INTEREST_RATE = 0.15; // 15% interest
+      // Calculation parameters
+      const BASE_FEE = 169;
+      const ABOVE_1K_RATE = 0.10;
+      const MONTHLY_RATE = 0.05;
+      const MAX_MONTHS = 2;
       let currentStep = 'amount'; // 'amount', 'months', or 'date'
       let loanAmount = null;
       let loanMonths = null;
@@ -738,14 +742,27 @@
         }, 600);
       }
 
+      function calculateRepayment(amount, months) {
+        // Total Repayment = R169 + 10% of amounts above R1k + 5% per month (max 2 months)
+        const above1k = Math.max(0, amount - 1000);
+        const monthsUsed = Math.min(months, MAX_MONTHS);
+        const totalRepayment = BASE_FEE + (above1k * ABOVE_1K_RATE) + (amount * MONTHLY_RATE * monthsUsed);
+        const monthlyRepayment = totalRepayment / monthsUsed;
+        return {
+          totalRepayment,
+          monthlyRepayment,
+          monthsUsed
+        };
+      }
+
       function flipToDate() {
-        // Calculate repayable amount with 15% interest
-        const repayable = loanAmount * (1 + INTEREST_RATE);
-        repayableAmount.textContent = `R${repayable.toFixed(2)}`;
-        
+        // Calculate repayable amount using new logic
+        const { totalRepayment, monthlyRepayment, monthsUsed } = calculateRepayment(loanAmount, loanMonths);
+        repayableAmount.textContent = `R${totalRepayment.toFixed(2)} (Monthly: R${monthlyRepayment.toFixed(2)} x ${monthsUsed} months)`;
+
         // Fade out and change disclaimer
         disclaimer.classList.add('fade-out');
-        
+
         setTimeout(() => {
           disclaimerText.innerHTML = 'Repayment start date: <strong>Select below</strong>';
           disclaimer.classList.remove('fade-out');
@@ -758,12 +775,12 @@
         // Flip the input to date
         inputFlipper.classList.remove('flipped-once');
         inputFlipper.classList.add('flipped-twice');
-        
+
         // Change button text
         buttonText.textContent = 'Configure Date';
-        
+
         currentStep = 'date';
-        
+
         // Focus date input after flip
         setTimeout(() => {
           repaymentDateInput.focus();
@@ -822,23 +839,25 @@
           
           repaymentDate = date;
           
-          // Store all three values (prepare for database save)
+          // Store all values (prepare for database save)
+          const { totalRepayment, monthlyRepayment, monthsUsed } = calculateRepayment(loanAmount, loanMonths);
           const loanData = {
             amount: loanAmount,
             months: loanMonths,
             repaymentDate: repaymentDate,
-            repayableAmount: loanAmount * (1 + INTEREST_RATE)
+            totalRepayment,
+            monthlyRepayment,
+            monthsUsed
           };
-          
           console.log('Loan data ready for database:', loanData);
 
           if (loanRecord?.id) {
             await updateLoan(loanRecord.id, {
               principal_amount: loanAmount,
-              amount_repayable: loanAmount * (1 + INTEREST_RATE),
+              amount_repayable: totalRepayment,
               first_repayment_date: repaymentDate,
-              number_of_months: loanMonths,
-              interest_rate: INTEREST_RATE,
+              number_of_months: monthsUsed,
+              monthly_repayment: monthlyRepayment,
               step_number: 3
             });
           }
