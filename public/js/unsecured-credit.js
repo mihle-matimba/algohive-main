@@ -78,9 +78,19 @@ function resolveTarget(link) {
 }
 
 async function hasAnyLoanApplications() {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    console.warn("Session lookup failed", sessionError.message || sessionError);
+    return null;
+  }
+  if (!session?.user?.id) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("loan_application")
     .select("id")
+    .eq("user_id", session.user.id)
     .limit(1);
   if (error) {
     console.warn("Loan lookup failed", error.message || error);
