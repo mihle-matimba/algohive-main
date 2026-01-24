@@ -572,6 +572,26 @@
               Enter the amount you wish to borrow. We'll process your application instantly and provide you with personalized terms.
             </p>
 
+            <div style="margin-bottom: 1.5rem;">
+              <label for="salary-date" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">
+                Monthly Salary Payment Day
+              </label>
+              <input 
+                type="number" 
+                id="salary-date" 
+                placeholder="25"
+                min="1"
+                max="31"
+                step="1"
+                autocomplete="off"
+                required
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;"
+              >
+              <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
+                Enter the day of the month you receive your salary (e.g., 25 for the 25th)
+              </p>
+            </div>
+
             <div class="input-wrapper">
               <div class="input-flipper" id="input-flipper">
                 <!-- Front: Amount Input -->
@@ -580,9 +600,9 @@
                   <input 
                     type="number" 
                     id="loan-amount" 
-                    placeholder="5000"
-                    min="0"
-                    max="5000"
+                    placeholder="0"
+                    min="100"
+                    max="10000"
                     step="100"
                     autocomplete="off"
                   >
@@ -647,6 +667,7 @@
       const loanInput = document.getElementById('loan-amount');
       const loanMonthsInput = document.getElementById('loan-months');
       const repaymentDateInput = document.getElementById('repayment-date');
+      const salaryDateInput = document.getElementById('salary-date');
       const inputFlipper = document.getElementById('input-flipper');
       const disclaimer = document.getElementById('disclaimer');
       const disclaimerText = document.getElementById('disclaimer-text');
@@ -655,15 +676,45 @@
       const continueButton = document.getElementById('continue-application-btn');
       const buttonText = document.getElementById('button-text');
       
-      const INTEREST_RATE = 0.15; // 15% interest
-      let currentStep = 'amount'; // 'amount', 'months', or 'date'
+      const BASE_FEE = 169;
+      const OVER_1K_FEE_RATE = 0.10;
+      const MONTHLY_RATE = 0.05;
+      const MAX_MONTHS = 2;
+      let currentStep = 'amount';
       let loanAmount = null;
       let loanMonths = null;
       let repaymentDate = null;
+      let salaryDate = null;
+      let netMonthlyIncome = null;
+      let maxLoanAmount = 10000;
+      let monthlyRepayment = 0;
+      let repaymentSchedule = [];
 
       (async () => {
         loanRecord = await initLoanStep(3);
         if (!loanRecord) return;
+        
+        // Fetch net monthly income from loan_engine_score
+        const { supabase } = await import('/js/supabase.js');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: engineData } = await supabase
+            .from('loan_engine_score')
+            .select('net_monthly_income')
+            .eq('user_id', session.user.id)
+            .order('run_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (engineData?.net_monthly_income) {
+            netMonthlyIncome = engineData.net_monthly_income;
+            maxLoanAmount = Math.floor(netMonthlyIncome * 0.20);
+            loanInput.max = maxLoanAmount;
+            loanInput.placeholder = maxLoanAmount.toString();
+            disclaimerText.innerHTML = `Maximum loan cap: <strong>R${maxLoanAmount.toLocaleString()}</strong> (20% of net monthly income)`;
+          }
+        }
+        
         if (loanRecord.principal_amount) {
           loanInput.value = loanRecord.principal_amount;
           loanAmount = loanRecord.principal_amount;
@@ -676,6 +727,10 @@
           repaymentDateInput.value = loanRecord.first_repayment_date;
           repaymentDate = loanRecord.first_repayment_date;
         }
+        if (loanRecord.salary_date) {
+          salaryDateInput.value = loanRecord.salary_date;
+          salaryDate = loanRecord.salary_date;
+        }
       })();
 
       // Set date input constraints (max 30 days from today , ill change it after some clarity)
@@ -687,14 +742,24 @@
         return date.toISOString().split('T')[0];
       };
       
+      function getOrdinalSuffix(day) {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+          case 1: return 'st';
+          case 2: return 'nd';
+          case 3: return 'rd';
+          default: return 'th';
+        }
+      }
+      
       repaymentDateInput.min = formatDate(today);
       repaymentDateInput.max = formatDate(maxDate);
       
       loanInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/,/g, '');
         
-        if (parseFloat(value) > 5000) {
-          value = '5000';
+        if (parseFloat(value) > maxLoanAmount) {
+          value = maxLoanAmount.toString();
         }
         
         value = value.replace(/[^\d.]/g, '');
@@ -705,8 +770,8 @@
       loanMonthsInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/,/g, '');
         
-        if (parseFloat(value) > 24) {
-          value = '24';
+        if (parseFloat(value) > maxLoanAmount) {
+          value = maxLoanAmount.toString();
         }
         
         value = value.replace(/[^\d]/g, '');
@@ -738,16 +803,85 @@
         }, 600);
       }
 
+      function calculateTotalRepayment(principal, months) {
+        const baseFee = BASE_FEE;
+        const over1kFee = principal > 1000 ? (principal - 1000) * OVER_1K_FEE_RATE : 0;
+        const cappedMonths = Math.min(months, MAX_MONTHS);
+        const monthlyFee = principal * MONTHLY_RATE * cappedMonths;
+        const totalFees = baseFee + over1kFee + monthlyFee;
+        return principal + totalFees;
+      }
+      
+      function getNextSalaryDate(salaryDay, fromDate = new Date()) {
+        const current = new Date(fromDate);
+        const currentDay = current.getDate();
+        const currentMonth = current.getMonth();
+        const currentYear = current.getFullYear();
+        
+        // Try this month's salary date
+        const thisMonthSalary = new Date(currentYear, currentMonth, salaryDay);
+        
+        // If salary date is in the future and at least 10 days away, use it
+        const daysUntil = Math.ceil((thisMonthSalary - current) / (1000 * 60 * 60 * 24));
+        if (thisMonthSalary > current && daysUntil >= 10) {
+          return thisMonthSalary;
+        }
+        
+        // Otherwise, use next month's salary date
+        const nextMonthSalary = new Date(currentYear, currentMonth + 1, salaryDay);
+        return nextMonthSalary;
+      }
+      
+      function calculateRepaymentSchedule(totalRepayment, months, salaryDay, startDate = new Date()) {
+        monthlyRepayment = totalRepayment / months;
+        
+        const firstPaymentDate = getNextSalaryDate(salaryDay, startDate);
+        const schedule = [];
+        
+        for (let i = 0; i < months; i++) {
+          const paymentDate = new Date(firstPaymentDate);
+          paymentDate.setMonth(paymentDate.getMonth() + i);
+          
+          schedule.push({
+            date: paymentDate,
+            amount: monthlyRepayment,
+            month: i + 1
+          });
+        }
+        
+        return schedule;
+      }
+      
       function flipToDate() {
-        // Calculate repayable amount with 15% interest
-        const repayable = loanAmount * (1 + INTEREST_RATE);
-        repayableAmount.textContent = `R${repayable.toFixed(2)}`;
+        // Validate salary date first
+        const salaryDay = parseInt(salaryDateInput?.value);
+        if (!salaryDay || salaryDay < 1 || salaryDay > 31) {
+          alert('Please enter a valid salary payment day (1-31)');
+          salaryDateInput.focus();
+          return;
+        }
+        salaryDate = salaryDay;
+        
+        // Calculate repayable amount with new fee structure
+        const totalRepayable = calculateTotalRepayment(loanAmount, loanMonths);
+        repayableAmount.textContent = `R${totalRepayable.toFixed(2)}`;
+        
+        // Calculate repayment schedule
+        repaymentSchedule = calculateRepaymentSchedule(totalRepayable, loanMonths, salaryDay);
+        
+        // Set first repayment date
+        const firstPaymentDate = repaymentSchedule[0]?.date;
+        if (firstPaymentDate) {
+          const dateStr = firstPaymentDate.toISOString().split('T')[0];
+          repaymentDateInput.value = dateStr;
+          repaymentDate = dateStr;
+        }
         
         // Fade out and change disclaimer
         disclaimer.classList.add('fade-out');
         
         setTimeout(() => {
-          disclaimerText.innerHTML = 'Repayment start date: <strong>Select below</strong>';
+          disclaimerText.innerHTML = `Monthly repayment: <strong>R${monthlyRepayment.toFixed(2)}</strong> on the ${salaryDay}${getOrdinalSuffix(salaryDay)}`;
           disclaimer.classList.remove('fade-out');
           disclaimer.classList.add('fade-in');
           
@@ -779,8 +913,8 @@
             return;
           }
           
-          if (amount > 5000) {
-            alert('Loan amount cannot exceed R5,000');
+          if (amount > maxLoanAmount) {
+            alert(`Loan amount cannot exceed R${maxLoanAmount.toLocaleString()} (20% of your net monthly income)`);
             return;
           }
           
@@ -823,22 +957,27 @@
           repaymentDate = date;
           
           // Store all three values (prepare for database save)
+          const totalRepayment = calculateTotalRepayment(loanAmount, loanMonths);
           const loanData = {
             amount: loanAmount,
             months: loanMonths,
             repaymentDate: repaymentDate,
-            repayableAmount: loanAmount * (1 + INTEREST_RATE)
+            repayableAmount: totalRepayment
           };
           
           console.log('Loan data ready for database:', loanData);
 
           if (loanRecord?.id) {
+            const totalRepaymentForDb = calculateTotalRepayment(loanAmount, loanMonths);
+            const effectiveRate = (totalRepaymentForDb - loanAmount) / loanAmount;
             await updateLoan(loanRecord.id, {
               principal_amount: loanAmount,
-              amount_repayable: loanAmount * (1 + INTEREST_RATE),
+              amount_repayable: totalRepaymentForDb,
               first_repayment_date: repaymentDate,
               number_of_months: loanMonths,
-              interest_rate: INTEREST_RATE,
+              interest_rate: effectiveRate,
+              salary_date: salaryDate,
+              monthly_repayment: monthlyRepayment,
               step_number: 3
             });
           }

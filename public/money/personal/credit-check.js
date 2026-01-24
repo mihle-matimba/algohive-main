@@ -11,7 +11,8 @@ import { supabase } from '/js/supabase.js';
   const identityDisplay = document.getElementById('identity-number-display');
   const firstNameDisplay = document.getElementById('first-name-display');
   const lastNameDisplay = document.getElementById('last-name-display');
-  const grossMonthlyIncomeInput = document.getElementById('gross-monthly-income');
+  const annualIncomeInput = document.getElementById('annual-income');
+  const annualExpensesInput = document.getElementById('annual-expenses');
   const yearsCurrentEmployerInput = document.getElementById('years-current-employer');
   const contractTypeSelect = document.getElementById('contract-type');
   const algolendNewBorrowerSelect = document.getElementById('algolend-new-borrower');
@@ -132,7 +133,9 @@ import { supabase } from '/js/supabase.js';
       experian_score: Number.isFinite(creditPayload?.creditScore) ? creditPayload.creditScore : null,
       experian_weight: Number.isFinite(creditScoreBreakdown?.weightPercent) ? creditScoreBreakdown.weightPercent : null,
       engine_total_contribution: Number.isFinite(creditPayload?.loanEngineScore) ? creditPayload.loanEngineScore : null,
-      gross_monthly_income: lockedPayload?.grossMonthlyIncome ?? lockedUserData.gross_monthly_income ?? null,
+      net_monthly_income: lockedPayload?.netMonthlyIncome ?? lockedUserData.net_monthly_income ?? null,
+      annual_income: lockedPayload?.annualIncome ?? lockedUserData.annual_income ?? null,
+      annual_expenses: lockedPayload?.annualExpenses ?? lockedUserData.annual_expenses ?? null,
       years_current_employer: lockedPayload?.yearsCurrentEmployer ?? lockedUserData.years_in_current_job ?? null,
       contract_type: lockedPayload?.contractType ?? lockedUserData.contract_type ?? null,
       is_new_borrower: typeof lockedPayload?.isNewBorrower === 'boolean'
@@ -189,7 +192,7 @@ import { supabase } from '/js/supabase.js';
 
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('first_name,last_name,id_number')
+      .select('first_name,last_name,id_number,annual_income_min')
       .eq('id', session.user.id)
       .single();
 
@@ -226,6 +229,11 @@ import { supabase } from '/js/supabase.js';
       lastNameDisplay.style.color = lastNameValue ? 'var(--text-primary)' : 'var(--danger)';
     }
 
+    // Populate annual income from profile
+    if (annualIncomeInput && profile?.annual_income_min) {
+      annualIncomeInput.value = String(profile.annual_income_min);
+    }
+
     const missingProfileFields = !profile?.id_number || !profile?.first_name || !profile?.last_name;
     if (missingProfileFields) {
       setIntakeError('Please complete your profile (first name, last name, ID number) before running a credit check.');
@@ -240,7 +248,8 @@ import { supabase } from '/js/supabase.js';
 
   function lockIntakeInputs() {
     const fields = [
-      grossMonthlyIncomeInput,
+      annualIncomeInput,
+      annualExpensesInput,
       yearsCurrentEmployerInput,
       contractTypeSelect,
       algolendNewBorrowerSelect,
@@ -266,7 +275,7 @@ import { supabase } from '/js/supabase.js';
 
     const { data, error } = await supabase
       .from('loan_engine_score')
-      .select('gross_monthly_income,years_current_employer,contract_type,is_new_borrower,employment_sector,employer_name,run_at')
+      .select('annual_income,annual_expenses,years_current_employer,contract_type,is_new_borrower,employment_sector,employer_name,run_at')
       .eq('user_id', session.user.id)
       .order('run_at', { ascending: false })
       .limit(1)
@@ -279,8 +288,11 @@ import { supabase } from '/js/supabase.js';
       return false;
     }
 
-    if (grossMonthlyIncomeInput && data.gross_monthly_income !== null && data.gross_monthly_income !== undefined) {
-      grossMonthlyIncomeInput.value = String(data.gross_monthly_income);
+    if (annualIncomeInput && data.annual_income !== null && data.annual_income !== undefined) {
+      annualIncomeInput.value = String(data.annual_income);
+    }
+    if (annualExpensesInput && data.annual_expenses !== null && data.annual_expenses !== undefined) {
+      annualExpensesInput.value = String(data.annual_expenses);
     }
     if (yearsCurrentEmployerInput && data.years_current_employer !== null && data.years_current_employer !== undefined) {
       yearsCurrentEmployerInput.value = String(data.years_current_employer);
@@ -777,11 +789,23 @@ import { supabase } from '/js/supabase.js';
     overrides.forename = forename;
     overrides.surname = surname;
 
-    const grossMonthlyIncome = grossMonthlyIncomeInput?.value.trim();
-    if (!grossMonthlyIncome || parseFloat(grossMonthlyIncome) <= 0) {
-      throw new Error('Please enter a valid gross monthly income.');
+    const annualIncome = annualIncomeInput?.value.trim();
+    if (!annualIncome || parseFloat(annualIncome) <= 0) {
+      throw new Error('Please enter a valid annual income.');
     }
-    overrides.gross_monthly_income = parseFloat(grossMonthlyIncome);
+    overrides.annual_income = parseFloat(annualIncome);
+
+    const annualExpenses = annualExpensesInput?.value.trim();
+    if (!annualExpenses || parseFloat(annualExpenses) < 0) {
+      throw new Error('Please enter valid annual expenses.');
+    }
+    overrides.annual_expenses = parseFloat(annualExpenses);
+
+    const netMonthlyIncome = (parseFloat(annualIncome) - parseFloat(annualExpenses)) / 12;
+    if (netMonthlyIncome <= 0) {
+      throw new Error('Net income (income - expenses) must be positive.');
+    }
+    overrides.net_monthly_income = netMonthlyIncome;
 
     const yearsAtCurrentEmployerRaw = yearsCurrentEmployerInput?.value.trim();
     if (yearsAtCurrentEmployerRaw === undefined || yearsAtCurrentEmployerRaw === '') {
@@ -828,7 +852,9 @@ import { supabase } from '/js/supabase.js';
 
     return {
       userData: overrides,
-      grossMonthlyIncome: overrides.gross_monthly_income,
+      netMonthlyIncome: overrides.net_monthly_income,
+      annualIncome: overrides.annual_income,
+      annualExpenses: overrides.annual_expenses,
       yearsCurrentEmployer: yearsAtCurrentEmployer,
       contractType,
       isNewBorrower: overrides.algolend_is_new_borrower,
@@ -924,7 +950,7 @@ import { supabase } from '/js/supabase.js';
         detailBuilder: (metric = {}) => {
           const dtiPercent = Number(metric.dtiPercent);
           const monthlyDebt = formatRand(metric.totalMonthlyDebt ?? 0);
-          const monthlyIncome = formatRand(metric.grossMonthlyIncome ?? 0);
+          const monthlyIncome = formatRand(metric.netMonthlyIncome ?? metric.grossMonthlyIncome ?? 0);
           const dtiText = Number.isFinite(dtiPercent) ? `${dtiPercent.toFixed(1)}% DTI` : 'DTI unavailable';
           return `Monthly debt ${monthlyDebt} vs. income ${monthlyIncome} (${dtiText})`;
         }
