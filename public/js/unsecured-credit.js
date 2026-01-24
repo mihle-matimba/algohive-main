@@ -123,14 +123,14 @@ async function handleUnsecuredClick(event) {
       window.location.assign(DASHBOARD_TARGET);
       return;
     }
-    if (hasAny === false) {
-      window.location.assign(DEFAULT_TARGET);
+    if (hasAny === true) {
+      window.location.assign(DASHBOARD_TARGET);
       return;
     }
-    window.location.assign(DASHBOARD_TARGET);
+    window.location.assign(DEFAULT_TARGET);
   } catch (err) {
     console.warn("Unable to check loan application", err);
-    window.location.assign(DASHBOARD_TARGET);
+    window.location.assign(DEFAULT_TARGET);
   }
 }
 
