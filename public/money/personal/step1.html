@@ -360,107 +360,7 @@
       50% { box-shadow: 0 0 0 9px rgba(106, 67, 255, 0); }
     }
 
-    .redirect-loader {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(247, 249, 255, 0.92);
-      backdrop-filter: blur(10px);
-      z-index: 999;
-    }
-
-    .redirect-loader.is-active {
-      display: flex;
-    }
-
-    .redirect-loader-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.65rem;
-      padding: 1.5rem 2rem;
-      border-radius: 18px;
-      background: #ffffff;
-      border: 1px solid #ececf5;
-      box-shadow: 0 12px 30px rgba(31, 31, 43, 0.08);
-      min-width: 220px;
-    }
-
-    .eclipse-loader {
-      position: relative;
-      width: 48px;
-      height: 48px;
-    }
-
-    .eclipse-loader::before,
-    .eclipse-loader::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 3px solid transparent;
-      border-top-color: var(--accent);
-      border-left-color: var(--accent);
-      animation: eclipseSpin 0.9s linear infinite;
-    }
-
-    .eclipse-loader::after {
-      border-top-color: var(--accent-dark);
-      border-left-color: var(--accent-dark);
-      transform: scale(0.7);
-      animation: eclipseSpinReverse 0.8s linear infinite;
-    }
-
-    .bounce-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .bounce-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: var(--accent);
-      animation: bounceDot 0.9s ease-in-out infinite;
-    }
-
-    .bounce-dot:nth-child(2) {
-      animation-delay: 0.15s;
-      opacity: 0.7;
-    }
-
-    .bounce-dot:nth-child(3) {
-      animation-delay: 0.3s;
-      opacity: 0.5;
-    }
-
-    .redirect-loader-title {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .redirect-loader-sub {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    @keyframes eclipseSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    @keyframes eclipseSpinReverse {
-      from { transform: rotate(360deg) scale(0.7); }
-      to { transform: rotate(0deg) scale(0.7); }
-    }
-
-    @keyframes bounceDot {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
+    
 
     .step-dot:nth-of-type(1) { left: calc(var(--step-dot-size) / 2); }
     .step-dot:nth-of-type(2) { left: calc((100% - var(--step-dot-size)) / 3 + var(--step-dot-size) / 2); }
@@ -529,30 +429,11 @@
     </div>
   </div>
 
-  <div class="redirect-loader" id="redirectLoader" aria-live="polite" aria-busy="true">
-    <div class="redirect-loader-card">
-      <div class="eclipse-loader" aria-hidden="true"></div>
-      <div class="bounce-row" aria-hidden="true">
-        <span class="bounce-dot"></span>
-        <span class="bounce-dot"></span>
-        <span class="bounce-dot"></span>
-      </div>
-      <div class="redirect-loader-title">Fetching your dashboard</div>
-      <div class="redirect-loader-sub">Hang tight, this won’t take long.</div>
-    </div>
-  </div>
-
   <script type="module" nonce="ALGOHIVE">
     import { initLoanStep, updateLoan } from "/js/loan-application.js";
     import { supabase } from "/js/supabase.js";
 
     let loanRecord = null;
-    const DASHBOARD_TARGET = '/money/personal/dashboard.html';
-
-    const showRedirectLoader = () => {
-      const loader = document.getElementById('redirectLoader');
-      if (loader) loader.classList.add('is-active');
-    };
 
     const redirectToAuth = () => {
       const next = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -582,36 +463,8 @@
       }
     };
 
-    const hasAnyLoanForUser = async (userId) => {
-      if (!userId) return false;
-      try {
-        const { data, error } = await supabase
-          .from('loan_application')
-          .select('id')
-          .eq('user_id', userId)
-          .limit(1);
-        if (error) {
-          console.warn('[truID:step1] loan check error', error.message || error);
-          return false;
-        }
-        return Array.isArray(data) && data.length > 0;
-      } catch (err) {
-        console.warn('[truID:step1] loan check failed', err);
-        return false;
-      }
-    };
-
     (async () => {
-      const session = await ensureSession();
-      if (!session?.user?.id) return;
-      const hasExistingLoan = await hasAnyLoanForUser(session.user.id);
-      if (hasExistingLoan) {
-        showRedirectLoader();
-        setTimeout(() => {
-          location.replace(DASHBOARD_TARGET);
-        }, 350);
-        return;
-      }
+      await ensureSession();
       loanRecord = await initLoanStep(1, { allowRedirect: false });
     })();
 
