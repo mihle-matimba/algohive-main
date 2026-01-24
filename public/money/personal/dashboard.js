@@ -726,6 +726,13 @@ async function loadRecentApplications() {
     }
 
     const displayable = data || [];
+    
+    // Redirect to step1 if no loan applications exist
+    if (!displayable.length) {
+      window.location.replace('/money/personal/step1.html');
+      return;
+    }
+    
     renderRecentApplications(displayable);
 
     if (pendingCount) {
