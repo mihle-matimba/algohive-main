@@ -2,7 +2,7 @@ const path = require('path');
 const express = require('express');
 
 // Local-only defaults so `npm run dev` works out of the box.
-process.env.EXPERIAN_MOCK = process.env.EXPERIAN_MOCK || 'true';
+process.env.EXPERIAN_MOCK = process.env.EXPERIAN_MOCK || 'false';
 process.env.ALLOW_UNAUTH = process.env.ALLOW_UNAUTH || 'true';
 
 const app = express();
@@ -19,6 +19,25 @@ const mockModeHandler = require('./api/mock-mode');
 
 app.all('/api/credit-check', (req, res) => creditCheckHandler(req, res));
 app.all('/api/mock-mode', (req, res) => mockModeHandler(req, res));
+
+// Fallback: dynamically load any /api/* handler from the api/ folder
+app.all('/api/*', (req, res) => {
+  const relativePath = req.path.replace(/^\/api\//, '');
+  const handlerPath = path.join(__dirname, 'api', relativePath);
+
+  try {
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    const handler = require(handlerPath);
+    return handler(req, res);
+  } catch (err) {
+    if (err && (err.code === 'MODULE_NOT_FOUND' || err.code === 'ERR_MODULE_NOT_FOUND')) {
+      return res.status(404).json({ error: 'API route not found', path: req.path });
+    }
+
+    console.error('API handler error:', err);
+    return res.status(500).json({ error: 'API handler failed', path: req.path });
+  }
+});
 
 function listenWithFallback(startPort, maxAttempts = 10) {
   const initialPort = Number(startPort);
