@@ -238,6 +238,80 @@ import { supabase } from '/js/supabase.js';
     }
   }
 
+  function lockIntakeInputs() {
+    const fields = [
+      grossMonthlyIncomeInput,
+      yearsCurrentEmployerInput,
+      contractTypeSelect,
+      algolendNewBorrowerSelect,
+      employmentSectorSelect,
+      governmentEmployerInput,
+      privateEmployerInput
+    ];
+
+    fields.forEach(field => {
+      if (!field) return;
+      if (field.tagName === 'SELECT') {
+        field.disabled = true;
+      } else {
+        field.readOnly = true;
+        field.setAttribute('aria-readonly', 'true');
+      }
+    });
+  }
+
+  async function hydrateStoredLoanEngineInputs() {
+    const session = await requireSession();
+    if (!session?.user) return false;
+
+    const { data, error } = await supabase
+      .from('loan_engine_score')
+      .select('gross_monthly_income,years_current_employer,contract_type,is_new_borrower,employment_sector,employer_name,run_at')
+      .eq('user_id', session.user.id)
+      .order('run_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) {
+        console.warn('Unable to hydrate stored engine inputs', error.message || error);
+      }
+      return false;
+    }
+
+    if (grossMonthlyIncomeInput && data.gross_monthly_income !== null && data.gross_monthly_income !== undefined) {
+      grossMonthlyIncomeInput.value = String(data.gross_monthly_income);
+    }
+    if (yearsCurrentEmployerInput && data.years_current_employer !== null && data.years_current_employer !== undefined) {
+      yearsCurrentEmployerInput.value = String(data.years_current_employer);
+    }
+    if (contractTypeSelect && data.contract_type) {
+      contractTypeSelect.value = data.contract_type;
+    }
+    if (algolendNewBorrowerSelect && typeof data.is_new_borrower === 'boolean') {
+      algolendNewBorrowerSelect.value = data.is_new_borrower ? 'yes' : 'no';
+    }
+
+    const sector = data.employment_sector || null;
+    if (employmentSectorSelect && sector) {
+      employmentSectorSelect.value = sector;
+      setEmploymentSector(sector);
+    }
+
+    const employerName = data.employer_name || '';
+    if (sector === 'GOVERNMENT' && governmentEmployerInput) {
+      governmentEmployerInput.value = employerName;
+    }
+    if (sector === 'PRIVATE' && privateEmployerInput) {
+      await loadEmploymentDirectory();
+      privateEmployerInput.value = employerName;
+      evaluatePrivateEmployerMatch(employerName);
+    }
+
+    lockIntakeInputs();
+    return true;
+  }
+
   function formatRand(value) {
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) {
@@ -1339,6 +1413,7 @@ import { supabase } from '/js/supabase.js';
     await hydrateProfileIdentity();
     detectMockMode();
     loadEmploymentDirectory();
+    await hydrateStoredLoanEngineInputs();
   };
 
   init();

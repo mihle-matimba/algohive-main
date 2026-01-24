@@ -1214,22 +1214,7 @@
         let loanRecord = null;
 
         (async () => {
-          loanRecord = await initLoanStep(2);
-          if (!loanRecord?.id) return;
-
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) return;
-
-          const { data, error } = await supabase
-            .from('loan_engine_score')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .limit(1);
-
-          if (!error && Array.isArray(data) && data.length > 0) {
-            await updateLoan(loanRecord.id, { step_number: 3 });
-            window.location.replace('step3.html');
-          }
+          loanRecord = await initLoanStep(2, { allowRedirect: false });
         })();
 
         const proceedBtn = document.getElementById('proceed-step-two-btn');
