@@ -530,6 +530,43 @@
         font-size: 1.05rem;
       }
 
+      .salary-date-container {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(8px);
+        overflow: hidden;
+        transition: max-height 0.35s ease, opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      .salary-date-container.visible {
+        max-height: 220px;
+        opacity: 1;
+        transform: translateY(0);
+        margin-top: 1rem;
+      }
+
+      .salary-date-container label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .salary-date-container input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 16px;
+        background: #fff;
+      }
+
+      .salary-helper {
+        margin-top: 0.35rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
       @media (max-width: 600px) {
         .container {
           padding: 0 1rem;
@@ -571,26 +608,6 @@
             <p class="intro">
               Enter the amount you wish to borrow. We'll process your application instantly and provide you with personalized terms.
             </p>
-
-            <div style="margin-bottom: 1.5rem;">
-              <label for="salary-date" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">
-                Monthly Salary Payment Day
-              </label>
-              <input 
-                type="number" 
-                id="salary-date" 
-                placeholder="25"
-                min="1"
-                max="31"
-                step="1"
-                autocomplete="off"
-                required
-                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;"
-              >
-              <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
-                Enter the day of the month you receive your salary (e.g., 25 for the 25th)
-              </p>
-            </div>
 
             <div class="input-wrapper">
               <div class="input-flipper" id="input-flipper">
@@ -645,6 +662,22 @@
               <span id="button-text">Continue Application</span>
             </button>
 
+            <div id="salary-date-container" class="salary-date-container">
+              <label for="salary-date">Monthly Salary Payment Day</label>
+              <input 
+                type="number" 
+                id="salary-date" 
+                placeholder="25"
+                min="1"
+                max="31"
+                step="1"
+                autocomplete="off"
+              >
+              <p class="salary-helper">
+                Enter the day of the month you receive your salary (e.g., 25 for the 25th)
+              </p>
+            </div>
+
             <div class="progress-footer" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="3" aria-label="Loan application progress">
               <div class="step-track">
                 <div class="step-line-base"></div>
@@ -668,6 +701,7 @@
       const loanMonthsInput = document.getElementById('loan-months');
       const repaymentDateInput = document.getElementById('repayment-date');
       const salaryDateInput = document.getElementById('salary-date');
+      const salaryDateContainer = document.getElementById('salary-date-container');
       const inputFlipper = document.getElementById('input-flipper');
       const disclaimer = document.getElementById('disclaimer');
       const disclaimerText = document.getElementById('disclaimer-text');
@@ -751,9 +785,47 @@
           default: return 'th';
         }
       }
+
+      function revealSalaryDateSection() {
+        if (salaryDateContainer) {
+          salaryDateContainer.classList.add('visible');
+        }
+      }
+
+      function updateSalaryDerivedFields() {
+        const salaryDay = parseInt(salaryDateInput?.value, 10);
+        if (!salaryDay || salaryDay < 1 || salaryDay > 31) {
+          return;
+        }
+
+        if (loanAmount && loanMonths) {
+          const totalRepayable = calculateTotalRepayment(loanAmount, loanMonths);
+          monthlyRepayment = totalRepayable / loanMonths;
+          disclaimerText.innerHTML = `Monthly repayment: <strong>R${monthlyRepayment.toFixed(2)}</strong> on the ${salaryDay}${getOrdinalSuffix(salaryDay)}`;
+
+          const firstPaymentDate = getNextSalaryDate(salaryDay, new Date());
+          if (firstPaymentDate) {
+            const dateStr = formatDate(firstPaymentDate);
+            repaymentDateInput.value = dateStr;
+            repaymentDate = dateStr;
+          }
+        }
+      }
       
       repaymentDateInput.min = formatDate(today);
       repaymentDateInput.max = formatDate(maxDate);
+
+      repaymentDateInput.addEventListener('change', () => {
+        if (repaymentDateInput.value) {
+          revealSalaryDateSection();
+          updateSalaryDerivedFields();
+        }
+      });
+
+      salaryDateInput.addEventListener('input', () => {
+        revealSalaryDateSection();
+        updateSalaryDerivedFields();
+      });
       
       loanInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/,/g, '');
@@ -853,41 +925,25 @@
       }
       
       function flipToDate() {
-        // Validate salary date first
-        const salaryDay = parseInt(salaryDateInput?.value);
-        if (!salaryDay || salaryDay < 1 || salaryDay > 31) {
-          alert('Please enter a valid salary payment day (1-31)');
-          salaryDateInput.focus();
-          return;
-        }
-        salaryDate = salaryDay;
-        
         // Calculate repayable amount with new fee structure
         const totalRepayable = calculateTotalRepayment(loanAmount, loanMonths);
+        monthlyRepayment = totalRepayable / loanMonths;
         repayableAmount.textContent = `R${totalRepayable.toFixed(2)}`;
-        
-        // Calculate repayment schedule
-        repaymentSchedule = calculateRepaymentSchedule(totalRepayable, loanMonths, salaryDay);
-        
-        // Set first repayment date
-        const firstPaymentDate = repaymentSchedule[0]?.date;
-        if (firstPaymentDate) {
-          const dateStr = firstPaymentDate.toISOString().split('T')[0];
-          repaymentDateInput.value = dateStr;
-          repaymentDate = dateStr;
-        }
         
         // Fade out and change disclaimer
         disclaimer.classList.add('fade-out');
         
         setTimeout(() => {
-          disclaimerText.innerHTML = `Monthly repayment: <strong>R${monthlyRepayment.toFixed(2)}</strong> on the ${salaryDay}${getOrdinalSuffix(salaryDay)}`;
+          disclaimerText.innerHTML = `Monthly repayment: <strong>R${monthlyRepayment.toFixed(2)}</strong> (set salary day below)`;
           disclaimer.classList.remove('fade-out');
           disclaimer.classList.add('fade-in');
           
           // Show repayable info
           repayableInfo.classList.add('visible');
         }, 400);
+        
+        // Reveal salary input when reaching the date step
+        revealSalaryDateSection();
 
         // Flip the input to date
         inputFlipper.classList.remove('flipped-once');
@@ -955,9 +1011,31 @@
           }
           
           repaymentDate = date;
-          
-          // Store all three values (prepare for database save)
+          revealSalaryDateSection();
+
+          const salaryDay = parseInt(salaryDateInput?.value, 10);
+          if (!salaryDay || salaryDay < 1 || salaryDay > 31) {
+            alert('Please enter your salary payment day (1-31).');
+            salaryDateInput.focus();
+            return;
+          }
+
+          salaryDate = salaryDay;
           const totalRepayment = calculateTotalRepayment(loanAmount, loanMonths);
+          monthlyRepayment = totalRepayment / loanMonths;
+          repaymentSchedule = calculateRepaymentSchedule(totalRepayment, loanMonths, salaryDay);
+
+          // Align first repayment date to salary day rule
+          const firstPaymentDate = repaymentSchedule[0]?.date || getNextSalaryDate(salaryDay, new Date());
+          if (firstPaymentDate) {
+            const dateStr = formatDate(firstPaymentDate);
+            repaymentDateInput.value = dateStr;
+            repaymentDate = dateStr;
+          }
+
+          disclaimerText.innerHTML = `Monthly repayment: <strong>R${monthlyRepayment.toFixed(2)}</strong> on the ${salaryDay}${getOrdinalSuffix(salaryDay)}`;
+
+          // Store all three values (prepare for database save)
           const loanData = {
             amount: loanAmount,
             months: loanMonths,
