@@ -32,7 +32,12 @@ module.exports = async function handler(req, res) {
   try {
     const result = await truIDClient.getCollection(collectionId);
     const statusNode = result.data?.status || result.data?.current_status;
-    const currentStatus = statusNode?.code || statusNode || result.data?.state || 'UNKNOWN';
+    const fallbackStatus = statusNode?.code || statusNode || result.data?.state;
+    const currentStatus =
+      fallbackStatus ||
+      extractLatestStatus(result.data?.statuses) ||
+      extractLatestMilestone(result.data?.milestones) ||
+      'UNKNOWN';
 
     res.json({
       success: true,
@@ -45,3 +50,25 @@ module.exports = async function handler(req, res) {
     res.status(error.status || 500).json({ success: false, error: error.message });
   }
 };
+
+function extractLatestStatus(statuses) {
+  if (!Array.isArray(statuses) || !statuses.length) return null;
+  const sorted = [...statuses].sort((a, b) => {
+    const aTime = Date.parse(a?.time || a?.created || a?.timestamp || 0);
+    const bTime = Date.parse(b?.time || b?.created || b?.timestamp || 0);
+    return bTime - aTime;
+  });
+  const latest = sorted[0];
+  return latest?.code || latest?.status || latest?.state || null;
+}
+
+function extractLatestMilestone(milestones) {
+  if (!Array.isArray(milestones) || !milestones.length) return null;
+  const sorted = [...milestones].sort((a, b) => {
+    const aTime = Date.parse(a?.time || a?.created || a?.timestamp || 0);
+    const bTime = Date.parse(b?.time || b?.created || b?.timestamp || 0);
+    return bTime - aTime;
+  });
+  const latest = sorted[0];
+  return latest?.code || latest?.status || latest?.state || latest?.name || null;
+}
