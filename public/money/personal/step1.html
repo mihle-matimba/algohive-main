@@ -525,12 +525,16 @@
           });
 
           function startStatusPolling(collectionId) {
-            showStatus('Waiting for TruID to finish…');
+            showStatus('Status: pending');
             updateProgress(2);
 
             statusInterval = setInterval(async () => {
               try {
-                const response = await fetch(`/api/banking/status/${collectionId}`);
+                const response = await fetch(`/api/banking/status?collectionId=${encodeURIComponent(collectionId)}`);
+                if (!response.ok) {
+                  const text = await response.text();
+                  throw new Error(text || `Status request failed (${response.status})`);
+                }
                 const data = await response.json();
 
                 const statusValue = data.currentStatus;
@@ -559,7 +563,8 @@
                   resetButton();
                   updateProgress(2);
                 } else {
-                  showStatus('Status: ' + formatStatus(data.currentStatus));
+                  const displayStatus = statusValue ?? 'pending';
+                  showStatus('Status: ' + displayStatus);
                 }
               } catch (error) {
                 console.error(error);
@@ -569,7 +574,11 @@
 
           async function fetchBankingData(collectionId) {
             try {
-              const response = await fetch(`/api/banking/all/${collectionId}`);
+              const response = await fetch(`/api/banking/all?collectionId=${encodeURIComponent(collectionId)}`);
+              if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Summary request failed (${response.status})`);
+              }
               const resultWrapper = await response.json();
         
               console.log('📦 Backend response:', resultWrapper); // Log to browser console
@@ -608,9 +617,13 @@
           }
 
           async function restoreLastCollection(collectionId) {
-            showStatus('Found previous collection. Checking status…');
+            showStatus('Status: pending');
             try {
-              const response = await fetch(`/api/banking/status/${collectionId}`);
+              const response = await fetch(`/api/banking/status?collectionId=${encodeURIComponent(collectionId)}`);
+              if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Status request failed (${response.status})`);
+              }
               const data = await response.json();
 
               if (data.currentStatus === 'COLLECT_SUCCESS') {
@@ -618,7 +631,7 @@
                 updateProgress(3);
                 await fetchBankingData(collectionId);
               } else {
-                showStatus('Previous collection status: ' + formatStatus(data.currentStatus));
+                showStatus('Status: ' + (data.currentStatus ?? 'pending'));
               }
             } catch (error) {
               console.error(error);
