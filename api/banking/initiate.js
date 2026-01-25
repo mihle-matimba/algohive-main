@@ -38,6 +38,17 @@ function parseBody(req) {
   return body || {};
 }
 
+function parseServices(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 module.exports = async function handler(req, res) {
   applyCors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -56,6 +67,19 @@ module.exports = async function handler(req, res) {
     correlation,
     force
   } = body || {};
+
+  const requestedServices = parseServices(services);
+  const envServices = parseServices(process.env.TRUID_SERVICES);
+  const defaultServices = envServices.length
+    ? envServices
+    : [
+        'eeh03fzauckvj8u982dbeq1d8', // 90 days transactions history
+        'amqfuupe00xk3cfw3dergvb9n', // 3 months bank statements
+        's8d7f67de8w9iekjrfu', // Personal categorisation
+        'mk2weodif8gutjre4kwsdfd', // Income verification
+        '12wsdofikgjtm5k4eiduy' // Affordability
+      ];
+  const finalServices = requestedServices.length ? requestedServices : defaultServices;
 
   const authHeader = req.headers.authorization || '';
   const accessToken = authHeader.startsWith('Bearer ')
@@ -156,7 +180,7 @@ module.exports = async function handler(req, res) {
       auto,
       rememberMe,
       consentId,
-      services,
+      services: finalServices,
       correlation,
       force
     });
