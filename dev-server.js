@@ -6,31 +6,6 @@ const cors = require('cors');
 process.env.EXPERIAN_MOCK = process.env.EXPERIAN_MOCK || 'false';
 process.env.ALLOW_UNAUTH = process.env.ALLOW_UNAUTH || 'true';
 
-// Temporary hardcoded TruID config (remove later).
-process.env.TRUID_API_KEY = process.env.TRUID_API_KEY || '938d48454fe54f578c661507f9261208';
-process.env.TRUID_API_BASE = process.env.TRUID_API_BASE || 'https://api.truidconnect.com';
-process.env.TRUID_DOMAIN = process.env.TRUID_DOMAIN || 'truidconnect.com';
-process.env.TRUID_SCHEME = process.env.TRUID_SCHEME || 'https';
-process.env.COMPANY_ID = process.env.COMPANY_ID || 'g4s5350p33x4oqn97tkcuk29x';
-process.env.BRAND_ID = process.env.BRAND_ID || '6tc5naj4qu7moee78771';
-process.env.WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://your-project-alpha.vercel.app/api/webhooks/truid';
-process.env.REDIRECT_URL = process.env.REDIRECT_URL || 'https://your-project-alpha.vercel.app/success';
-process.env.PORT = process.env.PORT || '3000';
-
-process.env.TEST_NAME = process.env.TEST_NAME || 'Joe Customer';
-process.env.TEST_ID = process.env.TEST_ID || '8901015000111';
-process.env.TEST_ID_TYPE = process.env.TEST_ID_TYPE || 'id';
-process.env.TEST_ID_NATIONALITY = process.env.TEST_ID_NATIONALITY || 'za';
-process.env.TEST_DATE_OF_BIRTH = process.env.TEST_DATE_OF_BIRTH || '1974-04-12';
-process.env.TEST_GENDER = process.env.TEST_GENDER || 'm';
-process.env.TEST_EMAIL = process.env.TEST_EMAIL || 'joe@consumer.co.za';
-process.env.TEST_MOBILE = process.env.TEST_MOBILE || '0721234567';
-process.env.TEST_PROVIDER = process.env.TEST_PROVIDER || 'livetestapi';
-process.env.TEST_ACCOUNT_NUMBER = process.env.TEST_ACCOUNT_NUMBER || '33333';
-process.env.TEST_ACCOUNT_NUMBER_SECONDARY =
-  process.env.TEST_ACCOUNT_NUMBER_SECONDARY || '22222';
-process.env.TEST_REMEMBER_ME = process.env.TEST_REMEMBER_ME || 'on';
-
 const truIDClient = require('./services/truidClient');
 
 const app = express();
