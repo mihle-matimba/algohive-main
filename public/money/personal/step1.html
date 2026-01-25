@@ -417,13 +417,6 @@
           </div>
 
           <form id="bankForm">
-            <input class="hiddenField" id="name" name="name" type="hidden" value="Joe Customer" />
-            <input class="hiddenField" id="idNumber" name="idNumber" type="hidden" value="8901015000111" />
-            <input class="hiddenField" id="email" name="email" type="hidden" value="joe@example.com" />
-            <input class="hiddenField" id="mobile" name="mobile" type="hidden" value="0720000000" />
-
-      
-
             <div class="ctaWrap">
               <button id="startBtn" type="submit">
                 <span>Start TruID Session</span>
@@ -449,7 +442,9 @@
           </div>
         </div>
 
-        <script nonce="ALGOHIVE">
+        <script type="module" nonce="ALGOHIVE">
+          import { getSession } from '/js/auth.js';
+
           let currentCollectionId = null;
           let statusInterval = null;
           const COLLECTION_STORAGE_KEY = 'truid_collection_id';
@@ -473,6 +468,15 @@
 
           form.addEventListener('submit', async (event) => {
             event.preventDefault();
+
+            const session = await getSession();
+            const accessToken = session?.access_token;
+            if (!accessToken) {
+              showStatus('Please sign in to continue.', 'error');
+              updateProgress(1);
+              return;
+            }
+
             const payload = Object.fromEntries(new FormData(form).entries());
 
             btn.disabled = true;
@@ -482,7 +486,10 @@
             try {
               const response = await fetch('/api/banking/initiate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${accessToken}`
+                },
                 body: JSON.stringify(payload)
               });
 
