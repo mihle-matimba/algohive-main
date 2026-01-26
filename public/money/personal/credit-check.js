@@ -48,6 +48,28 @@ import { supabase } from '/js/supabase.js';
   const privateEmployerInput = document.getElementById('private-employer-name');
   const privateEmployerFeedback = document.getElementById('private-employer-feedback');
   const employerOptionsDataList = document.getElementById('listed-employer-options');
+  const profileSummary = document.getElementById('profile-summary');
+  const viewProfileBtn = document.getElementById('view-profile-btn');
+  const profileDropdown = document.getElementById('profile-details-dropdown');
+  const profileIdDisplay = document.getElementById('profile-id');
+  const profileFirstNameDisplay = document.getElementById('profile-firstname');
+  const profileSurnameDisplay = document.getElementById('profile-surname');
+  const profileIncomeDisplay = document.getElementById('profile-income');
+  const profileExpensesDisplay = document.getElementById('profile-expenses');
+  const questionsIntro = document.getElementById('questions-intro');
+  const startQuestionsBtn = document.getElementById('start-questions-btn');
+  const questionOneCard = document.getElementById('question-1');
+  const questionTwoCard = document.getElementById('question-2');
+  const questionListedCard = document.getElementById('question-2b');
+  const questionEmployerCard = document.getElementById('question-2c');
+  const finalActions = document.getElementById('final-actions');
+  const qYearsEmployer = document.getElementById('q-years-employer');
+  const continueQ1Btn = document.getElementById('continue-q1-btn');
+  const employerTypeButtons = document.querySelectorAll('.employer-type-btn');
+  const qListedEmployer = document.getElementById('q-listed-employer');
+  const continueQ2bBtn = document.getElementById('continue-q2b-btn');
+  const qEmployerName = document.getElementById('q-employer-name');
+  const continueQ2cBtn = document.getElementById('continue-q2c-btn');
   const retdataCard = document.getElementById('retdata-download-card');
   const retdataButton = document.getElementById('download-retdata-btn');
   const intakePanel = document.getElementById('intake-panel');
@@ -139,6 +161,66 @@ import { supabase } from '/js/supabase.js';
     });
   }
 
+  function formatCurrency(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '--';
+    return `R ${randFormatter.format(numeric)}`;
+  }
+
+  function setProfileSummaryLoaded() {
+    if (!profileSummary) return;
+    const spinner = profileSummary.querySelector('.loader-spinner');
+    if (spinner) {
+      spinner.remove();
+    }
+    const existingIcon = profileSummary.querySelector('.fa-check-circle');
+    if (!existingIcon) {
+      const checkIcon = document.createElement('i');
+      checkIcon.className = 'fa-solid fa-check-circle';
+      checkIcon.style.color = 'var(--success)';
+      profileSummary.appendChild(checkIcon);
+    }
+    if (viewProfileBtn) {
+      viewProfileBtn.classList.remove('hidden');
+    }
+  }
+
+  function updateProfileSummaryFields({ idNumber, firstName, lastName, income, expenses }) {
+    if (profileIdDisplay) {
+      profileIdDisplay.textContent = idNumber || '--';
+    }
+    if (profileFirstNameDisplay) {
+      profileFirstNameDisplay.textContent = firstName || '--';
+    }
+    if (profileSurnameDisplay) {
+      profileSurnameDisplay.textContent = lastName || '--';
+    }
+    if (profileIncomeDisplay) {
+      profileIncomeDisplay.textContent = income ? formatCurrency(income) : '--';
+    }
+    if (profileExpensesDisplay) {
+      profileExpensesDisplay.textContent = expenses ? formatCurrency(expenses) : '--';
+    }
+  }
+
+  function updateProfileBorrowerFields({ isNewBorrower = null, count = 0, lastApplicationAt = null }) {
+    const statusEl = document.getElementById('profile-borrower-status');
+    const detailsEl = document.getElementById('profile-borrower-details');
+    if (statusEl) {
+      if (typeof isNewBorrower === 'boolean') {
+        statusEl.textContent = isNewBorrower ? 'New borrower' : 'Existing borrower';
+      } else {
+        statusEl.textContent = '--';
+      }
+    }
+    if (detailsEl) {
+      const parts = [];
+      parts.push(`Applications: ${count}`);
+      if (lastApplicationAt) parts.push(`Last: ${new Date(lastApplicationAt).toLocaleDateString()}`);
+      detailsEl.textContent = parts.join(' · ') || '--';
+    }
+  }
+
   async function requireSession() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -204,12 +286,43 @@ import { supabase } from '/js/supabase.js';
 
     if (!insertPayload) return;
 
-    const { error } = await supabase
-      .from('loan_engine_score')
-      .insert(insertPayload);
+    try {
+      // Check if there is an existing latest record for this user
+      const { data: existing, error: selectError } = await supabase
+        .from('loan_engine_score')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .order('run_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (error) {
-      console.warn('Unable to save loan engine score', error.message || error);
+      if (selectError) {
+        console.warn('Unable to check existing loan_engine_score', selectError.message || selectError);
+      }
+
+      if (existing && existing.id) {
+        // Update the latest existing row
+        const { error: updateError } = await supabase
+          .from('loan_engine_score')
+          .update(insertPayload)
+          .eq('id', existing.id);
+
+        if (updateError) {
+          console.warn('Unable to update loan engine score', updateError.message || updateError);
+        }
+        return;
+      }
+
+      // No existing row found — insert a new one
+      const { error: insertError } = await supabase
+        .from('loan_engine_score')
+        .insert(insertPayload);
+
+      if (insertError) {
+        console.warn('Unable to save loan engine score', insertError.message || insertError);
+      }
+    } catch (err) {
+      console.error('saveLoanEngineResult failed', err);
     }
   }
 
@@ -265,6 +378,15 @@ import { supabase } from '/js/supabase.js';
       lastNameDisplay.textContent = lastNameValue || 'Missing in profile';
       lastNameDisplay.style.color = lastNameValue ? 'var(--text-primary)' : 'var(--danger)';
     }
+
+    setProfileSummaryLoaded();
+    updateProfileSummaryFields({
+      idNumber: identityValue,
+      firstName: firstNameValue,
+      lastName: lastNameValue,
+      income: annualIncomeInput?.value,
+      expenses: annualExpensesInput?.value
+    });
 
     // Populate annual income from profile
     if (annualIncomeInput && profile?.annual_income_min) {
@@ -460,30 +582,50 @@ import { supabase } from '/js/supabase.js';
       annualExpensesInput.dataset.hydratedFromSnapshot = 'monthly';
     }
 
+    updateProfileSummaryFields({
+      idNumber: identityInput?.value,
+      firstName: firstNameInput?.value,
+      lastName: lastNameInput?.value,
+      income: annualIncomeInput?.value,
+      expenses: annualExpensesInput?.value
+    });
+
     return true;
   }
 
   async function hydrateBorrowerStatusFromApplications() {
     const session = await requireSession();
     if (!session?.user) return false;
+    try {
+      const { data, error } = await supabase
+        .from('loan_application')
+        .select('id, created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-    const { data, error } = await supabase
-      .from('loan_application')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .limit(1);
+      if (error) {
+        console.warn('Unable to check loan application status', error.message || error);
+        updateProfileBorrowerFields({ isNewBorrower: null, count: 0 });
+        return false;
+      }
 
-    if (error) {
-      console.warn('Unable to check loan application status', error.message || error);
+      const applications = Array.isArray(data) ? data : [];
+      const count = applications.length;
+      const lastApp = applications[0]?.created_at ?? null;
+      const hasAnyApplication = count > 0;
+
+      if (algolendNewBorrowerSelect) {
+        algolendNewBorrowerSelect.value = hasAnyApplication ? 'no' : 'yes';
+      }
+
+      updateProfileBorrowerFields({ isNewBorrower: !hasAnyApplication, count, lastApplicationAt: lastApp });
+      return true;
+    } catch (err) {
+      console.warn('Unable to check loan applications', err);
+      updateProfileBorrowerFields({ isNewBorrower: null, count: 0 });
       return false;
     }
-
-    const hasAnyApplication = Array.isArray(data) && data.length > 0;
-    if (algolendNewBorrowerSelect) {
-      algolendNewBorrowerSelect.value = hasAnyApplication ? 'no' : 'yes';
-    }
-
-    return true;
   }
 
   function formatRand(value) {
@@ -680,6 +822,202 @@ import { supabase } from '/js/supabase.js';
     }
     if (privateEmployerFeedback && employmentState.sector !== 'PRIVATE') {
       privateEmployerFeedback.textContent = PRIVATE_EMPLOYER_DEFAULT_MESSAGE;
+    }
+  }
+
+  function showQuestionCard(cardEl) {
+    if (!cardEl) return;
+    cardEl.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      cardEl.classList.add('show');
+      cardEl.classList.remove('slide-out');
+    });
+  }
+
+  function hideQuestionCard(cardEl) {
+    if (!cardEl) return;
+    cardEl.classList.add('slide-out');
+    setTimeout(() => {
+      cardEl.classList.add('hidden');
+      cardEl.classList.remove('show');
+    }, 400);
+  }
+
+  function showFinalActions() {
+    if (finalActions) {
+      finalActions.classList.remove('hidden');
+    }
+  }
+
+  function populateListedEmployerSelect() {
+    if (!qListedEmployer || qListedEmployer.dataset.populated === 'true') return;
+    if (!employmentDirectory.length) return;
+    const fragment = document.createDocumentFragment();
+    employmentDirectory.forEach(entry => {
+      const option = document.createElement('option');
+      option.value = entry.displayName;
+      option.textContent = entry.displayName;
+      fragment.appendChild(option);
+    });
+    qListedEmployer.appendChild(fragment);
+    qListedEmployer.dataset.populated = 'true';
+  }
+
+  function setupQuestionFlow() {
+    if (startQuestionsBtn && questionsIntro) {
+      startQuestionsBtn.addEventListener('click', () => {
+        // Prefill years question from hidden intake field if available and make it read-only
+        try {
+          const prefilledYears = yearsCurrentEmployerInput?.value?.toString()?.trim();
+          if (prefilledYears) {
+            qYearsEmployer.value = prefilledYears;
+            qYearsEmployer.readOnly = true;
+            qYearsEmployer.setAttribute('aria-readonly', 'true');
+            // indicate visually (optional): add a class
+            qYearsEmployer.classList.add('question-input--prefilled');
+          }
+        } catch (err) {
+          console.warn('Unable to prefill years question', err);
+        }
+
+        // If question 2 already has data, prefill and lock it and surface lock button
+        try {
+          const sectorVal = employmentSectorSelect?.value?.toString()?.trim();
+          const govName = governmentEmployerInput?.value?.toString()?.trim();
+          const privName = privateEmployerInput?.value?.toString()?.trim();
+
+          if (sectorVal) {
+            // Prefill Q2 state
+            if (sectorVal === 'GOVERNMENT' && govName) {
+              setEmploymentSector('GOVERNMENT');
+              // Prefill employer name into question input
+              qEmployerName.value = govName;
+              qEmployerName.readOnly = true;
+              qEmployerName.setAttribute('aria-readonly', 'true');
+              // hide the employer type selection and question cards
+              if (questionTwoCard) questionTwoCard.classList.add('hidden');
+              if (questionEmployerCard) questionEmployerCard.classList.remove('hidden');
+              questionEmployerCard.classList.add('show');
+              // show final actions and enable lock
+              showFinalActions();
+              if (lockInputsBtn) lockInputsBtn.disabled = false;
+            } else if (sectorVal === 'PRIVATE' && privName) {
+              setEmploymentSector('PRIVATE');
+              qEmployerName.value = privName;
+              qEmployerName.readOnly = true;
+              qEmployerName.setAttribute('aria-readonly', 'true');
+              if (questionTwoCard) questionTwoCard.classList.add('hidden');
+              if (questionEmployerCard) questionEmployerCard.classList.remove('hidden');
+              questionEmployerCard.classList.add('show');
+              showFinalActions();
+              if (lockInputsBtn) lockInputsBtn.disabled = false;
+            }
+          }
+        } catch (err) {
+          console.warn('Unable to prefill/lock question 2', err);
+        }
+
+        questionsIntro.classList.add('slide-out');
+        setTimeout(() => {
+          questionsIntro.classList.add('hidden');
+          // If question1 is prefilled, still show it (prefilled readonly), otherwise show normally
+          showQuestionCard(questionOneCard);
+        }, 350);
+      });
+    }
+
+    if (continueQ1Btn && qYearsEmployer) {
+      continueQ1Btn.addEventListener('click', () => {
+        const yearsValue = qYearsEmployer.value.trim();
+        if (yearsValue === '' || Number.isNaN(Number(yearsValue)) || Number(yearsValue) < 0) {
+          setIntakeError('Please enter a valid number of years at your current employer.');
+          return;
+        }
+        if (yearsCurrentEmployerInput) {
+          yearsCurrentEmployerInput.value = yearsValue;
+        }
+        setIntakeError('');
+        hideQuestionCard(questionOneCard);
+        showQuestionCard(questionTwoCard);
+      });
+    }
+
+    if (employerTypeButtons && employerTypeButtons.length) {
+      employerTypeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = btn.dataset.type;
+          if (!type) return;
+          if (type === 'LISTED') {
+            setEmploymentSector('PRIVATE');
+            populateListedEmployerSelect();
+            hideQuestionCard(questionTwoCard);
+            showQuestionCard(questionListedCard);
+          } else if (type === 'GOVERNMENT') {
+            setEmploymentSector('GOVERNMENT');
+            hideQuestionCard(questionTwoCard);
+            showQuestionCard(questionEmployerCard);
+          } else {
+            setEmploymentSector('PRIVATE');
+            hideQuestionCard(questionTwoCard);
+            showQuestionCard(questionEmployerCard);
+          }
+        });
+      });
+    }
+
+    if (continueQ2bBtn && qListedEmployer) {
+      continueQ2bBtn.addEventListener('click', () => {
+        const selected = qListedEmployer.value?.trim();
+        if (!selected) {
+          setIntakeError('Please select your employer from the JSE directory.');
+          return;
+        }
+        if (privateEmployerInput) {
+          privateEmployerInput.value = selected;
+          evaluatePrivateEmployerMatch(selected);
+        }
+        setIntakeError('');
+        hideQuestionCard(questionListedCard);
+        showFinalActions();
+      });
+    }
+
+    if (continueQ2cBtn && qEmployerName) {
+      continueQ2cBtn.addEventListener('click', () => {
+        const employerName = qEmployerName.value?.trim();
+        if (!employerName) {
+          setIntakeError('Please enter your employer name to continue.');
+          return;
+        }
+        if (employmentState.sector === 'GOVERNMENT') {
+          if (governmentEmployerInput) {
+            governmentEmployerInput.value = employerName;
+          }
+        } else {
+          if (privateEmployerInput) {
+            privateEmployerInput.value = employerName;
+            evaluatePrivateEmployerMatch(employerName);
+          }
+        }
+        setIntakeError('');
+        hideQuestionCard(questionEmployerCard);
+        showFinalActions();
+      });
+    }
+
+    if (viewProfileBtn && profileDropdown) {
+      viewProfileBtn.addEventListener('click', () => {
+        const isShown = profileDropdown.classList.contains('show');
+        if (isShown) {
+          profileDropdown.classList.remove('show');
+          profileDropdown.classList.add('hidden');
+          viewProfileBtn.classList.remove('expanded');
+        } else {
+          profileDropdown.classList.remove('hidden');
+          profileDropdown.classList.add('show');
+          viewProfileBtn.classList.add('expanded');
+        }
+      });
     }
   }
 
@@ -1601,11 +1939,13 @@ import { supabase } from '/js/supabase.js';
     returnToIntake();
     await hydrateProfileIdentity();
     detectMockMode();
-    loadEmploymentDirectory();
+    await loadEmploymentDirectory();
+    populateListedEmployerSelect();
     await hydrateStoredLoanEngineInputs();
     await hydrateContractTypeFromProfile();
     await hydrateSnapshotIncomeExpenses();
     await hydrateBorrowerStatusFromApplications();
+    setupQuestionFlow();
   };
 
   init();
