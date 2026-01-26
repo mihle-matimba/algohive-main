@@ -77,7 +77,8 @@ module.exports = async function handler(req, res) {
         'amqfuupe00xk3cfw3dergvb9n', // 3 months bank statements
         's8d7f67de8w9iekjrfu', // Personal categorisation
         'mk2weodif8gutjre4kwsdfd', // Income verification
-        '12wsdofikgjtm5k4eiduy' // Affordability
+        '12wsdofikgjtm5k4eiduy', // Affordability
+        'apw99w0lj1nwde4sfxd0' // Pay date indicators (90 days)
       ];
   const finalServices = requestedServices.length ? requestedServices : defaultServices;
 
