@@ -90,6 +90,43 @@ import { supabase } from '/js/supabase.js';
     return String(value).replace(/[&<>"'`]/g, char => HTML_ESCAPES[char] || char);
   }
 
+  function normalizeContractTypeValue(value) {
+    if (!value) return null;
+    const normalized = String(value)
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    const aliasMap = {
+      PERMANENT: 'PERMANENT',
+      PERMANENT_EMPLOYEE: 'PERMANENT',
+      FULL_TIME: 'PERMANENT',
+      PROBATION: 'PERMANENT_ON_PROBATION',
+      PERMANENT_ON_PROBATION: 'PERMANENT_ON_PROBATION',
+      FIXED_TERM: 'FIXED_TERM_LT_12',
+      FIXED_TERM_12_PLUS: 'FIXED_TERM_12_PLUS',
+      FIXED_TERM_12_MONTHS: 'FIXED_TERM_12_PLUS',
+      FIXED_TERM_12_MONTHS_PLUS: 'FIXED_TERM_12_PLUS',
+      FIXED_TERM_LT_12: 'FIXED_TERM_LT_12',
+      FIXED_TERM_LT_12_MONTHS: 'FIXED_TERM_LT_12',
+      FIXED_TERM_UNDER_12: 'FIXED_TERM_LT_12',
+      FIXED_TERM_UNDER_12_MONTHS: 'FIXED_TERM_LT_12',
+      SELF_EMPLOYED: 'SELF_EMPLOYED_12_PLUS',
+      SELF_EMPLOYED_12_PLUS: 'SELF_EMPLOYED_12_PLUS',
+      SELF_EMPLOYED_12_MONTHS_PLUS: 'SELF_EMPLOYED_12_PLUS',
+      CONTRACTOR: 'FIXED_TERM_LT_12',
+      PART_TIME: 'PART_TIME',
+      PARTTIME: 'PART_TIME',
+      PART_TIME_EMPLOYEE: 'PART_TIME',
+      UNEMPLOYED: 'UNEMPLOYED_OR_UNKNOWN',
+      UNKNOWN: 'UNEMPLOYED_OR_UNKNOWN',
+      UNEMPLOYED_OR_UNKNOWN: 'UNEMPLOYED_OR_UNKNOWN'
+    };
+
+    return aliasMap[normalized] || normalized || null;
+  }
+
   const randFormatter = new Intl.NumberFormat('en-ZA', { maximumFractionDigits: 0 });
   const EMPLOYER_CSV_PATH = '/money/personal/2025-10-16%20JSE%20Listed%20Companies.csv';
   const PRIVATE_EMPLOYER_DEFAULT_MESSAGE = 'Type three or more characters to match against the JSE directory (80% when matched).';
@@ -321,6 +358,131 @@ import { supabase } from '/js/supabase.js';
     }
 
     lockIntakeInputs();
+    return true;
+  }
+
+  async function hydrateContractTypeFromProfile() {
+    const session = await requireSession();
+    if (!session?.user) return false;
+
+    // If a contract type is already present (from stored inputs), do not override
+    if (contractTypeSelect && contractTypeSelect.value) {
+      return false;
+    }
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('employment_type')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Unable to fetch contract type from profile', error.message || error);
+        return false;
+      }
+
+      const empType = profile?.employment_type ?? null;
+      if (empType && contractTypeSelect) {
+        // Try exact match first
+        const existingValues = Array.from(contractTypeSelect.options).map(o => o.value);
+        if (existingValues.includes(empType)) {
+          contractTypeSelect.value = empType;
+        } else {
+          // Try normalized match against option values and labels
+          const normalize = s => String(s || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '');
+          const normalizedEmp = normalize(empType);
+          const valueMap = new Map();
+          const labelMap = new Map();
+          Array.from(contractTypeSelect.options).forEach(o => {
+            valueMap.set(normalize(o.value), o.value);
+            labelMap.set(normalize(o.textContent || o.label || o.value), o.value);
+          });
+
+          if (valueMap.has(normalizedEmp)) {
+            contractTypeSelect.value = valueMap.get(normalizedEmp);
+          } else if (labelMap.has(normalizedEmp)) {
+            contractTypeSelect.value = labelMap.get(normalizedEmp);
+          } else {
+            // Last resort: append a new option so the user's profile value is visible and selectable
+            try {
+              const opt = document.createElement('option');
+              opt.value = empType;
+              opt.textContent = empType;
+              contractTypeSelect.appendChild(opt);
+              contractTypeSelect.value = empType;
+            } catch (err) {
+              console.warn('Unable to append contract-type option', err);
+            }
+          }
+        }
+        contractTypeSelect.dataset.hydratedFromProfile = 'profiles';
+      }
+
+      return !!empType;
+    } catch (err) {
+      console.warn('hydrateContractTypeFromProfile failed', err);
+      return false;
+    }
+  }
+
+  async function hydrateSnapshotIncomeExpenses() {
+    const session = await requireSession();
+    if (!session?.user) return false;
+
+    const { data, error } = await supabase
+      .from('truid_bank_snapshots')
+      .select('avg_monthly_income,avg_monthly_expenses,captured_at')
+      .eq('user_id', session.user.id)
+      .order('captured_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) {
+        console.warn('Unable to hydrate snapshot averages', error.message || error);
+      }
+      return false;
+    }
+
+    const avgMonthlyIncome = Number(data.avg_monthly_income);
+    const avgMonthlyExpenses = Number(data.avg_monthly_expenses);
+
+    // Populate the form with monthly values (do not multiply by 12)
+    if (annualIncomeInput && Number.isFinite(avgMonthlyIncome)) {
+      annualIncomeInput.value = avgMonthlyIncome.toFixed(2);
+      annualIncomeInput.dataset.hydratedFromSnapshot = 'monthly';
+    }
+    if (annualExpensesInput && Number.isFinite(avgMonthlyExpenses)) {
+      annualExpensesInput.value = avgMonthlyExpenses.toFixed(2);
+      annualExpensesInput.dataset.hydratedFromSnapshot = 'monthly';
+    }
+
+    return true;
+  }
+
+  async function hydrateBorrowerStatusFromApplications() {
+    const session = await requireSession();
+    if (!session?.user) return false;
+
+    const { data, error } = await supabase
+      .from('loan_application')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .limit(1);
+
+    if (error) {
+      console.warn('Unable to check loan application status', error.message || error);
+      return false;
+    }
+
+    const hasAnyApplication = Array.isArray(data) && data.length > 0;
+    if (algolendNewBorrowerSelect) {
+      algolendNewBorrowerSelect.value = hasAnyApplication ? 'no' : 'yes';
+    }
+
     return true;
   }
 
@@ -823,7 +985,8 @@ import { supabase } from '/js/supabase.js';
     if (!contractType) {
       throw new Error('Please select the applicant\'s contract type.');
     }
-    overrides.contract_type = contractType;
+    const normalizedContractType = normalizeContractTypeValue(contractType) || contractType;
+    overrides.contract_type = normalizedContractType;
 
     const algolendBorrowerStatus = algolendNewBorrowerSelect?.value;
     if (!algolendBorrowerStatus) {
@@ -856,7 +1019,7 @@ import { supabase } from '/js/supabase.js';
       annualIncome: overrides.annual_income,
       annualExpenses: overrides.annual_expenses,
       yearsCurrentEmployer: yearsAtCurrentEmployer,
-      contractType,
+      contractType: normalizedContractType,
       isNewBorrower: overrides.algolend_is_new_borrower,
       employmentSector: employmentSnapshot.sector,
       employerName: employmentSnapshot.employerName
@@ -1440,6 +1603,9 @@ import { supabase } from '/js/supabase.js';
     detectMockMode();
     loadEmploymentDirectory();
     await hydrateStoredLoanEngineInputs();
+    await hydrateContractTypeFromProfile();
+    await hydrateSnapshotIncomeExpenses();
+    await hydrateBorrowerStatusFromApplications();
   };
 
   init();

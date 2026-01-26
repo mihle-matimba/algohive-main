@@ -247,7 +247,40 @@ function computeEmploymentTenureContribution(monthsInCurrentJob = null) {
 }
 
 function computeContractTypeContribution(contractType = null) {
-  const normalized = typeof contractType === 'string' ? contractType.toUpperCase() : null;
+  const raw = typeof contractType === 'string' ? contractType.trim() : null;
+  const normalizedRaw = raw
+    ? raw.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+    : null;
+
+  const aliasMap = {
+    PERMANENT: 'PERMANENT',
+    PERMANENT_EMPLOYEE: 'PERMANENT',
+    FULL_TIME: 'PERMANENT',
+    PROBATION: 'PERMANENT_ON_PROBATION',
+    PERMANENT_ON_PROBATION: 'PERMANENT_ON_PROBATION',
+    FIXED_TERM: 'FIXED_TERM_LT_12',
+    FIXED_TERM_12_PLUS: 'FIXED_TERM_12_PLUS',
+    FIXED_TERM_12_MONTHS: 'FIXED_TERM_12_PLUS',
+    FIXED_TERM_12_MONTHS_PLUS: 'FIXED_TERM_12_PLUS',
+    FIXED_TERM_LT_12: 'FIXED_TERM_LT_12',
+    FIXED_TERM_LT_12_MONTHS: 'FIXED_TERM_LT_12',
+    FIXED_TERM_UNDER_12: 'FIXED_TERM_LT_12',
+    FIXED_TERM_UNDER_12_MONTHS: 'FIXED_TERM_LT_12',
+    SELF_EMPLOYED: 'SELF_EMPLOYED_12_PLUS',
+    SELF_EMPLOYED_12_PLUS: 'SELF_EMPLOYED_12_PLUS',
+    SELF_EMPLOYED_12_MONTHS_PLUS: 'SELF_EMPLOYED_12_PLUS',
+    CONTRACTOR: 'FIXED_TERM_LT_12',
+    PART_TIME: 'PART_TIME',
+    PARTTIME: 'PART_TIME',
+    PART_TIME_EMPLOYEE: 'PART_TIME',
+    UNEMPLOYED: 'UNEMPLOYED_OR_UNKNOWN',
+    UNKNOWN: 'UNEMPLOYED_OR_UNKNOWN',
+    UNEMPLOYED_OR_UNKNOWN: 'UNEMPLOYED_OR_UNKNOWN'
+  };
+
+  const normalized = normalizedRaw && aliasMap[normalizedRaw]
+    ? aliasMap[normalizedRaw]
+    : normalizedRaw;
 
   const valueMap = {
     PERMANENT: 100,
