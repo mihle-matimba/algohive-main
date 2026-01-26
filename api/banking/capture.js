@@ -111,19 +111,22 @@ function extractSalaryPaymentDate(transactions) {
   return latest || null;
 }
 
+function createUserClient(accessToken) {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  });
+}
+
 module.exports = async function handler(req, res) {
   applyCors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (respondMissingEnv(res)) return;
-
-  if (!supabaseAdmin) {
-    return res.status(500).json({
-      success: false,
-      error: 'Missing SUPABASE_SERVICE_ROLE_KEY',
-      details: 'Set SUPABASE_SERVICE_ROLE_KEY to insert capture rows.'
-    });
-  }
 
   const body = parseBody(req);
   const collectionId = body.collectionId || req.query?.collectionId;
@@ -195,7 +198,8 @@ module.exports = async function handler(req, res) {
       raw_statement: statement
     };
 
-    const { data: inserted, error: insertError } = await supabaseAdmin
+    const insertClient = supabaseAdmin || createUserClient(accessToken);
+    const { data: inserted, error: insertError } = await insertClient
       .from('truid_bank_snapshots')
       .insert(insertPayload)
       .select('*')
@@ -203,7 +207,13 @@ module.exports = async function handler(req, res) {
 
     if (insertError) {
       console.error('[truID:capture] insert error', insertError);
-      return res.status(500).json({ success: false, error: insertError.message });
+      return res.status(500).json({
+        success: false,
+        error: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      });
     }
 
     return res.status(201).json({
