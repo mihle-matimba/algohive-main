@@ -171,6 +171,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    console.log('[truID:capture] starting capture', { collectionId, userId: userData.user.id });
     const result = await truIDClient.getCollectionData(collectionId);
     const payload = result?.data || {};
     const statement = payload?.statement || {};
@@ -235,6 +236,16 @@ module.exports = async function handler(req, res) {
       }
     });
 
+    if (localSnapshotPath) {
+      console.log('[truID:capture] local snapshot saved', { localSnapshotPath });
+    } else {
+      console.warn('[truID:capture] local snapshot not saved');
+    }
+
+    console.log('[truID:capture] uploading to database', {
+      collectionId,
+      targetTable: 'truid_bank_snapshots'
+    });
     const insertClient = supabaseAdmin || createUserClient(accessToken);
     const { data: inserted, error: insertError } = await insertClient
       .from('truid_bank_snapshots')
@@ -253,6 +264,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    console.log('[truID:capture] database upload complete', { collectionId, rowId: inserted?.id });
     return res.status(201).json({
       success: true,
       collectionId,

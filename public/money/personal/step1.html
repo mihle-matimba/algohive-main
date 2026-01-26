@@ -587,8 +587,18 @@
                    resultsEl.style.display = 'block';
                    // User wants to see the inner data (statement, etc)
                    dataOutput.textContent = JSON.stringify(resultWrapper.data, null, 2);
-                   showStatus('Complete. Review the payload below.', 'success');
-                   updateProgress(4);
+                    console.log('✅ JSON generated. Uploading to database...');
+                    showStatus('Uploading to database…');
+                    updateProgress(4);
+
+                    try {
+                   const captureResult = await uploadCapture(collectionId);
+                   console.log('✅ Database upload response:', captureResult);
+                   showStatus('Saved to database.', 'success');
+                    } catch (error) {
+                   console.error('❌ Database upload failed', error);
+                   showStatus('Database upload failed: ' + (error.message || 'Unknown error'), 'error');
+                    }
               } else {
                    throw new Error(resultWrapper.error || 'No data returned');
               }
@@ -637,6 +647,37 @@
               console.error(error);
               showStatus('Unable to restore previous collection', 'error');
             }
+          }
+
+          async function uploadCapture(collectionId) {
+            const session = await getSession();
+            const accessToken = session?.access_token;
+            if (!accessToken) {
+              throw new Error('Please sign in to save to the database');
+            }
+
+            const response = await fetch('/api/banking/capture', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+              },
+              body: JSON.stringify({ collectionId })
+            });
+
+            const rawText = await response.text();
+            let data;
+            try {
+              data = rawText ? JSON.parse(rawText) : {};
+            } catch (_) {
+              data = { raw: rawText };
+            }
+
+            if (!response.ok || !data?.success) {
+              throw new Error(data?.error || `Capture failed (${response.status})`);
+            }
+
+            return data;
           }
 
           function resetButton() {
