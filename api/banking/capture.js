@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 const truIDClient = require('../../services/truidClient');
 
 const REQUIRED_ENV = ['TRUID_API_KEY', 'TRUID_API_BASE', 'COMPANY_ID', 'BRAND_ID', 'WEBHOOK_URL', 'REDIRECT_URL'];
@@ -111,6 +113,22 @@ function extractSalaryPaymentDate(transactions) {
   return latest || null;
 }
 
+function tryWriteLocalSnapshot(collectionId, payload) {
+  try {
+    const baseDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'tmp');
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
+    }
+    const fileName = `truid-capture-${collectionId}-${Date.now()}.json`;
+    const filePath = path.join(baseDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+    return filePath;
+  } catch (error) {
+    console.warn('[truID:capture] local snapshot write failed', error.message);
+    return null;
+  }
+}
+
 function createUserClient(accessToken) {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: false },
@@ -198,6 +216,25 @@ module.exports = async function handler(req, res) {
       raw_statement: statement
     };
 
+    const localSnapshotPath = tryWriteLocalSnapshot(collectionId, {
+      collectionId,
+      capturedAt,
+      bankName,
+      customerName,
+      summaryData,
+      statement,
+      metrics: {
+        monthsCaptured,
+        totalIncome,
+        totalExpenses,
+        avgMonthlyIncome,
+        avgMonthlyExpenses,
+        netMonthlyIncome,
+        mainSalary,
+        salaryPaymentDate
+      }
+    });
+
     const insertClient = supabaseAdmin || createUserClient(accessToken);
     const { data: inserted, error: insertError } = await insertClient
       .from('truid_bank_snapshots')
@@ -219,6 +256,7 @@ module.exports = async function handler(req, res) {
     return res.status(201).json({
       success: true,
       collectionId,
+      localSnapshotPath,
       snapshot: inserted
     });
   } catch (error) {
