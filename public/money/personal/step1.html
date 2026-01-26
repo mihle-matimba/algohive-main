@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,77 +68,34 @@
 
     .container {
       width: min(720px, 100%);
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Connect Bank Account</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-          @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:600&display=swap');
+      background: var(--card);
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      padding: clamp(2rem, 4vw, 3rem);
+      box-shadow: 0 10px 40px rgba(21, 14, 50, 0.08);
+    }
 
-          :root {
-            --bg: radial-gradient(circle at top, #fef6ff, #f7fbff 40%, #f0f4ff 70%);
-            --card: #ffffff;
-            --border: #e6e6ef;
-            --text-primary: #1f1f2b;
-            --text-muted: #6c6c80;
-            --accent: #6a43ff;
-            --accent-dark: #4b22d6;
-            --accent-soft: rgba(106, 67, 255, 0.12);
-            --danger: #ff3b30;
-            --success: #34c759;
-            --step-dot-size: 32px;
-          }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: linear-gradient(120deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      border: none;
+      box-shadow: 0 6px 18px rgba(106, 67, 255, 0.35);
+    }
 
-          * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-          }
+    .masthead {
+      margin-top: 0.8rem;
+      text-align: center;
+    }
 
-          body {
-            font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont;
-            min-height: 100vh;
-            background: var(--bg);
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-          }
-
-          .container {
-            width: min(720px, 100%);
-            background: var(--card);
-            border-radius: 28px;
-            border: 1px solid var(--border);
-            padding: clamp(2rem, 4vw, 3rem);
-            box-shadow: 0 10px 40px rgba(21, 14, 50, 0.08);
-          }
-
-          .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.35rem 0.85rem;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            background: linear-gradient(120deg, var(--accent), var(--accent-dark));
-            color: #fff;
-            border: none;
-            box-shadow: 0 6px 18px rgba(106, 67, 255, 0.35);
-          }
-
-          .masthead {
-            margin-top: 0.8rem;
-            text-align: center;
-          }
 
           h1 {
             font-size: clamp(2rem, 5vw, 2.8rem);
@@ -303,13 +261,41 @@
             border-radius: 18px;
             background: #f4f4fb;
             border: 1px solid var(--border);
-            font-family: "SF Mono", Consolas, monospace;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #1c1c28;
-            max-height: 320px;
-            overflow: auto;
             min-height: 120px;
+          }
+
+          .loader-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--text-primary);
+            font-weight: 600;
+          }
+
+          .loader {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid rgba(106, 67, 255, 0.25);
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+            flex-shrink: 0;
+          }
+
+          .loader-text {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .loader-sub {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
           }
 
           .progress-footer {
@@ -427,7 +413,14 @@
           <div class="status" id="status" role="status"></div>
 
           <div class="results" id="results">
-            <pre id="dataOutput"></pre>
+            <div class="loader-wrap">
+              <span class="loader" aria-hidden="true"></span>
+              <div class="loader-text">
+                <div id="fetchStatus">Fetching data…</div>
+                <div class="loader-sub" id="jsonStatus"></div>
+                <div class="loader-sub" id="saveStatus"></div>
+              </div>
+            </div>
           </div>
 
           <div class="progress-footer" aria-live="polite">
@@ -453,12 +446,14 @@
           const btn = document.getElementById('startBtn');
           const statusEl = document.getElementById('status');
           const resultsEl = document.getElementById('results');
-          const dataOutput = document.getElementById('dataOutput');
+          const fetchStatusEl = document.getElementById('fetchStatus');
+          const jsonStatusEl = document.getElementById('jsonStatus');
+          const saveStatusEl = document.getElementById('saveStatus');
           const progressLine = document.querySelector('.step-line-active');
           const progressDots = Array.from(document.querySelectorAll('.step-dot'));
 
-          resultsEl.style.display = 'block';
-          dataOutput.textContent = '{\n  "status": "Waiting for collection summary..."\n}';
+          resultsEl.style.display = 'none';
+          setLoaderStatus({ fetch: 'Fetching data…', json: '', save: '' });
 
           const savedCollectionId = loadStoredCollectionId();
           if (savedCollectionId) {
@@ -482,6 +477,7 @@
             btn.disabled = true;
             btn.innerHTML = '<span>Starting session…</span>';
             showStatus('Initializing secure connection…');
+            updateProgress(1);
 
             try {
               const response = await fetch('/api/banking/initiate', {
@@ -526,7 +522,7 @@
 
           function startStatusPolling(collectionId) {
             showStatus('Status: pending');
-            updateProgress(2);
+            updateProgress(1);
 
             statusInterval = setInterval(async () => {
               try {
@@ -549,8 +545,8 @@
 
                 if (isSuccess) {
                   clearInterval(statusInterval);
-                  showStatus('Success! Downloading banking summary…', 'success');
-                  updateProgress(3);
+                  showStatus('Fetching data…');
+                  updateProgress(1);
                   await fetchBankingData(collectionId);
                   resetButton();
                 } else if (
@@ -574,6 +570,8 @@
 
           async function fetchBankingData(collectionId) {
             try {
+              resultsEl.style.display = 'block';
+              setLoaderStatus({ fetch: 'Fetching data…', json: '', save: '' });
               const response = await fetch(`/api/banking/all?collectionId=${encodeURIComponent(collectionId)}`);
               if (!response.ok) {
                 const text = await response.text();
@@ -584,17 +582,16 @@
               console.log('📦 Backend response:', resultWrapper); // Log to browser console
 
               if (resultWrapper.success && resultWrapper.data) {
-                   resultsEl.style.display = 'block';
-                   // User wants to see the inner data (statement, etc)
-                   dataOutput.textContent = JSON.stringify(resultWrapper.data, null, 2);
-                    console.log('✅ JSON generated. Uploading to database...');
-                    showStatus('Uploading to database…');
-                    updateProgress(4);
+                   setLoaderStatus({ fetch: 'Fetching data…', json: 'JSON fetched', save: '' });
+                   console.log('✅ JSON fetched. Uploading to database...');
+                   showStatus('Uploading to database…');
 
                     try {
                    const captureResult = await uploadCapture(collectionId);
                    console.log('✅ Database upload response:', captureResult);
-                   showStatus('Saved to database.', 'success');
+                     setLoaderStatus({ fetch: 'Fetching data…', json: 'JSON fetched', save: 'Saved to database' });
+                     showStatus('Saved to database.', 'success');
+                     updateProgress(2);
                     } catch (error) {
                    console.error('❌ Database upload failed', error);
                    showStatus('Database upload failed: ' + (error.message || 'Unknown error'), 'error');
@@ -637,8 +634,8 @@
               const data = await response.json();
 
               if (data.currentStatus === 'COLLECT_SUCCESS') {
-                showStatus('Previous collection complete. Fetching summary…', 'success');
-                updateProgress(3);
+                showStatus('Previous collection complete. Fetching data…', 'success');
+                updateProgress(1);
                 await fetchBankingData(collectionId);
               } else {
                 showStatus('Status: ' + (data.currentStatus ?? 'pending'));
@@ -688,6 +685,12 @@
           function showStatus(message, type) {
             statusEl.textContent = message;
             statusEl.className = 'status' + (type ? ' ' + type : '');
+          }
+
+          function setLoaderStatus({ fetch, json, save }) {
+            if (fetchStatusEl && typeof fetch === 'string') fetchStatusEl.textContent = fetch;
+            if (jsonStatusEl && typeof json === 'string') jsonStatusEl.textContent = json;
+            if (saveStatusEl && typeof save === 'string') saveStatusEl.textContent = save;
           }
 
           function formatStatus(status) {
