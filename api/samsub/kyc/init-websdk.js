@@ -1,9 +1,15 @@
 // api/samsub/kyc/init-websdk.js
 const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 
 const SUMSUB_BASE = process.env.SUMSUB_BASE_URL || 'https://api.sumsub.com';
 const APP_TOKEN   = process.env.SUMSUB_APP_TOKEN;
 const SECRET      = process.env.SUMSUB_APP_SECRET || process.env.SUMSUB_SECRET_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://aazofjsssobejhkyyiqv.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY
+  || process.env.SUPABASE_SERVICE_ROLE_KEY
+  || process.env.SUPABASE_SECRET_KEY
+  || process.env.SUPABASE_ANON_KEY;
 
 function sign(ts, method, pathWithQuery, bodyStr = '') {
   const toSign = String(ts) + method.toUpperCase() + pathWithQuery + bodyStr;
@@ -54,6 +60,66 @@ function extractApplicantId(payload) {
   const applicant = extractApplicant(payload);
   if (!applicant) return null;
   return applicant.id || applicant.applicantId || applicant.applicant_id || applicant.inspectionId || null;
+}
+
+function getSupabaseClient() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false },
+  });
+}
+
+function buildKycPayload(partial = {}) {
+  const allowed = new Set([
+    'id',
+    'updated_at',
+    'kyc_status',
+    'kyc_reference',
+    'kyc_applicant_id',
+    'kyc_external_user_id',
+    'kyc_started_at',
+    'kyc_verified_at',
+    'samsub_status',
+    'samsub_external_user_id',
+    'samsub_applicant_id',
+    'samsub_websdk_url',
+    'samsub_last_updated',
+  ]);
+  return Object.entries(partial).reduce((acc, [key, value]) => {
+    if (allowed.has(key) && typeof value !== 'undefined') acc[key] = value;
+    return acc;
+  }, {});
+}
+
+async function persistSamsubInit({ externalUserId, applicantId, websdkUrl }) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { saved: false, reason: 'Supabase credentials are not configured.' };
+  }
+  const now = new Date().toISOString();
+  const payload = buildKycPayload({
+    id: externalUserId,
+    updated_at: now,
+    samsub_status: 'pending',
+    samsub_external_user_id: externalUserId,
+    samsub_applicant_id: applicantId,
+    samsub_websdk_url: websdkUrl,
+    samsub_last_updated: now,
+    kyc_status: 'pending',
+    kyc_reference: applicantId,
+    kyc_applicant_id: applicantId,
+    kyc_external_user_id: externalUserId,
+    kyc_started_at: now,
+  });
+
+  const { error } = await supabase
+    .from('profiles')
+    .upsert(payload, { onConflict: 'id' });
+
+  if (error) {
+    return { saved: false, reason: error.message };
+  }
+  return { saved: true };
 }
 
 // POST /api/samsub/kyc/init-websdk
@@ -126,6 +192,11 @@ module.exports = async (req, res) => {
     }
 
     const websdkUrl = ws.data?.url || ws.data?.link || ws.data?.href || ws.data;
+    const supabaseResult = await persistSamsubInit({
+      externalUserId: userId,
+      applicantId,
+      websdkUrl,
+    });
 
     return res.status(200).json({
       success: true,
@@ -135,8 +206,9 @@ module.exports = async (req, res) => {
         levelName: levelName.trim(),
         ttlInSecs: ttl,
         websdkUrl,
-        reusedApplicant
-      }
+        reusedApplicant,
+        supabase: supabaseResult,
+      },
     });
   } catch (e) {
     return res.status(500).json({ success:false, error:{ message: e.message }});
