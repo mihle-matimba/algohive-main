@@ -630,57 +630,7 @@
             await supabase.auth.updateUser({ data: { account_type: accountTypeValue } });
         } catch (err) { console.warn("Meta update failed", err); }
 
-        const destination = accountTypeValue === "paper" ? "/demo/dashboard.html" : (preferred || "/home.html");
-
-        if (accountTypeValue === "paper") {
-            const liveProfile = await fetchLiveProfileBasics(session.user);
-            let demoProfile = await fetchDemoProfileBasics(session.user);
-
-            if (!demoProfile) {
-                await ensureDemoProfile("paper", liveProfile);
-                demoProfile = await fetchDemoProfileBasics(session.user);
-            }
-
-            if (!hasDemoBasics({ ...liveProfile, ...demoProfile })) {
-                window.location.href = preferred || "/onboarding-standalone.html";
-                return;
-            }
-            window.location.href = destination;
-            return;
-        }
-
-        // Live Logic
-        let profileComplete = false;
-        let kycDone = false;
-        
-        try {
-            const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
-            
-            // AlgoMoney Specific Check (If destination is money home)
-            if (destination.includes('/money/')) {
-                 // Use the new column we added to DB, or fallback to manual check
-                 profileComplete = data?.algomoney_profile_complete ?? computeProfileComplete(data);
-            } else {
-                 // Standard Hive Check
-                 profileComplete = computeProfileComplete(data);
-            }
-            
-            kycDone = resolveKycBoolean(data);
-        } catch (e) {}
-
-        if (!profileComplete || !kycDone) {
-            sessionStorage.setItem("ah_gate_reason", gateBannerMessage(profileComplete, kycDone));
-            
-            // --- FIX: DETECT REDIRECT TARGET ---
-            if (destination.includes('/money/')) {
-                window.location.href = "/money-onboarding.html"; // Go to Money Onboarding
-            } else {
-                window.location.href = "/onboarding.html";       // Go to Hive Onboarding
-            }
-            return;
-        }
-
-        window.location.href = destination;
+        window.location.href = "/onboarding-standalone.html";
     }
 
     function showMsg(id, text, type="error") {
