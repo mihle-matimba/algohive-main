@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Signature Platform</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:600&display=swap');
+
+    :root {
+      --bg: #f8f8f8;
+      --card: #ffffff;
+      --border: #e8e8ed;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-muted: #d2d2d7;
+      --purple: #6a43ff;
+      --purple-dark: #4b22d6;
+      --step-dot-size: 32px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .back-link {
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #f1f1f4;
+      border: 1px solid #e2e2ea;
+      color: #8a8a92;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      transition: all 0.2s ease;
+      z-index: 5;
+    }
+
+    .back-link:hover {
+      color: var(--purple);
+      background: #ffffff;
+      border-color: #d6d6e0;
+    }
+
+    .app-shell {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.5rem 1.25rem 2rem;
+      min-height: calc(100vh - 3.5rem);
+      justify-content: center;
+    }
+
+    .app-shell section {
+      background: var(--card);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .container {
+      width: min(640px, 100%);
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+      color: #fff;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px rgba(106, 67, 255, 0.3);
+    }
+
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0 0 3rem;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .meta-info {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin: 2rem 0 3rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid #e8e8ed;
+      border-bottom: 1px solid #e8e8ed;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      text-align: center;
+    }
+
+    .meta-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .meta-value {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Terms Section */
+    .terms-section {
+      margin: 3rem 0;
+      text-align: left;
+    }
+
+    .terms-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .view-contract-btn {
+      background: none;
+      border: none;
+      color: var(--purple);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .view-contract-btn:hover {
+      background: rgba(106, 67, 255, 0.08);
+    }
+
+    .terms-checkbox-wrapper {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: rgba(0, 0, 0, 0.02);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .terms-checkbox-wrapper:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .terms-checkbox-wrapper.checked {
+      border-color: var(--purple);
+      background: rgba(106, 67, 255, 0.04);
+    }
+
+    .checkbox-custom {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      border: 2px solid #d2d2d7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .terms-checkbox-wrapper.checked .checkbox-custom {
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      border-color: var(--purple);
+    }
+
+    .checkbox-custom i {
+      color: white;
+      font-size: 12px;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .terms-checkbox-wrapper.checked .checkbox-custom i {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .terms-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+      font-weight: 400;
+    }
+
+    .terms-text strong {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    /* Contract Modal */
+    .contract-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      padding: 2rem;
+      overflow-y: auto;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .contract-modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .contract-content {
+      background: white;
+      border-radius: 20px;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    .contract-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 2rem 2.5rem 1.5rem;
+      border-bottom: 1px solid #e8e8ed;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .contract-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .close-modal-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+    }
+
+    .close-modal-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .contract-body {
+      padding: 2rem 2.5rem 2.5rem;
+      text-align: left;
+    }
+
+    .contract-section {
+      margin-bottom: 2rem;
+    }
+
+    .contract-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .contract-section p {
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .contract-section ul {
+      margin: 0.5rem 0 0.75rem 1.5rem;
+    }
+
+    .contract-section li {
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    /* Signature Section */
+    .signature-section {
+      margin: 2rem 0 0;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .signature-section.show {
+      opacity: 1;
+      max-height: 600px;
+      margin: 3rem 0;
+    }
+
+    .signature-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      display: block;
+      text-align: left;
+    }
+
+    .signature-canvas-wrapper {
+      position: relative;
+      background: white;
+      border-radius: 16px;
+      border: 2px solid #e8e8ed;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      margin-bottom: 1rem;
+    }
+
+    .signature-canvas-wrapper:hover {
+      border-color: var(--purple);
+    }
+
+    .signature-canvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      cursor: crosshair;
+    }
+
+    .signature-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .signature-placeholder.hidden {
+      display: none;
+    }
+
+    .btn-clear {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      padding: 0.65rem 1.5rem;
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-clear:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    /* Submit Button */
+    .submit-btn {
+      -webkit-appearance: none;
+      user-select: none;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      outline: none;
+      cursor: pointer;
+      width: 100%;
+      max-width: 280px;
+      height: 65px;
+      background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
+      border-radius: 32px;
+      border: 1px solid #8F9092;
+      box-shadow: 
+        0 4px 3px 1px #FCFCFC,
+        0 6px 8px #D6D7D9,
+        0 -4px 4px #CECFD1,
+        0 -6px 4px #FEFEFE,
+        inset 0 0 3px 0 #CECFD1,
+        0 0 20px rgba(106, 67, 255, 0.15);
+      transition: all .2s ease;
+      font-family: "Source Sans Pro", sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-shadow: 0 1px #fff;
+      margin: 2rem auto 0;
+      position: relative;
+    }
+
+    .submit-btn.show {
+      display: flex;
+      animation: fadeInSlide 0.5s ease;
+    }
+
+    @keyframes fadeInSlide {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 34px;
+      background: linear-gradient(135deg, rgba(106, 67, 255, 0.3), rgba(75, 34, 214, 0.3));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+      filter: blur(8px);
+    }
+
+    .submit-btn:hover::before {
+      opacity: 1;
+    }
+
+    .submit-btn > * {
+      transition: transform .2s ease;
+    }
+
+    .submit-btn:hover:not([disabled]) {
+      box-shadow: 
+        0 4px 3px 1px #FCFCFC,
+        0 6px 8px #D6D7D9,
+        0 -4px 4px #CECFD1,
+        0 -6px 4px #FEFEFE,
+        inset 0 0 3px 3px #CECFD1,
+        0 0 30px rgba(106, 67, 255, 0.3);
+    }
+
+    .submit-btn:hover:not([disabled]) > * {
+      transform: scale(.975);
+    }
+
+    .submit-btn:focus:not(:active) {
+      animation: active-button .9s alternate infinite;
+      outline: none;
+    }
+
+    @keyframes active-button {
+      from {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 10px 0px rgba(75, 34, 214, .7),
+          0 0 40px rgba(106, 67, 255, 0.5);
+      }
+      to {
+        box-shadow: 
+          0 4px 3px 1px #FCFCFC,
+          0 6px 8px #D6D7D9,
+          0 -4px 4px #CECFD1,
+          0 -6px 4px #FEFEFE,
+          inset 0 0 3px 3px #CECFD1,
+          0 0 30px rgba(106, 67, 255, 0.3);
+      }
+    }
+
+    .submit-btn:active:not([disabled]) {
+      box-shadow: 
+        0 4px 3px 1px #FCFCFC,
+        0 6px 8px #D6D7D9,
+        0 -4px 4px #CECFD1,
+        0 -6px 4px #FEFEFE,
+        inset 0 0 5px 3px #999, 
+        inset 0 0 30px #aaa;
+    }
+
+    .submit-btn:active:not([disabled]) > * {
+      transform: scale(.95);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .success-message {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1.5rem;
+      color: var(--purple-dark);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .success-message.show {
+      display: flex;
+    }
+
+    .success-message i {
+      color: var(--purple);
+      font-size: 1.6rem;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1.5rem 1rem 3rem;
+      }
+
+      .app-shell section {
+        padding: 1.75rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .meta-info {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .terms-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .contract-header,
+      .contract-body {
+        padding: 1.5rem;
+      }
+
+      .submit-btn {
+        max-width: 100%;
+      }
+    }
+
+    .progress-footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(96, 96, 96, 0.08);
+    }
+
+    .step-track {
+      position: relative;
+      width: min(420px, 100%);
+      margin: 0 auto;
+      height: 48px;
+    }
+
+    .step-line-base,
+    .step-line-active {
+      position: absolute;
+      top: 50%;
+      left: calc(var(--step-dot-size) / 2);
+      height: 2px;
+      transform: translateY(-50%);
+      border-radius: 2px;
+      z-index: 1;
+    }
+
+    .step-line-base {
+      width: calc(100% - var(--step-dot-size));
+      background: rgba(106, 67, 255, 0.18);
+    }
+
+    .step-line-active {
+      width: calc((100% - var(--step-dot-size)) / 3 * var(--active-segments, 1));
+      background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+      box-shadow: 0 8px 20px rgba(106, 67, 255, 0.25);
+    }
+
+    .step-dot {
+      position: absolute;
+      top: 50%;
+      width: var(--step-dot-size);
+      height: var(--step-dot-size);
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid rgba(106, 67, 255, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+
+    .step-dot.done {
+      background: linear-gradient(120deg, var(--purple), var(--purple-dark));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 8px 20px rgba(106, 67, 255, 0.3);
+    }
+
+    .step-dot.active {
+      border-color: var(--purple);
+      border-width: 3px;
+      color: var(--purple);
+      background: #fff;
+      box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+      animation: stepPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes stepPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(106, 67, 255, 0.4);
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(106, 67, 255, 0);
+        transform: translate(-50%, -50%) scale(1.05);
+      }
+    }
+
+    .step-dot.upcoming {
+      border-style: dashed;
+      color: rgba(96, 96, 96, 0.55);
+    }
+
+    .step-dot:nth-of-type(1) {
+      left: calc(var(--step-dot-size) / 2);
+    }
+
+    .step-dot:nth-of-type(2) {
+      left: calc((100% - var(--step-dot-size)) / 3 + var(--step-dot-size) / 2);
+    }
+
+    .step-dot:nth-of-type(3) {
+      left: calc((100% - var(--step-dot-size)) * 2 / 3 + var(--step-dot-size) / 2);
+    }
+
+    .step-dot:nth-of-type(4) {
+      left: calc(100% - var(--step-dot-size) / 2);
+    }
+  </style>
+</head>
+<body>
+    <a class="back-link" href="step3.html" aria-label="Go to previous step">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <main class="app-shell" style="position: relative; flex: 1; min-width: 0;">
+      <section>
+        <div class="container">
+          <div class="badge">
+            <i class="fa-solid fa-file-signature"></i>
+            Step 2 · Digital Agreement
+          </div>
+
+    <h1>Loan Agreement</h1>
+    <p class="subtitle">Review terms and conditions</p>
+
+    <div class="meta-info">
+      <div class="meta-item">
+        <span class="meta-label">Amount Requested</span>
+        <span class="meta-value" id="amount-requested">R5,000</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Loan Term</span>
+        <span class="meta-value" id="loan-term">12 Months</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Total Repayment</span>
+        <span class="meta-value" id="total-repayment">R5,750</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Repayment Date</span>
+        <span class="meta-value" id="repayment-date">Feb 17, 2026</span>
+      </div>
+    </div>
+
+    <div class="terms-section">
+      <div class="terms-header">
+        <button class="view-contract-btn" id="viewContractBtn">
+          <i class="fa-solid fa-file-lines"></i>
+          View Contract
+        </button>
+      </div>
+
+      <div class="terms-checkbox-wrapper" id="termsCheckbox">
+        <div class="checkbox-custom">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <div class="terms-text">
+          <strong>I hereby confirm that:</strong>
+          I have read and fully understand all terms and conditions set forth in this Loan Agreement. I acknowledge that this is a legally binding contract and I am obligated to fulfill all repayment obligations.
+        </div>
+      </div>
+    </div>
+
+    <div class="signature-section" id="signatureSection">
+      <label class="signature-label">Your Digital Signature</label>
+      <div class="signature-canvas-wrapper">
+        <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+        <div class="signature-placeholder" id="signaturePlaceholder">
+          <i class="fa-solid fa-signature"></i>
+          Sign here with your mouse or finger
+        </div>
+      </div>
+      <button type="button" class="btn-clear" id="clearBtn">
+        <i class="fa-solid fa-eraser"></i> Clear Signature
+      </button>
+    </div>
+
+    <button type="button" class="submit-btn" id="submitBtn" disabled>
+      <span>Submit application loan</span>
+      <i class="fa-solid fa-arrow-right"></i>
+    </button>
+
+    <div class="success-message" id="successMessage">
+      <i class="fa-solid fa-check-circle"></i>
+      <span>Loan submitted</span>
+    </div>
+
+          <div class="progress-footer" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="4" aria-label="Loan application progress">
+            <div class="step-track">
+              <div class="step-line-base"></div>
+              <div class="step-line-active" style="--active-segments: 3;"></div>
+              <span class="step-dot done"><i class="fa-solid fa-check"></i></span>
+              <span class="step-dot done"><i class="fa-solid fa-check"></i></span>
+              <span class="step-dot done"><i class="fa-solid fa-check"></i></span>
+              <span class="step-dot active">4</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Contract Modal -->
+  <div class="contract-modal" id="contractModal">
+    <div class="contract-content">
+      <div class="contract-header">
+        <h2>Loan Agreement</h2>
+        <button class="close-modal-btn" id="closeModalBtn">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="contract-body">
+        <div class="contract-section">
+          <h3>1. Parties to the Agreement</h3>
+          <p>
+            This Loan Agreement ("Agreement") is entered into between AlgoMoney Financial Services (Pty) Ltd, 
+            a company duly registered in accordance with the laws of the Republic of South Africa 
+            (hereinafter referred to as "the Lender"), and the individual whose signature appears below 
+            (hereinafter referred to as "the Borrower").
+          </p>
+        </div>
+
+        <div class="contract-section">
+          <h3>2. Loan Terms and Conditions</h3>
+          <p>
+            The Lender agrees to provide the Borrower with a loan amount as specified in the application, 
+            subject to the terms and conditions set forth in this Agreement. The loan will be disbursed 
+            electronically to the Borrower's designated bank account within 24-48 hours of approval.
+          </p>
+          <ul>
+            <li>Interest rates are calculated on a reducing balance basis</li>
+            <li>Monthly installments include both principal and interest components</li>
+            <li>Early repayment penalties may apply as per the fee schedule</li>
+            <li>Late payment fees will be charged for overdue installments</li>
+          </ul>
+        </div>
+
+        <div class="contract-section">
+          <h3>3. Borrower Obligations</h3>
+          <p>
+            The Borrower undertakes to repay the loan amount plus accrued interest in accordance with 
+            the agreed repayment schedule. The Borrower further agrees to:
+          </p>
+          <ul>
+            <li>Make timely monthly payments on or before the due date</li>
+            <li>Maintain accurate contact information with the Lender</li>
+            <li>Notify the Lender immediately of any changes in employment status</li>
+            <li>Use the loan funds for lawful purposes only</li>
+            <li>Not apply for concurrent loans that may affect repayment capacity</li>
+          </ul>
+        </div>
+
+        <div class="contract-section">
+          <h3>4. Default and Consequences</h3>
+          <p>
+            Default occurs when the Borrower fails to make a scheduled payment within 7 days of the due date. 
+            In the event of default, the Lender reserves the right to:
+          </p>
+          <ul>
+            <li>Report the default to credit bureaus, affecting the Borrower's credit score</li>
+            <li>Initiate legal proceedings to recover the outstanding amount</li>
+            <li>Engage debt collection agencies to pursue recovery</li>
+            <li>Charge additional late payment fees and penalties as outlined in the fee schedule</li>
+          </ul>
+        </div>
+
+        <div class="contract-section">
+          <h3>5. Data Protection and Privacy</h3>
+          <p>
+            The Borrower consents to the collection, processing, and storage of personal information 
+            in accordance with the Protection of Personal Information Act (POPIA). This information 
+            will be used for credit assessment, loan administration, and compliance purposes.
+          </p>
+        </div>
+
+        <div class="contract-section">
+          <h3>6. Governing Law and Jurisdiction</h3>
+          <p>
+            This Agreement shall be governed by and construed in accordance with the laws of the 
+            Republic of South Africa. Any disputes arising from this Agreement shall be subject to 
+            the exclusive jurisdiction of the South African courts.
+          </p>
+        </div>
+
+        <div class="contract-section">
+          <h3>7. Electronic Signature Validity</h3>
+          <p>
+            By signing this document electronically, the Borrower acknowledges that electronic 
+            signatures have the same legal effect as handwritten signatures under the Electronic 
+            Communications and Transactions Act, 2002.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" nonce="ALGOHIVE">
+    import { initLoanStep, updateLoan } from "/js/loan-application.js";
+
+    let loanRecord = null;
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    const termsCheckbox = document.getElementById('termsCheckbox');
+    const signatureSection = document.getElementById('signatureSection');
+    const clearBtn = document.getElementById('clearBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const placeholder = document.getElementById('signaturePlaceholder');
+    const successMessage = document.getElementById('successMessage');
+    const viewContractBtn = document.getElementById('viewContractBtn');
+    const contractModal = document.getElementById('contractModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const amountRequestedEl = document.getElementById('amount-requested');
+    const loanTermEl = document.getElementById('loan-term');
+    const totalRepaymentEl = document.getElementById('total-repayment');
+    const repaymentDateEl = document.getElementById('repayment-date');
+
+    let isDrawing = false;
+    let hasSigned = false;
+    let termsAccepted = false;
+
+    const moneyFormatter = new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      maximumFractionDigits: 2
+    });
+
+    const dateFormatter = new Intl.DateTimeFormat('en-ZA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    (async () => {
+      loanRecord = await initLoanStep(4, { updateStep: false });
+      if (!loanRecord) {
+        window.location.href = 'step1.html';
+        return;
+      }
+
+      const principal = loanRecord.principal_amount ?? null;
+      const months = loanRecord.number_of_months ?? null;
+      const interestRate = loanRecord.interest_rate ?? 0.15;
+      const repayable = loanRecord.amount_repayable ?? (principal ? principal * (1 + interestRate) : null);
+
+      if (amountRequestedEl && principal !== null) {
+        amountRequestedEl.textContent = moneyFormatter.format(principal);
+      }
+      if (loanTermEl && months !== null) {
+        loanTermEl.textContent = `${months} Months`;
+      }
+      if (totalRepaymentEl && repayable !== null) {
+        totalRepaymentEl.textContent = moneyFormatter.format(repayable);
+      }
+      if (repaymentDateEl && loanRecord.first_repayment_date) {
+        const date = new Date(loanRecord.first_repayment_date);
+        repaymentDateEl.textContent = dateFormatter.format(date);
+      }
+    })();
+
+    // Set canvas size
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#6a43ff';
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Contract modal
+    viewContractBtn.addEventListener('click', () => {
+      contractModal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      contractModal.classList.remove('show');
+      document.body.style.overflow = '';
+    });
+
+    contractModal.addEventListener('click', (e) => {
+      if (e.target === contractModal) {
+        contractModal.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+    });
+
+    (function() {
+      const sidebar = document.getElementById('ah-sidebar');
+      const overlay = document.getElementById('ah-overlay');
+      const mobileBtn = document.getElementById('ah-mobile-menu-btn');
+
+      if (mobileBtn && sidebar && overlay) {
+        mobileBtn.addEventListener('click', function() {
+          sidebar.classList.add('is-open');
+          overlay.style.display = 'block';
+        });
+
+        overlay.addEventListener('click', function() {
+          sidebar.classList.remove('is-open');
+          overlay.style.display = 'none';
+        });
+      }
+
+      if (mobileBtn && window.innerWidth >= 768) {
+        mobileBtn.style.display = 'none';
+      }
+      window.addEventListener('resize', function() {
+        if (mobileBtn) {
+          mobileBtn.style.display = window.innerWidth >= 768 ? 'none' : 'inline-flex';
+        }
+      });
+    })();
+
+    // Terms checkbox
+    termsCheckbox.addEventListener('click', function() {
+      termsAccepted = !termsAccepted;
+      termsCheckbox.classList.toggle('checked');
+      
+      if (termsAccepted) {
+        signatureSection.classList.add('show');
+      } else {
+        signatureSection.classList.remove('show');
+        submitBtn.classList.remove('show');
+      }
+      
+      checkFormValidity();
+    });
+
+    // Drawing functions
+    function getCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX || e.touches[0].clientX) - rect.left;
+      const y = (e.clientY || e.touches[0].clientY) - rect.top;
+      return { x, y };
+    }
+
+    function startDrawing(e) {
+      if (!termsAccepted) return;
+      isDrawing = true;
+      const { x, y } = getCoordinates(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      placeholder.classList.add('hidden');
+      e.preventDefault();
+    }
+
+    function draw(e) {
+      if (!isDrawing || !termsAccepted) return;
+      const { x, y } = getCoordinates(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasSigned = true;
+      checkFormValidity();
+      e.preventDefault();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    // Mouse events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // Touch events
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    // Clear button
+    clearBtn.addEventListener('click', function() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasSigned = false;
+      placeholder.classList.remove('hidden');
+      checkFormValidity();
+    });
+
+    // Check form validity
+    function checkFormValidity() {
+      if (termsAccepted && hasSigned) {
+        submitBtn.disabled = false;
+        submitBtn.classList.add('show');
+      } else {
+        submitBtn.disabled = true;
+        if (!hasSigned) {
+          submitBtn.classList.remove('show');
+        }
+      }
+    }
+
+    // Submit button
+    submitBtn.addEventListener('click', async function() {
+      if (termsAccepted && hasSigned) {
+        successMessage.classList.add('show');
+        submitBtn.disabled = true;
+
+        if (loanRecord?.id) {
+          const payload = {
+            step_number: 4,
+            status: 'completed',
+            principal_amount: loanRecord.principal_amount ?? null,
+            amount_repayable: loanRecord.amount_repayable ?? null,
+            first_repayment_date: loanRecord.first_repayment_date ?? null,
+            number_of_months: loanRecord.number_of_months ?? null,
+            interest_rate: loanRecord.interest_rate ?? null
+          };
+
+          Object.keys(payload).forEach((key) => {
+            if (payload[key] === null || payload[key] === undefined) {
+              delete payload[key];
+            }
+          });
+
+          await updateLoan(loanRecord.id, payload);
+        }
+        
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 2000);
+      }
+    });
+  </script>
+</body>
+</html>
